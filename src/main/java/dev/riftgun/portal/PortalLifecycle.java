@@ -2,9 +2,8 @@ package dev.riftgun.portal;
 
 /** State decision captured by prototype/portal-state-machine. */
 public final class PortalLifecycle {
-    public static final int CHARGE_TICKS = 26;
+    public static final int CHARGE_TICKS = 6;
     public static final int ANIMATION_TICKS = 5;
-    public static final int TRAVEL_COOLDOWN_TICKS = 20;
 
     public enum Phase {
         CHARGING,
@@ -51,4 +50,3 @@ public final class PortalLifecycle {
 
     private PortalLifecycle() {}
 }
-

@@ -3,6 +3,7 @@ package dev.riftgun.client;
 import dev.riftgun.RiftGun;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlayerData;
+import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import java.util.Locale;
@@ -27,6 +28,23 @@ public final class ClientGameEvents {
                 PortalNetworking.sendRequest(PortalAction.OPEN_GUI);
             }
         }
+        while (ClientModEvents.CYCLE_PLACEMENT.consumeClick()) {
+            if (minecraft.player != null && minecraft.getConnection() != null) {
+                PortalNetworking.sendRequest(PortalAction.CYCLE_PLACEMENT_MODE);
+            }
+        }
+        while (ClientModEvents.FORCE_FRONT.consumeClick()) {
+            sendForcedOpen(minecraft, PortalPlacementMode.FRONT);
+        }
+        while (ClientModEvents.FORCE_SURFACE.consumeClick()) {
+            sendForcedOpen(minecraft, PortalPlacementMode.SURFACE);
+        }
+    }
+
+    private static void sendForcedOpen(Minecraft minecraft, PortalPlacementMode mode) {
+        if (minecraft.player == null || minecraft.getConnection() == null) return;
+        PortalNetworking.sendRequest(PortalAction.OPEN_SELECTED,
+            tag -> tag.putString("PlacementMode", mode.name()));
     }
 
     @SubscribeEvent

@@ -55,7 +55,14 @@ final class GuiCaptureHarness {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-unsafe"), minecraft.getMainRenderTarget(),
                 message -> {});
         }
-        if (ticks == 144) {
+        if (ticks == 134 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openPlacementSettingsForQa();
+        }
+        if (ticks == 150) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-placement-settings"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 168) {
             completed = true;
             minecraft.stop();
         }

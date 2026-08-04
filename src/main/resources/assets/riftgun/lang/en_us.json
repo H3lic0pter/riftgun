@@ -2,6 +2,9 @@
   "item.riftgun.portal_gun": "Portal Gun",
   "key.categories.riftgun": "Rift Gun",
   "key.riftgun.open_config": "Open portal configuration",
+  "key.riftgun.cycle_placement": "Cycle portal placement mode",
+  "key.riftgun.force_front": "Open portal in front",
+  "key.riftgun.force_surface": "Open portal on a surface",
   "screen.riftgun.config": "Portal Destinations",
   "screen.riftgun.details": "DETAILS",
   "screen.riftgun.search": "Search",
@@ -47,6 +50,16 @@
   "screen.riftgun.checking": "Checking destination…",
   "screen.riftgun.animations": "GUI animations",
   "screen.riftgun.sounds": "UI sounds",
+  "screen.riftgun.placement_settings": "Placement settings",
+  "screen.riftgun.back_to_settings": "Back to settings",
+  "screen.riftgun.smart_distance": "Smart placement distance",
+  "screen.riftgun.smart_distance_value": "Smart distance: %s blocks",
+  "screen.riftgun.maximum_surface_range": "Maximum surface range: %s blocks",
+  "screen.riftgun.placement_mode.smart": "Smart",
+  "screen.riftgun.placement_mode.front": "In front",
+  "screen.riftgun.placement_mode.surface": "Surface",
+  "screen.riftgun.placement_mode_tooltip": "Portal Gun mode: %s (click to switch)",
+  "screen.riftgun.open_front_tooltip": "Always opens a portal in front of you",
   "screen.riftgun.on": "On",
   "screen.riftgun.off": "Off",
   "screen.riftgun.cancel": "Cancel",
@@ -80,4 +93,11 @@
   "message.riftgun.invalid_coordinate": "Invalid coordinates; numbers and ~ are supported, ^ is not",
   "message.riftgun.invalid_request": "Invalid request",
   "message.riftgun.same_dimension_only": "This version only supports same-dimension travel"
+  ,"message.riftgun.dimension_unavailable": "The destination dimension is unavailable"
+  ,"message.riftgun.placement_mode": "Portal placement mode: %s"
+  ,"message.riftgun.front_obstructed": "Not enough room to open a portal in front of you"
+  ,"message.riftgun.surface_missing": "No block surface in sight"
+  ,"message.riftgun.surface_out_of_range": "The targeted surface is out of range"
+  ,"message.riftgun.surface_invalid": "That block face cannot anchor a portal"
+  ,"message.riftgun.surface_obstructed": "There is not enough room on that surface"
 }

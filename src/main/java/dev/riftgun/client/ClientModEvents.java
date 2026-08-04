@@ -23,6 +23,17 @@ public final class ClientModEvents {
     public static final KeyMapping OPEN_CONFIG = new KeyMapping(
         "key.riftgun.open_config", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.riftgun"
     );
+    public static final KeyMapping CYCLE_PLACEMENT = new KeyMapping(
+        "key.riftgun.cycle_placement", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.riftgun"
+    );
+    public static final KeyMapping FORCE_FRONT = new KeyMapping(
+        "key.riftgun.force_front", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        "key.categories.riftgun"
+    );
+    public static final KeyMapping FORCE_SURFACE = new KeyMapping(
+        "key.riftgun.force_surface", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        "key.categories.riftgun"
+    );
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
@@ -44,6 +55,9 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(OPEN_CONFIG);
+        event.register(CYCLE_PLACEMENT);
+        event.register(FORCE_FRONT);
+        event.register(FORCE_SURFACE);
     }
 
     private ClientModEvents() {}

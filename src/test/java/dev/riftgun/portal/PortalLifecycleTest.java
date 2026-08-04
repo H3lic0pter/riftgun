@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 final class PortalLifecycleTest {
     @Test
     void traversesChargingOpeningOpenAndClosingPhases() {
+        assertEquals(6, PortalLifecycle.CHARGE_TICKS);
         PortalLifecycle.Step step = new PortalLifecycle.Step(PortalLifecycle.Phase.CHARGING, 0);
         for (int tick = 0; tick < PortalLifecycle.CHARGE_TICKS; tick++) {
             step = PortalLifecycle.tick(step.phase(), step.phaseTicks());

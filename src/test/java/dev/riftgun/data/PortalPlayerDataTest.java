@@ -39,18 +39,22 @@ final class PortalPlayerDataTest {
     @Test
     void settingsRoundTripAndOldDataKeepsConfirmationDefaults() {
         PortalPlayerSettings configured = new PortalPlayerSettings(false, false, false, true, false,
-            DestinationSort.NAME);
+            DestinationSort.NAME, PortalPlacementMode.SURFACE, 14);
         PortalPlayerSettings restored = PortalPlayerSettings.load(configured.save());
         assertFalse(restored.safetyCheckEnabled());
         assertFalse(restored.confirmDeletion());
         assertFalse(restored.confirmDiscardedChanges());
         assertFalse(restored.soundsEnabled());
         assertEquals(DestinationSort.NAME, restored.sort());
+        assertEquals(PortalPlacementMode.SURFACE, restored.placementMode());
+        assertEquals(14, restored.smartDistance());
 
         CompoundTag legacy = new CompoundTag();
         legacy.putBoolean("SafetyCheck", false);
         PortalPlayerSettings migrated = PortalPlayerSettings.load(legacy);
         assertTrue(migrated.confirmDeletion());
         assertTrue(migrated.confirmDiscardedChanges());
+        assertEquals(PortalPlacementMode.SMART, migrated.placementMode());
+        assertEquals(PortalPlayerSettings.DEFAULT_SMART_DISTANCE, migrated.smartDistance());
     }
 }

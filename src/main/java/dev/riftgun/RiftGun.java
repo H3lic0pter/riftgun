@@ -34,7 +34,7 @@ public final class RiftGun {
     public static final DeferredHolder<EntityType<?>, EntityType<PortalEntity>> PORTAL = ENTITY_TYPES.register(
         "portal",
         () -> EntityType.Builder.<PortalEntity>of(PortalEntity::new, MobCategory.MISC)
-            .sized(1.2F, PortalEntity.HEIGHT)
+            .sized(1.2F, 2.2F)
             .clientTrackingRange(10)
             .updateInterval(1)
             .build("portal")

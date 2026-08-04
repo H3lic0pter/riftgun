@@ -6,8 +6,10 @@ import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.DestinationSort;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
+import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.service.PortalPlacementCapabilities;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -78,6 +81,10 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable EditBox searchBox;
     private @Nullable ThemedButton firstCreateButton;
     private @Nullable ThemedButton groupSelector;
+    private @Nullable ThemedButton placementModeButton;
+    private @Nullable ThemedButton placementSettingsButton;
+    private @Nullable ThemedButton placementBackButton;
+    private @Nullable ThemedButton openPortalButton;
     private int groupSelectorX;
     private int groupSelectorY;
     private int groupSelectorWidth;
@@ -93,6 +100,10 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     protected void init() {
+        placementModeButton = null;
+        placementSettingsButton = null;
+        placementBackButton = null;
+        openPortalButton = null;
         panelWidth = Math.min(520, width - 12);
         panelHeight = Math.min(320, height - 12);
         panelX = (width - panelWidth) / 2;
@@ -133,9 +144,12 @@ public final class PortalConfigScreen extends Screen {
             Component.translatable("screen.riftgun.sort_mode", Component.translatable(
                 "screen.riftgun.sort." + PortalClientState.data().settings().sort().name().toLowerCase(Locale.ROOT))),
             false, ignored -> cycleSort());
+        placementModeButton = button(panelX + listWidth - 28, footerY, 19, 19,
+            Component.empty(), false, ignored -> cyclePlacementMode());
         ThemedButton generate = button(rightX, footerY, available, 19,
             "screen.riftgun.generate", true, ignored -> generatePortal());
         generate.active = viewed() != null;
+        openPortalButton = generate;
 
         requestSafetyIfNeeded(viewedDestination, false);
     }
@@ -177,6 +191,11 @@ public final class PortalConfigScreen extends Screen {
             button(x + 18, y + 127, fieldWidth, 18,
                 toggleLabel("screen.riftgun.sounds", settings.soundsEnabled()), false,
                 ignored -> updateSetting(4));
+            placementSettingsButton = button(x + 18, y + 151, 20, 18, Component.empty(), false,
+                ignored -> openPlacementSettings());
+        } else if (modal == Modal.PLACEMENT_SETTINGS) {
+            addRenderableWidget(new SmartDistanceSlider(x + 18, y + 51, fieldWidth, 18,
+                PortalClientState.data().settings().smartDistance()));
         }
 
         int actionY = y + box.height() - 27;
@@ -189,6 +208,9 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.SETTINGS) {
             button(x + 18, actionY, fieldWidth, 19, "screen.riftgun.done", false,
                 ignored -> closeModalNow());
+        } else if (modal == Modal.PLACEMENT_SETTINGS) {
+            placementBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
+                ignored -> backToSettings());
         } else {
             button(x + 18, actionY, (box.width() - 42) / 2, 19,
                 "screen.riftgun.cancel", false, ignored -> requestCloseModal());
@@ -253,6 +275,7 @@ public final class PortalConfigScreen extends Screen {
             graphics.flush();
         }
         if (groupDropdownOpen) renderGroupDropdown(graphics, mouseX, mouseY);
+        renderPlacementIcons(graphics, mouseX, mouseY);
     }
 
     private void renderRows(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -446,10 +469,69 @@ public final class PortalConfigScreen extends Screen {
             label(graphics, "screen.riftgun.group", x, y + 99);
         } else if (modal == Modal.CREATE_GROUP || modal == Modal.RENAME_GROUP) {
             label(graphics, "screen.riftgun.name", x, y + 32);
+        } else if (modal == Modal.PLACEMENT_SETTINGS) {
+            label(graphics, "screen.riftgun.smart_distance", x, y + 34);
+            graphics.drawString(font, Component.translatable("screen.riftgun.maximum_surface_range",
+                (int) PortalPlacementCapabilities.DEFAULT_MAXIMUM_SURFACE_RANGE), x, y + 76,
+                PortalTheme.TEXT_MUTED, false);
         } else if (modal.isConfirmation()) {
             graphics.drawWordWrap(font, Component.translatable(modal.bodyKey), x, y + 35,
                 box.width() - 36, PortalTheme.TEXT_MUTED);
         }
+    }
+
+    private void renderPlacementIcons(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (modal == Modal.NONE && placementModeButton != null) {
+            int x = placementModeButton.getX() + 5;
+            int y = placementModeButton.getY() + 5;
+            drawPlacementModeIcon(graphics, x, y, PortalClientState.data().settings().placementMode());
+            if (placementModeButton.isHovered()) {
+                graphics.renderTooltip(font, Component.translatable("screen.riftgun.placement_mode_tooltip",
+                    Component.translatable("screen.riftgun.placement_mode."
+                        + PortalClientState.data().settings().placementMode().name().toLowerCase(Locale.ROOT))),
+                    mouseX, mouseY);
+            }
+            if (openPortalButton != null && openPortalButton.isHovered()) {
+                graphics.renderTooltip(font, Component.translatable("screen.riftgun.open_front_tooltip"),
+                    mouseX, mouseY);
+            }
+        }
+        if (modal == Modal.SETTINGS && placementSettingsButton != null) {
+            drawCrosshairIcon(graphics, placementSettingsButton.getX() + 6, placementSettingsButton.getY() + 5);
+            if (placementSettingsButton.isHovered()) graphics.renderTooltip(font,
+                Component.translatable("screen.riftgun.placement_settings"), mouseX, mouseY);
+        }
+        if (modal == Modal.PLACEMENT_SETTINGS && placementBackButton != null) {
+            drawBackIcon(graphics, placementBackButton.getX() + 7, placementBackButton.getY() + 6);
+            if (placementBackButton.isHovered()) graphics.renderTooltip(font,
+                Component.translatable("screen.riftgun.back_to_settings"), mouseX, mouseY);
+        }
+    }
+
+    private static void drawPlacementModeIcon(GuiGraphics graphics, int x, int y, PortalPlacementMode mode) {
+        if (mode == PortalPlacementMode.SMART) {
+            drawCrosshairIcon(graphics, x, y);
+            graphics.fill(x + 7, y + 1, x + 9, y + 2, PortalTheme.ICE);
+            graphics.fill(x + 8, y + 2, x + 9, y + 4, PortalTheme.ICE);
+        } else if (mode == PortalPlacementMode.FRONT) {
+            graphics.renderOutline(x + 2, y, 6, 9, PortalTheme.ICE);
+            graphics.fill(x, y + 4, x + 2, y + 5, PortalTheme.TEXT_MUTED);
+        } else {
+            graphics.fill(x, y, x + 1, y + 10, PortalTheme.TEXT_MUTED);
+            graphics.renderOutline(x + 2, y + 1, 7, 8, PortalTheme.ICE);
+        }
+    }
+
+    private static void drawCrosshairIcon(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x + 4, y, x + 5, y + 9, PortalTheme.ICE);
+        graphics.fill(x, y + 4, x + 9, y + 5, PortalTheme.ICE);
+        graphics.fill(x + 3, y + 3, x + 6, y + 6, PortalTheme.PANEL_RAISED);
+    }
+
+    private static void drawBackIcon(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x, y + 3, x + 10, y + 4, PortalTheme.ICE);
+        graphics.fill(x, y + 3, x + 4, y + 4, PortalTheme.ICE);
+        graphics.fill(x + 1, y + 2, x + 3, y + 5, PortalTheme.ICE);
     }
 
     private void renderGroupDropdown(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -648,6 +730,10 @@ public final class PortalConfigScreen extends Screen {
             shiftFormGroup(keyCode == 263 ? -1 : 1);
             return true;
         }
+        if (keyCode == 256 && modal == Modal.PLACEMENT_SETTINGS) {
+            backToSettings();
+            return true;
+        }
         if (keyCode == 256 && modal != Modal.NONE) {
             requestCloseModal();
             return true;
@@ -774,7 +860,27 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings current = PortalClientState.data().settings();
         sendSettings(new PortalPlayerSettings(current.safetyCheckEnabled(), current.confirmDeletion(),
             current.confirmDiscardedChanges(), current.animationsEnabled(), current.soundsEnabled(),
-            current.sort().next()));
+            current.sort().next(), current.placementMode(), current.smartDistance()));
+    }
+
+    private void cyclePlacementMode() {
+        PortalPlayerSettings old = PortalClientState.data().settings();
+        PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
+            old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+            old.placementMode().next(), old.smartDistance());
+        PortalClientState.data().settings(next);
+        sendSettings(next);
+        rebuildWidgets();
+    }
+
+    private void openPlacementSettings() {
+        modal = Modal.PLACEMENT_SETTINGS;
+        rebuildWidgets();
+    }
+
+    private void backToSettings() {
+        modal = Modal.SETTINGS;
+        rebuildWidgets();
     }
 
     private void moveGroup(UUID group, int delta) {
@@ -805,15 +911,20 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = switch (setting) {
             case 0 -> new PortalPlayerSettings(!old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort());
+                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.placementMode(), old.smartDistance());
             case 1 -> new PortalPlayerSettings(old.safetyCheckEnabled(), !old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort());
+                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.placementMode(), old.smartDistance());
             case 2 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                !old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort());
+                !old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.placementMode(), old.smartDistance());
             case 3 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), !old.animationsEnabled(), old.soundsEnabled(), old.sort());
+                old.confirmDiscardedChanges(), !old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.placementMode(), old.smartDistance());
             default -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.animationsEnabled(), !old.soundsEnabled(), old.sort());
+                old.confirmDiscardedChanges(), old.animationsEnabled(), !old.soundsEnabled(), old.sort(),
+                old.placementMode(), old.smartDistance());
         };
         PortalClientState.data().settings(next);
         if (!next.safetyCheckEnabled()) PortalClientState.clearSafety();
@@ -830,6 +941,8 @@ public final class PortalConfigScreen extends Screen {
             tag.putBoolean("Animations", settings.animationsEnabled());
             tag.putBoolean("Sounds", settings.soundsEnabled());
             tag.putString("Sort", settings.sort().name());
+            tag.putString("PlacementMode", settings.placementMode().name());
+            tag.putInt("SmartDistance", settings.smartDistance());
         });
     }
 
@@ -1110,6 +1223,12 @@ public final class PortalConfigScreen extends Screen {
         openForm(Modal.CREATE_COORDINATE, null);
     }
 
+    /** Used only by the opt-in visual QA harness. */
+    public void openPlacementSettingsForQa() {
+        modal = Modal.PLACEMENT_SETTINGS;
+        rebuildWidgets();
+    }
+
     private @Nullable Destination viewed() {
         return viewedDestination == null ? null : PortalClientState.data().destination(viewedDestination).orElse(null);
     }
@@ -1148,7 +1267,8 @@ public final class PortalConfigScreen extends Screen {
         int desiredHeight = switch (modal) {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
             case CREATE_CURRENT -> 164;
-            case SETTINGS -> 184;
+            case SETTINGS -> 210;
+            case PLACEMENT_SETTINGS -> 132;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
                  CONFIRM_DIRTY, CONFIRM_UNSAFE -> 112;
             case NONE -> 0;
@@ -1224,6 +1344,7 @@ public final class PortalConfigScreen extends Screen {
         CREATE_GROUP("screen.riftgun.create_group", "", true, false),
         RENAME_GROUP("screen.riftgun.rename_group", "", true, false),
         SETTINGS("screen.riftgun.settings", "", false, false),
+        PLACEMENT_SETTINGS("screen.riftgun.placement_settings", "", false, false),
         CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
         CONFIRM_DELETE_GROUP("screen.riftgun.delete", "screen.riftgun.delete_group_body", false, false),
         CONFIRM_DIRTY("screen.riftgun.unsaved", "screen.riftgun.unsaved_body", false, false),
@@ -1245,6 +1366,38 @@ public final class PortalConfigScreen extends Screen {
         boolean hasInputs() { return hasName || hasCoordinates; }
         boolean isDestinationForm() {
             return this == CREATE_CURRENT || this == CREATE_COORDINATE || this == EDIT_DESTINATION;
+        }
+    }
+
+    private final class SmartDistanceSlider extends AbstractSliderButton {
+        private int lastDistance;
+
+        private SmartDistanceSlider(int x, int y, int width, int height, int distance) {
+            super(x, y, width, height, Component.empty(), (Mth.clamp(distance, 1, 32) - 1) / 31.0);
+            lastDistance = Mth.clamp(distance, 1, 32);
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable("screen.riftgun.smart_distance_value", distance()));
+        }
+
+        @Override
+        protected void applyValue() {
+            int nextDistance = distance();
+            if (nextDistance == lastDistance) return;
+            lastDistance = nextDistance;
+            PortalPlayerSettings old = PortalClientState.data().settings();
+            PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
+                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.placementMode(), nextDistance);
+            PortalClientState.data().settings(next);
+            sendSettings(next);
+        }
+
+        private int distance() {
+            return 1 + (int) Math.round(value * 31.0);
         }
     }
 }

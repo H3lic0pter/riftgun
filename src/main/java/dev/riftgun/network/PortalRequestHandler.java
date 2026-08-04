@@ -7,6 +7,7 @@ import dev.riftgun.data.DestinationSort;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
+import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.service.CoordinateParser;
 import dev.riftgun.service.PortalGunLocator;
@@ -33,6 +34,7 @@ public final class PortalRequestHandler {
         }
 
         if (!canUse(player)) {
+            if (action == PortalAction.CYCLE_PLACEMENT_MODE) return;
             player.displayClientMessage(Component.translatable(
                 player.isSpectator() ? "message.riftgun.spectator_denied" : "message.riftgun.no_portal_gun"
             ), true);
@@ -56,8 +58,10 @@ public final class PortalRequestHandler {
                 case SELECT_DESTINATION -> selectDestination(player, data, request);
                 case OPEN_PORTAL -> {
                     yield openDestination(player, data, id(request, "Destination"), true,
-                        request.getBoolean("ConfirmedUnsafe"));
+                        request.getBoolean("ConfirmedUnsafe"), PortalPlacementMode.FRONT);
                 }
+                case OPEN_SELECTED -> openSelected(player, data, requestedPlacement(request));
+                case CYCLE_PLACEMENT_MODE -> cyclePlacementMode(player, data);
                 case CHECK_SAFETY -> {
                     checkSafety(player, data, id(request, "Destination"), false);
                     yield false;
@@ -67,7 +71,7 @@ public final class PortalRequestHandler {
                 case DELETE_GROUP -> deleteGroup(data, request);
                 case MOVE_GROUP -> moveGroup(data, request);
                 case SET_GROUP_EXPANDED -> setExpanded(data, request);
-                case SET_SETTINGS -> setSettings(data, request);
+                case SET_SETTINGS -> setSettings(player, data, request);
                 case OPEN_GUI -> false;
             };
             if (changed) {
@@ -95,13 +99,31 @@ public final class PortalRequestHandler {
             return;
         }
         try {
-            if (openDestination(player, data, selected, false, true)) {
+            if (openDestination(player, data, selected, false, true, data.settings().placementMode())) {
                 PortalDataStore.save(player, data);
                 PortalNetworking.sendSnapshot(player, false);
             }
         } catch (UserInputException exception) {
             player.displayClientMessage(Component.translatable(exception.translationKey), true);
         }
+    }
+
+    private static boolean openSelected(ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode) {
+        UUID selected = data.selectedDestinationId();
+        if (selected == null) throw error("message.riftgun.no_destination_selected");
+        return openDestination(player, data, selected, false, true, mode);
+    }
+
+    private static boolean cyclePlacementMode(ServerPlayer player, PortalPlayerData data) {
+        PortalPlayerSettings old = data.settings();
+        PortalPlacementMode next = old.placementMode().next();
+        data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
+            old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+            next, old.smartDistance()));
+        player.displayClientMessage(Component.translatable(
+            "message.riftgun.placement_mode", Component.translatable("screen.riftgun.placement_mode."
+                + next.name().toLowerCase(Locale.ROOT))), true);
+        return true;
     }
 
     private static boolean createCurrent(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
@@ -251,7 +273,7 @@ public final class PortalRequestHandler {
         return true;
     }
 
-    private static boolean setSettings(PortalPlayerData data, CompoundTag request) {
+    private static boolean setSettings(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
         DestinationSort sort;
         try {
             sort = DestinationSort.valueOf(request.getString("Sort"));
@@ -264,13 +286,16 @@ public final class PortalRequestHandler {
             request.getBoolean("ConfirmDiscardedChanges"),
             request.getBoolean("Animations"),
             request.getBoolean("Sounds"),
-            sort
+            sort,
+            PortalPlacementMode.parse(request.getString("PlacementMode")),
+            Math.max(1, Math.min((int) PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player),
+                request.getInt("SmartDistance")))
         ));
         return true;
     }
 
     private static boolean openDestination(ServerPlayer player, PortalPlayerData data, UUID destinationId,
-                                           boolean fromGui, boolean confirmedUnsafe) {
+                                           boolean fromGui, boolean confirmedUnsafe, PortalPlacementMode placementMode) {
         Destination destination = data.destination(destinationId)
             .orElseThrow(() -> error("message.riftgun.destination_missing"));
         var dimensionResult = PortalServices.DIMENSION_POLICY.validate(player, destination);
@@ -292,10 +317,21 @@ public final class PortalRequestHandler {
         }
 
         Destination resolved = PortalServices.SAFE_DESTINATION_RESOLVER.resolve((ServerLevel) player.level(), destination, report);
-        PortalEntity.openPair(player, resolved);
+        var placement = PortalServices.PLACEMENT_RESOLVER.resolve(player, resolved, placementMode,
+            data.settings().smartDistance());
+        if (!placement.successful()) {
+            player.displayClientMessage(Component.translatable(placement.errorKey()), true);
+            return false;
+        }
+        PortalEntity.openPair(player, placement.pair());
         data.selectedDestinationId(destination.id());
         data.replaceDestination(destination.usedAt(player.level().getGameTime()));
         return true;
+    }
+
+    private static PortalPlacementMode requestedPlacement(CompoundTag request) {
+        PortalPlacementMode mode = PortalPlacementMode.parse(request.getString("PlacementMode"));
+        return mode == PortalPlacementMode.SMART ? PortalPlacementMode.FRONT : mode;
     }
 
     private static void checkSafety(ServerPlayer player, PortalPlayerData data, UUID destinationId, boolean confirmation) {

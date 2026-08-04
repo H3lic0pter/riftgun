@@ -77,6 +77,19 @@
 - [x] Portal Gun 互动键遇到 unsafe 目标时 action-bar 警告但照常开门；GUI 开门使用确认弹窗。
 - [x] 玩家、掉落物、允许的 vehicle/passenger tree 可传送；mob 不可传送。
 - [x] 保留水平 momentum 与 riding relationship。
+- [x] `CHARGING` 前摇缩短为 6 ticks；opening/closing 各 5 ticks，完全开启后仍维持 3 秒。
+- [x] `SMART` / `FRONT` / `SURFACE` 三种持久化 placement mode；`V` 默认循环切换。
+- [x] GUI 底部 Open Portal 固定使用 `FRONT`，不受当前 placement mode 影响。
+- [x] `FRONT` / `SURFACE` 各有默认未绑定的直接开门快捷键，且不修改持久化 mode。
+- [x] `SMART` 默认阈值 8 blocks；二级设置页提供 1–32 slider，`Esc` 返回 Settings。
+- [x] server-authoritative block collider raycast；忽略 fluids/entities；surface 最大射程为 code seam，默认 32 blocks。
+- [x] 侧面贴附按 3×1 周围空间枚举 2×1 候选；优先 backing blocks 更完整者，支撑相同时才选择更靠近玩家的一侧；都不成立时允许 1×1 compact portal。
+- [x] TOP/BOTTOM 使用 world-aligned 1×1 水平 portal，入口与出口反向配对；只检查 portal slab，出口不可用时静默回退到侧向 2×1。
+- [x] 入口、出口采用统一 3D basis transform，保留 velocity/look 并提供最小向外速度。
+- [x] Portal-local occupancy gate 取代 tick cooldown；实体完全离开出口 trigger 后才允许再次进入。
+- [x] 贴面 portal 每 5 ticks 复验 anchor 与占用空间；失效时成对关闭。
+- [x] 新 placement 验证成功后才关闭旧 portal pair；失败时保留旧门。
+- [x] translucent quad liquid splash 随 portal basis 定向；默认淡绿色 `#A8F0B6`，仅暴露 code-level style provider。
 
 ## 7. Verification
 
@@ -87,6 +100,7 @@
 - [x] `runClient -PguiCapture=true` 自动打开真实 Screen、截图并正常退出，无 mod exception。
 - [x] GUI scale 1 与当前窗口允许的自动上限 scale 2：主界面、坐标 modal、unsafe modal 无 clipping。
 - [x] scale 2 详情区实际滚到底，Edit 可见且底部 Open Portal 保持固定。
+- [x] scale 2 placement settings 二级页无 clipping，slider、说明与返回按钮均完整可见。
 - [ ] `runClient` 手工完整流程成功。
 - [ ] 三种 GUI scale / resolution 检查。
 - [ ] 截图检查 clipping、hierarchy、contrast、hover、focus、empty/error states。
@@ -98,6 +112,8 @@
 - [ ] 通过 `SafeDestinationResolver` 智能搜索安全位置。
 - [ ] 跨维度 policy 与维度选择器。
 - [ ] Portal upgrade module 组合不同实体 eligibility policy。
+- [ ] Portal geometry upgrade：根据空间在 3×3、2×1、1×1 之间动态选择。
+- [ ] Portal range upgrade：通过 `PortalPlacementCapabilities` 扩展 surface raycast 射程。
 - [ ] 可选 accessory / inventory mod locator integration。
 - [ ] 原创 UI 与 portal sound set。
 - [ ] internal seam 稳定后再设计 versioned public addon API。

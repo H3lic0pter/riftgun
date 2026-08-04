@@ -10,6 +10,8 @@ public enum PortalAction {
     VIEW_DESTINATION,
     SELECT_DESTINATION,
     OPEN_PORTAL,
+    OPEN_SELECTED,
+    CYCLE_PLACEMENT_MODE,
     CHECK_SAFETY,
     CREATE_GROUP,
     RENAME_GROUP,
@@ -18,4 +20,3 @@ public enum PortalAction {
     SET_GROUP_EXPANDED,
     SET_SETTINGS
 }
-

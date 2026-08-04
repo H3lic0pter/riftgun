@@ -1,13 +1,14 @@
 package dev.riftgun.portal;
 
 import dev.riftgun.RiftGun;
-import dev.riftgun.data.Destination;
 import dev.riftgun.service.PortalServices;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -18,28 +19,33 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.RelativeMovement;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
+import org.jetbrains.annotations.Nullable;
 
 public final class PortalEntity extends Entity {
-    public static final float WIDTH = 1.2F;
-    public static final float HEIGHT = 2.2F;
-    public static final float DEPTH = 0.12F;
-    public static final int COLOR = 0x62FF48;
+    public static final float DEPTH = (float) PortalPlacement.DEPTH;
 
-    private static final String COOLDOWN_TAG = RiftGun.MOD_ID + ":portal_cooldown_until";
     private static final EntityDataAccessor<Integer> PHASE =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE_TICKS =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> ORIENTATION =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> GEOMETRY =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
 
-    private UUID linkedPortalId;
-    private UUID ownerId;
+    private @Nullable UUID linkedPortalId;
+    private @Nullable UUID ownerId;
+    private @Nullable BlockPos anchor;
+    private @Nullable Direction anchorFace;
+    private final PortalTransitGate transitGate = new PortalTransitGate();
     private boolean closingPair;
 
     public PortalEntity(EntityType<?> type, Level level) {
@@ -47,52 +53,52 @@ public final class PortalEntity extends Entity {
         noPhysics = true;
     }
 
-    public static void openPair(ServerPlayer player, Destination destination) {
-        ServerLevel level = player.serverLevel();
+    public static void openPair(ServerPlayer player, PortalPairPlacement pair) {
         MinecraftServer server = player.getServer();
         if (server == null) return;
-        ServerLevel targetLevel = server.getLevel(destination.dimension());
-        if (targetLevel == null) return;
+        ServerLevel entryLevel = player.serverLevel();
+        ServerLevel exitLevel = server.getLevel(pair.exitDimension());
+        if (exitLevel == null) return;
+
+        // The resolver has already validated both placements. Existing portals are closed only now.
         closeOwnedPortals(server, player.getUUID());
 
-        Vec3 horizontalLook = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
-        Vec3 entryBottom = player.position().add(horizontalLook.scale(2.0));
-        float entryYaw = player.getYRot() + 180.0F;
-        float exitYaw = destination.yaw();
-        Vec3 exitOutward = Vec3.directionFromRotation(0.0F, exitYaw).normalize();
-        Vec3 exitBottom = destination.position().subtract(exitOutward.scale(0.85));
-
-        BlockPos exitBlock = BlockPos.containing(exitBottom);
-        targetLevel.getChunk(exitBlock.getX() >> 4, exitBlock.getZ() >> 4);
-        targetLevel.getChunkSource().addRegionTicket(
-            TicketType.PORTAL, new ChunkPos(exitBlock), 3, exitBlock, true
-        );
-
-        PortalEntity entry = create(level, player.getUUID(), entryBottom, entryYaw);
-        PortalEntity exit = create(targetLevel, player.getUUID(), exitBottom, exitYaw);
+        PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry());
+        PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit());
         entry.linkedPortalId = exit.getUUID();
         exit.linkedPortalId = entry.getUUID();
 
-        level.addFreshEntity(entry);
-        targetLevel.addFreshEntity(exit);
-        level.playSound(null, player.blockPosition(), SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.65F, 1.35F);
+        BlockPos exitBlock = BlockPos.containing(pair.exit().center());
+        exitLevel.getChunk(exitBlock.getX() >> 4, exitBlock.getZ() >> 4);
+        exitLevel.getChunkSource().addRegionTicket(
+            TicketType.PORTAL, new ChunkPos(exitBlock), 3, exitBlock, true
+        );
+
+        entryLevel.addFreshEntity(entry);
+        exitLevel.addFreshEntity(exit);
+        entryLevel.playSound(null, pair.entry().center().x, pair.entry().center().y, pair.entry().center().z,
+            SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.7F, 1.15F);
+        entryLevel.playSound(null, pair.entry().center().x, pair.entry().center().y, pair.entry().center().z,
+            SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.25F, 1.55F);
     }
 
-    private static PortalEntity create(ServerLevel level, UUID owner, Vec3 bottom, float yaw) {
+    private static PortalEntity create(ServerLevel level, UUID owner, PortalPlacement placement) {
         PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
         portal.ownerId = owner;
-        portal.setPos(bottom);
-        portal.setYRot(yaw);
-        portal.setYHeadRot(yaw);
+        portal.setPos(placement.center());
+        portal.setYRot(placement.yaw());
+        portal.setYHeadRot(placement.yaw());
+        portal.entityData.set(ORIENTATION, placement.orientation().ordinal());
+        portal.entityData.set(GEOMETRY, placement.geometry().ordinal());
+        portal.anchor = placement.anchor();
+        portal.anchorFace = placement.anchorFace();
         return portal;
     }
 
     public static void closeOwnedPortals(MinecraftServer server, UUID owner) {
         for (ServerLevel level : server.getAllLevels()) {
             for (Entity entity : level.getAllEntities()) {
-                if (entity instanceof PortalEntity portal && owner.equals(portal.ownerId)) {
-                    portal.startClosing();
-                }
+                if (entity instanceof PortalEntity portal && owner.equals(portal.ownerId)) portal.startClosing();
             }
         }
     }
@@ -101,6 +107,8 @@ public final class PortalEntity extends Entity {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         builder.define(PHASE, PortalLifecycle.Phase.CHARGING.ordinal());
         builder.define(PHASE_TICKS, 0);
+        builder.define(ORIENTATION, PortalOrientation.VERTICAL.ordinal());
+        builder.define(GEOMETRY, PortalGeometry.FLOATING_VERTICAL.ordinal());
     }
 
     public PortalLifecycle.Phase phase() {
@@ -111,13 +119,42 @@ public final class PortalEntity extends Entity {
         return entityData.get(PHASE_TICKS);
     }
 
+    public PortalOrientation orientation() {
+        return PortalOrientation.byOrdinal(entityData.get(ORIENTATION));
+    }
+
+    public PortalGeometry geometry() {
+        return PortalGeometry.byOrdinal(entityData.get(GEOMETRY));
+    }
+
+    public float portalWidth() {
+        return geometry().width();
+    }
+
+    public float portalHeight() {
+        return geometry().height();
+    }
+
+    public Vec3 normal() {
+        return orientation().normal(getYRot());
+    }
+
+    public Vec3 up() {
+        return orientation().up(getYRot());
+    }
+
+    public Vec3 right() {
+        return orientation().right(getYRot());
+    }
+
+    public PortalPlacement placement() {
+        return new PortalPlacement(position(), orientation(), geometry(), getYRot(), anchor, anchorFace);
+    }
+
     @Override
     public void tick() {
         super.tick();
-        if (level().isClientSide()) {
-            spawnChargingParticles();
-            return;
-        }
+        if (level().isClientSide()) return;
 
         PortalLifecycle.Step next = PortalLifecycle.tick(phase(), phaseTicks());
         entityData.set(PHASE, next.phase().ordinal());
@@ -127,6 +164,10 @@ public final class PortalEntity extends Entity {
             discard();
             return;
         }
+        if (tickCount % 5 == 0 && !anchorStillValid()) {
+            startClosing();
+            return;
+        }
         if (next.phase() == PortalLifecycle.Phase.OPEN && PortalServices.CLOSE_POLICY.shouldClose(this)) {
             startClosing();
         } else if (next.phase() == PortalLifecycle.Phase.OPEN) {
@@ -134,75 +175,79 @@ public final class PortalEntity extends Entity {
         }
     }
 
-    private void spawnChargingParticles() {
-        if (phase() != PortalLifecycle.Phase.CHARGING || random.nextFloat() > phaseTicks() / 30.0F) return;
-        float spread = Math.max(0.1F, phaseTicks() / (float) PortalLifecycle.CHARGE_TICKS);
-        level().addParticle(
-            new DustParticleOptions(new Vector3f(0.38F, 1.0F, 0.28F), 1.0F),
-            true,
-            getX() + (random.nextDouble() - 0.5) * spread,
-            getY() + HEIGHT * 0.5 + (random.nextDouble() - 0.5) * spread,
-            getZ() + (random.nextDouble() - 0.5) * spread,
-            0.0,
-            0.0,
-            0.0
-        );
+    private boolean anchorStillValid() {
+        if (anchor == null || anchorFace == null || !(level() instanceof ServerLevel serverLevel)) return true;
+        if (serverLevel.getBlockState(anchor).getCollisionShape(serverLevel, anchor).isEmpty()) return false;
+        return !serverLevel.getBlockCollisions(null, placement().bounds().deflate(0.002)).iterator().hasNext();
     }
 
     private void teleportTouchingEntities() {
         PortalEntity target = linkedPortal();
         if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return;
 
-        long gameTime = level().getGameTime();
-        for (Entity entity : level().getEntities(this, getBoundingBox().inflate(0.12), this::canTeleport)) {
-            long cooldownUntil = entity.getPersistentData().getLong(COOLDOWN_TAG);
-            if (gameTime < cooldownUntil) continue;
-            teleportTree(entity, target, gameTime);
+        AABB search = placement().bounds().inflate(0.6, 2.0, 0.6);
+        List<Entity> touching = level().getEntities(this, search, this::canTeleport);
+        Set<UUID> touchingIds = new HashSet<>(touching.size());
+        for (Entity entity : touching) touchingIds.add(entity.getUUID());
+        transitGate.retainInside(touchingIds);
+
+        for (Entity entity : touching) {
+            if (!transitGate.enter(entity.getUUID())) continue;
+            target.transitGate.markInside(entity.getUUID());
+            teleportTree(entity, target);
         }
     }
 
     private boolean canTeleport(Entity entity) {
-        if (entity instanceof PortalEntity || entity.isPassenger() || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity)) {
-            return false;
-        }
-        Vec3 local = entity.position().subtract(position()).yRot((float) Math.toRadians(getYRot()));
-        return Math.abs(local.x) <= WIDTH * 0.65
-            && Math.abs(local.z) <= 0.45
-            && local.y >= -0.2
-            && local.y <= HEIGHT + 0.2;
+        if (entity instanceof PortalEntity || entity.isPassenger()
+            || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity)) return false;
+        Vec3 delta = entity.getBoundingBox().getCenter().subtract(position());
+        double normalRadius = orientation() == PortalOrientation.VERTICAL
+            ? entity.getBbWidth() * 0.5 : entity.getBbHeight() * 0.5;
+        return Math.abs(delta.dot(right())) <= portalWidth() * 0.5 + entity.getBbWidth() * 0.5
+            && Math.abs(delta.dot(up())) <= portalHeight() * 0.5 + entity.getBbHeight() * 0.5
+            && Math.abs(delta.dot(normal())) <= 0.45 + normalRadius;
     }
 
-    private void teleportTree(Entity root, PortalEntity target, long gameTime) {
+    private void teleportTree(Entity root, PortalEntity target) {
         var passengers = new ArrayList<>(root.getPassengers());
         root.ejectPassengers();
-        teleportSingle(root, target, gameTime);
+        teleportSingle(root, target);
         for (Entity passenger : passengers) {
-            teleportTree(passenger, target, gameTime);
+            teleportTree(passenger, target);
             passenger.startRiding(root, true);
         }
         target.level().playSound(null, target.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
             SoundSource.PLAYERS, 0.6F, 1.4F);
     }
 
-    private void teleportSingle(Entity entity, PortalEntity target, long gameTime) {
-        Vec3 outward = Vec3.directionFromRotation(0.0F, target.getYRot()).normalize();
-        Vec3 destination = target.position().add(outward.scale(0.85));
-        float rotation = target.getYRot() - getYRot() + 180.0F;
-        float newYaw = entity.getYRot() + rotation;
-        Vec3 momentum = entity.getDeltaMovement().yRot((float) Math.toRadians(rotation));
+    private void teleportSingle(Entity entity, PortalEntity target) {
+        Vec3 momentum = transformVector(entity.getDeltaMovement(), target);
+        double outwardSpeed = momentum.dot(target.normal());
+        if (outwardSpeed < 0.12) momentum = momentum.add(target.normal().scale(0.12 - outwardSpeed));
+
+        Vec3 look = transformVector(entity.getLookAngle(), target).normalize();
+        float newYaw = (float) Math.toDegrees(Math.atan2(-look.x, look.z));
+        float newPitch = (float) Math.toDegrees(Math.asin(Mth.clamp(-look.y, -1.0, 1.0)));
+        Vec3 destination = target.outputPosition(entity);
 
         entity.setDeltaMovement(momentum);
-        entity.teleportTo(
-            (ServerLevel) target.level(),
-            destination.x,
-            destination.y,
-            destination.z,
-            Set.of(RelativeMovement.X, RelativeMovement.Y, RelativeMovement.Z),
-            newYaw,
-            entity.getXRot()
-        );
+        entity.teleportTo((ServerLevel) target.level(), destination.x, destination.y, destination.z,
+            Set.<RelativeMovement>of(), newYaw, newPitch);
+        entity.setDeltaMovement(momentum);
         entity.hasImpulse = true;
-        entity.getPersistentData().putLong(COOLDOWN_TAG, gameTime + PortalLifecycle.TRAVEL_COOLDOWN_TICKS);
+    }
+
+    private Vec3 transformVector(Vec3 vector, PortalEntity target) {
+        return PortalTransform.between(vector, orientation(), getYRot(), target.orientation(), target.getYRot());
+    }
+
+    private Vec3 outputPosition(Entity entity) {
+        return switch (orientation()) {
+            case VERTICAL -> position().add(normal().scale(0.85)).subtract(up().scale(portalHeight() * 0.5));
+            case TOP -> position().add(normal().scale(0.15));
+            case BOTTOM -> position().add(normal().scale(entity.getBbHeight() + 0.15));
+        };
     }
 
     public void startClosing() {
@@ -217,7 +262,7 @@ public final class PortalEntity extends Entity {
         }
     }
 
-    private PortalEntity linkedPortal() {
+    private @Nullable PortalEntity linkedPortal() {
         if (linkedPortalId == null || !(level() instanceof ServerLevel serverLevel)) return null;
         Entity entity = serverLevel.getEntity(linkedPortalId);
         if (entity instanceof PortalEntity portal) return portal;
@@ -234,16 +279,35 @@ public final class PortalEntity extends Entity {
     protected void readAdditionalSaveData(CompoundTag tag) {
         if (tag.hasUUID("LinkedPortal")) linkedPortalId = tag.getUUID("LinkedPortal");
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
+        if (tag.contains("Anchor")) anchor = BlockPos.of(tag.getLong("Anchor"));
+        if (tag.contains("AnchorFace")) {
+            try {
+                anchorFace = Direction.valueOf(tag.getString("AnchorFace"));
+            } catch (IllegalArgumentException ignored) {
+                anchorFace = null;
+            }
+        }
         entityData.set(PHASE, tag.getInt("Phase"));
         entityData.set(PHASE_TICKS, tag.getInt("PhaseTicks"));
+        entityData.set(ORIENTATION, tag.getInt("Orientation"));
+        entityData.set(GEOMETRY, tag.getInt("Geometry"));
     }
 
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
         if (linkedPortalId != null) tag.putUUID("LinkedPortal", linkedPortalId);
         if (ownerId != null) tag.putUUID("Owner", ownerId);
+        if (anchor != null) tag.putLong("Anchor", anchor.asLong());
+        if (anchorFace != null) tag.putString("AnchorFace", anchorFace.name());
         tag.putInt("Phase", entityData.get(PHASE));
         tag.putInt("PhaseTicks", entityData.get(PHASE_TICKS));
+        tag.putInt("Orientation", entityData.get(ORIENTATION));
+        tag.putInt("Geometry", entityData.get(GEOMETRY));
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return placement().bounds().inflate(0.5);
     }
 
     @Override

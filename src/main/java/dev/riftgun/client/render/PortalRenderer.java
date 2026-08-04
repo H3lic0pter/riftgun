@@ -2,7 +2,6 @@ package dev.riftgun.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
 import dev.riftgun.RiftGun;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalLifecycle;
@@ -11,9 +10,10 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
-/** Procedural portal adapted from Tempad's MIT-licensed TimedoorRenderer. */
+/** Procedural liquid portal with orientation-aware splash motion. */
 public final class PortalRenderer extends EntityRenderer<PortalEntity> {
     private static final ResourceLocation EMPTY_TEXTURE =
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/misc/empty.png");
@@ -30,87 +30,159 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity> {
     @Override
     public void render(PortalEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource buffers, int packedLight) {
+        PortalVisualStyle style = PortalVisualStyles.resolve(entity);
+        Basis basis = new Basis(entity.right(), entity.up(), entity.normal());
+        Matrix4f matrix = poseStack.last().pose();
+
+        drawSplash(entity, partialTick, matrix, basis,
+            buffers.getBuffer(PortalRenderTypes.splash()), style.splashColor());
+
         float progress = PortalLifecycle.visibleProgress(entity.phase(), entity.phaseTicks(), partialTick);
-        if (progress <= 0.0F) return;
-
-        float eased = Mth.sin(progress * Mth.HALF_PI);
-        float width = PortalEntity.WIDTH * eased;
-        float height = PortalEntity.HEIGHT * eased;
-        float depth = PortalEntity.DEPTH;
-
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YN.rotationDegrees(entity.getYRot() + 180.0F));
-        poseStack.translate(-width * 0.5, (PortalEntity.HEIGHT - height) * 0.5, -depth * 0.5);
-
-        float shimmer = 0.96F + Mth.sin((entity.tickCount + partialTick) * 0.18F) * 0.04F;
-        drawVolume(poseStack, buffers.getBuffer(PortalRenderTypes.portal()), width, height, depth, shimmer);
-        drawBorder(poseStack, buffers.getBuffer(PortalRenderTypes.border()), width, height, depth,
-            entity.tickCount + partialTick);
-
-        poseStack.popPose();
+        if (progress > 0.0F) {
+            float eased = Mth.sin(progress * Mth.HALF_PI);
+            float width = entity.portalWidth() * eased;
+            float height = entity.portalHeight() * eased;
+            float shimmer = 0.96F + Mth.sin((entity.tickCount + partialTick) * 0.18F) * 0.04F;
+            drawVolume(matrix, basis, buffers.getBuffer(PortalRenderTypes.portal()), width, height,
+                PortalEntity.DEPTH, style.surfaceColor(), shimmer);
+            drawBorder(matrix, poseStack.last(), basis, buffers.getBuffer(PortalRenderTypes.border()),
+                width, height, PortalEntity.DEPTH, entity.tickCount + partialTick, style.borderColor());
+        }
         super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
     }
 
-    private static void drawVolume(PoseStack stack, VertexConsumer vertices, float width, float height,
-                                   float depth, float shimmer) {
-        Matrix4f matrix = stack.last().pose();
-        float red = 0.38F * shimmer;
-        float green = 1.0F * shimmer;
-        float blue = 0.28F * shimmer;
+    private static void drawSplash(PortalEntity entity, float partialTick, Matrix4f matrix,
+                                   Basis basis, VertexConsumer vertices, int color) {
+        PortalSplashAnimation.Frame frame = PortalSplashAnimation.sample(
+            entity.phase(), entity.phaseTicks(), partialTick);
+        if (!frame.visible()) return;
 
-        quad(vertices, matrix, 0, height, 0, width, height, 0, width, 0, 0, 0, 0, 0,
+        drawRipple(matrix, basis, vertices, entity.portalWidth(), entity.portalHeight(), frame, color);
+        float halfWidth = entity.portalWidth() * 0.5F;
+        float halfHeight = entity.portalHeight() * 0.5F;
+        Vec3 depth = basis.normal.scale(-PortalEntity.DEPTH * 0.85F);
+        for (int index = 0; index < frame.droplets(); index++) {
+            float angle = (float) (index * Math.PI * 2.0 / frame.droplets() + entity.getId() * 0.31);
+            float cosine = Mth.cos(angle);
+            float sine = Mth.sin(angle);
+            float wobble = 0.84F + ((index * 37) % 17) / 70.0F;
+            Vec3 edge = basis.right.scale(cosine * halfWidth * 0.92F)
+                .add(basis.up.scale(sine * halfHeight * 0.92F)).add(depth);
+            Vec3 radial = basis.right.scale(cosine).add(basis.up.scale(sine)).normalize();
+            Vec3 tangent = basis.right.scale(-sine).add(basis.up.scale(cosine)).normalize();
+            double signedTravel = frame.travel() * (frame.outward() ? 1.0 : -0.55);
+            Vec3 tip = edge.add(radial.scale(signedTravel * wobble));
+            Vec3 tail = tip.add(radial.scale(frame.outward()
+                ? -frame.dropletLength() * wobble : frame.dropletLength() * wobble));
+            double tailHalfWidth = 0.018 + index % 3 * 0.004;
+            double tipHalfWidth = tailHalfWidth * 1.8;
+            splashQuad(vertices, matrix,
+                tail.subtract(tangent.scale(tailHalfWidth)),
+                tail.add(tangent.scale(tailHalfWidth)),
+                tip.add(tangent.scale(tipHalfWidth)),
+                tip.subtract(tangent.scale(tipHalfWidth)), color, frame.alpha());
+        }
+    }
+
+    private static void drawRipple(Matrix4f matrix, Basis basis, VertexConsumer vertices,
+                                   float portalWidth, float portalHeight,
+                                   PortalSplashAnimation.Frame frame, int color) {
+        float expansion = frame.outward() ? frame.progress() : 1.0F - frame.progress();
+        float halfWidth = portalWidth * (0.43F + expansion * 0.18F);
+        float halfHeight = portalHeight * (0.43F + expansion * 0.18F);
+        float thickness = 0.025F + (1.0F - frame.progress()) * 0.018F;
+        float z = -PortalEntity.DEPTH * 0.9F;
+        float alpha = frame.alpha() * 0.65F;
+        splashQuad(vertices, matrix, basis.at(-halfWidth, halfHeight - thickness, z),
+            basis.at(halfWidth, halfHeight - thickness, z), basis.at(halfWidth, halfHeight, z),
+            basis.at(-halfWidth, halfHeight, z), color, alpha);
+        splashQuad(vertices, matrix, basis.at(-halfWidth, -halfHeight, z),
+            basis.at(halfWidth, -halfHeight, z), basis.at(halfWidth, -halfHeight + thickness, z),
+            basis.at(-halfWidth, -halfHeight + thickness, z), color, alpha);
+        splashQuad(vertices, matrix, basis.at(-halfWidth, -halfHeight + thickness, z),
+            basis.at(-halfWidth + thickness, -halfHeight + thickness, z),
+            basis.at(-halfWidth + thickness, halfHeight - thickness, z),
+            basis.at(-halfWidth, halfHeight - thickness, z), color, alpha);
+        splashQuad(vertices, matrix, basis.at(halfWidth - thickness, -halfHeight + thickness, z),
+            basis.at(halfWidth, -halfHeight + thickness, z), basis.at(halfWidth, halfHeight - thickness, z),
+            basis.at(halfWidth - thickness, halfHeight - thickness, z), color, alpha);
+    }
+
+    private static void splashQuad(VertexConsumer vertices, Matrix4f matrix,
+                                   Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color, float alpha) {
+        splashVertex(vertices, matrix, a, color, alpha);
+        splashVertex(vertices, matrix, b, color, alpha);
+        splashVertex(vertices, matrix, c, color, alpha);
+        splashVertex(vertices, matrix, d, color, alpha);
+    }
+
+    private static void splashVertex(VertexConsumer vertices, Matrix4f matrix,
+                                     Vec3 point, int color, float alpha) {
+        float sourceAlpha = ((color >>> 24) & 255) / 255.0F;
+        vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+            .setColor(red(color), green(color), blue(color), alpha * sourceAlpha);
+    }
+
+    private static void drawVolume(Matrix4f matrix, Basis basis, VertexConsumer vertices,
+                                   float width, float height, float depth, int color, float shimmer) {
+        float red = red(color) * shimmer;
+        float green = green(color) * shimmer;
+        float blue = blue(color) * shimmer;
+        float hw = width * 0.5F;
+        float hh = height * 0.5F;
+        float hd = depth * 0.5F;
+
+        quad(vertices, matrix, basis, -hw, hh, -hd, hw, hh, -hd, hw, -hh, -hd, -hw, -hh, -hd,
             red, green, blue);
-        quad(vertices, matrix, width, height, depth, 0, height, depth, 0, 0, depth, width, 0, depth,
+        quad(vertices, matrix, basis, hw, hh, hd, -hw, hh, hd, -hw, -hh, hd, hw, -hh, hd,
             red, green, blue);
-        quad(vertices, matrix, 0, height, depth, width, height, depth, width, height, 0, 0, height, 0,
+        quad(vertices, matrix, basis, -hw, hh, hd, hw, hh, hd, hw, hh, -hd, -hw, hh, -hd,
             red, green, blue);
-        quad(vertices, matrix, 0, 0, 0, width, 0, 0, width, 0, depth, 0, 0, depth, red, green, blue);
-        quad(vertices, matrix, 0, height, depth, 0, height, 0, 0, 0, 0, 0, 0, depth, red, green, blue);
-        quad(vertices, matrix, width, height, 0, width, height, depth, width, 0, depth, width, 0, 0,
+        quad(vertices, matrix, basis, -hw, -hh, -hd, hw, -hh, -hd, hw, -hh, hd, -hw, -hh, hd,
+            red, green, blue);
+        quad(vertices, matrix, basis, -hw, hh, hd, -hw, hh, -hd, -hw, -hh, -hd, -hw, -hh, hd,
+            red, green, blue);
+        quad(vertices, matrix, basis, hw, hh, -hd, hw, hh, hd, hw, -hh, hd, hw, -hh, -hd,
             red, green, blue);
     }
 
-    private static void quad(VertexConsumer vertices, Matrix4f matrix,
+    private static void quad(VertexConsumer vertices, Matrix4f matrix, Basis basis,
                              float x1, float y1, float z1, float x2, float y2, float z2,
                              float x3, float y3, float z3, float x4, float y4, float z4,
                              float red, float green, float blue) {
-        vertex(vertices, matrix, x1, y1, z1, red, green, blue, 0, 1);
-        vertex(vertices, matrix, x2, y2, z2, red, green, blue, 1, 1);
-        vertex(vertices, matrix, x3, y3, z3, red, green, blue, 1, 0);
-        vertex(vertices, matrix, x4, y4, z4, red, green, blue, 0, 0);
+        vertex(vertices, matrix, basis.at(x1, y1, z1), red, green, blue, 0, 1);
+        vertex(vertices, matrix, basis.at(x2, y2, z2), red, green, blue, 1, 1);
+        vertex(vertices, matrix, basis.at(x3, y3, z3), red, green, blue, 1, 0);
+        vertex(vertices, matrix, basis.at(x4, y4, z4), red, green, blue, 0, 0);
     }
 
-    private static void vertex(VertexConsumer vertices, Matrix4f matrix, float x, float y, float z,
+    private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
                                float red, float green, float blue, float u, float v) {
-        vertices.addVertex(matrix, x, y, z)
-            .setColor(red, green, blue, 1.0F)
-            .setUv(u, v)
-            .setUv2((int) (x * 16.0F), (int) (y * 16.0F));
+        vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+            .setColor(red, green, blue, 1.0F).setUv(u, v).setUv2(240, 240);
     }
 
-    private static void drawBorder(PoseStack stack, VertexConsumer vertices, float width, float height,
-                                   float depth, float age) {
-        var pose = stack.last();
-        Matrix4f matrix = pose.pose();
-        int color = PortalEntity.COLOR | 0xFF000000;
-
-        line(vertices, pose, matrix, 0, 0, 0, width, 0, 0, color);
-        line(vertices, pose, matrix, width, 0, 0, width, height, 0, color);
-        line(vertices, pose, matrix, width, height, 0, 0, height, 0, color);
-        line(vertices, pose, matrix, 0, height, 0, 0, 0, 0, color);
-        line(vertices, pose, matrix, 0, 0, depth, width, 0, depth, color);
-        line(vertices, pose, matrix, width, 0, depth, width, height, depth, color);
-        line(vertices, pose, matrix, width, height, depth, 0, height, depth, color);
-        line(vertices, pose, matrix, 0, height, depth, 0, 0, depth, color);
+    private static void drawBorder(Matrix4f matrix, PoseStack.Pose pose, Basis basis,
+                                   VertexConsumer vertices, float width, float height,
+                                   float depth, float age, int color) {
+        float hw = width * 0.5F;
+        float hh = height * 0.5F;
+        float hd = depth * 0.5F;
+        Vec3 a = basis.at(-hw, -hh, -hd);
+        Vec3 b = basis.at(hw, -hh, -hd);
+        Vec3 c = basis.at(hw, hh, -hd);
+        Vec3 d = basis.at(-hw, hh, -hd);
+        line(vertices, pose, matrix, a, b, color);
+        line(vertices, pose, matrix, b, c, color);
+        line(vertices, pose, matrix, c, d, color);
+        line(vertices, pose, matrix, d, a, color);
 
         float perimeter = 2.0F * (width + height);
         float cursor = age % Math.max(perimeter, 0.001F);
         float[] point = perimeterPoint(cursor, width, height);
-        float pulse = 0.08F;
-        line(vertices, pose, matrix,
-            Math.max(0, point[0] - pulse), point[1], -0.004F,
-            Math.min(width, point[0] + pulse), point[1], -0.004F,
-            0xFFFFFFFF);
+        Vec3 pulseCenter = basis.at(point[0] - hw, point[1] - hh, -hd - 0.004F);
+        line(vertices, pose, matrix, pulseCenter.subtract(basis.right.scale(0.06)),
+            pulseCenter.add(basis.right.scale(0.06)), 0xFFFFFFFF);
     }
 
     private static float[] perimeterPoint(float distance, float width, float height) {
@@ -124,16 +196,21 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity> {
     }
 
     private static void line(VertexConsumer vertices, PoseStack.Pose pose, Matrix4f matrix,
-                             float x1, float y1, float z1, float x2, float y2, float z2, int color) {
-        float dx = x2 - x1;
-        float dy = y2 - y1;
-        float dz = z2 - z1;
-        float length = Mth.sqrt(dx * dx + dy * dy + dz * dz);
-        if (length == 0.0F) return;
-        dx /= length;
-        dy /= length;
-        dz /= length;
-        vertices.addVertex(matrix, x1, y1, z1).setColor(color).setNormal(pose, dx, dy, dz);
-        vertices.addVertex(matrix, x2, y2, z2).setColor(color).setNormal(pose, dx, dy, dz);
+                             Vec3 from, Vec3 to, int color) {
+        Vec3 direction = to.subtract(from).normalize();
+        vertices.addVertex(matrix, (float) from.x, (float) from.y, (float) from.z)
+            .setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
+        vertices.addVertex(matrix, (float) to.x, (float) to.y, (float) to.z)
+            .setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
+    }
+
+    private static float red(int color) { return ((color >> 16) & 255) / 255.0F; }
+    private static float green(int color) { return ((color >> 8) & 255) / 255.0F; }
+    private static float blue(int color) { return (color & 255) / 255.0F; }
+
+    private record Basis(Vec3 right, Vec3 up, Vec3 normal) {
+        Vec3 at(float x, float y, float z) {
+            return right.scale(x).add(up.scale(y)).add(normal.scale(z));
+        }
     }
 }

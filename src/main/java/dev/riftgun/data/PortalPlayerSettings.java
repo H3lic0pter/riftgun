@@ -8,10 +8,15 @@ public record PortalPlayerSettings(
     boolean confirmDiscardedChanges,
     boolean animationsEnabled,
     boolean soundsEnabled,
-    DestinationSort sort
+    DestinationSort sort,
+    PortalPlacementMode placementMode,
+    int smartDistance
 ) {
+    public static final int DEFAULT_SMART_DISTANCE = 8;
+
     public static PortalPlayerSettings defaults() {
-        return new PortalPlayerSettings(true, true, true, true, true, DestinationSort.RECENT);
+        return new PortalPlayerSettings(true, true, true, true, true, DestinationSort.RECENT,
+            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE);
     }
 
     public CompoundTag save() {
@@ -22,6 +27,8 @@ public record PortalPlayerSettings(
         tag.putBoolean("Animations", animationsEnabled);
         tag.putBoolean("Sounds", soundsEnabled);
         tag.putString("Sort", sort.name());
+        tag.putString("PlacementMode", placementMode.name());
+        tag.putInt("SmartDistance", smartDistance);
         return tag;
     }
 
@@ -39,7 +46,9 @@ public record PortalPlayerSettings(
             !tag.contains("ConfirmDiscardedChanges") || tag.getBoolean("ConfirmDiscardedChanges"),
             !tag.contains("Animations") || tag.getBoolean("Animations"),
             !tag.contains("Sounds") || tag.getBoolean("Sounds"),
-            sort
+            sort,
+            PortalPlacementMode.parse(tag.getString("PlacementMode")),
+            tag.contains("SmartDistance") ? Math.max(1, tag.getInt("SmartDistance")) : DEFAULT_SMART_DISTANCE
         );
     }
 }

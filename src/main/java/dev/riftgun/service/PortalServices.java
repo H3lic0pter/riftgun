@@ -6,6 +6,8 @@ public final class PortalServices {
     public static SafeDestinationResolver SAFE_DESTINATION_RESOLVER = SafeDestinationResolver.IDENTITY;
     public static PortalEntityEligibilityPolicy ENTITY_ELIGIBILITY = new DefaultPortalEntityEligibilityPolicy();
     public static PortalClosePolicy CLOSE_POLICY = new FixedOpenDurationClosePolicy();
+    public static PortalPlacementCapabilities PLACEMENT_CAPABILITIES = PortalPlacementCapabilities.DEFAULT;
+    public static PortalPlacementResolver PLACEMENT_RESOLVER = new VanillaPortalPlacementResolver();
 
     public static void bootstrap() {
         if (PortalGunLocator.LOCATORS.isEmpty()) {
