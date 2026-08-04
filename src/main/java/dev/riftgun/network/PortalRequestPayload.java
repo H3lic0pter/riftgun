@@ -1,0 +1,23 @@
+package dev.riftgun.network;
+
+import dev.riftgun.RiftGun;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+
+public record PortalRequestPayload(CompoundTag data) implements CustomPacketPayload {
+    public static final Type<PortalRequestPayload> TYPE = new Type<>(
+        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "portal_request")
+    );
+    public static final StreamCodec<RegistryFriendlyByteBuf, PortalRequestPayload> STREAM_CODEC =
+        StreamCodec.composite(ByteBufCodecs.COMPOUND_TAG, PortalRequestPayload::data, PortalRequestPayload::new);
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+}
+

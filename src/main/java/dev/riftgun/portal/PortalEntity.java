@@ -1,23 +1,28 @@
 package dev.riftgun.portal;
 
 import dev.riftgun.RiftGun;
+import dev.riftgun.data.Destination;
+import dev.riftgun.service.PortalServices;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
-import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
@@ -42,28 +47,34 @@ public final class PortalEntity extends Entity {
         noPhysics = true;
     }
 
-    public static void openPair(ServerPlayer player, BlockHitResult hit) {
+    public static void openPair(ServerPlayer player, Destination destination) {
         ServerLevel level = player.serverLevel();
-        closeOwnedPortals(level, player.getUUID());
+        MinecraftServer server = player.getServer();
+        if (server == null) return;
+        ServerLevel targetLevel = server.getLevel(destination.dimension());
+        if (targetLevel == null) return;
+        closeOwnedPortals(server, player.getUUID());
 
         Vec3 horizontalLook = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
         Vec3 entryBottom = player.position().add(horizontalLook.scale(2.0));
-
-        Direction face = hit.getDirection();
-        Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
-        Vec3 hitPoint = hit.getLocation().add(normal.scale(0.08));
-        Vec3 exitBottom = new Vec3(hitPoint.x, hitPoint.y - HEIGHT * 0.5, hitPoint.z);
-
         float entryYaw = player.getYRot() + 180.0F;
-        float exitYaw = face.getAxis().isHorizontal() ? face.toYRot() : player.getYRot();
+        float exitYaw = destination.yaw();
+        Vec3 exitOutward = Vec3.directionFromRotation(0.0F, exitYaw).normalize();
+        Vec3 exitBottom = destination.position().subtract(exitOutward.scale(0.85));
+
+        BlockPos exitBlock = BlockPos.containing(exitBottom);
+        targetLevel.getChunk(exitBlock.getX() >> 4, exitBlock.getZ() >> 4);
+        targetLevel.getChunkSource().addRegionTicket(
+            TicketType.PORTAL, new ChunkPos(exitBlock), 3, exitBlock, true
+        );
 
         PortalEntity entry = create(level, player.getUUID(), entryBottom, entryYaw);
-        PortalEntity exit = create(level, player.getUUID(), exitBottom, exitYaw);
+        PortalEntity exit = create(targetLevel, player.getUUID(), exitBottom, exitYaw);
         entry.linkedPortalId = exit.getUUID();
         exit.linkedPortalId = entry.getUUID();
 
         level.addFreshEntity(entry);
-        level.addFreshEntity(exit);
+        targetLevel.addFreshEntity(exit);
         level.playSound(null, player.blockPosition(), SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.65F, 1.35F);
     }
 
@@ -76,10 +87,12 @@ public final class PortalEntity extends Entity {
         return portal;
     }
 
-    private static void closeOwnedPortals(ServerLevel level, UUID owner) {
-        for (Entity entity : level.getAllEntities()) {
-            if (entity instanceof PortalEntity portal && owner.equals(portal.ownerId)) {
-                portal.startClosing();
+    public static void closeOwnedPortals(MinecraftServer server, UUID owner) {
+        for (ServerLevel level : server.getAllLevels()) {
+            for (Entity entity : level.getAllEntities()) {
+                if (entity instanceof PortalEntity portal && owner.equals(portal.ownerId)) {
+                    portal.startClosing();
+                }
             }
         }
     }
@@ -114,7 +127,9 @@ public final class PortalEntity extends Entity {
             discard();
             return;
         }
-        if (next.phase() == PortalLifecycle.Phase.OPEN) {
+        if (next.phase() == PortalLifecycle.Phase.OPEN && PortalServices.CLOSE_POLICY.shouldClose(this)) {
+            startClosing();
+        } else if (next.phase() == PortalLifecycle.Phase.OPEN) {
             teleportTouchingEntities();
         }
     }
@@ -142,13 +157,14 @@ public final class PortalEntity extends Entity {
         for (Entity entity : level().getEntities(this, getBoundingBox().inflate(0.12), this::canTeleport)) {
             long cooldownUntil = entity.getPersistentData().getLong(COOLDOWN_TAG);
             if (gameTime < cooldownUntil) continue;
-            teleport(entity, target);
-            entity.getPersistentData().putLong(COOLDOWN_TAG, gameTime + PortalLifecycle.TRAVEL_COOLDOWN_TICKS);
+            teleportTree(entity, target, gameTime);
         }
     }
 
     private boolean canTeleport(Entity entity) {
-        if (entity instanceof PortalEntity || entity.isPassenger()) return false;
+        if (entity instanceof PortalEntity || entity.isPassenger() || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity)) {
+            return false;
+        }
         Vec3 local = entity.position().subtract(position()).yRot((float) Math.toRadians(getYRot()));
         return Math.abs(local.x) <= WIDTH * 0.65
             && Math.abs(local.z) <= 0.45
@@ -156,7 +172,19 @@ public final class PortalEntity extends Entity {
             && local.y <= HEIGHT + 0.2;
     }
 
-    private void teleport(Entity entity, PortalEntity target) {
+    private void teleportTree(Entity root, PortalEntity target, long gameTime) {
+        var passengers = new ArrayList<>(root.getPassengers());
+        root.ejectPassengers();
+        teleportSingle(root, target, gameTime);
+        for (Entity passenger : passengers) {
+            teleportTree(passenger, target, gameTime);
+            passenger.startRiding(root, true);
+        }
+        target.level().playSound(null, target.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
+            SoundSource.PLAYERS, 0.6F, 1.4F);
+    }
+
+    private void teleportSingle(Entity entity, PortalEntity target, long gameTime) {
         Vec3 outward = Vec3.directionFromRotation(0.0F, target.getYRot()).normalize();
         Vec3 destination = target.position().add(outward.scale(0.85));
         float rotation = target.getYRot() - getYRot() + 180.0F;
@@ -165,7 +193,7 @@ public final class PortalEntity extends Entity {
 
         entity.setDeltaMovement(momentum);
         entity.teleportTo(
-            (ServerLevel) level(),
+            (ServerLevel) target.level(),
             destination.x,
             destination.y,
             destination.z,
@@ -174,7 +202,7 @@ public final class PortalEntity extends Entity {
             entity.getXRot()
         );
         entity.hasImpulse = true;
-        level().playSound(null, target.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.6F, 1.4F);
+        entity.getPersistentData().putLong(COOLDOWN_TAG, gameTime + PortalLifecycle.TRAVEL_COOLDOWN_TICKS);
     }
 
     public void startClosing() {
@@ -192,7 +220,14 @@ public final class PortalEntity extends Entity {
     private PortalEntity linkedPortal() {
         if (linkedPortalId == null || !(level() instanceof ServerLevel serverLevel)) return null;
         Entity entity = serverLevel.getEntity(linkedPortalId);
-        return entity instanceof PortalEntity portal ? portal : null;
+        if (entity instanceof PortalEntity portal) return portal;
+        MinecraftServer server = serverLevel.getServer();
+        for (ServerLevel candidate : server.getAllLevels()) {
+            if (candidate == serverLevel) continue;
+            Entity remote = candidate.getEntity(linkedPortalId);
+            if (remote instanceof PortalEntity portal) return portal;
+        }
+        return null;
     }
 
     @Override

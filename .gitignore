@@ -3,6 +3,7 @@
 build/
 run/
 runs/
+logs/
 .idea/
 *.iml
 .upstream-tempad/

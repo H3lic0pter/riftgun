@@ -18,6 +18,12 @@ repositories {
 
 dependencies {
     implementation "net.neoforged:neoforge:${neoforge_version}"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }
 
 runs {
@@ -26,7 +32,10 @@ runs {
         modSource sourceSets.main
     }
 
-    client {}
+    client {
+        systemProperty 'riftgun.guiCapture', providers.gradleProperty('guiCapture').orElse('false').get()
+        systemProperty 'riftgun.guiCaptureScale', providers.gradleProperty('guiCaptureScale').orElse('0').get()
+    }
     server {
         arguments.add '--nogui'
     }
