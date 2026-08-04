@@ -4,17 +4,21 @@ import net.minecraft.nbt.CompoundTag;
 
 public record PortalPlayerSettings(
     boolean safetyCheckEnabled,
+    boolean confirmDeletion,
+    boolean confirmDiscardedChanges,
     boolean animationsEnabled,
     boolean soundsEnabled,
     DestinationSort sort
 ) {
     public static PortalPlayerSettings defaults() {
-        return new PortalPlayerSettings(true, true, true, DestinationSort.RECENT);
+        return new PortalPlayerSettings(true, true, true, true, true, DestinationSort.RECENT);
     }
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         tag.putBoolean("SafetyCheck", safetyCheckEnabled);
+        tag.putBoolean("ConfirmDeletion", confirmDeletion);
+        tag.putBoolean("ConfirmDiscardedChanges", confirmDiscardedChanges);
         tag.putBoolean("Animations", animationsEnabled);
         tag.putBoolean("Sounds", soundsEnabled);
         tag.putString("Sort", sort.name());
@@ -31,10 +35,11 @@ public record PortalPlayerSettings(
         }
         return new PortalPlayerSettings(
             !tag.contains("SafetyCheck") || tag.getBoolean("SafetyCheck"),
+            !tag.contains("ConfirmDeletion") || tag.getBoolean("ConfirmDeletion"),
+            !tag.contains("ConfirmDiscardedChanges") || tag.getBoolean("ConfirmDiscardedChanges"),
             !tag.contains("Animations") || tag.getBoolean("Animations"),
             !tag.contains("Sounds") || tag.getBoolean("Sounds"),
             sort
         );
     }
 }
-

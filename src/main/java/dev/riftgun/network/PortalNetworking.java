@@ -43,6 +43,12 @@ public final class PortalNetworking {
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
+    public static void sendPortalOpened(ServerPlayer player) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "PortalOpened");
+        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
     private static void handleRequest(PortalRequestPayload payload, IPayloadContext context) {
         if (context.player() instanceof ServerPlayer player) {
             PortalRequestHandler.handle(player, payload.data());
@@ -55,4 +61,3 @@ public final class PortalNetworking {
 
     private PortalNetworking() {}
 }
-

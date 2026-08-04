@@ -1,9 +1,11 @@
 package dev.riftgun.data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
 
@@ -32,5 +34,23 @@ final class PortalPlayerDataTest {
         assertEquals(PortalPlayerData.DEFAULT_GROUP_ID, destination.groupId());
         assertEquals(id, restored.selectedDestinationId());
         assertEquals(1.25, destination.x());
+    }
+
+    @Test
+    void settingsRoundTripAndOldDataKeepsConfirmationDefaults() {
+        PortalPlayerSettings configured = new PortalPlayerSettings(false, false, false, true, false,
+            DestinationSort.NAME);
+        PortalPlayerSettings restored = PortalPlayerSettings.load(configured.save());
+        assertFalse(restored.safetyCheckEnabled());
+        assertFalse(restored.confirmDeletion());
+        assertFalse(restored.confirmDiscardedChanges());
+        assertFalse(restored.soundsEnabled());
+        assertEquals(DestinationSort.NAME, restored.sort());
+
+        CompoundTag legacy = new CompoundTag();
+        legacy.putBoolean("SafetyCheck", false);
+        PortalPlayerSettings migrated = PortalPlayerSettings.load(legacy);
+        assertTrue(migrated.confirmDeletion());
+        assertTrue(migrated.confirmDiscardedChanges());
     }
 }

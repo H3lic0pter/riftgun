@@ -73,6 +73,7 @@ public final class PortalRequestHandler {
             if (changed) {
                 PortalDataStore.save(player, data);
                 PortalNetworking.sendSnapshot(player, false);
+                if (action == PortalAction.OPEN_PORTAL) PortalNetworking.sendPortalOpened(player);
             }
         } catch (UserInputException exception) {
             player.displayClientMessage(Component.translatable(exception.translationKey), true);
@@ -108,10 +109,13 @@ public final class PortalRequestHandler {
         UUID group = validGroup(data, optionalId(request, "Group"));
         String name = destinationName(data, request.getString("Name"), true);
         long time = player.level().getGameTime();
+        UUID destinationId = UUID.randomUUID();
         data.destinations().add(new Destination(
-            UUID.randomUUID(), name, group, player.level().dimension(),
+            destinationId, name, group, player.level().dimension(),
             player.getX(), player.getY(), player.getZ(), player.getYRot(), time, 0L, false
         ));
+        data.selectedDestinationId(destinationId);
+        data.lastViewedDestinationId(destinationId);
         return true;
     }
 
@@ -125,9 +129,12 @@ public final class PortalRequestHandler {
         double z = CoordinateParser.parse(request.getString("Z"), player.getZ());
         float yaw = CoordinateParser.parseYaw(request.getString("Yaw"), player.getYRot());
         long time = player.level().getGameTime();
+        UUID destinationId = UUID.randomUUID();
         data.destinations().add(new Destination(
-            UUID.randomUUID(), name, group, player.level().dimension(), x, y, z, yaw, time, 0L, false
+            destinationId, name, group, player.level().dimension(), x, y, z, yaw, time, 0L, false
         ));
+        data.selectedDestinationId(destinationId);
+        data.lastViewedDestinationId(destinationId);
         return true;
     }
 
@@ -173,7 +180,7 @@ public final class PortalRequestHandler {
         Destination destination = data.destination(destinationId)
             .orElseThrow(() -> error("message.riftgun.destination_missing"));
         data.selectedDestinationId(destinationId);
-        player.displayClientMessage(Component.translatable("message.riftgun.destination_selected", destination.name()), true);
+        data.lastViewedDestinationId(destinationId);
         return true;
     }
 
@@ -253,6 +260,8 @@ public final class PortalRequestHandler {
         }
         data.settings(new PortalPlayerSettings(
             request.getBoolean("SafetyCheck"),
+            request.getBoolean("ConfirmDeletion"),
+            request.getBoolean("ConfirmDiscardedChanges"),
             request.getBoolean("Animations"),
             request.getBoolean("Sounds"),
             sort
@@ -293,7 +302,6 @@ public final class PortalRequestHandler {
         Destination destination = data.destination(destinationId)
             .orElseThrow(() -> error("message.riftgun.destination_missing"));
         if (!data.settings().safetyCheckEnabled()) {
-            PortalNetworking.sendSafety(player, destinationId, SafetyReport.SAFE.flags(), confirmation);
             return;
         }
         var dimensionResult = PortalServices.DIMENSION_POLICY.validate(player, destination);

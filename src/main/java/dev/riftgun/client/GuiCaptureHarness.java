@@ -31,15 +31,31 @@ final class GuiCaptureHarness {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui"), minecraft.getMainRenderTarget(),
                 message -> {});
         }
-        if (ticks == 78 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+        if (ticks == 74 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            for (int step = 0; step < 8; step++) {
+                screen.mouseScrolled(screen.width - 40.0, screen.height / 2.0, 0.0, -1.0);
+            }
+        }
+        if (ticks == 76) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-details-bottom"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 82 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openCoordinateEditorForQa();
+        }
+        if (ticks == 100) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-coordinate"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 108 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.onSafetyResult(sampleTarget,
                 SafetyReport.COLLISION | SafetyReport.NO_SUPPORT | SafetyReport.HAZARD, true);
         }
-        if (ticks == 96) {
-            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-modal"), minecraft.getMainRenderTarget(),
+        if (ticks == 126) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-unsafe"), minecraft.getMainRenderTarget(),
                 message -> {});
         }
-        if (ticks == 120) {
+        if (ticks == 144) {
             completed = true;
             minecraft.stop();
         }

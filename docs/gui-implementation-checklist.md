@@ -40,7 +40,7 @@
 
 - [x] 带 protocol version 的 NeoForge payload registration。
 - [x] C2S GUI、mutation、selection、safety 与 portal action payload。
-- [x] S2C snapshot 与 safety-result payload；validation 通过 action-bar 返回。
+- [x] S2C snapshot、safety-result 与 portal-opened acknowledgement；validation 通过 action-bar 返回。
 - [x] NBT codec packet 上限及 server-side 名称/坐标字段长度校验。
 
 ## 5. GUI structure and visual quality
@@ -52,14 +52,20 @@
 - [x] 搜索名称、分组和坐标文本。
 - [x] pinned-first；recent/name/created/distance 排序；选择由玩家数据记忆。
 - [x] 右侧只读详情：名称、分组、友好维度名、简洁坐标；raw dimension ID tooltip。
-- [x] 底部 action bar：设为目标、生成 portal。
+- [x] 单击地点行即选中目标；底部只保留生成 portal，server 成功回执后关闭 GUI。
 - [x] 独立 create-current、create-coordinate、edit modal；地点可在 modal 中换组。
-- [x] dirty modal 关闭确认。
-- [x] 删除确认与 unsafe destination 确认。
-- [x] lazy safety icon；个人 safety-check 开关。
+- [x] 地点 modal 的名称/坐标输入增加纵向留白；X/Y/Z/Yaw 使用带独立标签的 2×2 布局。
+- [x] 地点 modal 的分组选择支持键盘 ←/→ 前后切换，以及独立 ▼ 下拉列表。
+- [x] dirty modal 关闭确认；玩家可独立关闭该确认。
+- [x] 地点/分组删除确认；玩家可独立关闭该确认；unsafe destination 始终保留开门确认。
+- [x] lazy safety 状态：显示检查中；位置改变才失效，改名/换组/置顶不失效。
+- [x] 关闭 safety-check 后不发送检查请求、server 不运行 inspector，GUI 不显示检查状态。
+- [x] 地点行右侧常驻黄星置顶按钮，hover/focus 时显示红色删除按钮；长名称省略并提供 tooltip。
+- [x] 自定义分组行 hover/focus 时显示重命名和删除按钮；drag handle 与 Alt+↑/↓ 均可排序。
+- [x] 右侧详情整体滚动，目标变化时归顶；底部生成 portal 固定，不参与滚动。
 - [x] 空详情与 server action-bar 的 missing-gun、limit、validation 状态。
 - [x] Mouse 与 Tab/Shift+Tab/Enter/Esc navigation。
-- [ ] 120ms group expand 与 panel motion（当前只有 button hover 轻动画）。
+- [x] 分组展开/收起与置顶重排使用短时平滑位移动画；关闭 animations 后立即更新。
 - [x] Vanilla UI sounds；个人声音开关。
 - [x] English 与 Simplified Chinese localization。
 
@@ -68,7 +74,7 @@
 - [x] Portal 出口使用保存的 feet position 与 yaw。
 - [x] Safety 只警告；不偏移、不破坏、不拒绝开门。
 - [x] Portal Gun tooltip：目标名、分组、维度、同维度距离。
-- [x] 选择目标与 unsafe action-bar 提示。
+- [x] Portal Gun 互动键遇到 unsafe 目标时 action-bar 警告但照常开门；GUI 开门使用确认弹窗。
 - [x] 玩家、掉落物、允许的 vehicle/passenger tree 可传送；mob 不可传送。
 - [x] 保留水平 momentum 与 riding relationship。
 
@@ -79,7 +85,8 @@
 - [x] `clean test build` 成功。
 - [x] Dedicated server 启动到 `Done`，无 mod exception。
 - [x] `runClient -PguiCapture=true` 自动打开真实 Screen、截图并正常退出，无 mod exception。
-- [x] GUI scale 1 与当前窗口允许的自动上限 scale 2：主界面和 unsafe modal 无 clipping。
+- [x] GUI scale 1 与当前窗口允许的自动上限 scale 2：主界面、坐标 modal、unsafe modal 无 clipping。
+- [x] scale 2 详情区实际滚到底，Edit 可见且底部 Open Portal 保持固定。
 - [ ] `runClient` 手工完整流程成功。
 - [ ] 三种 GUI scale / resolution 检查。
 - [ ] 截图检查 clipping、hierarchy、contrast、hover、focus、empty/error states。
