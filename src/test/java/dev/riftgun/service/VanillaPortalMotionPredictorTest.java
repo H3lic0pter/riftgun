@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 final class VanillaPortalMotionPredictorTest {
     @Test
     void groundedPredictionUsesOnlyHorizontalVelocity() {
-        Vec3 result = VanillaPortalMotionPredictor.predict(new Vec3(0.2, -0.4, 0.1), true, 10, 16.0);
+        Vec3 result = VanillaPortalMotionPredictor.linear(new Vec3(0.2, -0.4, 0.1), false, 10, 16.0);
 
         assertEquals(2.0, result.x, 1.0E-8);
         assertEquals(0.0, result.y, 1.0E-8);
@@ -19,14 +19,16 @@ final class VanillaPortalMotionPredictorTest {
 
     @Test
     void airbornePredictionAcceleratesDownward() {
-        Vec3 result = VanillaPortalMotionPredictor.predict(Vec3.ZERO, false, 11, 16.0);
+        Vec3 result = VanillaPortalMotionPredictor.ballistic(Vec3.ZERO, 0.0,
+            VanillaPortalMotionPredictor.DEFAULT_GRAVITY, false, -1, 11, 16.0);
 
         assertTrue(result.y < -3.5);
     }
 
     @Test
     void horizontalPredictionIsCappedWithoutCappingFallDistance() {
-        Vec3 result = VanillaPortalMotionPredictor.predict(new Vec3(10.0, -4.0, 0.0), false, 11, 16.0);
+        Vec3 result = VanillaPortalMotionPredictor.ballistic(new Vec3(10.0, -4.0, 0.0), -4.0,
+            VanillaPortalMotionPredictor.DEFAULT_GRAVITY, false, -1, 11, 16.0);
 
         assertEquals(16.0, Math.hypot(result.x, result.z), 1.0E-8);
         assertTrue(result.y < -40.0);
@@ -39,6 +41,48 @@ final class VanillaPortalMotionPredictorTest {
         assertEquals(2.75, result.x, 1.0E-8);
         assertEquals(0.0, result.y, 1.0E-8);
         assertEquals(-1.1, result.z, 1.0E-8);
+    }
+
+    @Test
+    void sideFrontIgnoresJumpAndFallHeight() {
+        Vec3 jumping = VanillaPortalMotionPredictor.ordinaryAirborne(
+            new Vec3(0.25, 0.4, 0.0), 0.4, 0.08, false, -1,
+            PortalMotionPredictor.Purpose.FRONT, 11, 16.0);
+        Vec3 falling = VanillaPortalMotionPredictor.ordinaryAirborne(
+            new Vec3(0.25, -1.0, 0.0), -1.0, 0.08, false, -1,
+            PortalMotionPredictor.Purpose.FRONT, 11, 16.0);
+
+        assertEquals(2.75, jumping.x, 1.0E-8);
+        assertEquals(0.0, jumping.y, 1.0E-8);
+        assertEquals(0.0, falling.y, 1.0E-8);
+    }
+
+    @Test
+    void downshotKeepsCompleteJumpTrajectory() {
+        Vec3 result = VanillaPortalMotionPredictor.ordinaryAirborne(
+            new Vec3(0.25, 0.42, 0.0), 0.42, 0.08, false, -1,
+            PortalMotionPredictor.Purpose.DOWN_SHOT, 11, 16.0);
+
+        assertEquals(2.75, result.x, 1.0E-8);
+        assertTrue(result.y > 0.0);
+    }
+
+    @Test
+    void levitationRemainsVerticalForSideFront() {
+        Vec3 result = VanillaPortalMotionPredictor.ordinaryAirborne(
+            Vec3.ZERO, 0.0, 0.08, false, 1,
+            PortalMotionPredictor.Purpose.FRONT, 11, 16.0);
+
+        assertTrue(result.y > 0.4);
+    }
+
+    @Test
+    void slowFallingSideFrontStillUsesFixedCurrentHeight() {
+        Vec3 result = VanillaPortalMotionPredictor.ordinaryAirborne(
+            Vec3.ZERO, -0.2, 0.08, true, -1,
+            PortalMotionPredictor.Purpose.FRONT, 11, 16.0);
+
+        assertEquals(0.0, result.y, 1.0E-8);
     }
 
     @Test

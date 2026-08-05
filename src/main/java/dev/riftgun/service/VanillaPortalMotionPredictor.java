@@ -13,7 +13,8 @@ public final class VanillaPortalMotionPredictor implements PortalMotionPredictor
     static final double ELYTRA_HORIZONTAL_DRAG = 0.99;
 
     @Override
-    public Vec3 predictDisplacement(ServerPlayer player, int ticks, double maximumHorizontalDisplacement) {
+    public Vec3 predictDisplacement(ServerPlayer player, Purpose purpose, int ticks,
+                                    double maximumHorizontalDisplacement) {
         int horizon = Math.max(0, ticks
             + PortalServices.PLACEMENT_CAPABILITIES.motionPredictionCalibrationTicks(player));
         Vec3 instantaneous = player.getDeltaMovement();
@@ -34,8 +35,8 @@ public final class VanillaPortalMotionPredictor implements PortalMotionPredictor
         }
 
         MobEffectInstance levitation = player.getEffect(MobEffects.LEVITATION);
-        return ballistic(observed, instantaneous.y, player.getGravity(),
-            player.hasEffect(MobEffects.SLOW_FALLING), levitation == null ? -1 : levitation.getAmplifier(),
+        return ordinaryAirborne(observed, instantaneous.y, player.getGravity(),
+            player.hasEffect(MobEffects.SLOW_FALLING), levitation == null ? -1 : levitation.getAmplifier(), purpose,
             horizon, maximumHorizontalDisplacement);
     }
 
@@ -44,11 +45,14 @@ public final class VanillaPortalMotionPredictor implements PortalMotionPredictor
             || player.isInWaterOrBubble() || player.isInLava() || player.isInFluidType();
     }
 
-    static Vec3 predict(Vec3 velocity, boolean onGround, int ticks, double maximumHorizontalDisplacement) {
-        return onGround
-            ? linear(velocity, false, ticks, maximumHorizontalDisplacement)
-            : ballistic(velocity, velocity.y, DEFAULT_GRAVITY, false, -1,
-                ticks, maximumHorizontalDisplacement);
+    static Vec3 ordinaryAirborne(Vec3 observedVelocity, double verticalVelocity, double gravity,
+                                boolean slowFalling, int levitationAmplifier, Purpose purpose,
+                                int ticks, double maximumHorizontalDisplacement) {
+        if (purpose == Purpose.FRONT && levitationAmplifier < 0) {
+            return linear(observedVelocity, false, ticks, maximumHorizontalDisplacement);
+        }
+        return ballistic(observedVelocity, verticalVelocity, gravity, slowFalling,
+            levitationAmplifier, ticks, maximumHorizontalDisplacement);
     }
 
     static Vec3 linear(Vec3 velocity, boolean includeVertical, int ticks,

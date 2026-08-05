@@ -90,7 +90,8 @@
 - [x] `FRONT` 最终路由支持 Downshot：pitch ≥ 78° 时在预测 feet 下方 2 blocks 生成浮空 1×1 TOP 门；入口按 TOP→BOTTOM 规则匹配出口。
 - [x] 一级 GUI 提供个人持久化的动量预测图标开关（默认关）；关闭时不采样、不扫描物品栏、不保留 transient history。
 - [x] 开启预测且携枪时保留 4 ticks server-side 位置历史；每 20 ticks 低频复查持枪状态，teleport、换维度、respawn 与 portal transit 后清空。
-- [x] 预测到完全 OPEN 的 11 ticks：地面使用近期 X/Z，创造飞行与受控移动使用近期 X/Y/Z，普通空中使用近期 X/Z 加原版垂直物理，Elytra 按固定当前朝向模拟原版 glide 物理。
+- [x] 预测到完全 OPEN 的 11 ticks：地面与普通空中侧向 FRONT 只使用近期 X/Z，当前 feet Y 固定；跳跃和普通坠落不会让侧向门升降。
+- [x] Downshot 使用完整 X/Y/Z 空中轨迹；创造飞行、受控移动与 Levitation 的侧向 FRONT 也保留 Y；Elytra 按固定当前朝向模拟原版 glide 物理。
 - [x] Slow Falling 与 Levitation 使用原版垂直公式；水平预测上限 16 blocks，位置跳变阈值 8 blocks/tick，时间校准保留 code-level seam。
 - [x] 动量预测仅用于 `FRONT` 与 `SMART` 的 FRONT fallback；预测点受阻时普通 FRONT 回退静态点，Downshot 不回退，超出世界高度直接失败。
 - [x] `FRONT` / `SURFACE` 各有默认未绑定的直接开门快捷键，且不修改持久化 mode。

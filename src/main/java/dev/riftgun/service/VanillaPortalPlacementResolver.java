@@ -55,9 +55,12 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     }
 
     private EntryResult front(ServerPlayer player, boolean motionPrediction) {
-        Vec3 prediction = motionPrediction ? predictedDisplacement(player) : Vec3.ZERO;
-        if (usesDownshot(player.getXRot(),
-            PortalServices.PLACEMENT_CAPABILITIES.downshotMinimumPitch(player))) {
+        boolean downShot = usesDownshot(player.getXRot(),
+            PortalServices.PLACEMENT_CAPABILITIES.downshotMinimumPitch(player));
+        PortalMotionPredictor.Purpose purpose = downShot
+            ? PortalMotionPredictor.Purpose.DOWN_SHOT : PortalMotionPredictor.Purpose.FRONT;
+        Vec3 prediction = motionPrediction ? predictedDisplacement(player, purpose) : Vec3.ZERO;
+        if (downShot) {
             return downshot(player, prediction);
         }
 
@@ -96,9 +99,9 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
-    private Vec3 predictedDisplacement(ServerPlayer player) {
+    private Vec3 predictedDisplacement(ServerPlayer player, PortalMotionPredictor.Purpose purpose) {
         int ticks = PortalLifecycle.CHARGE_TICKS + PortalLifecycle.ANIMATION_TICKS;
-        return PortalServices.MOTION_PREDICTOR.predictDisplacement(player, ticks,
+        return PortalServices.MOTION_PREDICTOR.predictDisplacement(player, purpose, ticks,
             PortalServices.PLACEMENT_CAPABILITIES.maximumHorizontalPrediction(player));
     }
 
