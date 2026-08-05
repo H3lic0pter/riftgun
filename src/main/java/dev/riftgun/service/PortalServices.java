@@ -7,6 +7,7 @@ public final class PortalServices {
     public static PortalEntityEligibilityPolicy ENTITY_ELIGIBILITY = new DefaultPortalEntityEligibilityPolicy();
     public static PortalClosePolicy CLOSE_POLICY = new FixedOpenDurationClosePolicy();
     public static PortalPlacementCapabilities PLACEMENT_CAPABILITIES = PortalPlacementCapabilities.DEFAULT;
+    public static PortalMotionHistory MOTION_HISTORY = new ServerPortalMotionHistory();
     public static PortalMotionPredictor MOTION_PREDICTOR = new VanillaPortalMotionPredictor();
     public static PortalPlacementResolver PLACEMENT_RESOLVER = new VanillaPortalPlacementResolver();
 

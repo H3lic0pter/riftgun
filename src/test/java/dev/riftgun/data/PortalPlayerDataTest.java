@@ -38,6 +38,7 @@ final class PortalPlayerDataTest {
 
     @Test
     void settingsRoundTripAndOldDataKeepsConfirmationDefaults() {
+        assertFalse(PortalPlayerSettings.defaults().motionPredictionEnabled());
         PortalPlayerSettings configured = new PortalPlayerSettings(false, false, false, false, true, false,
             DestinationSort.NAME, PortalPlacementMode.SURFACE, 14, false);
         PortalPlayerSettings restored = PortalPlayerSettings.load(configured.save());
@@ -59,7 +60,7 @@ final class PortalPlayerDataTest {
         assertTrue(migrated.confirmClearFluid());
         assertEquals(PortalPlacementMode.SMART, migrated.placementMode());
         assertEquals(PortalPlayerSettings.DEFAULT_SMART_DISTANCE, migrated.smartDistance());
-        assertTrue(migrated.motionPredictionEnabled());
+        assertFalse(migrated.motionPredictionEnabled());
     }
 
     @Test

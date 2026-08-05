@@ -301,7 +301,7 @@ public final class PortalRequestHandler {
         } catch (IllegalArgumentException ignored) {
             sort = DestinationSort.RECENT;
         }
-        data.settings(new PortalPlayerSettings(
+        PortalPlayerSettings settings = new PortalPlayerSettings(
             request.getBoolean("SafetyCheck"),
             request.getBoolean("ConfirmDeletion"),
             request.getBoolean("ConfirmDiscardedChanges"),
@@ -313,7 +313,9 @@ public final class PortalRequestHandler {
             Math.max(1, Math.min((int) PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player),
                 request.getInt("SmartDistance"))),
             request.getBoolean("MotionPrediction")
-        ));
+        );
+        data.settings(settings);
+        PortalServices.MOTION_HISTORY.setPredictionEnabled(player, settings.motionPredictionEnabled());
         return true;
     }
 

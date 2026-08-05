@@ -18,7 +18,7 @@ public record PortalPlayerSettings(
 
     public static PortalPlayerSettings defaults() {
         return new PortalPlayerSettings(true, true, true, true, true, true, DestinationSort.RECENT,
-            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, true);
+            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, false);
     }
 
     public CompoundTag save() {
@@ -54,7 +54,7 @@ public record PortalPlayerSettings(
             sort,
             PortalPlacementMode.parse(tag.getString("PlacementMode")),
             tag.contains("SmartDistance") ? Math.max(1, tag.getInt("SmartDistance")) : DEFAULT_SMART_DISTANCE,
-            !tag.contains("MotionPrediction") || tag.getBoolean("MotionPrediction")
+            tag.contains("MotionPrediction") && tag.getBoolean("MotionPrediction")
         );
     }
 }

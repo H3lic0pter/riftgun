@@ -406,6 +406,7 @@ public final class PortalEntity extends Entity {
         if (moved != null) {
             moved.setDeltaMovement(momentum);
             moved.hasImpulse = true;
+            if (moved instanceof ServerPlayer player) PortalServices.MOTION_HISTORY.reset(player);
         }
         return moved;
     }
@@ -476,6 +477,7 @@ public final class PortalEntity extends Entity {
         if (moved != null) {
             moved.setDeltaMovement(Vec3.ZERO);
             moved.hasImpulse = true;
+            if (moved instanceof ServerPlayer player) PortalServices.MOTION_HISTORY.reset(player);
         }
         return moved;
     }
