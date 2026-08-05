@@ -10,6 +10,7 @@ public interface PortalPlacementCapabilities {
     double DEFAULT_MOTION_HISTORY_TELEPORT_THRESHOLD = 8.0;
     int DEFAULT_MOTION_PREDICTION_CALIBRATION_TICKS = 0;
     double DEFAULT_MAXIMUM_SURFACE_RANGE = 32.0;
+    double DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE = 0.40;
     PortalPlacementCapabilities DEFAULT = new PortalPlacementCapabilities() {};
 
     default double frontDistance(ServerPlayer player) {
@@ -38,5 +39,9 @@ public interface PortalPlacementCapabilities {
 
     default int motionPredictionCalibrationTicks(ServerPlayer player) {
         return DEFAULT_MOTION_PREDICTION_CALIBRATION_TICKS;
+    }
+
+    default double minimumFloatingPortalExposure(ServerPlayer player) {
+        return DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE;
     }
 }

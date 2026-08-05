@@ -94,6 +94,7 @@
 - [x] Downshot 使用完整 X/Y/Z 空中轨迹；创造飞行、受控移动与 Levitation 的侧向 FRONT 也保留 Y；Elytra 按固定当前朝向模拟原版 glide 物理。
 - [x] Slow Falling 与 Levitation 使用原版垂直公式；水平预测上限 16 blocks，位置跳变阈值 8 blocks/tick，时间校准保留 code-level seam。
 - [x] 动量预测仅用于 `FRONT` 与 `SMART` 的 FRONT fallback；预测点受阻时普通 FRONT 回退静态点，Downshot 不回退，超出世界高度直接失败。
+- [x] 浮空 FRONT 与 Downshot 按真实朝向门面和方块 collision shape 计算暴露率；默认至少 40% 总门面暴露，SURFACE 仍使用严格碰撞判定。
 - [x] `FRONT` / `SURFACE` 各有默认未绑定的直接开门快捷键，且不修改持久化 mode。
 - [x] `SMART` 默认阈值 8 blocks；二级设置页提供 1–32 slider，`Esc` 返回 Settings。
 - [x] server-authoritative block collider raycast；忽略 fluids/entities；surface 最大射程为 code seam，默认 32 blocks。
@@ -105,6 +106,9 @@
 - [x] 新 placement 验证成功后才关闭旧 portal pair；失败时保留旧门。
 - [x] 开门与关门沿 portal 边缘生成 vanilla-behavior `SPLASH` 粒子；保持原版水平运动，支持侧向/TOP/BOTTOM，默认淡绿色 `#A8F0B6`，仅暴露 per-portal code-level RGB provider。
 - [x] **Splash freeze：** 水花的数量、边缘采样、时序、速度、重力、寿命、side/TOP/BOTTOM 行为均已冻结；后续不得修改。唯一允许的扩展是通过 `PortalVisualStyleProvider` 更换 24-bit RGB，禁止控制 alpha。
+- [x] 客户端 visual registry 使用稳定 ResourceLocation ID；个人选择全客户端通用、立即影响所有已渲染 portal，不写入 server data/entity/network，未知 ID 回退 `riftgun:classic`。
+- [x] `classic` 保留原程序化六面门体和彩色边框；`swirl` 只绘制观察者方向一致的正反贴图，所有 orientation 均无侧棱和边框；两者删除白色移动短线。
+- [x] Settings 的眼睛图标进入独立视觉二级页；selector 左键选择下一个、右键选择上一个，向下图标打开遮罩列表，选择仅允许内置类型且立即保存。
 - [x] 三种完整 fluid（source/flowing/block/bucket）与单-fluid 8000 mB tank；标准 capability 严格限容。
 - [x] bucket mode 只抽取允许的完整 source；不放液、不回退开门；特殊整桶溢出隔离为可替换 policy。
 - [x] 灰/蓝 fuel 仅同维度，绿色 fuel 支持跨维度；门体与冻结水花使用开门时的 fuel RGB snapshot。

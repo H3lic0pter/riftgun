@@ -60,6 +60,14 @@ public final class ClientModEvents {
             ),
             PortalRenderTypes::setPortalShader
         );
+        event.registerShader(
+            new ShaderInstance(
+                event.getResourceProvider(),
+                ResourceLocation.withDefaultNamespace("rendertype_rift_portal_swirl"),
+                DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP
+            ),
+            PortalRenderTypes::setSwirlShader
+        );
     }
 
     @SubscribeEvent

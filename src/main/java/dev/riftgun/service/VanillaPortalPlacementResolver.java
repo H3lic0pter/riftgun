@@ -84,7 +84,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             yawFromNormal(normal), null, null);
         return outsideWorld(player.serverLevel(), placement.bounds())
             ? EntryResult.failure("message.riftgun.front_outside_world")
-            : blocked(player.serverLevel(), placement.bounds())
+            : floatingObstructed(player, placement)
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
@@ -95,7 +95,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             PortalGeometry.HORIZONTAL, player.getYRot(), null, null);
         return outsideWorld(player.serverLevel(), placement.bounds())
             ? EntryResult.failure("message.riftgun.front_outside_world")
-            : blocked(player.serverLevel(), placement.bounds())
+            : floatingObstructed(player, placement)
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
@@ -231,6 +231,11 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
     private static boolean blocked(ServerLevel level, AABB bounds) {
         return level.getBlockCollisions(null, bounds.deflate(0.002)).iterator().hasNext();
+    }
+
+    private static boolean floatingObstructed(ServerPlayer player, PortalPlacement placement) {
+        return !PortalFaceExposure.hasMinimumExposure(player.serverLevel(), placement,
+            PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player));
     }
 
     private static boolean outsideWorld(ServerLevel level, AABB bounds) {

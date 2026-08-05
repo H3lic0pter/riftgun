@@ -1,5 +1,6 @@
 package dev.riftgun;
 
+import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalGunComponents;
@@ -63,6 +64,7 @@ public final class RiftGun {
         modBus.addListener(this::addCreativeTabContents);
         modBus.addListener(this::registerCapabilities);
         modBus.addListener(PortalNetworking::register);
+        container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         container.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         PortalServices.bootstrap();
     }

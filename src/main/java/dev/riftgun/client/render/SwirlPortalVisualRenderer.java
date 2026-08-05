@@ -1,0 +1,56 @@
+package dev.riftgun.client.render;
+
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import dev.riftgun.portal.PortalEntity;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+
+final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
+    @Override
+    public void render(PortalVisualRenderContext context) {
+        float progress = context.visibleProgress();
+        if (progress <= 0.0F) return;
+
+        PortalEntity portal = context.portal();
+        PortalRenderBasis basis = PortalRenderBasis.from(portal);
+        Matrix4f matrix = context.poseStack().last().pose();
+        float eased = Mth.sin(progress * Mth.HALF_PI);
+        float width = portal.portalWidth() * eased;
+        float height = portal.portalHeight() * eased;
+        float shimmer = 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F;
+        drawFaces(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.swirl()), width, height,
+            PortalEntity.DEPTH, context.style().surfaceColor(), shimmer);
+    }
+
+    private static void drawFaces(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
+                                  float width, float height, float depth, int color, float shimmer) {
+        float red = red(color) * shimmer;
+        float green = green(color) * shimmer;
+        float blue = blue(color) * shimmer;
+        float hw = width * 0.5F;
+        float hh = height * 0.5F;
+        float hd = depth * 0.5F;
+
+        // Opposite winding plus viewer-relative UVs prevents the two opaque faces from overlapping.
+        vertex(vertices, matrix, basis.at(-hw, -hh, hd), red, green, blue, 0, 0);
+        vertex(vertices, matrix, basis.at(hw, -hh, hd), red, green, blue, 1, 0);
+        vertex(vertices, matrix, basis.at(hw, hh, hd), red, green, blue, 1, 1);
+        vertex(vertices, matrix, basis.at(-hw, hh, hd), red, green, blue, 0, 1);
+
+        vertex(vertices, matrix, basis.at(hw, -hh, -hd), red, green, blue, 0, 0);
+        vertex(vertices, matrix, basis.at(-hw, -hh, -hd), red, green, blue, 1, 0);
+        vertex(vertices, matrix, basis.at(-hw, hh, -hd), red, green, blue, 1, 1);
+        vertex(vertices, matrix, basis.at(hw, hh, -hd), red, green, blue, 0, 1);
+    }
+
+    private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
+                               float red, float green, float blue, float u, float v) {
+        vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+            .setColor(red, green, blue, 1.0F).setUv(u, v).setUv2(240, 240);
+    }
+
+    private static float red(int color) { return ((color >> 16) & 255) / 255.0F; }
+    private static float green(int color) { return ((color >> 8) & 255) / 255.0F; }
+    private static float blue(int color) { return (color & 255) / 255.0F; }
+}
