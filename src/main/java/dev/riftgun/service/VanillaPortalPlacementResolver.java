@@ -24,18 +24,29 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     private static final double SURFACE_OFFSET = PortalPlacement.DEPTH * 0.5 + 0.002;
 
     @Override
-    public PortalPlacementResult resolve(ServerPlayer player, Destination destination,
-                                         PortalPlacementMode mode, int smartDistance) {
+    public PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode, int smartDistance) {
+        EntryResult entry = switch (mode) {
+            case FRONT -> EntryResult.frontRoute();
+            case SURFACE -> surface(player, false, smartDistance);
+            case SMART -> surface(player, true, smartDistance);
+        };
+        if (entry.front) return PortalPlacementCapture.success(PortalPlacementIntent.front());
+        return entry.placement == null
+            ? PortalPlacementCapture.failure(entry.errorKey)
+            : PortalPlacementCapture.success(PortalPlacementIntent.surface(entry.placement));
+    }
+
+    @Override
+    public PortalPlacementResult resolvePrepared(ServerPlayer player, Destination destination,
+                                                 PortalPlacementIntent intent) {
         MinecraftServer server = player.getServer();
         if (server == null || server.getLevel(destination.dimension()) == null) {
             return PortalPlacementResult.failure("message.riftgun.dimension_unavailable");
         }
 
-        EntryResult entry = switch (mode) {
-            case FRONT -> front(player);
-            case SURFACE -> surface(player, false, smartDistance);
-            case SMART -> surface(player, true, smartDistance);
-        };
+        EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
+            ? front(player)
+            : revalidateSurface(player, intent.attachedPlacement());
         if (entry.placement == null) return PortalPlacementResult.failure(entry.errorKey);
 
         ServerLevel targetLevel = server.getLevel(destination.dimension());
@@ -64,13 +75,31 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         HitResult raw = player.serverLevel().clip(new ClipContext(
             eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         if (!(raw instanceof BlockHitResult hit) || raw.getType() != HitResult.Type.BLOCK) {
-            return smart ? front(player) : EntryResult.failure("message.riftgun.surface_missing");
+            return smart ? EntryResult.frontRoute() : EntryResult.failure("message.riftgun.surface_missing");
         }
 
         double distance = eye.distanceTo(hit.getLocation());
-        if (smart && distance > Math.min(requestedSmartDistance, maximumRange)) return front(player);
+        if (smart && distance > Math.min(requestedSmartDistance, maximumRange)) return EntryResult.frontRoute();
         if (distance > maximumRange) return EntryResult.failure("message.riftgun.surface_out_of_range");
         return attached(player.serverLevel(), player, hit);
+    }
+
+    private EntryResult revalidateSurface(ServerPlayer player, PortalPlacement placement) {
+        if (placement == null || placement.anchor() == null || placement.anchorFace() == null) {
+            return EntryResult.failure("message.riftgun.surface_invalid");
+        }
+        ServerLevel level = player.serverLevel();
+        BlockPos anchor = placement.anchor();
+        if (level.getBlockState(anchor).getCollisionShape(level, anchor).isEmpty()) {
+            return EntryResult.failure("message.riftgun.surface_invalid");
+        }
+        double range = PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player) + 1.5;
+        if (player.getEyePosition().distanceTo(placement.center()) > range) {
+            return EntryResult.failure("message.riftgun.surface_out_of_range");
+        }
+        return blocked(level, placement.bounds())
+            ? EntryResult.failure("message.riftgun.surface_obstructed")
+            : EntryResult.success(placement);
     }
 
     private EntryResult attached(ServerLevel level, ServerPlayer player, BlockHitResult hit) {
@@ -109,7 +138,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                 1 + backingBlock(level, anchor.below())));
         }
         if (!candidates.isEmpty()) {
-            return EntryResult.success(SidePortalCandidateSelector.choose(candidates, player.getEyePosition()));
+            return EntryResult.success(SidePortalCandidateSelector.choose(candidates, player.getBoundingBox()));
         }
 
         PortalPlacement compact = new PortalPlacement(new Vec3(x, anchor.getY() + 0.5, z),
@@ -169,13 +198,17 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return (float) Math.toDegrees(Math.atan2(-normal.x, normal.z));
     }
 
-    private record EntryResult(PortalPlacement placement, String errorKey) {
+    private record EntryResult(PortalPlacement placement, String errorKey, boolean front) {
         static EntryResult success(PortalPlacement placement) {
-            return new EntryResult(placement, null);
+            return new EntryResult(placement, null, false);
         }
 
         static EntryResult failure(String errorKey) {
-            return new EntryResult(null, errorKey);
+            return new EntryResult(null, errorKey, false);
+        }
+
+        static EntryResult frontRoute() {
+            return new EntryResult(null, null, true);
         }
     }
 }

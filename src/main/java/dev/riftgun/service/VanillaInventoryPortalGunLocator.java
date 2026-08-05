@@ -1,15 +1,53 @@
 package dev.riftgun.service;
 
 import dev.riftgun.RiftGun;
+import java.util.Optional;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 
 public final class VanillaInventoryPortalGunLocator implements PortalGunLocator {
+    private static final String ID = "vanilla_inventory";
+
     @Override
-    public boolean hasPortalGun(ServerPlayer player) {
-        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-            if (player.getInventory().getItem(slot).is(RiftGun.PORTAL_GUN.get())) return true;
+    public String id() {
+        return ID;
+    }
+
+    @Override
+    public Optional<LocatedGun> locate(ServerPlayer player) {
+        Inventory inventory = player.getInventory();
+        int selected = inventory.selected;
+        if (isGun(inventory.getItem(selected))) return Optional.of(located(inventory, selected));
+        if (isGun(inventory.getItem(Inventory.SLOT_OFFHAND))) {
+            return Optional.of(located(inventory, Inventory.SLOT_OFFHAND));
         }
-        return player.getOffhandItem().is(RiftGun.PORTAL_GUN.get());
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            if (slot != selected && slot != Inventory.SLOT_OFFHAND && isGun(inventory.getItem(slot))) {
+                return Optional.of(located(inventory, slot));
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ItemStack> resolve(ServerPlayer player, CompoundTag token) {
+        if (!token.contains("Slot")) return Optional.empty();
+        int slot = token.getInt("Slot");
+        Inventory inventory = player.getInventory();
+        if (slot < 0 || slot >= inventory.getContainerSize()) return Optional.empty();
+        ItemStack stack = inventory.getItem(slot);
+        return isGun(stack) ? Optional.of(stack) : Optional.empty();
+    }
+
+    private static LocatedGun located(Inventory inventory, int slot) {
+        CompoundTag token = new CompoundTag();
+        token.putInt("Slot", slot);
+        return new LocatedGun(ID, token, inventory.getItem(slot));
+    }
+
+    private static boolean isGun(ItemStack stack) {
+        return stack.is(RiftGun.PORTAL_GUN.get());
     }
 }
-

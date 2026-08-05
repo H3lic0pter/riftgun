@@ -14,7 +14,7 @@ public final class PortalTransform {
         double localNormal = vector.dot(sourceNormal);
         return targetOrientation.traversalRight(targetYaw).scale(localRight)
             .add(targetOrientation.traversalUp(targetYaw).scale(localUp))
-            .add(targetOrientation.normal(targetYaw).scale(-localNormal));
+            .add(targetOrientation.normal(targetYaw).scale(Math.abs(localNormal)));
     }
 
     private PortalTransform() {}

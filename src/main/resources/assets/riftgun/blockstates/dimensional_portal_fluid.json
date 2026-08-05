@@ -1,0 +1,5 @@
+{
+  "multipart": [
+    { "apply": { "model": "riftgun:block/dimensional_portal_fluid" } }
+  ]
+}

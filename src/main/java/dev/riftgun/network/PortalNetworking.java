@@ -2,6 +2,8 @@ package dev.riftgun.network;
 
 import dev.riftgun.client.PortalClientPayloadHandler;
 import java.util.function.Consumer;
+import dev.riftgun.service.PortalGunLocator;
+import dev.riftgun.fuel.PortalGunSnapshot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -9,6 +11,8 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class PortalNetworking {
+    private static Consumer<CompoundTag> clientContextWriter = ignored -> {};
+
     public static void register(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar("1");
         registrar.playToServer(PortalRequestPayload.TYPE, PortalRequestPayload.STREAM_CODEC, PortalNetworking::handleRequest);
@@ -23,29 +27,66 @@ public final class PortalNetworking {
         CompoundTag tag = new CompoundTag();
         tag.putString("Action", action.name());
         writer.accept(tag);
+        clientContextWriter.accept(tag);
         PacketDistributor.sendToServer(new PortalRequestPayload(tag));
     }
 
+    public static void setClientContextWriter(Consumer<CompoundTag> writer) {
+        clientContextWriter = writer;
+    }
+
     public static void sendSnapshot(ServerPlayer player, boolean openScreen) {
+        sendSnapshot(player, openScreen, PortalGunLocator.first(player).orElse(null));
+    }
+
+    public static void sendSnapshot(ServerPlayer player, boolean openScreen,
+                                    PortalGunLocator.LocatedGun locatedGun) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Snapshot");
         envelope.putBoolean("OpenScreen", openScreen);
         envelope.put("Data", dev.riftgun.data.PortalDataStore.snapshot(player));
+        if (locatedGun != null) {
+            envelope.put("GunReference", locatedGun.saveReference());
+            envelope.put("Gun", PortalGunSnapshot.create(locatedGun.stack()));
+        }
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
     public static void sendSafety(ServerPlayer player, java.util.UUID destinationId, int flags, boolean confirmation) {
+        sendSafety(player, destinationId, flags, confirmation, true);
+    }
+
+    public static void sendSafety(ServerPlayer player, java.util.UUID destinationId, int flags,
+                                  boolean confirmation, boolean loaded) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Safety");
         envelope.putUUID("Destination", destinationId);
         envelope.putInt("Flags", flags);
         envelope.putBoolean("Confirmation", confirmation);
+        envelope.putBoolean("Loaded", loaded);
+        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    public static void sendSelectionAccepted(ServerPlayer player, java.util.UUID destinationId) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "Selection");
+        envelope.putUUID("Destination", destinationId);
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
     public static void sendPortalOpened(ServerPlayer player) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "PortalOpened");
+        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    public static void sendPortalPending(ServerPlayer player, java.util.UUID destinationId,
+                                         String state, String messageKey) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "PortalPending");
+        envelope.putUUID("Destination", destinationId);
+        envelope.putString("State", state);
+        if (messageKey != null) envelope.putString("Message", messageKey);
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 

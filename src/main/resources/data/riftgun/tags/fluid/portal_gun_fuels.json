@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "riftgun:unstable_portal_fluid",
+    "riftgun:flowing_unstable_portal_fluid",
+    "riftgun:portal_fluid",
+    "riftgun:flowing_portal_fluid",
+    "riftgun:dimensional_portal_fluid",
+    "riftgun:flowing_dimensional_portal_fluid"
+  ]
+}

@@ -12,15 +12,25 @@ import net.minecraft.nbt.CompoundTag;
 
 public final class PortalClientState {
     private static PortalPlayerData data = new PortalPlayerData();
-    private static final Map<UUID, Integer> SAFETY = new HashMap<>();
+    private static final long SAFETY_TTL_MILLIS = 5_000L;
+    private static final Map<UUID, SafetyEntry> SAFETY = new HashMap<>();
     private static final Set<UUID> CHECKING = new HashSet<>();
+    private static final Set<UUID> SAFETY_UNLOADED = new HashSet<>();
+    private static CompoundTag gunReference = new CompoundTag();
+    private static CompoundTag gun = new CompoundTag();
 
     public static PortalPlayerData data() {
         return data;
     }
 
     public static Integer safety(UUID id) {
-        return SAFETY.get(id);
+        SafetyEntry entry = SAFETY.get(id);
+        if (entry == null) return null;
+        if (System.currentTimeMillis() >= entry.expiresAtMillis) {
+            SAFETY.remove(id);
+            return null;
+        }
+        return entry.flags;
     }
 
     public static boolean checkingSafety(UUID id) {
@@ -30,12 +40,18 @@ public final class PortalClientState {
     public static void beginSafetyCheck(UUID id) {
         if (!data.settings().safetyCheckEnabled()) return;
         SAFETY.remove(id);
+        SAFETY_UNLOADED.remove(id);
         CHECKING.add(id);
+    }
+
+    public static boolean safetyUnloaded(UUID id) {
+        return SAFETY_UNLOADED.contains(id);
     }
 
     public static void clearSafety() {
         SAFETY.clear();
         CHECKING.clear();
+        SAFETY_UNLOADED.clear();
     }
 
     public static void handle(CompoundTag envelope) {
@@ -47,8 +63,12 @@ public final class PortalClientState {
             invalidated.forEach(id -> {
                 SAFETY.remove(id);
                 CHECKING.remove(id);
+                SAFETY_UNLOADED.remove(id);
             });
             data = next;
+            gunReference = envelope.contains("GunReference")
+                ? envelope.getCompound("GunReference").copy() : new CompoundTag();
+            gun = envelope.contains("Gun") ? envelope.getCompound("Gun").copy() : new CompoundTag();
             if (!data.settings().safetyCheckEnabled()) clearSafety();
             if (envelope.getBoolean("OpenScreen")) {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PortalConfigScreen());
@@ -59,15 +79,38 @@ public final class PortalClientState {
             UUID id = envelope.getUUID("Destination");
             CHECKING.remove(id);
             if (!data.settings().safetyCheckEnabled()) return;
-            SAFETY.put(id, envelope.getInt("Flags"));
+            boolean loaded = envelope.getBoolean("Loaded");
+            if (loaded) {
+                SAFETY_UNLOADED.remove(id);
+                SAFETY.put(id, new SafetyEntry(envelope.getInt("Flags"),
+                    System.currentTimeMillis() + SAFETY_TTL_MILLIS));
+            } else {
+                SAFETY.remove(id);
+                SAFETY_UNLOADED.add(id);
+            }
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-                screen.onSafetyResult(id, envelope.getInt("Flags"), envelope.getBoolean("Confirmation"));
+                screen.onSafetyResult(id, loaded ? envelope.getInt("Flags") : 0,
+                    envelope.getBoolean("Confirmation") && loaded);
+            }
+        } else if (kind.equals("PortalPending") && envelope.hasUUID("Destination")) {
+            if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+                screen.onPortalPending(envelope.getUUID("Destination"), envelope.getString("State"));
             }
         } else if (kind.equals("PortalOpened")) {
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.onPortalOpened();
             }
         }
+    }
+
+    public static void writeGunReference(CompoundTag request) {
+        if (!(Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen)
+            || gunReference.isEmpty()) return;
+        request.put("GunReference", gunReference.copy());
+    }
+
+    public static CompoundTag gun() {
+        return gun;
     }
 
     private static Set<UUID> changedPositions(PortalPlayerData previous, PortalPlayerData next) {
@@ -83,8 +126,11 @@ public final class PortalClientState {
         }
         SAFETY.keySet().removeIf(id -> next.destination(id).isEmpty());
         CHECKING.removeIf(id -> next.destination(id).isEmpty());
+        SAFETY_UNLOADED.removeIf(id -> next.destination(id).isEmpty());
         return result;
     }
+
+    private record SafetyEntry(int flags, long expiresAtMillis) {}
 
     private PortalClientState() {}
 }

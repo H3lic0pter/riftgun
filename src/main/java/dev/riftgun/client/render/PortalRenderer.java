@@ -13,7 +13,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
-/** Procedural liquid portal with orientation-aware splash motion. */
+/** Procedural portal body. Transient splash particles are emitted from the client tick. */
 public final class PortalRenderer extends EntityRenderer<PortalEntity> {
     private static final ResourceLocation EMPTY_TEXTURE =
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/misc/empty.png");
@@ -34,9 +34,6 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity> {
         Basis basis = new Basis(entity.right(), entity.up(), entity.normal());
         Matrix4f matrix = poseStack.last().pose();
 
-        drawSplash(entity, partialTick, matrix, basis,
-            buffers.getBuffer(PortalRenderTypes.splash()), style.splashColor());
-
         float progress = PortalLifecycle.visibleProgress(entity.phase(), entity.phaseTicks(), partialTick);
         if (progress > 0.0F) {
             float eased = Mth.sin(progress * Mth.HALF_PI);
@@ -49,78 +46,6 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity> {
                 width, height, PortalEntity.DEPTH, entity.tickCount + partialTick, style.borderColor());
         }
         super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
-    }
-
-    private static void drawSplash(PortalEntity entity, float partialTick, Matrix4f matrix,
-                                   Basis basis, VertexConsumer vertices, int color) {
-        PortalSplashAnimation.Frame frame = PortalSplashAnimation.sample(
-            entity.phase(), entity.phaseTicks(), partialTick);
-        if (!frame.visible()) return;
-
-        drawRipple(matrix, basis, vertices, entity.portalWidth(), entity.portalHeight(), frame, color);
-        float halfWidth = entity.portalWidth() * 0.5F;
-        float halfHeight = entity.portalHeight() * 0.5F;
-        Vec3 depth = basis.normal.scale(-PortalEntity.DEPTH * 0.85F);
-        for (int index = 0; index < frame.droplets(); index++) {
-            float angle = (float) (index * Math.PI * 2.0 / frame.droplets() + entity.getId() * 0.31);
-            float cosine = Mth.cos(angle);
-            float sine = Mth.sin(angle);
-            float wobble = 0.84F + ((index * 37) % 17) / 70.0F;
-            Vec3 edge = basis.right.scale(cosine * halfWidth * 0.92F)
-                .add(basis.up.scale(sine * halfHeight * 0.92F)).add(depth);
-            Vec3 radial = basis.right.scale(cosine).add(basis.up.scale(sine)).normalize();
-            Vec3 tangent = basis.right.scale(-sine).add(basis.up.scale(cosine)).normalize();
-            double signedTravel = frame.travel() * (frame.outward() ? 1.0 : -0.55);
-            Vec3 tip = edge.add(radial.scale(signedTravel * wobble));
-            Vec3 tail = tip.add(radial.scale(frame.outward()
-                ? -frame.dropletLength() * wobble : frame.dropletLength() * wobble));
-            double tailHalfWidth = 0.018 + index % 3 * 0.004;
-            double tipHalfWidth = tailHalfWidth * 1.8;
-            splashQuad(vertices, matrix,
-                tail.subtract(tangent.scale(tailHalfWidth)),
-                tail.add(tangent.scale(tailHalfWidth)),
-                tip.add(tangent.scale(tipHalfWidth)),
-                tip.subtract(tangent.scale(tipHalfWidth)), color, frame.alpha());
-        }
-    }
-
-    private static void drawRipple(Matrix4f matrix, Basis basis, VertexConsumer vertices,
-                                   float portalWidth, float portalHeight,
-                                   PortalSplashAnimation.Frame frame, int color) {
-        float expansion = frame.outward() ? frame.progress() : 1.0F - frame.progress();
-        float halfWidth = portalWidth * (0.43F + expansion * 0.18F);
-        float halfHeight = portalHeight * (0.43F + expansion * 0.18F);
-        float thickness = 0.025F + (1.0F - frame.progress()) * 0.018F;
-        float z = -PortalEntity.DEPTH * 0.9F;
-        float alpha = frame.alpha() * 0.65F;
-        splashQuad(vertices, matrix, basis.at(-halfWidth, halfHeight - thickness, z),
-            basis.at(halfWidth, halfHeight - thickness, z), basis.at(halfWidth, halfHeight, z),
-            basis.at(-halfWidth, halfHeight, z), color, alpha);
-        splashQuad(vertices, matrix, basis.at(-halfWidth, -halfHeight, z),
-            basis.at(halfWidth, -halfHeight, z), basis.at(halfWidth, -halfHeight + thickness, z),
-            basis.at(-halfWidth, -halfHeight + thickness, z), color, alpha);
-        splashQuad(vertices, matrix, basis.at(-halfWidth, -halfHeight + thickness, z),
-            basis.at(-halfWidth + thickness, -halfHeight + thickness, z),
-            basis.at(-halfWidth + thickness, halfHeight - thickness, z),
-            basis.at(-halfWidth, halfHeight - thickness, z), color, alpha);
-        splashQuad(vertices, matrix, basis.at(halfWidth - thickness, -halfHeight + thickness, z),
-            basis.at(halfWidth, -halfHeight + thickness, z), basis.at(halfWidth, halfHeight - thickness, z),
-            basis.at(halfWidth - thickness, halfHeight - thickness, z), color, alpha);
-    }
-
-    private static void splashQuad(VertexConsumer vertices, Matrix4f matrix,
-                                   Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color, float alpha) {
-        splashVertex(vertices, matrix, a, color, alpha);
-        splashVertex(vertices, matrix, b, color, alpha);
-        splashVertex(vertices, matrix, c, color, alpha);
-        splashVertex(vertices, matrix, d, color, alpha);
-    }
-
-    private static void splashVertex(VertexConsumer vertices, Matrix4f matrix,
-                                     Vec3 point, int color, float alpha) {
-        float sourceAlpha = ((color >>> 24) & 255) / 255.0F;
-        vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-            .setColor(red(color), green(color), blue(color), alpha * sourceAlpha);
     }
 
     private static void drawVolume(Matrix4f matrix, Basis basis, VertexConsumer vertices,

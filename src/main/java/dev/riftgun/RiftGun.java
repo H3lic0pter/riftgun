@@ -1,11 +1,16 @@
 package dev.riftgun;
 
 import dev.riftgun.config.ServerConfig;
+import dev.riftgun.fuel.PortalFluids;
+import dev.riftgun.fuel.PortalGunComponents;
+import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.service.PortalServices;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -15,6 +20,8 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -25,6 +32,8 @@ public final class RiftGun {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, MOD_ID);
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
         DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
+    private static final DeferredRegister<ParticleType<?>> PARTICLE_TYPES =
+        DeferredRegister.create(Registries.PARTICLE_TYPE, MOD_ID);
 
     public static final DeferredHolder<Item, PortalGunItem> PORTAL_GUN = ITEMS.register(
         "portal_gun",
@@ -40,10 +49,19 @@ public final class RiftGun {
             .build("portal")
     );
 
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> PORTAL_SPLASH = PARTICLE_TYPES.register(
+        "portal_splash",
+        () -> new SimpleParticleType(false)
+    );
+
     public RiftGun(IEventBus modBus, ModContainer container) {
         ITEMS.register(modBus);
         ENTITY_TYPES.register(modBus);
+        PARTICLE_TYPES.register(modBus);
+        PortalGunComponents.COMPONENTS.register(modBus);
+        PortalFluids.register(modBus);
         modBus.addListener(this::addCreativeTabContents);
+        modBus.addListener(this::registerCapabilities);
         modBus.addListener(PortalNetworking::register);
         container.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         PortalServices.bootstrap();
@@ -52,6 +70,14 @@ public final class RiftGun {
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(PORTAL_GUN.get());
+            event.accept(PortalFluids.UNSTABLE_BUCKET.get());
+            event.accept(PortalFluids.PORTAL_BUCKET.get());
+            event.accept(PortalFluids.DIMENSIONAL_BUCKET.get());
         }
+    }
+
+    private void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerItem(Capabilities.FluidHandler.ITEM,
+            (stack, ignored) -> new PortalGunTank(stack), PORTAL_GUN.get());
     }
 }

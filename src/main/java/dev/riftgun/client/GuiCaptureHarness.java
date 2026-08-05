@@ -43,11 +43,22 @@ final class GuiCaptureHarness {
         if (ticks == 82 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openCoordinateEditorForQa();
         }
+        if (ticks == 88 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openGroupDropdownForQa();
+        }
+        if (ticks == 94) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-group-dropdown"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 96 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.closeGroupDropdownForQa();
+        }
         if (ticks == 100) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-coordinate"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
         if (ticks == 108 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.onPortalPending(sampleTarget, "AwaitingConfirmation");
             screen.onSafetyResult(sampleTarget,
                 SafetyReport.COLLISION | SafetyReport.NO_SUPPORT | SafetyReport.HAZARD, true);
         }

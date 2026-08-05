@@ -13,7 +13,7 @@ import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
 
     private final List<DestinationGroup> groups = new ArrayList<>();
@@ -146,7 +146,7 @@ public final class PortalPlayerData {
     }
 
     private void migrate(int storedVersion) {
-        // Settings added in v2 are backward-compatible through field defaults.
+        // Settings added in v2-v3 are backward-compatible through field defaults.
     }
 
     private void repairReferences() {

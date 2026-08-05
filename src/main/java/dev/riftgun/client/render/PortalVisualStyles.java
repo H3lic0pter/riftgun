@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /** Code-only visual seam. No player-facing color setting is exposed yet. */
 public final class PortalVisualStyles {
-    private static PortalVisualStyleProvider provider = ignored -> PortalVisualStyle.PALE_GREEN;
+    private static PortalVisualStyleProvider provider = portal -> PortalVisualStyle.fromRgb(portal.fuelRgb());
 
     public static PortalVisualStyle resolve(PortalEntity portal) {
         return provider.resolve(portal);

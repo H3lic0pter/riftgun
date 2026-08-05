@@ -29,6 +29,15 @@ final class PortalTransformTest {
         assertEquals(1.2, result.dot(PortalOrientation.VERTICAL.normal(180.0F)), 1.0E-8);
     }
 
+    @Test
+    void enteringFromTheBackStillFacesAwayFromTheExit() {
+        Vec3 input = PortalOrientation.VERTICAL.normal(0.0F);
+        Vec3 result = PortalTransform.between(input,
+            PortalOrientation.VERTICAL, 0.0F, PortalOrientation.VERTICAL, 180.0F);
+
+        assertEquals(1.0, result.dot(PortalOrientation.VERTICAL.normal(180.0F)), 1.0E-8);
+    }
+
     private static void assertVec(Vec3 expected, Vec3 actual) {
         assertEquals(expected.x, actual.x, 1.0E-8);
         assertEquals(expected.y, actual.y, 1.0E-8);

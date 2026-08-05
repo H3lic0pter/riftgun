@@ -42,21 +42,6 @@ public final class PortalRenderTypes extends RenderType {
             .createCompositeState(false)
     );
 
-    private static final RenderType SPLASH = create(
-        "rift_portal_splash",
-        DefaultVertexFormat.POSITION_COLOR,
-        VertexFormat.Mode.QUADS,
-        256,
-        false,
-        true,
-        CompositeState.builder()
-            .setShaderState(POSITION_COLOR_SHADER)
-            .setCullState(NO_CULL)
-            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-            .setOutputState(PARTICLES_TARGET)
-            .createCompositeState(true)
-    );
-
     private PortalRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
                               boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState,
                               Runnable clearState) {
@@ -69,10 +54,6 @@ public final class PortalRenderTypes extends RenderType {
 
     public static RenderType border() {
         return BORDER;
-    }
-
-    public static RenderType splash() {
-        return SPLASH;
     }
 
     public static void setPortalShader(ShaderInstance shader) {

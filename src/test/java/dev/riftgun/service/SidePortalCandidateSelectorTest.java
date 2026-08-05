@@ -18,26 +18,43 @@ final class SidePortalCandidateSelectorTest {
         PortalPlacement result = SidePortalCandidateSelector.choose(List.of(
             new SidePortalCandidateSelector.Candidate(hangingAbove, 1),
             new SidePortalCandidateSelector.Candidate(wallBelow, 2)
-        ), new Vec3(0.0, 2.0, 0.2));
+        ), playerBounds(1.1, 2.9));
 
         assertSame(wallBelow, result);
     }
 
     @Test
-    void eyeDistanceBreaksTiesWhenBackingIsEqual() {
+    void bodyDistanceBreaksTiesWhenBackingIsEqual() {
         PortalPlacement above = placement(2.0);
         PortalPlacement below = placement(1.0);
 
         PortalPlacement result = SidePortalCandidateSelector.choose(List.of(
             new SidePortalCandidateSelector.Candidate(above, 1),
             new SidePortalCandidateSelector.Candidate(below, 1)
-        ), new Vec3(0.0, 1.9, 0.2));
+        ), playerBounds(0.0, 1.8));
 
-        assertSame(above, result);
+        assertSame(below, result);
+    }
+
+    @Test
+    void lowerCandidateBreaksAnExactTie() {
+        PortalPlacement above = placement(2.0);
+        PortalPlacement below = placement(1.0);
+
+        PortalPlacement result = SidePortalCandidateSelector.choose(List.of(
+            new SidePortalCandidateSelector.Candidate(above, 1),
+            new SidePortalCandidateSelector.Candidate(below, 1)
+        ), playerBounds(0.6, 2.4));
+
+        assertSame(below, result);
     }
 
     private static PortalPlacement placement(double centerY) {
         return new PortalPlacement(new Vec3(0.0, centerY, 0.0), PortalOrientation.VERTICAL,
             PortalGeometry.SURFACE_VERTICAL, 180.0F, null, null);
+    }
+
+    private static net.minecraft.world.phys.AABB playerBounds(double minY, double maxY) {
+        return new net.minecraft.world.phys.AABB(-0.3, minY, -0.3, 0.3, maxY, 0.3);
     }
 }

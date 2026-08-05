@@ -17,6 +17,13 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxGroups;
         public final ModConfigSpec.IntValue maxDestinationNameLength;
         public final ModConfigSpec.IntValue maxGroupNameLength;
+        public final ModConfigSpec.BooleanValue randomConsumption;
+        public final ModConfigSpec.IntValue unstableFuelMin;
+        public final ModConfigSpec.IntValue unstableFuelMax;
+        public final ModConfigSpec.IntValue portalFuelMin;
+        public final ModConfigSpec.IntValue portalFuelMax;
+        public final ModConfigSpec.IntValue dimensionalFuelMin;
+        public final ModConfigSpec.IntValue dimensionalFuelMax;
 
         private Values(ModConfigSpec.Builder builder) {
             builder.push("destinations");
@@ -25,9 +32,19 @@ public final class ServerConfig {
             maxDestinationNameLength = builder.defineInRange("maxDestinationNameLength", 48, 1, 128);
             maxGroupNameLength = builder.defineInRange("maxGroupNameLength", 32, 1, 64);
             builder.pop();
+
+            builder.push("fuel");
+            randomConsumption = builder.comment("Use a uniformly random amount between each fluid's min and max.")
+                .define("randomConsumption", true);
+            unstableFuelMin = builder.defineInRange("unstableMinimum", 50, 1, 8000);
+            unstableFuelMax = builder.defineInRange("unstableMaximum", 100, 1, 8000);
+            portalFuelMin = builder.defineInRange("portalMinimum", 5, 1, 8000);
+            portalFuelMax = builder.defineInRange("portalMaximum", 8, 1, 8000);
+            dimensionalFuelMin = builder.defineInRange("dimensionalMinimum", 5, 1, 8000);
+            dimensionalFuelMax = builder.defineInRange("dimensionalMaximum", 8, 1, 8000);
+            builder.pop();
         }
     }
 
     private ServerConfig() {}
 }
-

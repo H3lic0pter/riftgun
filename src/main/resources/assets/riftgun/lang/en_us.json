@@ -1,5 +1,11 @@
 {
   "item.riftgun.portal_gun": "Portal Gun",
+  "item.riftgun.unstable_portal_fluid_bucket": "Unstable Portal Fluid Bucket",
+  "item.riftgun.portal_fluid_bucket": "Portal Fluid Bucket",
+  "item.riftgun.dimensional_portal_fluid_bucket": "Dimensional Portal Fluid Bucket",
+  "fluid.riftgun.unstable_portal_fluid": "Unstable Portal Fluid",
+  "fluid.riftgun.portal_fluid": "Portal Fluid",
+  "fluid.riftgun.dimensional_portal_fluid": "Dimensional Portal Fluid",
   "key.categories.riftgun": "Rift Gun",
   "key.riftgun.open_config": "Open portal configuration",
   "key.riftgun.cycle_placement": "Cycle portal placement mode",
@@ -47,6 +53,7 @@
   "screen.riftgun.safety": "Safety warnings",
   "screen.riftgun.confirm_deletion": "Confirm before deleting",
   "screen.riftgun.confirm_discard": "Confirm before discarding unsaved changes",
+  "screen.riftgun.confirm_clear_fluid": "Confirm before clearing gun fluid",
   "screen.riftgun.checking": "Checking destination…",
   "screen.riftgun.animations": "GUI animations",
   "screen.riftgun.sounds": "UI sounds",
@@ -60,6 +67,14 @@
   "screen.riftgun.placement_mode.surface": "Surface",
   "screen.riftgun.placement_mode_tooltip": "Portal Gun mode: %s (click to switch)",
   "screen.riftgun.open_front_tooltip": "Always opens a portal in front of you",
+  "screen.riftgun.bucket_mode_tooltip": "Bucket mode: %s · %s · %s/%s mB · %s",
+  "screen.riftgun.clear_fluid_tooltip": "Clear stored portal fluid",
+  "screen.riftgun.clear_fluid": "Clear portal fluid?",
+  "screen.riftgun.clear_fluid_body": "Discard %2$s mB of %1$s? This cannot be recovered.",
+  "screen.riftgun.empty_fluid": "Empty",
+  "screen.riftgun.overfilled": "Overfilled",
+  "screen.riftgun.nominal": "Normal",
+  "screen.riftgun.cross_dimension_fuel_required": "Dimensional Portal Fluid required",
   "screen.riftgun.on": "On",
   "screen.riftgun.off": "Off",
   "screen.riftgun.cancel": "Cancel",
@@ -77,6 +92,8 @@
   "tooltip.riftgun.group": "Group: %s",
   "tooltip.riftgun.dimension": "Dimension: %s",
   "tooltip.riftgun.distance": "Distance: %s blocks",
+  "tooltip.riftgun.bucket_mode": "Bucket mode: %s",
+  "tooltip.riftgun.fluid": "%s: %s/%s mB",
   "message.riftgun.spectator_denied": "Spectators cannot use the Portal Gun",
   "message.riftgun.no_portal_gun": "No Portal Gun in your inventory",
   "message.riftgun.no_destination_selected": "No portal destination selected",
@@ -92,12 +109,31 @@
   "message.riftgun.default_group_immutable": "The Default group cannot be changed",
   "message.riftgun.invalid_coordinate": "Invalid coordinates; numbers and ~ are supported, ^ is not",
   "message.riftgun.invalid_request": "Invalid request",
-  "message.riftgun.same_dimension_only": "This version only supports same-dimension travel"
-  ,"message.riftgun.dimension_unavailable": "The destination dimension is unavailable"
+  "message.riftgun.dimension_unavailable": "The destination dimension is unavailable"
   ,"message.riftgun.placement_mode": "Portal placement mode: %s"
   ,"message.riftgun.front_obstructed": "Not enough room to open a portal in front of you"
   ,"message.riftgun.surface_missing": "No block surface in sight"
   ,"message.riftgun.surface_out_of_range": "The targeted surface is out of range"
   ,"message.riftgun.surface_invalid": "That block face cannot anchor a portal"
   ,"message.riftgun.surface_obstructed": "There is not enough room on that surface"
+  ,"message.riftgun.fuel_empty": "The Portal Gun has no valid portal fluid"
+  ,"message.riftgun.fuel_insufficient": "Not enough portal fluid for this portal"
+  ,"message.riftgun.fuel_dimension_denied": "Dimensional Portal Fluid is required for cross-dimensional travel"
+  ,"message.riftgun.portal_open_failed": "The portal could not be opened; no fuel was consumed"
+  ,"message.riftgun.bucket_mode_enabled": "Bucket mode enabled"
+  ,"message.riftgun.bucket_mode_disabled": "Bucket mode disabled"
+  ,"message.riftgun.fluid_cleared": "Discarded %s mB of portal fluid"
+  ,"message.riftgun.scoop_no_source": "Aim at a portal fluid source block"
+  ,"message.riftgun.scoop_protected": "You cannot collect fluid here"
+  ,"message.riftgun.scoop_invalid_fluid": "That fluid cannot fuel the Portal Gun"
+  ,"message.riftgun.scoop_full": "The Portal Gun cannot accept another source block"
+  ,"message.riftgun.scoop_mixed": "Empty the Portal Gun before collecting a different fluid"
+  ,"message.riftgun.scoop_failed": "The fluid source could not be collected"
+  ,"message.riftgun.scoop_success": "Collected %s mB · %s/%s mB"
+  ,"screen.riftgun.bucket_mode_simple": "Bucket mode: %s"
+  ,"screen.riftgun.loading_destination": "Loading destination..."
+  ,"screen.riftgun.safety_deferred": "Destination check: will run when opening"
+  ,"message.riftgun.destination_loading": "Loading destination..."
+  ,"message.riftgun.destination_load_timeout": "Destination loading timed out; no fuel was consumed"
+  ,"message.riftgun.destination_changed": "The destination changed while loading; request cancelled"
 }

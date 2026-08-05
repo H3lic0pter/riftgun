@@ -85,9 +85,23 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton placementSettingsButton;
     private @Nullable ThemedButton placementBackButton;
     private @Nullable ThemedButton openPortalButton;
+    private @Nullable ThemedButton bucketModeButton;
+    private @Nullable ThemedButton clearFluidButton;
     private int groupSelectorX;
     private int groupSelectorY;
     private int groupSelectorWidth;
+    private int fuelGaugeX;
+    private int fuelGaugeY;
+    private static final int FUEL_GAUGE_WIDTH = 42;
+    private long clientTicks;
+    private @Nullable UUID pendingSelection;
+    private long selectionDueTick = -1L;
+    private @Nullable UUID pendingSafety;
+    private long safetyDueTick = -1L;
+    private @Nullable UUID pendingPortalDestination;
+    private String pendingPortalState = "";
+    private boolean closingAfterPortalOpened;
+    private boolean closeCancellationSent;
 
     public PortalConfigScreen() {
         super(Component.translatable("screen.riftgun.config"));
@@ -104,6 +118,8 @@ public final class PortalConfigScreen extends Screen {
         placementSettingsButton = null;
         placementBackButton = null;
         openPortalButton = null;
+        bucketModeButton = null;
+        clearFluidButton = null;
         panelWidth = Math.min(520, width - 12);
         panelHeight = Math.min(320, height - 12);
         panelX = (width - panelWidth) / 2;
@@ -146,12 +162,48 @@ public final class PortalConfigScreen extends Screen {
             false, ignored -> cycleSort());
         placementModeButton = button(panelX + listWidth - 28, footerY, 19, 19,
             Component.empty(), false, ignored -> cyclePlacementMode());
-        ThemedButton generate = button(rightX, footerY, available, 19,
+        fuelGaugeX = rightX;
+        fuelGaugeY = footerY;
+        bucketModeButton = button(rightX + FUEL_GAUGE_WIDTH + 3, footerY, 19, 19, Component.empty(), false,
+            ignored -> PortalNetworking.sendRequest(PortalAction.TOGGLE_BUCKET_MODE));
+        clearFluidButton = button(rightX + FUEL_GAUGE_WIDTH + 25, footerY, 19, 19, Component.empty(), false,
+            ignored -> requestClearFluid());
+        clearFluidButton.active = PortalClientState.gun().getInt("Amount") > 0;
+        int portalButtonX = rightX + FUEL_GAUGE_WIDTH + 47;
+        ThemedButton generate = button(portalButtonX, footerY,
+            Math.max(24, rightX + available - portalButtonX), 19,
             "screen.riftgun.generate", true, ignored -> generatePortal());
         generate.active = viewed() != null;
         openPortalButton = generate;
+        updateOpenPortalButton();
 
         requestSafetyIfNeeded(viewedDestination, false);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        clientTicks++;
+        if (pendingSelection != null && clientTicks >= selectionDueTick) flushSelection();
+        if (pendingSafety != null && clientTicks >= safetyDueTick) flushSafety();
+    }
+
+    @Override
+    public void onClose() {
+        flushSelection();
+        PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
+        closeCancellationSent = true;
+        super.onClose();
+    }
+
+    @Override
+    public void removed() {
+        flushSelection();
+        if (!closingAfterPortalOpened && !closeCancellationSent
+            && minecraft != null && minecraft.getConnection() != null) {
+            PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
+        }
+        super.removed();
     }
 
     private void initModal() {
@@ -176,22 +228,25 @@ public final class PortalConfigScreen extends Screen {
             addField(x + 18, y + 44, fieldWidth, formName, 32, value -> formName = value);
         } else if (modal == Modal.SETTINGS) {
             PortalPlayerSettings settings = PortalClientState.data().settings();
-            button(x + 18, y + 31, fieldWidth, 18,
+            button(x + 18, y + 28, fieldWidth, 18,
                 toggleLabel("screen.riftgun.safety", settings.safetyCheckEnabled()), false,
                 ignored -> updateSetting(0));
-            button(x + 18, y + 55, fieldWidth, 18,
+            button(x + 18, y + 47, fieldWidth, 18,
                 toggleLabel("screen.riftgun.confirm_deletion", settings.confirmDeletion()), false,
                 ignored -> updateSetting(1));
-            button(x + 18, y + 79, fieldWidth, 18,
+            button(x + 18, y + 66, fieldWidth, 18,
                 toggleLabel("screen.riftgun.confirm_discard", settings.confirmDiscardedChanges()), false,
                 ignored -> updateSetting(2));
-            button(x + 18, y + 103, fieldWidth, 18,
-                toggleLabel("screen.riftgun.animations", settings.animationsEnabled()), false,
+            button(x + 18, y + 85, fieldWidth, 18,
+                toggleLabel("screen.riftgun.confirm_clear_fluid", settings.confirmClearFluid()), false,
                 ignored -> updateSetting(3));
-            button(x + 18, y + 127, fieldWidth, 18,
-                toggleLabel("screen.riftgun.sounds", settings.soundsEnabled()), false,
+            button(x + 18, y + 104, fieldWidth, 18,
+                toggleLabel("screen.riftgun.animations", settings.animationsEnabled()), false,
                 ignored -> updateSetting(4));
-            placementSettingsButton = button(x + 18, y + 151, 20, 18, Component.empty(), false,
+            button(x + 18, y + 123, fieldWidth, 18,
+                toggleLabel("screen.riftgun.sounds", settings.soundsEnabled()), false,
+                ignored -> updateSetting(5));
+            placementSettingsButton = button(x + box.width() - 40, y + 8, 20, 18, Component.empty(), false,
                 ignored -> openPlacementSettings());
         } else if (modal == Modal.PLACEMENT_SETTINGS) {
             addRenderableWidget(new SmartDistanceSlider(x + 18, y + 51, fieldWidth, 18,
@@ -404,12 +459,22 @@ public final class PortalConfigScreen extends Screen {
                 && mouseY >= dimensionY + 9 && mouseY < dimensionY + 23) {
                 graphics.renderTooltip(font, Component.literal(destination.dimension().location().toString()), mouseX, mouseY);
             }
+            if (minecraft != null && minecraft.player != null
+                && !minecraft.player.level().dimension().equals(destination.dimension())
+                && !PortalClientState.gun().getBoolean("CrossDimension")) {
+                graphics.drawString(font, Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
+                    x, y, PortalTheme.WARNING, false);
+                y += 18;
+            }
             y = detailField(graphics, "screen.riftgun.coordinates", String.format(Locale.ROOT, "%.1f  %.1f  %.1f",
                 destination.x(), destination.y(), destination.z()), x, y, textWidth);
             if (PortalClientState.data().settings().safetyCheckEnabled()) {
                 if (PortalClientState.checkingSafety(destination.id())) {
                     graphics.drawString(font, Component.translatable("screen.riftgun.checking"), x, y,
                         PortalTheme.ICE, false);
+                } else if (PortalClientState.safetyUnloaded(destination.id())) {
+                    graphics.drawString(font, Component.translatable("screen.riftgun.safety_deferred"), x, y,
+                        PortalTheme.TEXT_MUTED, false);
                 } else {
                     Integer flags = PortalClientState.safety(destination.id());
                     if (flags != null) graphics.drawString(font,
@@ -475,7 +540,10 @@ public final class PortalConfigScreen extends Screen {
                 (int) PortalPlacementCapabilities.DEFAULT_MAXIMUM_SURFACE_RANGE), x, y + 76,
                 PortalTheme.TEXT_MUTED, false);
         } else if (modal.isConfirmation()) {
-            graphics.drawWordWrap(font, Component.translatable(modal.bodyKey), x, y + 35,
+            Component body = modal == Modal.CONFIRM_CLEAR_FLUID
+                ? Component.translatable(modal.bodyKey, gunFluidName(), PortalClientState.gun().getInt("Amount"))
+                : Component.translatable(modal.bodyKey);
+            graphics.drawWordWrap(font, body, x, y + 35,
                 box.width() - 36, PortalTheme.TEXT_MUTED);
         }
     }
@@ -495,6 +563,7 @@ public final class PortalConfigScreen extends Screen {
                 graphics.renderTooltip(font, Component.translatable("screen.riftgun.open_front_tooltip"),
                     mouseX, mouseY);
             }
+            renderGunControls(graphics, mouseX, mouseY);
         }
         if (modal == Modal.SETTINGS && placementSettingsButton != null) {
             drawCrosshairIcon(graphics, placementSettingsButton.getX() + 6, placementSettingsButton.getY() + 5);
@@ -506,6 +575,81 @@ public final class PortalConfigScreen extends Screen {
             if (placementBackButton.isHovered()) graphics.renderTooltip(font,
                 Component.translatable("screen.riftgun.back_to_settings"), mouseX, mouseY);
         }
+    }
+
+    private void renderGunControls(GuiGraphics graphics, int mouseX, int mouseY) {
+        renderFuelGauge(graphics, mouseX, mouseY);
+        if (bucketModeButton != null) {
+            int x = bucketModeButton.getX() + 4;
+            int y = bucketModeButton.getY() + 4;
+            int iconColor = PortalClientState.gun().getBoolean("BucketMode")
+                ? PortalTheme.ICE : PortalTheme.TEXT_MUTED;
+            drawBucketIcon(graphics, x, y, iconColor);
+            if (bucketModeButton.isHovered()) {
+                graphics.renderTooltip(font, Component.translatable("screen.riftgun.bucket_mode_simple",
+                    Component.translatable(PortalClientState.gun().getBoolean("BucketMode")
+                        ? "screen.riftgun.on" : "screen.riftgun.off")), mouseX, mouseY);
+            }
+        }
+        if (clearFluidButton != null) {
+            drawDrainIcon(graphics, clearFluidButton.getX() + 5, clearFluidButton.getY() + 4,
+                clearFluidButton.active ? PortalTheme.DANGER : PortalTheme.TEXT_MUTED);
+            if (clearFluidButton.isHovered()) graphics.renderTooltip(font,
+                Component.translatable("screen.riftgun.clear_fluid_tooltip"), mouseX, mouseY);
+        }
+    }
+
+    private void renderFuelGauge(GuiGraphics graphics, int mouseX, int mouseY) {
+        int amount = PortalClientState.gun().getInt("Amount");
+        int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity"));
+        boolean overfilled = amount > capacity;
+        int rgb = PortalClientState.gun().getInt("Rgb");
+        int fluidColor = 0xFF000000 | (rgb == 0 ? 0x34363D : rgb);
+        graphics.fill(fuelGaugeX, fuelGaugeY, fuelGaugeX + FUEL_GAUGE_WIDTH, fuelGaugeY + 19,
+            PortalTheme.FIELD);
+        int fillWidth = Mth.clamp((int) Math.ceil(Math.min(1.0, amount / (double) capacity)
+            * (FUEL_GAUGE_WIDTH - 4)), 0, FUEL_GAUGE_WIDTH - 4);
+        graphics.fill(fuelGaugeX + 2, fuelGaugeY + 14,
+            fuelGaugeX + FUEL_GAUGE_WIDTH - 2, fuelGaugeY + 17, 0xFF292B31);
+        if (fillWidth > 0) graphics.fill(fuelGaugeX + 2, fuelGaugeY + 14,
+            fuelGaugeX + 2 + fillWidth, fuelGaugeY + 17, fluidColor);
+        graphics.renderOutline(fuelGaugeX, fuelGaugeY, FUEL_GAUGE_WIDTH, 19,
+            overfilled ? 0xFFFFAA00 : PortalTheme.BORDER);
+        String shortAmount = shortFluidAmount(amount);
+        graphics.drawCenteredString(font, shortAmount, fuelGaugeX + FUEL_GAUGE_WIDTH / 2,
+            fuelGaugeY + 3, amount == 0 ? PortalTheme.TEXT_MUTED : PortalTheme.TEXT);
+        if (mouseX >= fuelGaugeX && mouseX < fuelGaugeX + FUEL_GAUGE_WIDTH
+            && mouseY >= fuelGaugeY && mouseY < fuelGaugeY + 19) {
+            List<Component> tooltip = new ArrayList<>();
+            tooltip.add(gunFluidName());
+            tooltip.add(Component.literal(amount + "/" + capacity + " mB"));
+            if (overfilled) tooltip.add(Component.translatable("screen.riftgun.overfilled")
+                .withStyle(net.minecraft.ChatFormatting.GOLD));
+            graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
+        }
+    }
+
+    private static String shortFluidAmount(int amount) {
+        if (amount < 1_000) return Integer.toString(amount);
+        if (amount % 1_000 == 0) return (amount / 1_000) + "k";
+        return String.format(Locale.ROOT, "%.1fk", amount / 1_000.0);
+    }
+
+    private static void drawBucketIcon(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x, y + 1, x + 2, y + 3, color);
+        graphics.fill(x + 1, y + 2, x + 3, y + 9, color);
+        graphics.fill(x + 2, y + 8, x + 8, y + 10, color);
+        graphics.fill(x + 7, y + 2, x + 9, y + 9, color);
+        graphics.fill(x + 2, y + 1, x + 8, y + 3, color);
+    }
+
+    private static void drawDrainIcon(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x + 4, y, x + 6, y + 2, color);
+        graphics.fill(x + 3, y + 2, x + 7, y + 5, color);
+        graphics.fill(x + 2, y + 5, x + 8, y + 8, color);
+        graphics.fill(x + 3, y + 8, x + 7, y + 10, color);
+        graphics.fill(x, y + 4, x + 2, y + 5, PortalTheme.TEXT_MUTED);
+        graphics.fill(x + 8, y + 4, x + 10, y + 5, PortalTheme.TEXT_MUTED);
     }
 
     private static void drawPlacementModeIcon(GuiGraphics graphics, int x, int y, PortalPlacementMode mode) {
@@ -537,6 +681,10 @@ public final class PortalConfigScreen extends Screen {
     private void renderGroupDropdown(GuiGraphics graphics, int mouseX, int mouseY) {
         List<UUID> groups = orderedGroupIds();
         DropdownBox box = dropdownBox(groups.size());
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0F, 0.0F, 300.0F);
+        graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
+            box.y() + box.height() + 3, 0xCC000000);
         graphics.fill(box.x(), box.y(), box.x() + box.width(), box.y() + box.height(), PortalTheme.FIELD);
         graphics.renderOutline(box.x(), box.y(), box.width(), box.height(), PortalTheme.BORDER_FOCUS);
         int visible = Math.min(7, groups.size());
@@ -554,6 +702,7 @@ public final class PortalConfigScreen extends Screen {
             graphics.drawString(font, trim(groupName(id), box.width() - 12), box.x() + 6, rowY + 5,
                 id.equals(formGroup) ? PortalTheme.ICE : PortalTheme.TEXT, false);
         }
+        graphics.pose().popPose();
     }
 
     private List<Row> buildRows() {
@@ -610,9 +759,22 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (groupDropdownOpen && button == 0) {
-            if (clickGroupDropdown(mouseX, mouseY)) return true;
+        if (groupDropdownOpen) {
+            if (button == 0) clickGroupDropdown(mouseX, mouseY);
             groupDropdownOpen = false;
+            return true;
+        }
+        if (modal != Modal.NONE && modal.isDestinationForm() && groupSelector != null
+            && (button == 0 || button == 1) && mouseX >= groupSelector.getX()
+            && mouseX < groupSelector.getX() + groupSelector.getWidth()
+            && mouseY >= groupSelector.getY() && mouseY < groupSelector.getY() + groupSelector.getHeight()) {
+            UUID before = formGroup;
+            shiftFormGroup(button == 0 ? 1 : -1);
+            if (!before.equals(formGroup) && minecraft != null) {
+                groupSelector.playDownSound(minecraft.getSoundManager());
+            }
+            setFocused(groupSelector);
+            return true;
         }
         if (modal != Modal.NONE) return super.mouseClicked(mouseX, mouseY, button);
         if (button == 0 && mouseX >= panelX + listWidth && mouseX < panelX + panelWidth
@@ -802,21 +964,45 @@ public final class PortalConfigScreen extends Screen {
         viewedDestination = id;
         selectedGroup = null;
         if (!id.equals(previous)) detailScroll = 0;
-        PortalNetworking.sendRequest(PortalAction.SELECT_DESTINATION, tag -> tag.putUUID("Destination", id));
+        if (!id.equals(previous)) {
+            PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
+            pendingSelection = id;
+            selectionDueTick = clientTicks + 6L;
+        }
         requestSafetyIfNeeded(id, true);
+        updateOpenPortalButton();
     }
 
     private void requestSafetyIfNeeded(@Nullable UUID id, boolean force) {
         if (id == null || minecraft == null || minecraft.getConnection() == null
-            || !PortalClientState.data().settings().safetyCheckEnabled()
-            || PortalClientState.checkingSafety(id)) return;
+            || !PortalClientState.data().settings().safetyCheckEnabled()) return;
         if (!force && PortalClientState.safety(id) != null) return;
+        pendingSafety = id;
+        safetyDueTick = clientTicks + 6L;
+    }
+
+    private void flushSafety() {
+        UUID id = pendingSafety;
+        pendingSafety = null;
+        safetyDueTick = -1L;
+        if (id == null || minecraft == null || minecraft.getConnection() == null
+            || !PortalClientState.data().settings().safetyCheckEnabled()
+            || PortalClientState.checkingSafety(id) || PortalClientState.safety(id) != null) return;
         PortalClientState.beginSafetyCheck(id);
         PortalNetworking.sendRequest(PortalAction.CHECK_SAFETY, tag -> tag.putUUID("Destination", id));
     }
 
+    private void flushSelection() {
+        UUID id = pendingSelection;
+        pendingSelection = null;
+        selectionDueTick = -1L;
+        if (id == null || minecraft == null || minecraft.getConnection() == null) return;
+        PortalNetworking.sendRequest(PortalAction.SELECT_DESTINATION, tag -> tag.putUUID("Destination", id));
+    }
+
     private void generatePortal() {
         if (viewedDestination == null) return;
+        flushSelection();
         PortalNetworking.sendRequest(PortalAction.OPEN_PORTAL, tag -> {
             tag.putUUID("Destination", viewedDestination);
             tag.putBoolean("ConfirmedUnsafe", false);
@@ -847,6 +1033,15 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
+    private void requestClearFluid() {
+        if (PortalClientState.gun().getInt("Amount") <= 0) return;
+        if (PortalClientState.data().settings().confirmClearFluid()) {
+            openForm(Modal.CONFIRM_CLEAR_FLUID, null);
+        } else {
+            PortalNetworking.sendRequest(PortalAction.CLEAR_GUN_FLUID);
+        }
+    }
+
     private void toggleGroup(UUID id) {
         selectedGroup = id;
         boolean expanded = !PortalClientState.data().expandedGroups().contains(id);
@@ -859,14 +1054,14 @@ public final class PortalConfigScreen extends Screen {
     private void cycleSort() {
         PortalPlayerSettings current = PortalClientState.data().settings();
         sendSettings(new PortalPlayerSettings(current.safetyCheckEnabled(), current.confirmDeletion(),
-            current.confirmDiscardedChanges(), current.animationsEnabled(), current.soundsEnabled(),
+            current.confirmDiscardedChanges(), current.confirmClearFluid(), current.animationsEnabled(), current.soundsEnabled(),
             current.sort().next(), current.placementMode(), current.smartDistance()));
     }
 
     private void cyclePlacementMode() {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-            old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+            old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
             old.placementMode().next(), old.smartDistance());
         PortalClientState.data().settings(next);
         sendSettings(next);
@@ -911,19 +1106,22 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = switch (setting) {
             case 0 -> new PortalPlayerSettings(!old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
                 old.placementMode(), old.smartDistance());
             case 1 -> new PortalPlayerSettings(old.safetyCheckEnabled(), !old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
                 old.placementMode(), old.smartDistance());
             case 2 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                !old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                !old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
                 old.placementMode(), old.smartDistance());
             case 3 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), !old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.confirmDiscardedChanges(), !old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.placementMode(), old.smartDistance());
+            case 4 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
+                old.confirmDiscardedChanges(), old.confirmClearFluid(), !old.animationsEnabled(), old.soundsEnabled(), old.sort(),
                 old.placementMode(), old.smartDistance());
             default -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.animationsEnabled(), !old.soundsEnabled(), old.sort(),
+                old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), !old.soundsEnabled(), old.sort(),
                 old.placementMode(), old.smartDistance());
         };
         PortalClientState.data().settings(next);
@@ -938,6 +1136,7 @@ public final class PortalConfigScreen extends Screen {
             tag.putBoolean("SafetyCheck", settings.safetyCheckEnabled());
             tag.putBoolean("ConfirmDeletion", settings.confirmDeletion());
             tag.putBoolean("ConfirmDiscardedChanges", settings.confirmDiscardedChanges());
+            tag.putBoolean("ConfirmClearFluid", settings.confirmClearFluid());
             tag.putBoolean("Animations", settings.animationsEnabled());
             tag.putBoolean("Sounds", settings.soundsEnabled());
             tag.putString("Sort", settings.sort().name());
@@ -1044,6 +1243,9 @@ public final class PortalConfigScreen extends Screen {
                 tag.putUUID("Destination", id);
                 tag.putBoolean("ConfirmedUnsafe", true);
             });
+        } else if (modal == Modal.CONFIRM_CLEAR_FLUID) {
+            PortalNetworking.sendRequest(PortalAction.CLEAR_GUN_FLUID);
+            closeModalNow();
         }
     }
 
@@ -1051,7 +1253,10 @@ public final class PortalConfigScreen extends Screen {
         if (modal == Modal.CONFIRM_DIRTY) {
             modal = returnModal;
             rebuildWidgets();
-        } else closeModalNow();
+        } else {
+            if (modal == Modal.CONFIRM_UNSAFE) PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
+            closeModalNow();
+        }
     }
 
     private void closeModalNow() {
@@ -1073,10 +1278,8 @@ public final class PortalConfigScreen extends Screen {
 
     private void shiftFormGroup(int delta) {
         List<UUID> groups = orderedGroupIds();
-        int index = Math.max(0, groups.indexOf(formGroup));
-        int next = Mth.clamp(index + delta, 0, groups.size() - 1);
-        if (next == index) return;
-        selectFormGroup(groups.get(next));
+        UUID next = GroupSelection.cycle(groups, formGroup, delta);
+        if (!next.equals(formGroup)) selectFormGroup(next);
     }
 
     private void selectFormGroup(UUID id) {
@@ -1189,6 +1392,10 @@ public final class PortalConfigScreen extends Screen {
     }
 
     public void refreshFromServer(Set<UUID> invalidatedSafety) {
+        if (pendingSelection != null) {
+            PortalClientState.data().selectedDestinationId(pendingSelection);
+            PortalClientState.data().lastViewedDestinationId(pendingSelection);
+        }
         UUID selected = PortalClientState.data().selectedDestinationId();
         if (selected != null && !selected.equals(viewedDestination)) {
             viewedDestination = selected;
@@ -1208,19 +1415,52 @@ public final class PortalConfigScreen extends Screen {
     }
 
     public void onSafetyResult(UUID destinationId, int flags, boolean confirmation) {
-        if (confirmation && flags != 0) {
+        if (confirmation && flags != 0 && destinationId.equals(viewedDestination)
+            && destinationId.equals(pendingPortalDestination)) {
             unsafeDestination = destinationId;
             openForm(Modal.CONFIRM_UNSAFE, destinationId);
         }
     }
 
     public void onPortalOpened() {
+        closingAfterPortalOpened = true;
         if (minecraft != null) minecraft.setScreen(null);
+    }
+
+    public void onPortalPending(UUID destinationId, String state) {
+        if (state.equals("Failed") || state.equals("Cancelled")) {
+            if (destinationId.equals(pendingPortalDestination)) {
+                pendingPortalDestination = null;
+                pendingPortalState = "";
+            }
+        } else {
+            pendingPortalDestination = destinationId;
+            pendingPortalState = state;
+        }
+        updateOpenPortalButton();
+    }
+
+    private void updateOpenPortalButton() {
+        if (openPortalButton == null) return;
+        boolean pendingCurrent = viewedDestination != null && viewedDestination.equals(pendingPortalDestination);
+        openPortalButton.active = viewed() != null && !pendingCurrent;
+        openPortalButton.setMessage(Component.translatable(pendingCurrent && pendingPortalState.equals("Loading")
+            ? "screen.riftgun.loading_destination" : "screen.riftgun.generate"));
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openCoordinateEditorForQa() {
         openForm(Modal.CREATE_COORDINATE, null);
+    }
+
+    /** Used only by the opt-in visual QA harness. */
+    public void openGroupDropdownForQa() {
+        if (modal.isDestinationForm()) openGroupDropdown();
+    }
+
+    /** Used only by the opt-in visual QA harness. */
+    public void closeGroupDropdownForQa() {
+        groupDropdownOpen = false;
     }
 
     /** Used only by the opt-in visual QA harness. */
@@ -1236,6 +1476,15 @@ public final class PortalConfigScreen extends Screen {
     private String groupName(UUID id) {
         if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) return "Default";
         return PortalClientState.data().group(id).map(DestinationGroup::name).orElse("Default");
+    }
+
+    private Component gunFluidName() {
+        String id = PortalClientState.gun().getString("Fluid");
+        if (id.isEmpty()) return Component.translatable("screen.riftgun.empty_fluid");
+        int separator = id.indexOf(':');
+        String namespace = separator >= 0 ? id.substring(0, separator) : "minecraft";
+        String path = separator >= 0 ? id.substring(separator + 1) : id;
+        return Component.translatable("fluid." + namespace + "." + path);
     }
 
     private void label(GuiGraphics graphics, String key, int x, int y) {
@@ -1267,10 +1516,10 @@ public final class PortalConfigScreen extends Screen {
         int desiredHeight = switch (modal) {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
             case CREATE_CURRENT -> 164;
-            case SETTINGS -> 210;
+            case SETTINGS -> 182;
             case PLACEMENT_SETTINGS -> 132;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
-                 CONFIRM_DIRTY, CONFIRM_UNSAFE -> 112;
+                 CONFIRM_DIRTY, CONFIRM_UNSAFE, CONFIRM_CLEAR_FLUID -> 112;
             case NONE -> 0;
         };
         int boxWidth = Math.min(340, panelWidth - 16);
@@ -1281,7 +1530,13 @@ public final class PortalConfigScreen extends Screen {
     private DropdownBox dropdownBox(int groupCount) {
         int visible = Math.min(7, groupCount);
         int height = visible * ROW_HEIGHT + 4;
-        int top = Math.max(panelY + 3, groupSelectorY - height - 2);
+        ModalBox modalBounds = modalBox();
+        int minY = modalBounds.y() + 3;
+        int maxY = modalBounds.y() + modalBounds.height() - height - 3;
+        int upward = groupSelectorY - height - 2;
+        int downward = groupSelectorY + 20;
+        int top = upward >= minY ? upward : Math.min(downward, maxY);
+        top = Mth.clamp(top, minY, Math.max(minY, maxY));
         return new DropdownBox(groupSelectorX, top, groupSelectorWidth, height);
     }
 
@@ -1348,7 +1603,8 @@ public final class PortalConfigScreen extends Screen {
         CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
         CONFIRM_DELETE_GROUP("screen.riftgun.delete", "screen.riftgun.delete_group_body", false, false),
         CONFIRM_DIRTY("screen.riftgun.unsaved", "screen.riftgun.unsaved_body", false, false),
-        CONFIRM_UNSAFE("screen.riftgun.unsafe", "screen.riftgun.unsafe_body", false, false);
+        CONFIRM_UNSAFE("screen.riftgun.unsafe", "screen.riftgun.unsafe_body", false, false),
+        CONFIRM_CLEAR_FLUID("screen.riftgun.clear_fluid", "screen.riftgun.clear_fluid_body", false, false);
 
         private final String titleKey;
         private final String bodyKey;
@@ -1390,7 +1646,7 @@ public final class PortalConfigScreen extends Screen {
             lastDistance = nextDistance;
             PortalPlayerSettings old = PortalClientState.data().settings();
             PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
+                old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
                 old.placementMode(), nextDistance);
             PortalClientState.data().settings(next);
             sendSettings(next);

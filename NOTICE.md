@@ -9,3 +9,10 @@ Portal rendering and shader structure are adapted from Tempad by Terrarium Earth
 
 The complete upstream license text is stored in `THIRD_PARTY_LICENSES/Tempad-LICENSE.md`.
 
+The Portal Gun item model is derived from `portalgun_v2_100` in Just Dire Things by Direwolf20-MC:
+
+- Repository: https://github.com/Direwolf20-MC/JustDireThings
+- The derived geometry is redistributed and modified under the MIT License.
+- Original copyright: Copyright (c) 2023 Direwolf20-MC.
+
+The complete upstream license text is stored in `THIRD_PARTY_LICENSES/JustDireThings-LICENSE.txt`.

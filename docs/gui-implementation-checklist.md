@@ -15,7 +15,7 @@
 ## 2. Independent service seams
 
 - [x] `PortalGunLocator`：vanilla inventory 实现；为饰品/扩展物品栏保留 registry。
-- [x] `DestinationDimensionPolicy`：当前同维度策略；为跨维度保留 seam。
+- [x] `DestinationDimensionPolicy`：允许 server 已加载维度；跨维度能力由 fuel profile 决定。
 - [x] `DestinationSafetyInspector`：lazy collision、support surface、hazard 检查。
 - [x] `SafeDestinationResolver`：identity 实现；为未来智能搜索保留 seam。
 - [x] `PortalEntityEligibilityPolicy`：玩家、掉落物、载具；为升级模块保留组合 seam。
@@ -34,7 +34,8 @@
 - [x] GUI 生成 portal，同时选择该目标。
 - [x] 右键 Portal Gun 打开当前目标；不存在 raycast 模式。
 - [x] 新 portal 关闭旧 portal；完全打开 3 秒后关闭。
-- [x] portal 存活时为目的地 chunk 添加 ticking ticket。
+- [x] portal 存活时为入口和出口 chunk 各持有临时 ticket；关闭或异常移除时释放。
+- [x] 开门 placement 与双实体创建成功后才原子扣除一次燃料；失败时燃料和旧 portal 均保持不变。
 
 ## 4. Networking
 
@@ -68,12 +69,16 @@
 - [x] 分组展开/收起与置顶重排使用短时平滑位移动画；关闭 animations 后立即更新。
 - [x] Vanilla UI sounds；个人声音开关。
 - [x] English 与 Simplified Chinese localization。
+- [x] 底部紧凑 fuel gauge、bucket-mode 图标与清空图标；hover 显示 fluid、液量、溢出和模式。
+- [x] 清空 fluid 使用独立二次确认；玩家可单独关闭该确认。
+- [x] GUI 请求绑定打开界面时的具体枪槽位；枪被移动后拒绝操作，避免误改另一把枪。
 
 ## 6. Portal behavior and tooltip
 
 - [x] Portal 出口使用保存的 feet position 与 yaw。
 - [x] Safety 只警告；不偏移、不破坏、不拒绝开门。
 - [x] Portal Gun tooltip：目标名、分组、维度、同维度距离。
+- [x] Portal Gun tooltip 同时显示 bucket mode、fluid 类型与液量。
 - [x] Portal Gun 互动键遇到 unsafe 目标时 action-bar 警告但照常开门；GUI 开门使用确认弹窗。
 - [x] 玩家、掉落物、允许的 vehicle/passenger tree 可传送；mob 不可传送。
 - [x] 保留水平 momentum 与 riding relationship。
@@ -89,7 +94,11 @@
 - [x] Portal-local occupancy gate 取代 tick cooldown；实体完全离开出口 trigger 后才允许再次进入。
 - [x] 贴面 portal 每 5 ticks 复验 anchor 与占用空间；失效时成对关闭。
 - [x] 新 placement 验证成功后才关闭旧 portal pair；失败时保留旧门。
-- [x] translucent quad liquid splash 随 portal basis 定向；默认淡绿色 `#A8F0B6`，仅暴露 code-level style provider。
+- [x] 开门与关门沿 portal 边缘生成 vanilla-behavior `SPLASH` 粒子；保持原版水平运动，支持侧向/TOP/BOTTOM，默认淡绿色 `#A8F0B6`，仅暴露 per-portal code-level RGB provider。
+- [x] **Splash freeze：** 水花的数量、边缘采样、时序、速度、重力、寿命、side/TOP/BOTTOM 行为均已冻结；后续不得修改。唯一允许的扩展是通过 `PortalVisualStyleProvider` 更换 24-bit RGB，禁止控制 alpha。
+- [x] 三种完整 fluid（source/flowing/block/bucket）与单-fluid 8000 mB tank；标准 capability 严格限容。
+- [x] bucket mode 只抽取允许的完整 source；不放液、不回退开门；特殊整桶溢出隔离为可替换 policy。
+- [x] 灰/蓝 fuel 仅同维度，绿色 fuel 支持跨维度；门体与冻结水花使用开门时的 fuel RGB snapshot。
 
 ## 7. Verification
 
@@ -98,6 +107,7 @@
 - [x] `clean test build` 成功。
 - [x] Dedicated server 启动到 `Done`，无 mod exception。
 - [x] `runClient -PguiCapture=true` 自动打开真实 Screen、截图并正常退出，无 mod exception。
+- [x] GUI scale 4 自动 QA：主界面、详情滚底、坐标 modal、unsafe modal、placement settings 均无 clipping。
 - [x] GUI scale 1 与当前窗口允许的自动上限 scale 2：主界面、坐标 modal、unsafe modal 无 clipping。
 - [x] scale 2 详情区实际滚到底，Edit 可见且底部 Open Portal 保持固定。
 - [x] scale 2 placement settings 二级页无 clipping，slider、说明与返回按钮均完整可见。
@@ -110,7 +120,10 @@
 - [ ] 玩家可选关闭触发：打开后或首次穿过后。
 - [ ] 玩家可配关闭延迟；默认 `3s`。
 - [ ] 通过 `SafeDestinationResolver` 智能搜索安全位置。
-- [ ] 跨维度 policy 与维度选择器。
+- [ ] 独立维度选择器（跨维度传送与数据路径已完成）。
+- [ ] 三种 fluid 的 recipes、worldgen 与 progression。
+- [ ] 不稳定 fluid 的失控机制。
+- [ ] Portal Gun tank 容量升级与 multi-fluid 模块。
 - [ ] Portal upgrade module 组合不同实体 eligibility policy。
 - [ ] Portal geometry upgrade：根据空间在 3×3、2×1、1×1 之间动态选择。
 - [ ] Portal range upgrade：通过 `PortalPlacementCapabilities` 扩展 surface raycast 射程。

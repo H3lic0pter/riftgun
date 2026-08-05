@@ -2,13 +2,17 @@ package dev.riftgun.portal;
 
 import dev.riftgun.RiftGun;
 import dev.riftgun.service.PortalServices;
+import dev.riftgun.fuel.PortalFuelProfile;
+import dev.riftgun.fuel.PortalFuelProfiles;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -25,6 +29,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +45,12 @@ public final class PortalEntity extends Entity {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> GEOMETRY =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> FUEL_RGB =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<String> FUEL_ID =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.STRING);
+    private static final TicketType<BlockPos> PORTAL_TICKET =
+        TicketType.create("riftgun_portal", Vec3i::compareTo, 200);
 
     private @Nullable UUID linkedPortalId;
     private @Nullable UUID ownerId;
@@ -47,42 +58,64 @@ public final class PortalEntity extends Entity {
     private @Nullable Direction anchorFace;
     private final PortalTransitGate transitGate = new PortalTransitGate();
     private boolean closingPair;
+    private @Nullable BlockPos ticketPosition;
+    private boolean ticketHeld;
+    private long lifecycleStartedAt;
+    private long closeStartedAt = -1L;
 
     public PortalEntity(EntityType<?> type, Level level) {
         super(type, level);
         noPhysics = true;
     }
 
-    public static void openPair(ServerPlayer player, PortalPairPlacement pair) {
+    public static boolean openPair(ServerPlayer player, PortalPairPlacement pair,
+                                   PortalFuelProfile fuel, BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
-        if (server == null) return;
+        if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
         ServerLevel exitLevel = server.getLevel(pair.exitDimension());
-        if (exitLevel == null) return;
+        if (exitLevel == null) return false;
 
-        // The resolver has already validated both placements. Existing portals are closed only now.
-        closeOwnedPortals(server, player.getUUID());
-
-        PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry());
-        PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit());
+        long startedAt = server.overworld().getGameTime();
+        PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(), fuel, startedAt);
+        PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(), fuel, startedAt);
         entry.linkedPortalId = exit.getUUID();
         exit.linkedPortalId = entry.getUUID();
 
-        BlockPos exitBlock = BlockPos.containing(pair.exit().center());
-        exitLevel.getChunk(exitBlock.getX() >> 4, exitBlock.getZ() >> 4);
-        exitLevel.getChunkSource().addRegionTicket(
-            TicketType.PORTAL, new ChunkPos(exitBlock), 3, exitBlock, true
-        );
+        entry.acquireChunkTicket();
+        exit.acquireChunkTicket();
 
-        entryLevel.addFreshEntity(entry);
-        exitLevel.addFreshEntity(exit);
+        boolean entryAdded = entryLevel.addFreshEntity(entry);
+        boolean exitAdded = exitLevel.addFreshEntity(exit);
+        if (!entryAdded || !exitAdded || !commitFuel.getAsBoolean()) {
+            if (entryAdded) entry.discard();
+            if (exitAdded) exit.discard();
+            entry.releaseChunkTicket();
+            exit.releaseChunkTicket();
+            return false;
+        }
+
+        closeOwnedPortals(server, player.getUUID(), Set.of(entry.getUUID(), exit.getUUID()));
         entryLevel.playSound(null, pair.entry().center().x, pair.entry().center().y, pair.entry().center().z,
             SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.7F, 1.15F);
         entryLevel.playSound(null, pair.entry().center().x, pair.entry().center().y, pair.entry().center().z,
             SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.25F, 1.55F);
+        return true;
     }
 
-    private static PortalEntity create(ServerLevel level, UUID owner, PortalPlacement placement) {
+    private void acquireChunkTicket() {
+        if (ticketHeld || !(level() instanceof ServerLevel serverLevel)) return;
+        BlockPos position = blockPosition();
+        serverLevel.getChunk(position.getX() >> 4, position.getZ() >> 4);
+        serverLevel.getChunkSource().addRegionTicket(
+            PORTAL_TICKET, new ChunkPos(position), 3, position, true
+        );
+        ticketPosition = position;
+        ticketHeld = true;
+    }
+
+    private static PortalEntity create(ServerLevel level, UUID owner, PortalPlacement placement,
+                                       PortalFuelProfile fuel, long startedAt) {
         PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
         portal.ownerId = owner;
         portal.setPos(placement.center());
@@ -92,13 +125,21 @@ public final class PortalEntity extends Entity {
         portal.entityData.set(GEOMETRY, placement.geometry().ordinal());
         portal.anchor = placement.anchor();
         portal.anchorFace = placement.anchorFace();
+        portal.entityData.set(FUEL_RGB, fuel.rgb());
+        portal.entityData.set(FUEL_ID, fuel.id().toString());
+        portal.lifecycleStartedAt = startedAt;
         return portal;
     }
 
     public static void closeOwnedPortals(MinecraftServer server, UUID owner) {
+        closeOwnedPortals(server, owner, Set.of());
+    }
+
+    private static void closeOwnedPortals(MinecraftServer server, UUID owner, Set<UUID> excluded) {
         for (ServerLevel level : server.getAllLevels()) {
             for (Entity entity : level.getAllEntities()) {
-                if (entity instanceof PortalEntity portal && owner.equals(portal.ownerId)) portal.startClosing();
+                if (entity instanceof PortalEntity portal && owner.equals(portal.ownerId)
+                    && !excluded.contains(portal.getUUID())) portal.startClosing();
             }
         }
     }
@@ -109,6 +150,8 @@ public final class PortalEntity extends Entity {
         builder.define(PHASE_TICKS, 0);
         builder.define(ORIENTATION, PortalOrientation.VERTICAL.ordinal());
         builder.define(GEOMETRY, PortalGeometry.FLOATING_VERTICAL.ordinal());
+        builder.define(FUEL_RGB, PortalFuelProfiles.DIMENSIONAL_RGB);
+        builder.define(FUEL_ID, "riftgun:dimensional_portal_fluid");
     }
 
     public PortalLifecycle.Phase phase() {
@@ -125,6 +168,14 @@ public final class PortalEntity extends Entity {
 
     public PortalGeometry geometry() {
         return PortalGeometry.byOrdinal(entityData.get(GEOMETRY));
+    }
+
+    public int fuelRgb() {
+        return entityData.get(FUEL_RGB);
+    }
+
+    public String fuelId() {
+        return entityData.get(FUEL_ID);
     }
 
     public float portalWidth() {
@@ -156,11 +207,14 @@ public final class PortalEntity extends Entity {
         super.tick();
         if (level().isClientSide()) return;
 
-        PortalLifecycle.Step next = PortalLifecycle.tick(phase(), phaseTicks());
-        entityData.set(PHASE, next.phase().ordinal());
-        entityData.set(PHASE_TICKS, next.phaseTicks());
+        long now = serverTime();
+        PortalLifecycle.Phase nextPhase = PortalPairClock.phase(lifecycleStartedAt, closeStartedAt, now);
+        int nextPhaseTicks = PortalPairClock.phaseTicks(lifecycleStartedAt, closeStartedAt, now);
+        entityData.set(PHASE, nextPhase.ordinal());
+        entityData.set(PHASE_TICKS, nextPhaseTicks);
 
-        if (next.phase() == PortalLifecycle.Phase.CLOSED) {
+        if (nextPhase == PortalLifecycle.Phase.CLOSED) {
+            releaseChunkTicket();
             discard();
             return;
         }
@@ -168,11 +222,24 @@ public final class PortalEntity extends Entity {
             startClosing();
             return;
         }
-        if (next.phase() == PortalLifecycle.Phase.OPEN && PortalServices.CLOSE_POLICY.shouldClose(this)) {
+        if (nextPhase == PortalLifecycle.Phase.OPEN && PortalServices.CLOSE_POLICY.shouldClose(this)) {
             startClosing();
-        } else if (next.phase() == PortalLifecycle.Phase.OPEN) {
+        } else if (nextPhase == PortalLifecycle.Phase.OPEN) {
             teleportTouchingEntities();
         }
+    }
+
+    private void releaseChunkTicket() {
+        if (!ticketHeld || ticketPosition == null || !(level() instanceof ServerLevel serverLevel)) return;
+        serverLevel.getChunkSource().removeRegionTicket(
+            PORTAL_TICKET, new ChunkPos(ticketPosition), 3, ticketPosition, true);
+        ticketHeld = false;
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        releaseChunkTicket();
+        super.remove(reason);
     }
 
     private boolean anchorStillValid() {
@@ -201,27 +268,24 @@ public final class PortalEntity extends Entity {
     private boolean canTeleport(Entity entity) {
         if (entity instanceof PortalEntity || entity.isPassenger()
             || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity)) return false;
-        Vec3 delta = entity.getBoundingBox().getCenter().subtract(position());
-        double normalRadius = orientation() == PortalOrientation.VERTICAL
-            ? entity.getBbWidth() * 0.5 : entity.getBbHeight() * 0.5;
-        return Math.abs(delta.dot(right())) <= portalWidth() * 0.5 + entity.getBbWidth() * 0.5
-            && Math.abs(delta.dot(up())) <= portalHeight() * 0.5 + entity.getBbHeight() * 0.5
-            && Math.abs(delta.dot(normal())) <= 0.45 + normalRadius;
+        return PortalTriggerShape.intersects(placement(), entity.getBoundingBox());
     }
 
-    private void teleportTree(Entity root, PortalEntity target) {
+    private @Nullable Entity teleportTree(Entity root, PortalEntity target) {
         var passengers = new ArrayList<>(root.getPassengers());
         root.ejectPassengers();
-        teleportSingle(root, target);
+        Entity movedRoot = teleportSingle(root, target);
+        if (movedRoot == null) return null;
         for (Entity passenger : passengers) {
-            teleportTree(passenger, target);
-            passenger.startRiding(root, true);
+            Entity movedPassenger = teleportTree(passenger, target);
+            if (movedPassenger != null) movedPassenger.startRiding(movedRoot, true);
         }
         target.level().playSound(null, target.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
             SoundSource.PLAYERS, 0.6F, 1.4F);
+        return movedRoot;
     }
 
-    private void teleportSingle(Entity entity, PortalEntity target) {
+    private @Nullable Entity teleportSingle(Entity entity, PortalEntity target) {
         Vec3 momentum = transformVector(entity.getDeltaMovement(), target);
         double outwardSpeed = momentum.dot(target.normal());
         if (outwardSpeed < 0.12) momentum = momentum.add(target.normal().scale(0.12 - outwardSpeed));
@@ -231,11 +295,21 @@ public final class PortalEntity extends Entity {
         float newPitch = (float) Math.toDegrees(Math.asin(Mth.clamp(-look.y, -1.0, 1.0)));
         Vec3 destination = target.outputPosition(entity);
 
-        entity.setDeltaMovement(momentum);
-        entity.teleportTo((ServerLevel) target.level(), destination.x, destination.y, destination.z,
-            Set.<RelativeMovement>of(), newYaw, newPitch);
-        entity.setDeltaMovement(momentum);
-        entity.hasImpulse = true;
+        ServerLevel targetLevel = (ServerLevel) target.level();
+        Entity moved;
+        if (entity.level() == targetLevel) {
+            boolean successful = entity.teleportTo(targetLevel, destination.x, destination.y, destination.z,
+                Set.<RelativeMovement>of(), newYaw, newPitch);
+            moved = successful ? entity : null;
+        } else {
+            moved = entity.changeDimension(new DimensionTransition(targetLevel, destination, momentum,
+                newYaw, newPitch, DimensionTransition.DO_NOTHING));
+        }
+        if (moved != null) {
+            moved.setDeltaMovement(momentum);
+            moved.hasImpulse = true;
+        }
+        return moved;
     }
 
     private Vec3 transformVector(Vec3 vector, PortalEntity target) {
@@ -251,7 +325,8 @@ public final class PortalEntity extends Entity {
     }
 
     public void startClosing() {
-        if (phase() == PortalLifecycle.Phase.CLOSING || phase() == PortalLifecycle.Phase.CLOSED) return;
+        if (closeStartedAt >= 0L || phase() == PortalLifecycle.Phase.CLOSED) return;
+        closeStartedAt = serverTime();
         entityData.set(PHASE, PortalLifecycle.Phase.CLOSING.ordinal());
         entityData.set(PHASE_TICKS, 0);
         if (!closingPair) {
@@ -275,6 +350,12 @@ public final class PortalEntity extends Entity {
         return null;
     }
 
+    private long serverTime() {
+        return level() instanceof ServerLevel serverLevel
+            ? serverLevel.getServer().overworld().getGameTime()
+            : level().getGameTime();
+    }
+
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
         if (tag.hasUUID("LinkedPortal")) linkedPortalId = tag.getUUID("LinkedPortal");
@@ -289,8 +370,24 @@ public final class PortalEntity extends Entity {
         }
         entityData.set(PHASE, tag.getInt("Phase"));
         entityData.set(PHASE_TICKS, tag.getInt("PhaseTicks"));
+        long now = serverTime();
+        int savedTicks = entityData.get(PHASE_TICKS);
+        PortalLifecycle.Phase savedPhase = phase();
+        lifecycleStartedAt = tag.contains("LifecycleStartedAt")
+            ? tag.getLong("LifecycleStartedAt")
+            : switch (savedPhase) {
+                case CHARGING -> now - savedTicks;
+                case OPENING -> now - PortalLifecycle.CHARGE_TICKS - savedTicks;
+                case OPEN, CLOSING, CLOSED -> now - PortalLifecycle.CHARGE_TICKS
+                    - PortalLifecycle.ANIMATION_TICKS - savedTicks;
+            };
+        closeStartedAt = tag.contains("CloseStartedAt")
+            ? tag.getLong("CloseStartedAt")
+            : savedPhase == PortalLifecycle.Phase.CLOSING ? now - savedTicks : -1L;
         entityData.set(ORIENTATION, tag.getInt("Orientation"));
         entityData.set(GEOMETRY, tag.getInt("Geometry"));
+        if (tag.contains("FuelRgb")) entityData.set(FUEL_RGB, tag.getInt("FuelRgb"));
+        if (tag.contains("FuelId")) entityData.set(FUEL_ID, tag.getString("FuelId"));
     }
 
     @Override
@@ -301,8 +398,12 @@ public final class PortalEntity extends Entity {
         if (anchorFace != null) tag.putString("AnchorFace", anchorFace.name());
         tag.putInt("Phase", entityData.get(PHASE));
         tag.putInt("PhaseTicks", entityData.get(PHASE_TICKS));
+        tag.putLong("LifecycleStartedAt", lifecycleStartedAt);
+        if (closeStartedAt >= 0L) tag.putLong("CloseStartedAt", closeStartedAt);
         tag.putInt("Orientation", entityData.get(ORIENTATION));
         tag.putInt("Geometry", entityData.get(GEOMETRY));
+        tag.putInt("FuelRgb", entityData.get(FUEL_RGB));
+        tag.putString("FuelId", entityData.get(FUEL_ID));
     }
 
     @Override

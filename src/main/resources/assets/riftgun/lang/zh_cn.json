@@ -1,5 +1,11 @@
 {
   "item.riftgun.portal_gun": "传送枪",
+  "item.riftgun.unstable_portal_fluid_bucket": "不稳定传送液桶",
+  "item.riftgun.portal_fluid_bucket": "传送液桶",
+  "item.riftgun.dimensional_portal_fluid_bucket": "维度传送液桶",
+  "fluid.riftgun.unstable_portal_fluid": "不稳定传送液",
+  "fluid.riftgun.portal_fluid": "传送液",
+  "fluid.riftgun.dimensional_portal_fluid": "维度传送液",
   "key.categories.riftgun": "Rift Gun",
   "key.riftgun.open_config": "打开传送配置",
   "key.riftgun.cycle_placement": "切换传送门放置模式",
@@ -47,6 +53,7 @@
   "screen.riftgun.safety": "安全提示",
   "screen.riftgun.confirm_deletion": "删除前确认",
   "screen.riftgun.confirm_discard": "放弃未保存修改时确认",
+  "screen.riftgun.confirm_clear_fluid": "清空枪内流体前确认",
   "screen.riftgun.checking": "正在检查目的地…",
   "screen.riftgun.animations": "GUI 动画",
   "screen.riftgun.sounds": "UI 声音",
@@ -60,6 +67,14 @@
   "screen.riftgun.placement_mode.surface": "贴面",
   "screen.riftgun.placement_mode_tooltip": "传送枪模式：%s（点击切换）",
   "screen.riftgun.open_front_tooltip": "始终在玩家面前开启传送门",
+  "screen.riftgun.bucket_mode_tooltip": "桶模式：%s · %s · %s/%s mB · %s",
+  "screen.riftgun.clear_fluid_tooltip": "清空枪内传送液",
+  "screen.riftgun.clear_fluid": "清空传送液？",
+  "screen.riftgun.clear_fluid_body": "确定丢弃 %2$s mB 的%1$s吗？此操作无法恢复。",
+  "screen.riftgun.empty_fluid": "空",
+  "screen.riftgun.overfilled": "已溢出",
+  "screen.riftgun.nominal": "正常",
+  "screen.riftgun.cross_dimension_fuel_required": "需要维度传送液",
   "screen.riftgun.on": "开",
   "screen.riftgun.off": "关",
   "screen.riftgun.cancel": "取消",
@@ -77,6 +92,8 @@
   "tooltip.riftgun.group": "分组：%s",
   "tooltip.riftgun.dimension": "维度：%s",
   "tooltip.riftgun.distance": "距离：%s 格",
+  "tooltip.riftgun.bucket_mode": "桶模式：%s",
+  "tooltip.riftgun.fluid": "%s：%s/%s mB",
   "message.riftgun.spectator_denied": "旁观者无法使用传送枪",
   "message.riftgun.no_portal_gun": "背包中没有传送枪",
   "message.riftgun.no_destination_selected": "尚未选择传送目的地",
@@ -92,12 +109,31 @@
   "message.riftgun.default_group_immutable": "Default 分组不能修改",
   "message.riftgun.invalid_coordinate": "坐标格式无效；支持数字和 ~，不支持 ^",
   "message.riftgun.invalid_request": "请求无效",
-  "message.riftgun.same_dimension_only": "当前版本只支持同维度传送"
-  ,"message.riftgun.dimension_unavailable": "目的地维度不可用"
+  "message.riftgun.dimension_unavailable": "目的地维度不可用"
   ,"message.riftgun.placement_mode": "传送门放置模式：%s"
   ,"message.riftgun.front_obstructed": "面前空间不足，无法开启传送门"
   ,"message.riftgun.surface_missing": "视线内没有可用方块表面"
   ,"message.riftgun.surface_out_of_range": "目标表面超出射程"
   ,"message.riftgun.surface_invalid": "该方块表面无法锚定传送门"
   ,"message.riftgun.surface_obstructed": "该表面没有足够的开门空间"
+  ,"message.riftgun.fuel_empty": "传送枪内没有有效传送液"
+  ,"message.riftgun.fuel_insufficient": "传送液不足，无法开启传送门"
+  ,"message.riftgun.fuel_dimension_denied": "跨维度传送需要维度传送液"
+  ,"message.riftgun.portal_open_failed": "传送门开启失败，未消耗燃料"
+  ,"message.riftgun.bucket_mode_enabled": "已开启桶模式"
+  ,"message.riftgun.bucket_mode_disabled": "已关闭桶模式"
+  ,"message.riftgun.fluid_cleared": "已丢弃 %s mB 传送液"
+  ,"message.riftgun.scoop_no_source": "请瞄准传送流体 source block"
+  ,"message.riftgun.scoop_protected": "你不能在此处抽取流体"
+  ,"message.riftgun.scoop_invalid_fluid": "这种流体不能作为传送枪燃料"
+  ,"message.riftgun.scoop_full": "传送枪无法再装入一个 source block"
+  ,"message.riftgun.scoop_mixed": "请先清空传送枪，再抽取另一种流体"
+  ,"message.riftgun.scoop_failed": "无法抽取该流体 source block"
+  ,"message.riftgun.scoop_success": "已抽取 %s mB · %s/%s mB"
+  ,"screen.riftgun.bucket_mode_simple": "桶模式：%s"
+  ,"screen.riftgun.loading_destination": "正在加载目的地..."
+  ,"screen.riftgun.safety_deferred": "目的地检查：将在开门时进行"
+  ,"message.riftgun.destination_loading": "正在加载目的地..."
+  ,"message.riftgun.destination_load_timeout": "目的地区块加载超时；未消耗燃料"
+  ,"message.riftgun.destination_changed": "加载期间目的地已改变；请求已取消"
 }
