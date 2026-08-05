@@ -39,7 +39,7 @@ public final class PortalOpenCoordinator {
         }
 
         PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(
-            player, mode, data.settings().smartDistance());
+            player, mode, data.settings().smartDistance(), data.settings().motionPredictionEnabled());
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());
             return;

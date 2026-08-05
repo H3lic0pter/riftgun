@@ -9,7 +9,6 @@ import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
-import java.util.Locale;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -56,9 +55,10 @@ public final class ClientGameEvents {
         if (!event.getItemStack().is(RiftGun.PORTAL_GUN.get())) return;
         PortalGunTank tank = new PortalGunTank(event.getItemStack());
         var fluid = tank.getFluid();
-        event.getToolTip().add(Component.translatable("tooltip.riftgun.bucket_mode",
-            Component.translatable(PortalGunMode.bucketMode(event.getItemStack())
-                ? "screen.riftgun.on" : "screen.riftgun.off")).withStyle(ChatFormatting.GRAY));
+        if (PortalGunMode.bucketMode(event.getItemStack())) {
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.bucket_mode",
+                Component.translatable("screen.riftgun.on")).withStyle(ChatFormatting.GRAY));
+        }
         if (!fluid.isEmpty()) {
             int fluidRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid)
                 .map(dev.riftgun.fuel.PortalFuelProfile::rgb).orElse(0xA7A39C);
@@ -84,12 +84,6 @@ public final class ClientGameEvents {
         event.getToolTip().add(Component.translatable("tooltip.riftgun.target", destination.name()).withStyle(ChatFormatting.AQUA));
         event.getToolTip().add(Component.translatable("tooltip.riftgun.group", group).withStyle(ChatFormatting.GRAY));
         event.getToolTip().add(Component.translatable("tooltip.riftgun.dimension", destination.dimension().location()).withStyle(ChatFormatting.GRAY));
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player != null && minecraft.player.level().dimension().equals(destination.dimension())) {
-            double distance = minecraft.player.position().distanceTo(destination.position());
-            event.getToolTip().add(Component.translatable("tooltip.riftgun.distance",
-                String.format(Locale.ROOT, "%.1f", distance)).withStyle(ChatFormatting.GRAY));
-        }
     }
 
     private ClientGameEvents() {}

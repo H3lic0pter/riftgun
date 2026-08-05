@@ -63,7 +63,9 @@
 - [x] 关闭 safety-check 后 server 完全跳过 inspector 并隐藏 `!`；历史结果保留，详情区始终不显示 Safety 文本。
 - [x] 地点行右侧常驻黄星置顶按钮，hover/focus 时显示红色删除按钮；长名称省略并提供 tooltip。
 - [x] 自定义分组行 hover/focus 时显示重命名和删除按钮；drag handle 与 Alt+↑/↓ 均可排序。
+- [x] 地点名称左侧低干扰拖拽点；拖到分组标题或地点行即可换组，Default 可作为目标；换组只修改 `groupId` 并保留 Safety 历史与地点状态。
 - [x] 右侧详情整体滚动，目标变化时归顶；底部生成 portal 固定，不参与滚动。
+- [x] 打开任意二级 modal 后完全屏蔽背景主界面的 hover tooltip 与交互。
 - [x] 空详情与 server action-bar 的 missing-gun、limit、validation 状态。
 - [x] Mouse 与 Tab/Shift+Tab/Enter/Esc navigation。
 - [x] 分组展开/收起与置顶重排使用短时平滑位移动画；关闭 animations 后立即更新。
@@ -77,14 +79,17 @@
 
 - [x] Portal 出口使用保存的 feet position 与 yaw。
 - [x] Safety 只警告；不偏移、不破坏、不拒绝开门。
-- [x] Portal Gun tooltip：目标名、分组、维度、同维度距离。
-- [x] Portal Gun tooltip 同时显示 bucket mode、fluid 类型与液量。
+- [x] Portal Gun tooltip：目标名、分组与维度；不再显示距离。
+- [x] Portal Gun tooltip 显示 fluid 类型与液量；bucket mode 仅在开启时显示“开”。
 - [x] Portal Gun 互动键和 GUI 遇到 unsafe 目标时只发 action-bar 警告并照常开门。
 - [x] 玩家、掉落物、允许的 vehicle/passenger tree 可传送；mob 不可传送。
 - [x] 保留水平 momentum 与 riding relationship。
 - [x] `CHARGING` 前摇缩短为 6 ticks；opening/closing 各 5 ticks，完全开启后仍维持 3 秒。
 - [x] `SMART` / `FRONT` / `SURFACE` 三种持久化 placement mode；`V` 默认循环切换。
 - [x] GUI 底部 Open Portal 固定使用 `FRONT`，不受当前 placement mode 影响。
+- [x] `FRONT` 最终路由支持 Downshot：pitch ≥ 78° 时在预测 feet 下方 2 blocks 生成浮空 1×1 TOP 门；入口按 TOP→BOTTOM 规则匹配出口。
+- [x] 一级 GUI 提供个人持久化的动量预测图标开关（默认开）；预测到完全 OPEN 的 11 ticks，地面只预测 X/Z，空中预测 X/Y/Z，水平位移上限 16 blocks。
+- [x] 动量预测仅用于 `FRONT` 与 `SMART` 的 FRONT fallback；预测点受阻时普通 FRONT 回退静态点，Downshot 不回退，超出世界高度直接失败。
 - [x] `FRONT` / `SURFACE` 各有默认未绑定的直接开门快捷键，且不修改持久化 mode。
 - [x] `SMART` 默认阈值 8 blocks；二级设置页提供 1–32 slider，`Esc` 返回 Settings。
 - [x] server-authoritative block collider raycast；忽略 fluids/entities；surface 最大射程为 code seam，默认 32 blocks。

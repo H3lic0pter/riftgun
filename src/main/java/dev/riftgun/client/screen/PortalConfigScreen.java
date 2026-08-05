@@ -59,6 +59,9 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable RowKind focusedRowKind;
     private boolean listFocused;
     private @Nullable UUID draggingGroup;
+    private @Nullable UUID draggingDestination;
+    private boolean destinationDragActive;
+    private double dragStartX;
     private double dragStartY;
     private @Nullable UUID ensureVisibleId;
     private final List<Row> hitRows = new ArrayList<>();
@@ -81,6 +84,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable EditBox searchBox;
     private @Nullable ThemedButton firstCreateButton;
     private @Nullable ThemedButton groupSelector;
+    private @Nullable ThemedButton motionPredictionButton;
     private @Nullable ThemedButton placementModeButton;
     private @Nullable ThemedButton placementSettingsButton;
     private @Nullable ThemedButton placementBackButton;
@@ -109,6 +113,7 @@ public final class PortalConfigScreen extends Screen {
     @Override
     protected void init() {
         placementModeButton = null;
+        motionPredictionButton = null;
         placementSettingsButton = null;
         placementBackButton = null;
         openPortalButton = null;
@@ -150,10 +155,13 @@ public final class PortalConfigScreen extends Screen {
         int footerY = panelY + panelHeight - 28;
         button(panelX + 10, footerY, 54, 19, "screen.riftgun.settings", false,
             ignored -> openForm(Modal.SETTINGS, null));
-        button(panelX + 67, footerY, Math.min(82, listWidth - 77), 19,
+        int sortWidth = Math.max(12, Math.min(82, listWidth - 120));
+        button(panelX + 67, footerY, sortWidth, 19,
             Component.translatable("screen.riftgun.sort_mode", Component.translatable(
                 "screen.riftgun.sort." + PortalClientState.data().settings().sort().name().toLowerCase(Locale.ROOT))),
             false, ignored -> cycleSort());
+        motionPredictionButton = button(panelX + listWidth - 50, footerY, 19, 19,
+            Component.empty(), false, ignored -> toggleMotionPrediction());
         placementModeButton = button(panelX + listWidth - 28, footerY, 19, 19,
             Component.empty(), false, ignored -> cyclePlacementMode());
         fuelGaugeX = rightX;
@@ -303,8 +311,10 @@ public final class PortalConfigScreen extends Screen {
         graphics.fill(panelX, listBottom, panelX + panelWidth, listBottom + 1, PortalTheme.BORDER);
         graphics.drawString(font, title, panelX + 10, panelY + 8, PortalTheme.TEXT, false);
 
-        renderRows(graphics, mouseX, mouseY);
-        renderDetails(graphics, mouseX, mouseY);
+        int backgroundMouseX = modal == Modal.NONE ? mouseX : Integer.MIN_VALUE;
+        int backgroundMouseY = modal == Modal.NONE ? mouseY : Integer.MIN_VALUE;
+        renderRows(graphics, backgroundMouseX, backgroundMouseY);
+        renderDetails(graphics, backgroundMouseX, backgroundMouseY);
         graphics.flush();
         if (modal != Modal.NONE) {
             renderModal(graphics);
@@ -339,6 +349,7 @@ public final class PortalConfigScreen extends Screen {
         listScroll = Mth.clamp(listScroll, 0, maxScroll);
         graphics.enableScissor(panelX + 1, listTop, panelX + listWidth - 1, listBottom);
         Set<UUID> liveIds = new java.util.HashSet<>();
+        Map<UUID, Integer> visibleGroupRows = new HashMap<>();
         for (int index = 0; index < rows.size(); index++) {
             Row row = rows.get(index);
             liveIds.add(row.id());
@@ -355,12 +366,27 @@ public final class PortalConfigScreen extends Screen {
             boolean selected = row.kind() == RowKind.DESTINATION
                 && row.id().equals(PortalClientState.data().selectedDestinationId());
             hitRows.add(new Row(row.kind(), row.id(), y));
+            if (row.kind() == RowKind.GROUP) visibleGroupRows.put(row.id(), y);
             if (selected) graphics.fill(panelX + 4, y, panelX + listWidth - 4, y + ROW_HEIGHT, 0x663F7180);
             else if (hover || focused) graphics.fill(panelX + 4, y, panelX + listWidth - 4,
                 y + ROW_HEIGHT, 0x5530333A);
             if (focused) graphics.renderOutline(panelX + 4, y, listWidth - 8, ROW_HEIGHT, PortalTheme.BORDER_FOCUS);
             if (row.kind() == RowKind.GROUP) renderGroupRow(graphics, row.id(), y, hover, focused);
             else renderDestinationRow(graphics, row.id(), y, hover, focused, mouseX, mouseY);
+            if (destinationDragActive && row.kind() == RowKind.DESTINATION
+                && row.id().equals(draggingDestination)) {
+                graphics.fill(panelX + 4, y, panelX + listWidth - 4, y + ROW_HEIGHT, 0x55101115);
+                drawDestinationDragDot(graphics, panelX + 12, y + 8, PortalTheme.ICE);
+            }
+        }
+        UUID dropGroup = destinationDragActive ? destinationDropGroupAt(mouseX, mouseY) : null;
+        if (dropGroup != null && draggingDestination != null
+            && !dropGroup.equals(destinationGroup(draggingDestination))) {
+            Integer groupY = visibleGroupRows.get(dropGroup);
+            if (groupY != null) {
+                graphics.renderOutline(panelX + 4, groupY, listWidth - 8, ROW_HEIGHT,
+                    PortalTheme.BORDER_FOCUS);
+            }
         }
         animatedRowY.keySet().retainAll(liveIds);
         graphics.disableScissor();
@@ -408,6 +434,9 @@ public final class PortalConfigScreen extends Screen {
             nameWidth -= 10;
         }
         String shown = trim(destination.name(), nameWidth);
+        int dotColor = destinationDragActive && id.equals(draggingDestination)
+            ? PortalTheme.ICE : hover || focused ? PortalTheme.TEXT_MUTED : 0xFF50535A;
+        drawDestinationDragDot(graphics, panelX + 12, y + 8, dotColor);
         graphics.drawString(font, shown, nameX, y + 5, target ? PortalTheme.ICE : PortalTheme.TEXT_MUTED, false);
         drawStar(graphics, starLeft + 4, y + 5, destination.pinned());
         if (hover || focused) drawCross(graphics, deleteLeft + 3, y + 5, PortalTheme.DANGER);
@@ -519,6 +548,18 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderPlacementIcons(GuiGraphics graphics, int mouseX, int mouseY) {
         if (modal == Modal.NONE && placementModeButton != null) {
+            if (motionPredictionButton != null) {
+                boolean enabled = PortalClientState.data().settings().motionPredictionEnabled();
+                drawPredictionIcon(graphics, motionPredictionButton.getX() + 5,
+                    motionPredictionButton.getY() + 5, enabled ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
+                if (motionPredictionButton.isHovered()) {
+                    graphics.renderComponentTooltip(font, List.of(
+                        Component.translatable("screen.riftgun.motion_prediction_tooltip",
+                            Component.translatable(enabled ? "screen.riftgun.on" : "screen.riftgun.off")),
+                        Component.translatable("screen.riftgun.motion_prediction_description")
+                    ), mouseX, mouseY);
+                }
+            }
             int x = placementModeButton.getX() + 5;
             int y = placementModeButton.getY() + 5;
             drawPlacementModeIcon(graphics, x, y, PortalClientState.data().settings().placementMode());
@@ -633,6 +674,13 @@ public final class PortalConfigScreen extends Screen {
             graphics.fill(x, y, x + 1, y + 10, PortalTheme.TEXT_MUTED);
             graphics.renderOutline(x + 2, y + 1, 7, 8, PortalTheme.ICE);
         }
+    }
+
+    private static void drawPredictionIcon(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x, y + 5, x + 1, y + 6, color);
+        graphics.fill(x + 3, y + 4, x + 4, y + 5, color);
+        graphics.fill(x + 6, y + 3, x + 7, y + 4, color);
+        graphics.renderOutline(x + 8, y + 1, 3, 7, color);
     }
 
     private static void drawCrosshairIcon(GuiGraphics graphics, int x, int y) {
@@ -757,6 +805,13 @@ public final class PortalConfigScreen extends Screen {
                 focusRow(row);
                 int right = panelX + listWidth - 6;
                 if (row.kind() == RowKind.DESTINATION) {
+                    if (mouseX >= panelX + 7 && mouseX < panelX + 20) {
+                        draggingDestination = row.id();
+                        destinationDragActive = false;
+                        dragStartX = mouseX;
+                        dragStartY = mouseY;
+                        return true;
+                    }
                     int deleteLeft = right - ROW_ACTION_SIZE;
                     int starLeft = deleteLeft - ROW_ACTION_SIZE - 2;
                     if (mouseX >= starLeft && mouseX < starLeft + ROW_ACTION_SIZE) {
@@ -806,6 +861,12 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (button == 0 && draggingDestination != null) {
+            if (Math.hypot(mouseX - dragStartX, mouseY - dragStartY) >= 5.0) {
+                destinationDragActive = true;
+            }
+            return true;
+        }
         if (draggingDetailScrollbar && button == 0) {
             updateDetailScrollbar(mouseY);
             return true;
@@ -816,6 +877,19 @@ public final class PortalConfigScreen extends Screen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         draggingDetailScrollbar = false;
+        if (button == 0 && draggingDestination != null) {
+            UUID moving = draggingDestination;
+            boolean active = destinationDragActive;
+            draggingDestination = null;
+            destinationDragActive = false;
+            UUID targetGroup = active ? destinationDropGroupAt(mouseX, mouseY) : null;
+            if (targetGroup != null && !targetGroup.equals(destinationGroup(moving))) {
+                moveDestinationToGroup(moving, targetGroup);
+            } else if (!active) {
+                selectDestination(moving);
+            }
+            return true;
+        }
         if (button == 0 && draggingGroup != null) {
             UUID moving = draggingGroup;
             draggingGroup = null;
@@ -1001,17 +1075,27 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings current = PortalClientState.data().settings();
         sendSettings(new PortalPlayerSettings(current.safetyCheckEnabled(), current.confirmDeletion(),
             current.confirmDiscardedChanges(), current.confirmClearFluid(), current.animationsEnabled(), current.soundsEnabled(),
-            current.sort().next(), current.placementMode(), current.smartDistance()));
+            current.sort().next(), current.placementMode(), current.smartDistance(),
+            current.motionPredictionEnabled()));
     }
 
     private void cyclePlacementMode() {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-            old.placementMode().next(), old.smartDistance());
+            old.placementMode().next(), old.smartDistance(), old.motionPredictionEnabled());
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
+    }
+
+    private void toggleMotionPrediction() {
+        PortalPlayerSettings old = PortalClientState.data().settings();
+        PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
+            old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(),
+            old.sort(), old.placementMode(), old.smartDistance(), !old.motionPredictionEnabled());
+        PortalClientState.data().settings(next);
+        sendSettings(next);
     }
 
     private void openPlacementSettings() {
@@ -1038,6 +1122,41 @@ public final class PortalConfigScreen extends Screen {
         });
     }
 
+    private void moveDestinationToGroup(UUID destination, UUID group) {
+        Destination current = PortalClientState.data().destination(destination).orElse(null);
+        if (current == null) return;
+        PortalClientState.data().replaceDestination(current.withGroup(group));
+        PortalClientState.data().selectedDestinationId(destination);
+        PortalClientState.data().lastViewedDestinationId(destination);
+        viewedDestination = destination;
+        focusedRowId = destination;
+        focusedRowKind = RowKind.DESTINATION;
+        listFocused = true;
+        detailScroll = 0;
+        pendingSelection = null;
+        selectionDueTick = -1L;
+        if (PortalClientState.data().expandedGroups().contains(group)) ensureVisibleId = destination;
+        PortalNetworking.sendRequest(PortalAction.MOVE_DESTINATION_GROUP, tag -> {
+            tag.putUUID("Destination", destination);
+            tag.putUUID("Group", group);
+        });
+    }
+
+    private @Nullable UUID destinationDropGroupAt(double mouseX, double mouseY) {
+        if (mouseX < panelX + 4 || mouseX >= panelX + listWidth - 4
+            || mouseY < listTop || mouseY >= listBottom) return null;
+        for (Row row : hitRows) {
+            if (mouseY < row.y() || mouseY >= row.y() + ROW_HEIGHT) continue;
+            return row.kind() == RowKind.GROUP ? row.id() : destinationGroup(row.id());
+        }
+        return null;
+    }
+
+    private @Nullable UUID destinationGroup(UUID destinationId) {
+        Destination destination = PortalClientState.data().destination(destinationId).orElse(null);
+        return destination == null ? null : destination.groupId();
+    }
+
     private int groupOrderIndex(UUID group) {
         if (group.equals(PortalPlayerData.DEFAULT_GROUP_ID)) return 0;
         List<DestinationGroup> ordered = PortalClientState.data().groups().stream()
@@ -1053,22 +1172,22 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings next = switch (setting) {
             case 0 -> new PortalPlayerSettings(!old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance());
+                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
             case 1 -> new PortalPlayerSettings(old.safetyCheckEnabled(), !old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance());
+                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
             case 2 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 !old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance());
+                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
             case 3 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), !old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance());
+                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
             case 4 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), !old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance());
+                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
             default -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), !old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance());
+                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
         };
         PortalClientState.data().settings(next);
         sendSettings(next);
@@ -1086,6 +1205,7 @@ public final class PortalConfigScreen extends Screen {
             tag.putString("Sort", settings.sort().name());
             tag.putString("PlacementMode", settings.placementMode().name());
             tag.putInt("SmartDistance", settings.smartDistance());
+            tag.putBoolean("MotionPrediction", settings.motionPredictionEnabled());
         });
     }
 
@@ -1472,6 +1592,10 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
+    private static void drawDestinationDragDot(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x, y, x + 2, y + 2, color);
+    }
+
     private static void drawStar(GuiGraphics graphics, int x, int y, boolean filled) {
         int color = filled ? 0xFFFFD766 : 0xFFD4AA52;
         graphics.fill(x + 3, y, x + 4, y + 7, color);
@@ -1557,7 +1681,7 @@ public final class PortalConfigScreen extends Screen {
             PortalPlayerSettings old = PortalClientState.data().settings();
             PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), nextDistance);
+                old.placementMode(), nextDistance, old.motionPredictionEnabled());
             PortalClientState.data().settings(next);
             sendSettings(next);
         }

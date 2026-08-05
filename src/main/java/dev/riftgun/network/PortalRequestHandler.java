@@ -75,6 +75,7 @@ public final class PortalRequestHandler {
                 case RENAME_GROUP -> renameGroup(data, request);
                 case DELETE_GROUP -> deleteGroup(data, request);
                 case MOVE_GROUP -> moveGroup(data, request);
+                case MOVE_DESTINATION_GROUP -> moveDestinationGroup(data, request);
                 case SET_GROUP_EXPANDED -> setExpanded(data, request);
                 case SET_SETTINGS -> setSettings(player, data, request);
                 case TOGGLE_BUCKET_MODE -> toggleBucketMode(player, locatedGun.get().stack());
@@ -126,7 +127,7 @@ public final class PortalRequestHandler {
         PortalPlacementMode next = old.placementMode().next();
         data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-            next, old.smartDistance()));
+            next, old.smartDistance(), old.motionPredictionEnabled()));
         player.displayClientMessage(Component.translatable(
             "message.riftgun.placement_mode", Component.translatable("screen.riftgun.placement_mode."
                 + next.name().toLowerCase(Locale.ROOT))), true);
@@ -272,6 +273,17 @@ public final class PortalRequestHandler {
         return true;
     }
 
+    private static boolean moveDestinationGroup(PortalPlayerData data, CompoundTag request) {
+        Destination destination = data.destination(id(request, "Destination"))
+            .orElseThrow(() -> error("message.riftgun.destination_missing"));
+        UUID groupId = validGroup(data, optionalId(request, "Group"));
+        if (destination.groupId().equals(groupId)) return false;
+        data.replaceDestination(destination.withGroup(groupId));
+        data.selectedDestinationId(destination.id());
+        data.lastViewedDestinationId(destination.id());
+        return true;
+    }
+
     private static boolean setExpanded(PortalPlayerData data, CompoundTag request) {
         UUID groupId = id(request, "Group");
         if (!groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID) && data.group(groupId).isEmpty()) {
@@ -299,7 +311,8 @@ public final class PortalRequestHandler {
             sort,
             PortalPlacementMode.parse(request.getString("PlacementMode")),
             Math.max(1, Math.min((int) PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player),
-                request.getInt("SmartDistance")))
+                request.getInt("SmartDistance"))),
+            request.getBoolean("MotionPrediction")
         ));
         return true;
     }

@@ -66,7 +66,9 @@
   "screen.riftgun.placement_mode.front": "面前",
   "screen.riftgun.placement_mode.surface": "贴面",
   "screen.riftgun.placement_mode_tooltip": "传送枪模式：%s（点击切换）",
-  "screen.riftgun.open_front_tooltip": "始终在玩家面前开启传送门",
+  "screen.riftgun.open_front_tooltip": "在面前开门；垂直向下时使用下射开门",
+  "screen.riftgun.motion_prediction_tooltip": "动量预测：%s",
+  "screen.riftgun.motion_prediction_description": "根据当前移动提前修正面前传送门位置",
   "screen.riftgun.bucket_mode_tooltip": "桶模式：%s · %s · %s/%s mB · %s",
   "screen.riftgun.clear_fluid_tooltip": "清空枪内传送液",
   "screen.riftgun.clear_fluid": "清空传送液？",
@@ -91,7 +93,6 @@
   "tooltip.riftgun.target": "目标：%s",
   "tooltip.riftgun.group": "分组：%s",
   "tooltip.riftgun.dimension": "维度：%s",
-  "tooltip.riftgun.distance": "距离：%s 格",
   "tooltip.riftgun.bucket_mode": "桶模式：%s",
   "tooltip.riftgun.fluid": "%s：%s/%s mB",
   "message.riftgun.spectator_denied": "旁观者无法使用传送枪",
@@ -112,6 +113,7 @@
   "message.riftgun.dimension_unavailable": "目的地维度不可用"
   ,"message.riftgun.placement_mode": "传送门放置模式：%s"
   ,"message.riftgun.front_obstructed": "面前空间不足，无法开启传送门"
+  ,"message.riftgun.front_outside_world": "预测的传送门位置超出世界高度"
   ,"message.riftgun.surface_missing": "视线内没有可用方块表面"
   ,"message.riftgun.surface_out_of_range": "目标表面超出射程"
   ,"message.riftgun.surface_invalid": "该方块表面无法锚定传送门"

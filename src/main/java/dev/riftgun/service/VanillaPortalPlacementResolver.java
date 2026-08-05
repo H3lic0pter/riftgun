@@ -6,6 +6,7 @@ import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPairPlacement;
 import dev.riftgun.portal.PortalPlacement;
+import dev.riftgun.portal.PortalLifecycle;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -23,13 +24,14 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     private static final double SURFACE_OFFSET = PortalPlacement.DEPTH * 0.5 + 0.002;
 
     @Override
-    public PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode, int smartDistance) {
+    public PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode, int smartDistance,
+                                          boolean motionPrediction) {
         EntryResult entry = switch (mode) {
             case FRONT -> EntryResult.frontRoute();
             case SURFACE -> surface(player, false, smartDistance);
             case SMART -> surface(player, true, smartDistance);
         };
-        if (entry.front) return PortalPlacementCapture.success(PortalPlacementIntent.front());
+        if (entry.front) return PortalPlacementCapture.success(PortalPlacementIntent.front(motionPrediction));
         return entry.placement == null
             ? PortalPlacementCapture.failure(entry.errorKey)
             : PortalPlacementCapture.success(PortalPlacementIntent.surface(entry.placement));
@@ -38,7 +40,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     @Override
     public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent) {
         EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
-            ? front(player)
+            ? front(player, intent.motionPrediction())
             : revalidateSurface(player, intent.attachedPlacement());
         return entry.placement == null
             ? PortalEntryPlacementResult.failure(entry.errorKey)
@@ -52,17 +54,56 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return PortalPlacementResult.success(new PortalPairPlacement(target.dimension(), entry, exit));
     }
 
-    private EntryResult front(ServerPlayer player) {
+    private EntryResult front(ServerPlayer player, boolean motionPrediction) {
+        Vec3 prediction = motionPrediction ? predictedDisplacement(player) : Vec3.ZERO;
+        if (usesDownshot(player.getXRot(),
+            PortalServices.PLACEMENT_CAPABILITIES.downshotMinimumPitch(player))) {
+            return downshot(player, prediction);
+        }
+
+        EntryResult predicted = verticalFront(player, prediction);
+        if (predicted.placement != null || !motionPrediction || prediction.lengthSqr() < 1.0E-8) {
+            return predicted;
+        }
+        if (!"message.riftgun.front_obstructed".equals(predicted.errorKey)) return predicted;
+        return verticalFront(player, Vec3.ZERO);
+    }
+
+    private EntryResult verticalFront(ServerPlayer player, Vec3 prediction) {
         Vec3 look = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
         Vec3 normal = look.scale(-1.0);
         PortalGeometry geometry = PortalGeometry.FLOATING_VERTICAL;
         Vec3 center = player.position()
+            .add(prediction)
             .add(look.scale(PortalServices.PLACEMENT_CAPABILITIES.frontDistance(player)))
             .add(0.0, geometry.height() * 0.5, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.VERTICAL, geometry,
             yawFromNormal(normal), null, null);
-        return blocked(player.serverLevel(), placement.bounds())
+        return outsideWorld(player.serverLevel(), placement.bounds())
+            ? EntryResult.failure("message.riftgun.front_outside_world")
+            : blocked(player.serverLevel(), placement.bounds())
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
+    }
+
+    private EntryResult downshot(ServerPlayer player, Vec3 prediction) {
+        Vec3 center = player.position().add(prediction)
+            .add(0.0, -PortalServices.PLACEMENT_CAPABILITIES.downshotDistance(player), 0.0);
+        PortalPlacement placement = new PortalPlacement(center, PortalOrientation.TOP,
+            PortalGeometry.HORIZONTAL, player.getYRot(), null, null);
+        return outsideWorld(player.serverLevel(), placement.bounds())
+            ? EntryResult.failure("message.riftgun.front_outside_world")
+            : blocked(player.serverLevel(), placement.bounds())
+            ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
+    }
+
+    private Vec3 predictedDisplacement(ServerPlayer player) {
+        int ticks = PortalLifecycle.CHARGE_TICKS + PortalLifecycle.ANIMATION_TICKS;
+        return PortalServices.MOTION_PREDICTOR.predictDisplacement(player, ticks,
+            PortalServices.PLACEMENT_CAPABILITIES.maximumHorizontalPrediction(player));
+    }
+
+    static boolean usesDownshot(float pitch, float minimumPitch) {
+        return pitch >= minimumPitch;
     }
 
     private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance) {
@@ -187,6 +228,10 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
     private static boolean blocked(ServerLevel level, AABB bounds) {
         return level.getBlockCollisions(null, bounds.deflate(0.002)).iterator().hasNext();
+    }
+
+    private static boolean outsideWorld(ServerLevel level, AABB bounds) {
+        return bounds.minY < level.getMinBuildHeight() || bounds.maxY > level.getMaxBuildHeight();
     }
 
     private static int backingBlock(ServerLevel level, BlockPos position) {

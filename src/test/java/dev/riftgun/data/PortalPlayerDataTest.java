@@ -39,7 +39,7 @@ final class PortalPlayerDataTest {
     @Test
     void settingsRoundTripAndOldDataKeepsConfirmationDefaults() {
         PortalPlayerSettings configured = new PortalPlayerSettings(false, false, false, false, true, false,
-            DestinationSort.NAME, PortalPlacementMode.SURFACE, 14);
+            DestinationSort.NAME, PortalPlacementMode.SURFACE, 14, false);
         PortalPlayerSettings restored = PortalPlayerSettings.load(configured.save());
         assertFalse(restored.safetyCheckEnabled());
         assertFalse(restored.confirmDeletion());
@@ -49,6 +49,7 @@ final class PortalPlayerDataTest {
         assertEquals(DestinationSort.NAME, restored.sort());
         assertEquals(PortalPlacementMode.SURFACE, restored.placementMode());
         assertEquals(14, restored.smartDistance());
+        assertFalse(restored.motionPredictionEnabled());
 
         CompoundTag legacy = new CompoundTag();
         legacy.putBoolean("SafetyCheck", false);
@@ -58,6 +59,7 @@ final class PortalPlayerDataTest {
         assertTrue(migrated.confirmClearFluid());
         assertEquals(PortalPlacementMode.SMART, migrated.placementMode());
         assertEquals(PortalPlayerSettings.DEFAULT_SMART_DISTANCE, migrated.smartDistance());
+        assertTrue(migrated.motionPredictionEnabled());
     }
 
     @Test
@@ -98,5 +100,21 @@ final class PortalPlayerDataTest {
         data.replaceDestination(renamed.withDetails(renamed.name(), renamed.groupId(), Level.NETHER,
             1, 64, 1, renamed.yaw()));
         assertEquals(DestinationSafetyResult.UNKNOWN, data.safetyResult(id));
+    }
+
+    @Test
+    void regroupingPreservesDestinationStateAndSafetyHistory() {
+        PortalPlayerData data = new PortalPlayerData();
+        UUID id = UUID.randomUUID();
+        UUID targetGroup = UUID.randomUUID();
+        Destination original = new Destination(id, "Pinned", PortalPlayerData.DEFAULT_GROUP_ID,
+            Level.NETHER, 12.5, 70, -4.25, 135, 10, 20, true);
+        data.destinations().add(original);
+        data.recordSafetyResult(id, false);
+
+        data.replaceDestination(original.withGroup(targetGroup));
+
+        assertEquals(original.withGroup(targetGroup), data.destination(id).orElseThrow());
+        assertEquals(DestinationSafetyResult.UNSAFE, data.safetyResult(id));
     }
 }

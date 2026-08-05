@@ -11,13 +11,14 @@ public record PortalPlayerSettings(
     boolean soundsEnabled,
     DestinationSort sort,
     PortalPlacementMode placementMode,
-    int smartDistance
+    int smartDistance,
+    boolean motionPredictionEnabled
 ) {
     public static final int DEFAULT_SMART_DISTANCE = 8;
 
     public static PortalPlayerSettings defaults() {
         return new PortalPlayerSettings(true, true, true, true, true, true, DestinationSort.RECENT,
-            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE);
+            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, true);
     }
 
     public CompoundTag save() {
@@ -31,6 +32,7 @@ public record PortalPlayerSettings(
         tag.putString("Sort", sort.name());
         tag.putString("PlacementMode", placementMode.name());
         tag.putInt("SmartDistance", smartDistance);
+        tag.putBoolean("MotionPrediction", motionPredictionEnabled);
         return tag;
     }
 
@@ -51,7 +53,8 @@ public record PortalPlayerSettings(
             !tag.contains("Sounds") || tag.getBoolean("Sounds"),
             sort,
             PortalPlacementMode.parse(tag.getString("PlacementMode")),
-            tag.contains("SmartDistance") ? Math.max(1, tag.getInt("SmartDistance")) : DEFAULT_SMART_DISTANCE
+            tag.contains("SmartDistance") ? Math.max(1, tag.getInt("SmartDistance")) : DEFAULT_SMART_DISTANCE,
+            !tag.contains("MotionPrediction") || tag.getBoolean("MotionPrediction")
         );
     }
 }
