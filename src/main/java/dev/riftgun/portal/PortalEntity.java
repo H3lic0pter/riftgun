@@ -1,9 +1,10 @@
 package dev.riftgun.portal;
 
 import dev.riftgun.RiftGun;
-import dev.riftgun.service.PortalServices;
 import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
+import dev.riftgun.service.PortalPlacementResult;
+import dev.riftgun.service.PortalServices;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -13,10 +14,14 @@ import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -50,13 +55,18 @@ public final class PortalEntity extends Entity {
     private static final EntityDataAccessor<String> FUEL_ID =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.STRING);
     private static final TicketType<BlockPos> PORTAL_TICKET =
-        TicketType.create("riftgun_portal", Vec3i::compareTo, 200);
+        TicketType.create("riftgun_portal", Vec3i::compareTo);
 
     private @Nullable UUID linkedPortalId;
+    private @Nullable ResourceKey<Level> linkedDimension;
     private @Nullable UUID ownerId;
     private @Nullable BlockPos anchor;
     private @Nullable Direction anchorFace;
+    private @Nullable PortalExitTarget deferredTarget;
     private final PortalTransitGate transitGate = new PortalTransitGate();
+    private boolean creatingDeferredExit;
+    private boolean waitingForLinkedOpen;
+    private boolean synchronizePairOnOpen;
     private boolean closingPair;
     private @Nullable BlockPos ticketPosition;
     private boolean ticketHeld;
@@ -77,30 +87,65 @@ public final class PortalEntity extends Entity {
         if (exitLevel == null) return false;
 
         long startedAt = server.overworld().getGameTime();
-        PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(), fuel, startedAt);
-        PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(), fuel, startedAt);
-        entry.linkedPortalId = exit.getUUID();
-        exit.linkedPortalId = entry.getUUID();
-
+        PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
+            fuel.rgb(), fuel.id().toString(), startedAt);
+        PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
+            fuel.rgb(), fuel.id().toString(), startedAt);
+        link(entry, exit);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
 
         boolean entryAdded = entryLevel.addFreshEntity(entry);
         boolean exitAdded = exitLevel.addFreshEntity(exit);
         if (!entryAdded || !exitAdded || !commitFuel.getAsBoolean()) {
-            if (entryAdded) entry.discard();
-            if (exitAdded) exit.discard();
-            entry.releaseChunkTicket();
-            exit.releaseChunkTicket();
+            removeFailedOpen(entry, entryAdded);
+            removeFailedOpen(exit, exitAdded);
             return false;
         }
 
         closeOwnedPortals(server, player.getUUID(), Set.of(entry.getUUID(), exit.getUUID()));
-        entryLevel.playSound(null, pair.entry().center().x, pair.entry().center().y, pair.entry().center().z,
-            SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.7F, 1.15F);
-        entryLevel.playSound(null, pair.entry().center().x, pair.entry().center().y, pair.entry().center().z,
-            SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.25F, 1.55F);
+        playOpeningSounds(entryLevel, pair.entry());
         return true;
+    }
+
+    public static boolean openDeferredExit(ServerPlayer player, PortalPlacement placement,
+                                           PortalFuelProfile fuel, PortalExitTarget target,
+                                           BooleanSupplier commitFuel) {
+        MinecraftServer server = player.getServer();
+        if (server == null) return false;
+        ServerLevel entryLevel = player.serverLevel();
+        PortalEntity entry = create(entryLevel, player.getUUID(), placement,
+            fuel.rgb(), fuel.id().toString(), server.overworld().getGameTime());
+        entry.deferredTarget = target;
+        entry.acquireChunkTicket();
+        boolean added = entryLevel.addFreshEntity(entry);
+        if (!added || !commitFuel.getAsBoolean()) {
+            removeFailedOpen(entry, added);
+            return false;
+        }
+
+        closeOwnedPortals(server, player.getUUID(), Set.of(entry.getUUID()));
+        playOpeningSounds(entryLevel, placement);
+        return true;
+    }
+
+    private static void removeFailedOpen(PortalEntity portal, boolean added) {
+        if (added) portal.discard();
+        else portal.releaseChunkTicket();
+    }
+
+    private static void playOpeningSounds(ServerLevel level, PortalPlacement placement) {
+        level.playSound(null, placement.center().x, placement.center().y, placement.center().z,
+            SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.7F, 1.15F);
+        level.playSound(null, placement.center().x, placement.center().y, placement.center().z,
+            SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.25F, 1.55F);
+    }
+
+    private static void link(PortalEntity entry, PortalEntity exit) {
+        entry.linkedPortalId = exit.getUUID();
+        entry.linkedDimension = exit.level().dimension();
+        exit.linkedPortalId = entry.getUUID();
+        exit.linkedDimension = entry.level().dimension();
     }
 
     private void acquireChunkTicket() {
@@ -108,14 +153,14 @@ public final class PortalEntity extends Entity {
         BlockPos position = blockPosition();
         serverLevel.getChunk(position.getX() >> 4, position.getZ() >> 4);
         serverLevel.getChunkSource().addRegionTicket(
-            PORTAL_TICKET, new ChunkPos(position), 3, position, true
-        );
+            PORTAL_TICKET, new ChunkPos(position), 3, position, true);
         ticketPosition = position;
         ticketHeld = true;
     }
 
-    private static PortalEntity create(ServerLevel level, UUID owner, PortalPlacement placement,
-                                       PortalFuelProfile fuel, long startedAt) {
+    private static PortalEntity create(ServerLevel level, @Nullable UUID owner,
+                                       PortalPlacement placement, int fuelRgb, String fuelId,
+                                       long startedAt) {
         PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
         portal.ownerId = owner;
         portal.setPos(placement.center());
@@ -125,8 +170,8 @@ public final class PortalEntity extends Entity {
         portal.entityData.set(GEOMETRY, placement.geometry().ordinal());
         portal.anchor = placement.anchor();
         portal.anchorFace = placement.anchorFace();
-        portal.entityData.set(FUEL_RGB, fuel.rgb());
-        portal.entityData.set(FUEL_ID, fuel.id().toString());
+        portal.entityData.set(FUEL_RGB, fuelRgb);
+        portal.entityData.set(FUEL_ID, fuelId);
         portal.lifecycleStartedAt = startedAt;
         return portal;
     }
@@ -206,6 +251,7 @@ public final class PortalEntity extends Entity {
     public void tick() {
         super.tick();
         if (level().isClientSide()) return;
+        if (!ticketHeld) acquireChunkTicket();
 
         long now = serverTime();
         PortalLifecycle.Phase nextPhase = PortalPairClock.phase(lifecycleStartedAt, closeStartedAt, now);
@@ -222,11 +268,50 @@ public final class PortalEntity extends Entity {
             startClosing();
             return;
         }
-        if (nextPhase == PortalLifecycle.Phase.OPEN && PortalServices.CLOSE_POLICY.shouldClose(this)) {
+        if (nextPhase != PortalLifecycle.Phase.OPEN) return;
+
+        if (synchronizePairOnOpen) {
+            synchronizeOpenPair(now);
+            return;
+        }
+        if (waitingForLinkedOpen) {
+            if (linkedPortal() == null) startClosing();
+            return;
+        }
+        if (deferredTarget != null && targetLevel() == null) {
             startClosing();
-        } else if (nextPhase == PortalLifecycle.Phase.OPEN) {
+            return;
+        }
+        if (PortalServices.CLOSE_POLICY.shouldClose(this)) {
+            startClosing();
+        } else {
             teleportTouchingEntities();
         }
+    }
+
+    private void synchronizeOpenPair(long now) {
+        PortalEntity linked = linkedPortal();
+        if (linked == null) {
+            startClosing();
+            return;
+        }
+        long openStartedAt = PortalPairClock.openPhaseStartedAt(now);
+        resetOpenClock(this, openStartedAt);
+        resetOpenClock(linked, openStartedAt);
+    }
+
+    private static void resetOpenClock(PortalEntity portal, long startedAt) {
+        portal.lifecycleStartedAt = startedAt;
+        portal.closeStartedAt = -1L;
+        portal.waitingForLinkedOpen = false;
+        portal.synchronizePairOnOpen = false;
+        portal.entityData.set(PHASE, PortalLifecycle.Phase.OPEN.ordinal());
+        portal.entityData.set(PHASE_TICKS, 0);
+    }
+
+    private @Nullable ServerLevel targetLevel() {
+        if (deferredTarget == null || !(level() instanceof ServerLevel serverLevel)) return null;
+        return serverLevel.getServer().getLevel(deferredTarget.dimension());
     }
 
     private void releaseChunkTicket() {
@@ -249,19 +334,27 @@ public final class PortalEntity extends Entity {
     }
 
     private void teleportTouchingEntities() {
-        PortalEntity target = linkedPortal();
-        if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return;
-
         AABB search = placement().bounds().inflate(0.6, 2.0, 0.6);
         List<Entity> touching = level().getEntities(this, search, this::canTeleport);
         Set<UUID> touchingIds = new HashSet<>(touching.size());
         for (Entity entity : touching) touchingIds.add(entity.getUUID());
         transitGate.retainInside(touchingIds);
 
+        PortalEntity target = linkedPortal();
+        if (target != null) {
+            if (target.phase() != PortalLifecycle.Phase.OPEN) return;
+            for (Entity entity : touching) {
+                if (!transitGate.enter(entity.getUUID())) continue;
+                teleportTree(entity, target);
+            }
+            return;
+        }
+
+        if (deferredTarget == null || creatingDeferredExit) return;
         for (Entity entity : touching) {
             if (!transitGate.enter(entity.getUUID())) continue;
-            target.transitGate.markInside(entity.getUUID());
-            teleportTree(entity, target);
+            teleportDeferredTree(entity);
+            return;
         }
     }
 
@@ -275,7 +368,12 @@ public final class PortalEntity extends Entity {
         var passengers = new ArrayList<>(root.getPassengers());
         root.ejectPassengers();
         Entity movedRoot = teleportSingle(root, target);
-        if (movedRoot == null) return null;
+        if (movedRoot == null) {
+            for (Entity passenger : passengers) passenger.startRiding(root, true);
+            transitGate.leave(root.getUUID());
+            return null;
+        }
+        target.transitGate.markInside(movedRoot.getUUID());
         for (Entity passenger : passengers) {
             Entity movedPassenger = teleportTree(passenger, target);
             if (movedPassenger != null) movedPassenger.startRiding(movedRoot, true);
@@ -312,6 +410,132 @@ public final class PortalEntity extends Entity {
         return moved;
     }
 
+    private void teleportDeferredTree(Entity root) {
+        PortalExitTarget target = deferredTarget;
+        ServerLevel targetLevel = targetLevel();
+        if (target == null || targetLevel == null) {
+            transitGate.leave(root.getUUID());
+            return;
+        }
+
+        creatingDeferredExit = true;
+        if (targetLevel.isPositionEntityTicking(BlockPos.containing(target.position()))) {
+            PortalEntity exit = createDeferredExit(targetLevel, target, List.of());
+            transitGate.leave(root.getUUID());
+            if (exit == null) warnExitGenerationFailure(targetLevel.getServer(), List.of());
+            creatingDeferredExit = false;
+            return;
+        }
+
+        List<Entity> movedEntities = new ArrayList<>();
+        Entity movedRoot = teleportBootstrapTree(root, targetLevel, target, movedEntities);
+        if (movedRoot == null) {
+            transitGate.leave(root.getUUID());
+            warnTeleportFailure(targetLevel.getServer(), root);
+            creatingDeferredExit = false;
+            return;
+        }
+
+        PortalEntity exit = createDeferredExit(targetLevel, target, movedEntities);
+        if (exit == null) warnExitGenerationFailure(targetLevel.getServer(), movedEntities);
+        targetLevel.playSound(null, movedRoot.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
+            SoundSource.PLAYERS, 0.6F, 1.4F);
+        creatingDeferredExit = false;
+    }
+
+    private @Nullable Entity teleportBootstrapTree(Entity root, ServerLevel targetLevel,
+                                                   PortalExitTarget target, List<Entity> movedEntities) {
+        var passengers = new ArrayList<>(root.getPassengers());
+        root.ejectPassengers();
+        Entity movedRoot = teleportBootstrapSingle(root, targetLevel, target);
+        if (movedRoot == null) {
+            for (Entity passenger : passengers) passenger.startRiding(root, true);
+            return null;
+        }
+        movedEntities.add(movedRoot);
+        for (Entity passenger : passengers) {
+            Entity movedPassenger = teleportBootstrapTree(passenger, targetLevel, target, movedEntities);
+            if (movedPassenger != null) movedPassenger.startRiding(movedRoot, true);
+        }
+        return movedRoot;
+    }
+
+    private @Nullable Entity teleportBootstrapSingle(Entity entity, ServerLevel targetLevel,
+                                                      PortalExitTarget target) {
+        Entity moved;
+        if (entity.level() == targetLevel) {
+            boolean successful = entity.teleportTo(targetLevel,
+                target.position().x, target.position().y, target.position().z,
+                Set.<RelativeMovement>of(), target.yaw(), entity.getXRot());
+            moved = successful ? entity : null;
+        } else {
+            moved = entity.changeDimension(new DimensionTransition(
+                targetLevel, target.position(), Vec3.ZERO, target.yaw(), entity.getXRot(),
+                DimensionTransition.DO_NOTHING));
+        }
+        if (moved != null) {
+            moved.setDeltaMovement(Vec3.ZERO);
+            moved.hasImpulse = true;
+        }
+        return moved;
+    }
+
+    private @Nullable PortalEntity createDeferredExit(ServerLevel targetLevel, PortalExitTarget target,
+                                                       List<Entity> movedEntities) {
+        PortalPlacementResult result = PortalServices.PLACEMENT_RESOLVER.resolveExitPrepared(
+            targetLevel, target, placement());
+        if (!result.successful()) return null;
+
+        long now = serverTime();
+        PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
+            fuelRgb(), fuelId(), now);
+        exit.acquireChunkTicket();
+        if (!targetLevel.addFreshEntity(exit)) {
+            exit.releaseChunkTicket();
+            return null;
+        }
+
+        link(this, exit);
+        deferredTarget = null;
+        waitingForLinkedOpen = true;
+        exit.synchronizePairOnOpen = true;
+        for (Entity moved : movedEntities) exit.transitGate.markInside(moved.getUUID());
+        playOpeningSounds(targetLevel, result.pair().exit());
+        return exit;
+    }
+
+    private void warnExitGenerationFailure(MinecraftServer server, List<Entity> movedEntities) {
+        boolean warned = false;
+        for (Entity entity : movedEntities) {
+            if (entity instanceof ServerPlayer player) {
+                player.displayClientMessage(
+                    Component.translatable("message.riftgun.exit_generation_failed"), true);
+                warned = true;
+            }
+        }
+        if (!warned && ownerId != null) {
+            ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+            if (owner != null) owner.displayClientMessage(
+                Component.translatable("message.riftgun.exit_generation_failed"), true);
+        }
+    }
+
+    private void warnTeleportFailure(MinecraftServer server, Entity root) {
+        boolean warned = false;
+        for (Entity entity : root.getSelfAndPassengers().toList()) {
+            if (entity instanceof ServerPlayer player) {
+                player.displayClientMessage(
+                    Component.translatable("message.riftgun.destination_teleport_failed"), true);
+                warned = true;
+            }
+        }
+        if (!warned && ownerId != null) {
+            ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+            if (owner != null) owner.displayClientMessage(
+                Component.translatable("message.riftgun.destination_teleport_failed"), true);
+        }
+    }
+
     private Vec3 transformVector(Vec3 vector, PortalEntity target) {
         return PortalTransform.between(vector, orientation(), getYRot(), target.orientation(), target.getYRot());
     }
@@ -339,9 +563,17 @@ public final class PortalEntity extends Entity {
 
     private @Nullable PortalEntity linkedPortal() {
         if (linkedPortalId == null || !(level() instanceof ServerLevel serverLevel)) return null;
-        Entity entity = serverLevel.getEntity(linkedPortalId);
-        if (entity instanceof PortalEntity portal) return portal;
+        Entity local = serverLevel.getEntity(linkedPortalId);
+        if (local instanceof PortalEntity portal) return portal;
+
         MinecraftServer server = serverLevel.getServer();
+        if (linkedDimension != null) {
+            ServerLevel linkedLevel = server.getLevel(linkedDimension);
+            if (linkedLevel != null) {
+                Entity remote = linkedLevel.getEntity(linkedPortalId);
+                if (remote instanceof PortalEntity portal) return portal;
+            }
+        }
         for (ServerLevel candidate : server.getAllLevels()) {
             if (candidate == serverLevel) continue;
             Entity remote = candidate.getEntity(linkedPortalId);
@@ -359,6 +591,10 @@ public final class PortalEntity extends Entity {
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
         if (tag.hasUUID("LinkedPortal")) linkedPortalId = tag.getUUID("LinkedPortal");
+        ResourceLocation linkedDimensionId = ResourceLocation.tryParse(tag.getString("LinkedDimension"));
+        if (linkedDimensionId != null) {
+            linkedDimension = ResourceKey.create(Registries.DIMENSION, linkedDimensionId);
+        }
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
         if (tag.contains("Anchor")) anchor = BlockPos.of(tag.getLong("Anchor"));
         if (tag.contains("AnchorFace")) {
@@ -368,6 +604,10 @@ public final class PortalEntity extends Entity {
                 anchorFace = null;
             }
         }
+        if (tag.contains("DeferredTarget")) {
+            deferredTarget = PortalExitTarget.load(tag.getCompound("DeferredTarget"));
+        }
+
         entityData.set(PHASE, tag.getInt("Phase"));
         entityData.set(PHASE_TICKS, tag.getInt("PhaseTicks"));
         long now = serverTime();
@@ -384,6 +624,8 @@ public final class PortalEntity extends Entity {
         closeStartedAt = tag.contains("CloseStartedAt")
             ? tag.getLong("CloseStartedAt")
             : savedPhase == PortalLifecycle.Phase.CLOSING ? now - savedTicks : -1L;
+        waitingForLinkedOpen = tag.getBoolean("WaitingForLinkedOpen");
+        synchronizePairOnOpen = tag.getBoolean("SynchronizePairOnOpen");
         entityData.set(ORIENTATION, tag.getInt("Orientation"));
         entityData.set(GEOMETRY, tag.getInt("Geometry"));
         if (tag.contains("FuelRgb")) entityData.set(FUEL_RGB, tag.getInt("FuelRgb"));
@@ -393,13 +635,17 @@ public final class PortalEntity extends Entity {
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
         if (linkedPortalId != null) tag.putUUID("LinkedPortal", linkedPortalId);
+        if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
         if (ownerId != null) tag.putUUID("Owner", ownerId);
         if (anchor != null) tag.putLong("Anchor", anchor.asLong());
         if (anchorFace != null) tag.putString("AnchorFace", anchorFace.name());
+        if (deferredTarget != null) tag.put("DeferredTarget", deferredTarget.save());
         tag.putInt("Phase", entityData.get(PHASE));
         tag.putInt("PhaseTicks", entityData.get(PHASE_TICKS));
         tag.putLong("LifecycleStartedAt", lifecycleStartedAt);
         if (closeStartedAt >= 0L) tag.putLong("CloseStartedAt", closeStartedAt);
+        tag.putBoolean("WaitingForLinkedOpen", waitingForLinkedOpen);
+        tag.putBoolean("SynchronizePairOnOpen", synchronizePairOnOpen);
         tag.putInt("Orientation", entityData.get(ORIENTATION));
         tag.putInt("Geometry", entityData.get(GEOMETRY));
         tag.putInt("FuelRgb", entityData.get(FUEL_RGB));

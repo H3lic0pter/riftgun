@@ -59,4 +59,44 @@ final class PortalPlayerDataTest {
         assertEquals(PortalPlacementMode.SMART, migrated.placementMode());
         assertEquals(PortalPlayerSettings.DEFAULT_SMART_DISTANCE, migrated.smartDistance());
     }
+
+    @Test
+    void lastOpenSafetyResultPersistsAndCanBeClearedPerDestination() {
+        PortalPlayerData data = new PortalPlayerData();
+        UUID unsafe = UUID.randomUUID();
+        UUID safe = UUID.randomUUID();
+        data.destinations().add(new Destination(unsafe, "Unsafe", PortalPlayerData.DEFAULT_GROUP_ID,
+            Level.OVERWORLD, 1, 64, 1, 0, 0, 0, false));
+        data.destinations().add(new Destination(safe, "Safe", PortalPlayerData.DEFAULT_GROUP_ID,
+            Level.OVERWORLD, 2, 64, 2, 0, 0, 0, false));
+        data.recordSafetyResult(unsafe, false);
+        data.recordSafetyResult(safe, true);
+
+        PortalPlayerData restored = PortalPlayerData.load(data.save());
+        assertEquals(DestinationSafetyResult.UNSAFE, restored.safetyResult(unsafe));
+        assertEquals(DestinationSafetyResult.SAFE, restored.safetyResult(safe));
+
+        restored.clearSafetyResult(unsafe);
+        assertEquals(DestinationSafetyResult.UNKNOWN, restored.safetyResult(unsafe));
+        assertEquals(DestinationSafetyResult.SAFE, restored.safetyResult(safe));
+    }
+
+    @Test
+    void movingDestinationClearsSafetyButPresentationChangesKeepIt() {
+        PortalPlayerData data = new PortalPlayerData();
+        UUID id = UUID.randomUUID();
+        Destination original = new Destination(id, "Original", PortalPlayerData.DEFAULT_GROUP_ID,
+            Level.OVERWORLD, 1, 64, 1, 0, 0, 0, false);
+        data.destinations().add(original);
+        data.recordSafetyResult(id, false);
+
+        data.replaceDestination(original.withDetails("Renamed", UUID.randomUUID(), Level.OVERWORLD,
+            1, 64, 1, 90));
+        assertEquals(DestinationSafetyResult.UNSAFE, data.safetyResult(id));
+
+        Destination renamed = data.destination(id).orElseThrow();
+        data.replaceDestination(renamed.withDetails(renamed.name(), renamed.groupId(), Level.NETHER,
+            1, 64, 1, renamed.yaw()));
+        assertEquals(DestinationSafetyResult.UNKNOWN, data.safetyResult(id));
+    }
 }

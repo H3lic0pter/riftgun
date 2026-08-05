@@ -131,9 +131,6 @@
   ,"message.riftgun.scoop_failed": "The fluid source could not be collected"
   ,"message.riftgun.scoop_success": "Collected %s mB · %s/%s mB"
   ,"screen.riftgun.bucket_mode_simple": "Bucket mode: %s"
-  ,"screen.riftgun.loading_destination": "Loading destination..."
-  ,"screen.riftgun.safety_deferred": "Destination check: will run when opening"
-  ,"message.riftgun.destination_loading": "Loading destination..."
-  ,"message.riftgun.destination_load_timeout": "Destination loading timed out; no fuel was consumed"
-  ,"message.riftgun.destination_changed": "The destination changed while loading; request cancelled"
+  ,"message.riftgun.exit_generation_failed": "Teleported, but the exit portal could not be created."
+  ,"message.riftgun.destination_teleport_failed": "The destination rejected the dimension transfer."
 }

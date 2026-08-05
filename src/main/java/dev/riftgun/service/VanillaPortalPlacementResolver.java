@@ -1,8 +1,8 @@
 package dev.riftgun.service;
 
-import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.portal.PortalGeometry;
+import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPairPlacement;
 import dev.riftgun.portal.PortalPlacement;
@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
@@ -37,21 +36,20 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     }
 
     @Override
-    public PortalPlacementResult resolvePrepared(ServerPlayer player, Destination destination,
-                                                 PortalPlacementIntent intent) {
-        MinecraftServer server = player.getServer();
-        if (server == null || server.getLevel(destination.dimension()) == null) {
-            return PortalPlacementResult.failure("message.riftgun.dimension_unavailable");
-        }
-
+    public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent) {
         EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
             ? front(player)
             : revalidateSurface(player, intent.attachedPlacement());
-        if (entry.placement == null) return PortalPlacementResult.failure(entry.errorKey);
+        return entry.placement == null
+            ? PortalEntryPlacementResult.failure(entry.errorKey)
+            : PortalEntryPlacementResult.success(entry.placement);
+    }
 
-        ServerLevel targetLevel = server.getLevel(destination.dimension());
-        PortalPlacement exit = resolveExit(targetLevel, destination, entry.placement);
-        return PortalPlacementResult.success(new PortalPairPlacement(destination.dimension(), entry.placement, exit));
+    @Override
+    public PortalPlacementResult resolveExitPrepared(ServerLevel targetLevel, PortalExitTarget target,
+                                                     PortalPlacement entry) {
+        PortalPlacement exit = resolveExit(targetLevel, target, entry);
+        return PortalPlacementResult.success(new PortalPairPlacement(target.dimension(), entry, exit));
     }
 
     private EntryResult front(ServerPlayer player) {
@@ -147,7 +145,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? EntryResult.failure("message.riftgun.surface_obstructed") : EntryResult.success(compact);
     }
 
-    private PortalPlacement resolveExit(ServerLevel level, Destination destination, PortalPlacement entry) {
+    private PortalPlacement resolveExit(ServerLevel level, PortalExitTarget destination, PortalPlacement entry) {
         return switch (entry.orientation().oppositeSurface()) {
             case TOP -> horizontalTopExit(level, destination);
             case BOTTOM -> horizontalBottomExit(level, destination);
@@ -157,8 +155,9 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         };
     }
 
-    private PortalPlacement horizontalTopExit(ServerLevel level, Destination destination) {
-        BlockPos support = BlockPos.containing(destination.x(), destination.y() - 0.01, destination.z());
+    private PortalPlacement horizontalTopExit(ServerLevel level, PortalExitTarget destination) {
+        BlockPos support = BlockPos.containing(destination.position().x, destination.position().y - 0.01,
+            destination.position().z);
         if (!level.getBlockState(support).isFaceSturdy(level, support, Direction.UP)) {
             return verticalExit(destination, PortalGeometry.SURFACE_VERTICAL);
         }
@@ -170,7 +169,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? verticalExit(destination, PortalGeometry.SURFACE_VERTICAL) : placement;
     }
 
-    private PortalPlacement horizontalBottomExit(ServerLevel level, Destination destination) {
+    private PortalPlacement horizontalBottomExit(ServerLevel level, PortalExitTarget destination) {
         Vec3 center = destination.position().add(0.0, 3.0, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.BOTTOM, PortalGeometry.HORIZONTAL,
             destination.yaw(), null, null);
@@ -178,7 +177,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? verticalExit(destination, PortalGeometry.SURFACE_VERTICAL) : placement;
     }
 
-    private PortalPlacement verticalExit(Destination destination, PortalGeometry geometry) {
+    private PortalPlacement verticalExit(PortalExitTarget destination, PortalGeometry geometry) {
         Vec3 normal = Vec3.directionFromRotation(0.0F, destination.yaw()).normalize();
         Vec3 center = destination.position().subtract(normal.scale(0.85))
             .add(0.0, geometry.height() * 0.5, 0.0);

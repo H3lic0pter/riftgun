@@ -131,9 +131,6 @@
   ,"message.riftgun.scoop_failed": "无法抽取该流体 source block"
   ,"message.riftgun.scoop_success": "已抽取 %s mB · %s/%s mB"
   ,"screen.riftgun.bucket_mode_simple": "桶模式：%s"
-  ,"screen.riftgun.loading_destination": "正在加载目的地..."
-  ,"screen.riftgun.safety_deferred": "目的地检查：将在开门时进行"
-  ,"message.riftgun.destination_loading": "正在加载目的地..."
-  ,"message.riftgun.destination_load_timeout": "目的地区块加载超时；未消耗燃料"
-  ,"message.riftgun.destination_changed": "加载期间目的地已改变；请求已取消"
+  ,"message.riftgun.exit_generation_failed": "传送已完成，但出口传送门生成失败。"
+  ,"message.riftgun.destination_teleport_failed": "目标维度拒绝了此次实体传送。"
 }

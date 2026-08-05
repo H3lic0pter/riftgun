@@ -3,7 +3,6 @@ package dev.riftgun.client;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.PortalPlayerData;
-import dev.riftgun.service.SafetyReport;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -14,7 +13,6 @@ import net.minecraft.world.level.Level;
 final class GuiCaptureHarness {
     private static int ticks;
     private static boolean completed;
-    private static UUID sampleTarget;
 
     static void tick(Minecraft minecraft) {
         if (!Boolean.getBoolean("riftgun.guiCapture") || completed) return;
@@ -57,13 +55,8 @@ final class GuiCaptureHarness {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-coordinate"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
-        if (ticks == 108 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-            screen.onPortalPending(sampleTarget, "AwaitingConfirmation");
-            screen.onSafetyResult(sampleTarget,
-                SafetyReport.COLLISION | SafetyReport.NO_SUPPORT | SafetyReport.HAZARD, true);
-        }
         if (ticks == 126) {
-            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-unsafe"), minecraft.getMainRenderTarget(),
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-safety-history"), minecraft.getMainRenderTarget(),
                 message -> {});
         }
         if (ticks == 134 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
@@ -104,8 +97,7 @@ final class GuiCaptureHarness {
         sample.destinations().add(lab);
         sample.selectedDestinationId(home.id());
         sample.lastViewedDestinationId(home.id());
-        sampleTarget = home.id();
-
+        sample.recordSafetyResult(home.id(), false);
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Snapshot");
         envelope.putBoolean("OpenScreen", true);

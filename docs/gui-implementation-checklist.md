@@ -16,7 +16,7 @@
 
 - [x] `PortalGunLocator`：vanilla inventory 实现；为饰品/扩展物品栏保留 registry。
 - [x] `DestinationDimensionPolicy`：允许 server 已加载维度；跨维度能力由 fuel profile 决定。
-- [x] `DestinationSafetyInspector`：lazy collision、support surface、hazard 检查。
+- [x] `DestinationSafetyInspector`：仅为同维度真实开门执行 collision、support surface、hazard 检查；跨维度暂时完全跳过。
 - [x] `SafeDestinationResolver`：identity 实现；为未来智能搜索保留 seam。
 - [x] `PortalEntityEligibilityPolicy`：玩家、掉落物、载具；为升级模块保留组合 seam。
 - [x] `PortalClosePolicy`：完全开启后固定 3 秒；为玩家策略保留 seam。
@@ -40,8 +40,8 @@
 ## 4. Networking
 
 - [x] 带 protocol version 的 NeoForge payload registration。
-- [x] C2S GUI、mutation、selection、safety 与 portal action payload。
-- [x] S2C snapshot、safety-result 与 portal-opened acknowledgement；validation 通过 action-bar 返回。
+- [x] C2S GUI、mutation、selection 与统一 portal action payload；不再发送浏览 Safety 请求。
+- [x] S2C snapshot 与 portal-opened acknowledgement；validation 与 Safety 警告通过 action-bar 返回。
 - [x] NBT codec packet 上限及 server-side 名称/坐标字段长度校验。
 
 ## 5. GUI structure and visual quality
@@ -58,9 +58,9 @@
 - [x] 地点 modal 的名称/坐标输入增加纵向留白；X/Y/Z/Yaw 使用带独立标签的 2×2 布局。
 - [x] 地点 modal 的分组选择支持键盘 ←/→ 前后切换，以及独立 ▼ 下拉列表。
 - [x] dirty modal 关闭确认；玩家可独立关闭该确认。
-- [x] 地点/分组删除确认；玩家可独立关闭该确认；unsafe destination 始终保留开门确认。
-- [x] lazy safety 状态：显示检查中；位置改变才失效，改名/换组/置顶不失效。
-- [x] 关闭 safety-check 后不发送检查请求、server 不运行 inspector，GUI 不显示检查状态。
+- [x] 地点/分组删除确认；玩家可独立关闭该确认；unsafe destination 不再使用二次确认。
+- [x] 地点列表 `!` 只读取上次真实开门的持久化 Safety 结果；位置改变才失效，改名/换组/置顶不失效。
+- [x] 关闭 safety-check 后 server 完全跳过 inspector 并隐藏 `!`；历史结果保留，详情区始终不显示 Safety 文本。
 - [x] 地点行右侧常驻黄星置顶按钮，hover/focus 时显示红色删除按钮；长名称省略并提供 tooltip。
 - [x] 自定义分组行 hover/focus 时显示重命名和删除按钮；drag handle 与 Alt+↑/↓ 均可排序。
 - [x] 右侧详情整体滚动，目标变化时归顶；底部生成 portal 固定，不参与滚动。
@@ -79,7 +79,7 @@
 - [x] Safety 只警告；不偏移、不破坏、不拒绝开门。
 - [x] Portal Gun tooltip：目标名、分组、维度、同维度距离。
 - [x] Portal Gun tooltip 同时显示 bucket mode、fluid 类型与液量。
-- [x] Portal Gun 互动键遇到 unsafe 目标时 action-bar 警告但照常开门；GUI 开门使用确认弹窗。
+- [x] Portal Gun 互动键和 GUI 遇到 unsafe 目标时只发 action-bar 警告并照常开门。
 - [x] 玩家、掉落物、允许的 vehicle/passenger tree 可传送；mob 不可传送。
 - [x] 保留水平 momentum 与 riding relationship。
 - [x] `CHARGING` 前摇缩短为 6 ticks；opening/closing 各 5 ticks，完全开启后仍维持 3 秒。
@@ -99,6 +99,8 @@
 - [x] 三种完整 fluid（source/flowing/block/bucket）与单-fluid 8000 mB tank；标准 capability 严格限容。
 - [x] bucket mode 只抽取允许的完整 source；不放液、不回退开门；特殊整桶溢出隔离为可替换 policy。
 - [x] 灰/蓝 fuel 仅同维度，绿色 fuel 支持跨维度；门体与冻结水花使用开门时的 fuel RGB snapshot。
+- [x] 跨维度目标已 entity-ticking 时同步生成双门；未加载时先生成入口，首个实体抵达后再检测并生成出口。
+- [x] 跨维度 lazy 出口不使用异步任务、目标预加载 ticket、pending request、轮询或 timeout。
 
 ## 7. Verification
 
@@ -107,8 +109,8 @@
 - [x] `clean test build` 成功。
 - [x] Dedicated server 启动到 `Done`，无 mod exception。
 - [x] `runClient -PguiCapture=true` 自动打开真实 Screen、截图并正常退出，无 mod exception。
-- [x] GUI scale 4 自动 QA：主界面、详情滚底、坐标 modal、unsafe modal、placement settings 均无 clipping。
-- [x] GUI scale 1 与当前窗口允许的自动上限 scale 2：主界面、坐标 modal、unsafe modal 无 clipping。
+- [x] GUI scale 4 自动 QA：主界面、详情滚底、坐标 modal、Safety 历史图标、placement settings 均无 clipping。
+- [x] GUI scale 1 与当前窗口允许的自动上限 scale 2：主界面、坐标 modal、Safety 历史图标无 clipping。
 - [x] scale 2 详情区实际滚到底，Edit 可见且底部 Open Portal 保持固定。
 - [x] scale 2 placement settings 二级页无 clipping，slider、说明与返回按钮均完整可见。
 - [ ] `runClient` 手工完整流程成功。

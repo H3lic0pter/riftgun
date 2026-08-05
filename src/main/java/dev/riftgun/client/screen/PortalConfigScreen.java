@@ -4,6 +4,7 @@ import dev.riftgun.client.PortalClientState;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.DestinationSort;
+import dev.riftgun.data.DestinationSafetyResult;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
@@ -66,7 +67,6 @@ public final class PortalConfigScreen extends Screen {
     private Modal modal = Modal.NONE;
     private Modal returnModal = Modal.NONE;
     private @Nullable UUID modalTarget;
-    private @Nullable UUID unsafeDestination;
     private boolean dirty;
     private String formName = "";
     private String formX = "";
@@ -96,12 +96,6 @@ public final class PortalConfigScreen extends Screen {
     private long clientTicks;
     private @Nullable UUID pendingSelection;
     private long selectionDueTick = -1L;
-    private @Nullable UUID pendingSafety;
-    private long safetyDueTick = -1L;
-    private @Nullable UUID pendingPortalDestination;
-    private String pendingPortalState = "";
-    private boolean closingAfterPortalOpened;
-    private boolean closeCancellationSent;
 
     public PortalConfigScreen() {
         super(Component.translatable("screen.riftgun.config"));
@@ -177,7 +171,6 @@ public final class PortalConfigScreen extends Screen {
         openPortalButton = generate;
         updateOpenPortalButton();
 
-        requestSafetyIfNeeded(viewedDestination, false);
     }
 
     @Override
@@ -185,24 +178,17 @@ public final class PortalConfigScreen extends Screen {
         super.tick();
         clientTicks++;
         if (pendingSelection != null && clientTicks >= selectionDueTick) flushSelection();
-        if (pendingSafety != null && clientTicks >= safetyDueTick) flushSafety();
     }
 
     @Override
     public void onClose() {
         flushSelection();
-        PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
-        closeCancellationSent = true;
         super.onClose();
     }
 
     @Override
     public void removed() {
         flushSelection();
-        if (!closingAfterPortalOpened && !closeCancellationSent
-            && minecraft != null && minecraft.getConnection() != null) {
-            PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
-        }
         super.removed();
     }
 
@@ -258,8 +244,7 @@ public final class PortalConfigScreen extends Screen {
             button(x + 18, actionY, (box.width() - 42) / 2, 19,
                 "screen.riftgun.cancel", false, ignored -> cancelConfirmation());
             button(x + 24 + (box.width() - 42) / 2, actionY, (box.width() - 42) / 2, 19,
-                modal == Modal.CONFIRM_UNSAFE ? "screen.riftgun.open_anyway" : "screen.riftgun.confirm",
-                modal == Modal.CONFIRM_UNSAFE, ignored -> acceptConfirmation());
+                "screen.riftgun.confirm", false, ignored -> acceptConfirmation());
         } else if (modal == Modal.SETTINGS) {
             button(x + 18, actionY, fieldWidth, 19, "screen.riftgun.done", false,
                 ignored -> closeModalNow());
@@ -417,7 +402,7 @@ public final class PortalConfigScreen extends Screen {
         int nameX = panelX + 23;
         int nameWidth = starLeft - nameX - 12;
         boolean unsafe = PortalClientState.data().settings().safetyCheckEnabled()
-            && PortalClientState.safety(id) != null && PortalClientState.safety(id) != 0;
+            && PortalClientState.data().safetyResult(id) == DestinationSafetyResult.UNSAFE;
         if (unsafe) {
             graphics.drawString(font, "!", starLeft - 10, y + 5, PortalTheme.WARNING, false);
             nameWidth -= 10;
@@ -468,21 +453,6 @@ public final class PortalConfigScreen extends Screen {
             }
             y = detailField(graphics, "screen.riftgun.coordinates", String.format(Locale.ROOT, "%.1f  %.1f  %.1f",
                 destination.x(), destination.y(), destination.z()), x, y, textWidth);
-            if (PortalClientState.data().settings().safetyCheckEnabled()) {
-                if (PortalClientState.checkingSafety(destination.id())) {
-                    graphics.drawString(font, Component.translatable("screen.riftgun.checking"), x, y,
-                        PortalTheme.ICE, false);
-                } else if (PortalClientState.safetyUnloaded(destination.id())) {
-                    graphics.drawString(font, Component.translatable("screen.riftgun.safety_deferred"), x, y,
-                        PortalTheme.TEXT_MUTED, false);
-                } else {
-                    Integer flags = PortalClientState.safety(destination.id());
-                    if (flags != null) graphics.drawString(font,
-                        Component.translatable(flags == 0 ? "screen.riftgun.safe" : "screen.riftgun.unsafe"),
-                        x, y, flags == 0 ? PortalTheme.ICE : PortalTheme.WARNING, false);
-                }
-                y += 22;
-            }
             detailEditY = modal == Modal.NONE ? y : -1;
             if (modal == Modal.NONE) {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
@@ -509,10 +479,9 @@ public final class PortalConfigScreen extends Screen {
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xB8101115);
         ModalBox box = modalBox();
         graphics.fill(box.x(), box.y(), box.x() + box.width(), box.y() + box.height(), PortalTheme.PANEL_RAISED);
-        graphics.renderOutline(box.x(), box.y(), box.width(), box.height(),
-            modal == Modal.CONFIRM_UNSAFE ? PortalTheme.WARNING : PortalTheme.BORDER_FOCUS);
+        graphics.renderOutline(box.x(), box.y(), box.width(), box.height(), PortalTheme.BORDER_FOCUS);
         graphics.drawString(font, Component.translatable(modal.titleKey), box.x() + 18, box.y() + 13,
-            modal == Modal.CONFIRM_UNSAFE ? PortalTheme.WARNING : PortalTheme.TEXT, false);
+            PortalTheme.TEXT, false);
 
         int x = box.x() + 18;
         int y = box.y();
@@ -965,31 +934,10 @@ public final class PortalConfigScreen extends Screen {
         selectedGroup = null;
         if (!id.equals(previous)) detailScroll = 0;
         if (!id.equals(previous)) {
-            PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
             pendingSelection = id;
             selectionDueTick = clientTicks + 6L;
         }
-        requestSafetyIfNeeded(id, true);
         updateOpenPortalButton();
-    }
-
-    private void requestSafetyIfNeeded(@Nullable UUID id, boolean force) {
-        if (id == null || minecraft == null || minecraft.getConnection() == null
-            || !PortalClientState.data().settings().safetyCheckEnabled()) return;
-        if (!force && PortalClientState.safety(id) != null) return;
-        pendingSafety = id;
-        safetyDueTick = clientTicks + 6L;
-    }
-
-    private void flushSafety() {
-        UUID id = pendingSafety;
-        pendingSafety = null;
-        safetyDueTick = -1L;
-        if (id == null || minecraft == null || minecraft.getConnection() == null
-            || !PortalClientState.data().settings().safetyCheckEnabled()
-            || PortalClientState.checkingSafety(id) || PortalClientState.safety(id) != null) return;
-        PortalClientState.beginSafetyCheck(id);
-        PortalNetworking.sendRequest(PortalAction.CHECK_SAFETY, tag -> tag.putUUID("Destination", id));
     }
 
     private void flushSelection() {
@@ -1003,10 +951,8 @@ public final class PortalConfigScreen extends Screen {
     private void generatePortal() {
         if (viewedDestination == null) return;
         flushSelection();
-        PortalNetworking.sendRequest(PortalAction.OPEN_PORTAL, tag -> {
-            tag.putUUID("Destination", viewedDestination);
-            tag.putBoolean("ConfirmedUnsafe", false);
-        });
+        PortalNetworking.sendRequest(PortalAction.OPEN_PORTAL,
+            tag -> tag.putUUID("Destination", viewedDestination));
     }
 
     private void togglePin(UUID id) {
@@ -1125,10 +1071,8 @@ public final class PortalConfigScreen extends Screen {
                 old.placementMode(), old.smartDistance());
         };
         PortalClientState.data().settings(next);
-        if (!next.safetyCheckEnabled()) PortalClientState.clearSafety();
         sendSettings(next);
         rebuildWidgets();
-        if (!old.safetyCheckEnabled() && next.safetyCheckEnabled()) requestSafetyIfNeeded(viewedDestination, true);
     }
 
     private void sendSettings(PortalPlayerSettings settings) {
@@ -1237,12 +1181,6 @@ public final class PortalConfigScreen extends Screen {
             UUID id = modalTarget;
             PortalNetworking.sendRequest(PortalAction.DELETE_GROUP, tag -> tag.putUUID("Group", id));
             closeModalNow();
-        } else if (modal == Modal.CONFIRM_UNSAFE && unsafeDestination != null) {
-            UUID id = unsafeDestination;
-            PortalNetworking.sendRequest(PortalAction.OPEN_PORTAL, tag -> {
-                tag.putUUID("Destination", id);
-                tag.putBoolean("ConfirmedUnsafe", true);
-            });
         } else if (modal == Modal.CONFIRM_CLEAR_FLUID) {
             PortalNetworking.sendRequest(PortalAction.CLEAR_GUN_FLUID);
             closeModalNow();
@@ -1254,7 +1192,6 @@ public final class PortalConfigScreen extends Screen {
             modal = returnModal;
             rebuildWidgets();
         } else {
-            if (modal == Modal.CONFIRM_UNSAFE) PortalNetworking.sendRequest(PortalAction.CANCEL_PORTAL_OPEN);
             closeModalNow();
         }
     }
@@ -1391,7 +1328,7 @@ public final class PortalConfigScreen extends Screen {
         return top + 2 + (bottom - top - 4 - thumb) * scroll / max;
     }
 
-    public void refreshFromServer(Set<UUID> invalidatedSafety) {
+    public void refreshFromServer(Set<UUID> ignoredInvalidatedSafety) {
         if (pendingSelection != null) {
             PortalClientState.data().selectedDestinationId(pendingSelection);
             PortalClientState.data().lastViewedDestinationId(pendingSelection);
@@ -1410,42 +1347,16 @@ public final class PortalConfigScreen extends Screen {
         if (selectedGroup != null && !selectedGroup.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && PortalClientState.data().group(selectedGroup).isEmpty()) selectedGroup = null;
         if (modal == Modal.NONE) rebuildWidgets();
-        if (selected != null && invalidatedSafety.contains(selected)) requestSafetyIfNeeded(selected, true);
-        else requestSafetyIfNeeded(selected, false);
-    }
-
-    public void onSafetyResult(UUID destinationId, int flags, boolean confirmation) {
-        if (confirmation && flags != 0 && destinationId.equals(viewedDestination)
-            && destinationId.equals(pendingPortalDestination)) {
-            unsafeDestination = destinationId;
-            openForm(Modal.CONFIRM_UNSAFE, destinationId);
-        }
     }
 
     public void onPortalOpened() {
-        closingAfterPortalOpened = true;
         if (minecraft != null) minecraft.setScreen(null);
-    }
-
-    public void onPortalPending(UUID destinationId, String state) {
-        if (state.equals("Failed") || state.equals("Cancelled")) {
-            if (destinationId.equals(pendingPortalDestination)) {
-                pendingPortalDestination = null;
-                pendingPortalState = "";
-            }
-        } else {
-            pendingPortalDestination = destinationId;
-            pendingPortalState = state;
-        }
-        updateOpenPortalButton();
     }
 
     private void updateOpenPortalButton() {
         if (openPortalButton == null) return;
-        boolean pendingCurrent = viewedDestination != null && viewedDestination.equals(pendingPortalDestination);
-        openPortalButton.active = viewed() != null && !pendingCurrent;
-        openPortalButton.setMessage(Component.translatable(pendingCurrent && pendingPortalState.equals("Loading")
-            ? "screen.riftgun.loading_destination" : "screen.riftgun.generate"));
+        openPortalButton.active = viewed() != null;
+        openPortalButton.setMessage(Component.translatable("screen.riftgun.generate"));
     }
 
     /** Used only by the opt-in visual QA harness. */
@@ -1519,7 +1430,7 @@ public final class PortalConfigScreen extends Screen {
             case SETTINGS -> 182;
             case PLACEMENT_SETTINGS -> 132;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
-                 CONFIRM_DIRTY, CONFIRM_UNSAFE, CONFIRM_CLEAR_FLUID -> 112;
+                 CONFIRM_DIRTY, CONFIRM_CLEAR_FLUID -> 112;
             case NONE -> 0;
         };
         int boxWidth = Math.min(340, panelWidth - 16);
@@ -1603,7 +1514,6 @@ public final class PortalConfigScreen extends Screen {
         CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
         CONFIRM_DELETE_GROUP("screen.riftgun.delete", "screen.riftgun.delete_group_body", false, false),
         CONFIRM_DIRTY("screen.riftgun.unsaved", "screen.riftgun.unsaved_body", false, false),
-        CONFIRM_UNSAFE("screen.riftgun.unsafe", "screen.riftgun.unsafe_body", false, false),
         CONFIRM_CLEAR_FLUID("screen.riftgun.clear_fluid", "screen.riftgun.clear_fluid_body", false, false);
 
         private final String titleKey;

@@ -15,4 +15,13 @@ final class PortalPairClockTest {
         assertEquals(PortalLifecycle.Phase.CLOSING, PortalPairClock.phase(startedAt, 120L, 123L));
         assertEquals(PortalLifecycle.Phase.CLOSED, PortalPairClock.phase(startedAt, 120L, 125L));
     }
+
+    @Test
+    void deferredPairResetStartsAtOpenTickZero() {
+        long now = 400L;
+        long startedAt = PortalPairClock.openPhaseStartedAt(now);
+
+        assertEquals(PortalLifecycle.Phase.OPEN, PortalPairClock.phase(startedAt, -1L, now));
+        assertEquals(0, PortalPairClock.phaseTicks(startedAt, -1L, now));
+    }
 }

@@ -31,4 +31,15 @@ final class PortalTransitGateTest {
         assertTrue(exitGate.contains(entityId));
         assertFalse(exitGate.enter(entityId));
     }
+
+    @Test
+    void failedTransferCanReleaseItsReservationForRetry() {
+        PortalTransitGate gate = new PortalTransitGate();
+        UUID entityId = UUID.randomUUID();
+
+        assertTrue(gate.enter(entityId));
+        gate.leave(entityId);
+
+        assertTrue(gate.enter(entityId));
+    }
 }

@@ -2,8 +2,10 @@ package dev.riftgun.data;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -13,12 +15,13 @@ import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 3;
+    public static final int CURRENT_VERSION = 4;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
 
     private final List<DestinationGroup> groups = new ArrayList<>();
     private final List<Destination> destinations = new ArrayList<>();
     private final Set<UUID> expandedGroups = new HashSet<>();
+    private final Map<UUID, DestinationSafetyResult> safetyResults = new HashMap<>();
     private @Nullable UUID selectedDestinationId;
     private @Nullable UUID lastViewedDestinationId;
     private long nextLocationNumber = 1L;
@@ -72,17 +75,38 @@ public final class PortalPlayerData {
         return groups.stream().filter(group -> group.id().equals(id)).findFirst();
     }
 
+    public DestinationSafetyResult safetyResult(UUID destinationId) {
+        return safetyResults.getOrDefault(destinationId, DestinationSafetyResult.UNKNOWN);
+    }
+
+    public void recordSafetyResult(UUID destinationId, boolean safe) {
+        safetyResults.put(destinationId, safe ? DestinationSafetyResult.SAFE : DestinationSafetyResult.UNSAFE);
+    }
+
+    public void clearSafetyResult(UUID destinationId) {
+        safetyResults.remove(destinationId);
+    }
+
     public String nextLocationName() {
         return "Location" + nextLocationNumber++;
     }
 
     public void replaceDestination(Destination replacement) {
         for (int index = 0; index < destinations.size(); index++) {
-            if (destinations.get(index).id().equals(replacement.id())) {
+            Destination current = destinations.get(index);
+            if (current.id().equals(replacement.id())) {
+                if (!samePosition(current, replacement)) safetyResults.remove(replacement.id());
                 destinations.set(index, replacement);
                 return;
             }
         }
+    }
+
+    private static boolean samePosition(Destination first, Destination second) {
+        return first.dimension().equals(second.dimension())
+            && Double.compare(first.x(), second.x()) == 0
+            && Double.compare(first.y(), second.y()) == 0
+            && Double.compare(first.z(), second.z()) == 0;
     }
 
     public void replaceGroup(DestinationGroup replacement) {
@@ -110,6 +134,15 @@ public final class PortalPlayerData {
         destinations.forEach(destination -> destinationTags.add(destination.save()));
         root.put("Destinations", destinationTags);
 
+        ListTag safetyTags = new ListTag();
+        safetyResults.forEach((id, result) -> {
+            CompoundTag tag = new CompoundTag();
+            tag.putUUID("Id", id);
+            tag.putString("Result", result.name());
+            safetyTags.add(tag);
+        });
+        root.put("SafetyResults", safetyTags);
+
         ListTag expandedTags = new ListTag();
         expandedGroups.forEach(id -> {
             CompoundTag tag = new CompoundTag();
@@ -131,6 +164,15 @@ public final class PortalPlayerData {
         groups.forEach(tag -> data.groups.add(DestinationGroup.load((CompoundTag) tag)));
         ListTag destinations = root.getList("Destinations", Tag.TAG_COMPOUND);
         destinations.forEach(tag -> data.destinations.add(Destination.load((CompoundTag) tag)));
+        ListTag safetyResults = root.getList("SafetyResults", Tag.TAG_COMPOUND);
+        safetyResults.forEach(tag -> {
+            CompoundTag compound = (CompoundTag) tag;
+            if (!compound.hasUUID("Id")) return;
+            DestinationSafetyResult result = DestinationSafetyResult.parse(compound.getString("Result"));
+            if (result != DestinationSafetyResult.UNKNOWN) {
+                data.safetyResults.put(compound.getUUID("Id"), result);
+            }
+        });
         if (root.contains("ExpandedGroups")) {
             data.expandedGroups.clear();
             ListTag expanded = root.getList("ExpandedGroups", Tag.TAG_COMPOUND);
@@ -146,7 +188,7 @@ public final class PortalPlayerData {
     }
 
     private void migrate(int storedVersion) {
-        // Settings added in v2-v3 are backward-compatible through field defaults.
+        // Settings and v4 safety history are backward-compatible through missing-field defaults.
     }
 
     private void repairReferences() {
@@ -162,6 +204,7 @@ public final class PortalPlayerData {
         }
         if (selectedDestinationId != null && destination(selectedDestinationId).isEmpty()) selectedDestinationId = null;
         if (lastViewedDestinationId != null && destination(lastViewedDestinationId).isEmpty()) lastViewedDestinationId = null;
+        safetyResults.keySet().removeIf(id -> destination(id).isEmpty());
         expandedGroups.retainAll(groupIds);
     }
 }

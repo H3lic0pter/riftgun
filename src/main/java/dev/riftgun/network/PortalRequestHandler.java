@@ -8,16 +8,12 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
-import dev.riftgun.portal.PortalEntity;
-import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.service.CoordinateParser;
-import dev.riftgun.service.DestinationSafetyCache;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalServices;
-import dev.riftgun.service.SafetyReport;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -26,7 +22,6 @@ import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -37,11 +32,6 @@ public final class PortalRequestHandler {
         try {
             action = PortalAction.valueOf(request.getString("Action"));
         } catch (IllegalArgumentException ignored) {
-            return;
-        }
-
-        if (action == PortalAction.CANCEL_PORTAL_OPEN) {
-            PortalOpenCoordinator.cancel(player);
             return;
         }
 
@@ -73,19 +63,14 @@ public final class PortalRequestHandler {
                 case SELECT_DESTINATION -> selectDestination(player, data, request);
                 case OPEN_PORTAL -> {
                     PortalOpenCoordinator.request(player, data, id(request, "Destination"), true,
-                        request.getBoolean("ConfirmedUnsafe"), PortalPlacementMode.FRONT, locatedGun.get());
+                        PortalPlacementMode.FRONT, locatedGun.get());
                     yield false;
                 }
                 case OPEN_SELECTED -> {
                     openSelected(player, data, requestedPlacement(request), locatedGun.get());
                     yield false;
                 }
-                case CANCEL_PORTAL_OPEN -> false;
                 case CYCLE_PLACEMENT_MODE -> cyclePlacementMode(player, data);
-                case CHECK_SAFETY -> {
-                    checkSafety(player, data, id(request, "Destination"), false);
-                    yield false;
-                }
                 case CREATE_GROUP -> createGroup(data, request);
                 case RENAME_GROUP -> renameGroup(data, request);
                 case DELETE_GROUP -> deleteGroup(data, request);
@@ -125,7 +110,7 @@ public final class PortalRequestHandler {
         }
         PortalGunLocator.LocatedGun gun = PortalGunLocator.first(player).orElse(null);
         if (gun == null || gun.stack() != player.getItemInHand(hand)) return;
-        PortalOpenCoordinator.request(player, data, selected, false, true,
+        PortalOpenCoordinator.request(player, data, selected, false,
             data.settings().placementMode(), gun);
     }
 
@@ -133,7 +118,7 @@ public final class PortalRequestHandler {
                                      PortalGunLocator.LocatedGun gun) {
         UUID selected = data.selectedDestinationId();
         if (selected == null) throw error("message.riftgun.no_destination_selected");
-        PortalOpenCoordinator.request(player, data, selected, false, true, mode, gun);
+        PortalOpenCoordinator.request(player, data, selected, false, mode, gun);
     }
 
     private static boolean cyclePlacementMode(ServerPlayer player, PortalPlayerData data) {
@@ -202,6 +187,7 @@ public final class PortalRequestHandler {
         if (!removed) throw error("message.riftgun.destination_missing");
         if (destinationId.equals(data.selectedDestinationId())) data.selectedDestinationId(null);
         if (destinationId.equals(data.lastViewedDestinationId())) data.lastViewedDestinationId(null);
+        data.clearSafetyResult(destinationId);
         return true;
     }
 
@@ -221,11 +207,11 @@ public final class PortalRequestHandler {
 
     private static boolean selectDestination(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
         UUID destinationId = id(request, "Destination");
-        Destination destination = data.destination(destinationId)
-            .orElseThrow(() -> error("message.riftgun.destination_missing"));
+        if (data.destination(destinationId).isEmpty()) {
+            throw error("message.riftgun.destination_missing");
+        }
         data.selectedDestinationId(destinationId);
         data.lastViewedDestinationId(destinationId);
-        PortalOpenCoordinator.cancelIfDifferent(player, destinationId);
         return true;
     }
 
@@ -338,28 +324,6 @@ public final class PortalRequestHandler {
     private static PortalPlacementMode requestedPlacement(CompoundTag request) {
         PortalPlacementMode mode = PortalPlacementMode.parse(request.getString("PlacementMode"));
         return mode == PortalPlacementMode.SMART ? PortalPlacementMode.FRONT : mode;
-    }
-
-    private static void checkSafety(ServerPlayer player, PortalPlayerData data, UUID destinationId, boolean confirmation) {
-        Destination destination = data.destination(destinationId)
-            .orElseThrow(() -> error("message.riftgun.destination_missing"));
-        if (!data.settings().safetyCheckEnabled()) {
-            return;
-        }
-        var dimensionResult = PortalServices.DIMENSION_POLICY.validate(player, destination);
-        if (!dimensionResult.allowed()) {
-            player.displayClientMessage(dimensionResult.message(), true);
-            return;
-        }
-        ServerLevel targetLevel = player.getServer() == null ? null : player.getServer().getLevel(destination.dimension());
-        if (targetLevel == null) {
-            player.displayClientMessage(Component.translatable("message.riftgun.dimension_unavailable"), true);
-            return;
-        }
-        DestinationSafetyCache.Lookup lookup = DestinationSafetyCache.inspectLoaded(player, targetLevel, destination);
-        boolean loaded = lookup.status() == DestinationSafetyCache.Status.AVAILABLE;
-        PortalNetworking.sendSafety(player, destinationId, loaded ? lookup.report().flags() : 0,
-            confirmation, loaded);
     }
 
     private static void requireDestinationCapacity(PortalPlayerData data) {

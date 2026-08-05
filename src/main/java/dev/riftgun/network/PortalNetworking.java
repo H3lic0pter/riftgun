@@ -52,21 +52,6 @@ public final class PortalNetworking {
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
-    public static void sendSafety(ServerPlayer player, java.util.UUID destinationId, int flags, boolean confirmation) {
-        sendSafety(player, destinationId, flags, confirmation, true);
-    }
-
-    public static void sendSafety(ServerPlayer player, java.util.UUID destinationId, int flags,
-                                  boolean confirmation, boolean loaded) {
-        CompoundTag envelope = new CompoundTag();
-        envelope.putString("Kind", "Safety");
-        envelope.putUUID("Destination", destinationId);
-        envelope.putInt("Flags", flags);
-        envelope.putBoolean("Confirmation", confirmation);
-        envelope.putBoolean("Loaded", loaded);
-        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
-    }
-
     public static void sendSelectionAccepted(ServerPlayer player, java.util.UUID destinationId) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Selection");
@@ -77,16 +62,6 @@ public final class PortalNetworking {
     public static void sendPortalOpened(ServerPlayer player) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "PortalOpened");
-        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
-    }
-
-    public static void sendPortalPending(ServerPlayer player, java.util.UUID destinationId,
-                                         String state, String messageKey) {
-        CompoundTag envelope = new CompoundTag();
-        envelope.putString("Kind", "PortalPending");
-        envelope.putUUID("Destination", destinationId);
-        envelope.putString("State", state);
-        if (messageKey != null) envelope.putString("Message", messageKey);
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 

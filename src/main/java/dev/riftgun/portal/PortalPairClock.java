@@ -32,6 +32,11 @@ public final class PortalPairClock {
         };
     }
 
+    /** Clock origin that makes an already-open endpoint start with a full open duration. */
+    public static long openPhaseStartedAt(long now) {
+        return now - PortalLifecycle.CHARGE_TICKS - PortalLifecycle.ANIMATION_TICKS;
+    }
+
     private static int saturatedInt(long value) {
         return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }

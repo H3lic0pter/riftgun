@@ -16,6 +16,10 @@ final class PortalTransitGate {
         occupants.add(entityId);
     }
 
+    void leave(UUID entityId) {
+        occupants.remove(entityId);
+    }
+
     void retainInside(Collection<UUID> entityIds) {
         occupants.retainAll(entityIds);
     }
