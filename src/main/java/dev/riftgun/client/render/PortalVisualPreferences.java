@@ -27,6 +27,10 @@ public final class PortalVisualPreferences {
             PortalVisualRegistry.CLASSIC_ID));
     }
 
+    public static void flush() {
+        ClientConfig.SPEC.save();
+    }
+
     private static void save(ResourceLocation id) {
         String value = id.toString();
         if (value.equals(ClientConfig.VALUES.portalVisualType.get())) return;

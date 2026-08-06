@@ -2,6 +2,8 @@ package dev.riftgun.client.screen;
 
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.render.PortalVisualPreferences;
+import dev.riftgun.client.render.PortalVisualOption;
+import dev.riftgun.client.render.PortalVisualOptions;
 import dev.riftgun.client.render.PortalVisualRegistry;
 import dev.riftgun.client.render.PortalVisualType;
 import dev.riftgun.data.Destination;
@@ -27,6 +29,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -86,6 +89,10 @@ public final class PortalConfigScreen extends Screen {
     private int groupDropdownScroll;
     private boolean visualDropdownOpen;
     private int visualDropdownIndex;
+    private int visualOptionsScroll;
+    private int visualOptionsContentHeight;
+    private boolean visualSettingsDirty;
+    private long visualSettingsSaveDueTick = -1L;
 
     private @Nullable EditBox searchBox;
     private @Nullable ThemedButton firstCreateButton;
@@ -96,8 +103,13 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton placementBackButton;
     private @Nullable ThemedButton visualSettingsButton;
     private @Nullable ThemedButton visualBackButton;
+    private @Nullable ThemedButton swirlAnimationBackButton;
     private @Nullable ThemedButton visualSelector;
     private @Nullable ThemedButton visualDropdownButton;
+    private @Nullable ThemedButton visualAnimationSettingsButton;
+    private @Nullable ThemedButton visualResetButton;
+    private final List<VisualWidgetBinding> visualOptionWidgets = new ArrayList<>();
+    private final List<VisualToggleBinding> visualToggleWidgets = new ArrayList<>();
     private @Nullable ThemedButton openPortalButton;
     private @Nullable ThemedButton bucketModeButton;
     private @Nullable ThemedButton clearFluidButton;
@@ -131,8 +143,13 @@ public final class PortalConfigScreen extends Screen {
         placementBackButton = null;
         visualSettingsButton = null;
         visualBackButton = null;
+        swirlAnimationBackButton = null;
         visualSelector = null;
         visualDropdownButton = null;
+        visualAnimationSettingsButton = null;
+        visualResetButton = null;
+        visualOptionWidgets.clear();
+        visualToggleWidgets.clear();
         openPortalButton = null;
         bucketModeButton = null;
         clearFluidButton = null;
@@ -203,17 +220,20 @@ public final class PortalConfigScreen extends Screen {
         super.tick();
         clientTicks++;
         if (pendingSelection != null && clientTicks >= selectionDueTick) flushSelection();
+        if (visualSettingsDirty && clientTicks >= visualSettingsSaveDueTick) flushVisualSettings();
     }
 
     @Override
     public void onClose() {
         flushSelection();
+        flushVisualSettings();
         super.onClose();
     }
 
     @Override
     public void removed() {
         flushSelection();
+        flushVisualSettings();
         super.removed();
     }
 
@@ -267,6 +287,12 @@ public final class PortalConfigScreen extends Screen {
                 PortalClientState.data().settings().smartDistance()));
         } else if (modal == Modal.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
+            if (!PortalVisualPreferences.selected().options().isEmpty()) {
+                visualAnimationSettingsButton = button(x + fieldWidth - 2, y + 76, 20, 18,
+                    Component.empty(), false, ignored -> openSwirlAnimationSettings());
+            }
+        } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+            addVisualOptionWidgets(box, fieldWidth);
         }
 
         int actionY = y + box.height() - 27;
@@ -284,6 +310,9 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.VISUAL_SETTINGS) {
             visualBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToSettings());
+        } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+            swirlAnimationBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
+                ignored -> backToVisualSettings());
         } else {
             button(x + 18, actionY, (box.width() - 42) / 2, 19,
                 "screen.riftgun.cancel", false, ignored -> requestCloseModal());
@@ -309,6 +338,90 @@ public final class PortalConfigScreen extends Screen {
             false, ignored -> {});
         visualDropdownButton = button(x + width - 20, y, 20, 18, Component.empty(), false,
             ignored -> openVisualDropdown());
+    }
+
+    private void addVisualOptionWidgets(ModalBox box, int width) {
+        PortalVisualOptions options = PortalVisualPreferences.selected().options();
+        if (options.isEmpty()) {
+            visualOptionsScroll = 0;
+            visualOptionsContentHeight = 0;
+            return;
+        }
+
+        int x = box.x() + 18;
+        visualOptionsContentHeight = 20 + options.entries().size() * 20;
+        visualOptionsScroll = Mth.clamp(visualOptionsScroll, 0, visualOptionsMaxScroll(box));
+        visualResetButton = addVisualWidget(new ThemedButton(x + width - 18, 0, 18, 16,
+            Component.empty(), false, ignored -> resetVisualOptions()), 0);
+
+        int offset = 20;
+        for (PortalVisualOption option : options.entries()) {
+            if (option instanceof PortalVisualOption.Toggle toggle) {
+                ThemedButton widget = new ThemedButton(x, 0, width, 18,
+                    visualToggleLabel(toggle), false, button -> {
+                        toggle.toggle();
+                        button.setMessage(visualToggleLabel(toggle));
+                        refreshVisualOptionWidgets();
+                        markVisualSettingsDirty();
+                    });
+                addVisualWidget(widget, offset);
+                visualToggleWidgets.add(new VisualToggleBinding(widget, toggle));
+            } else if (option instanceof PortalVisualOption.Range range) {
+                addVisualWidget(new VisualPeriodSlider(x, 0, width, 18, range), offset);
+            }
+            offset += 20;
+        }
+        layoutVisualOptionWidgets(box);
+    }
+
+    private <T extends AbstractWidget> T addVisualWidget(T widget, int contentOffset) {
+        addWidget(widget);
+        visualOptionWidgets.add(new VisualWidgetBinding(widget, contentOffset));
+        return widget;
+    }
+
+    private void layoutVisualOptionWidgets(ModalBox box) {
+        int top = visualOptionsTop(box);
+        int bottom = visualOptionsBottom(box);
+        for (VisualWidgetBinding binding : visualOptionWidgets) {
+            AbstractWidget widget = binding.widget();
+            int y = top + binding.contentOffset() - visualOptionsScroll;
+            widget.setY(y);
+            widget.visible = y >= top && y + widget.getHeight() <= bottom;
+        }
+    }
+
+    private void refreshVisualOptionWidgets() {
+        for (VisualToggleBinding binding : visualToggleWidgets) {
+            binding.widget().setMessage(visualToggleLabel(binding.option()));
+        }
+        for (VisualWidgetBinding binding : visualOptionWidgets) {
+            if (binding.widget() instanceof VisualPeriodSlider slider) slider.refreshFromOption();
+        }
+    }
+
+    private Component visualToggleLabel(PortalVisualOption.Toggle option) {
+        return toggleLabel(option.labelKey(), option.value().getAsBoolean());
+    }
+
+    private void resetVisualOptions() {
+        PortalVisualOptions options = PortalVisualPreferences.selected().options();
+        if (options.isEmpty()) return;
+        options.reset();
+        refreshVisualOptionWidgets();
+        markVisualSettingsDirty();
+    }
+
+    private void markVisualSettingsDirty() {
+        visualSettingsDirty = true;
+        visualSettingsSaveDueTick = clientTicks + 10L;
+    }
+
+    private void flushVisualSettings() {
+        if (!visualSettingsDirty) return;
+        PortalVisualPreferences.flush();
+        visualSettingsDirty = false;
+        visualSettingsSaveDueTick = -1L;
     }
 
     private EditBox addField(int x, int y, int width, String value, int maxLength,
@@ -359,6 +472,7 @@ public final class PortalConfigScreen extends Screen {
             renderable.render(graphics, mouseX, mouseY, partialTick);
             graphics.flush();
         }
+        renderVisualOptionWidgets(graphics, mouseX, mouseY, partialTick);
         if (groupDropdownOpen) renderGroupDropdown(graphics, mouseX, mouseY);
         if (visualDropdownOpen) renderVisualDropdown(graphics, mouseX, mouseY);
         renderPlacementIcons(graphics, mouseX, mouseY);
@@ -575,6 +689,8 @@ public final class PortalConfigScreen extends Screen {
                 PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.VISUAL_SETTINGS) {
             label(graphics, "screen.riftgun.portal_visual", x, y + 34);
+        } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+            renderVisualOptionsChrome(graphics, box);
         } else if (modal.isConfirmation()) {
             Component body = modal == Modal.CONFIRM_CLEAR_FLUID
                 ? Component.translatable(modal.bodyKey, gunFluidName(), PortalClientState.gun().getInt("Amount"))
@@ -582,6 +698,37 @@ public final class PortalConfigScreen extends Screen {
             graphics.drawWordWrap(font, body, x, y + 35,
                 box.width() - 36, PortalTheme.TEXT_MUTED);
         }
+    }
+
+    private void renderVisualOptionsChrome(GuiGraphics graphics, ModalBox box) {
+        PortalVisualOptions options = PortalVisualPreferences.selected().options();
+        if (options.isEmpty()) return;
+        int top = visualOptionsTop(box);
+        int bottom = visualOptionsBottom(box);
+        int headerY = top + 4 - visualOptionsScroll;
+        graphics.enableScissor(box.x() + 17, top, box.x() + box.width() - 17, bottom);
+        graphics.drawString(font, Component.translatable(options.sectionTitleKey()), box.x() + 18,
+            headerY, PortalTheme.TEXT_MUTED, false);
+        graphics.disableScissor();
+        renderScrollbar(graphics, box.x() + box.width() - 20, top, bottom,
+            visualOptionsScroll, visualOptionsContentHeight, visualOptionsViewportHeight(box));
+    }
+
+    private void renderVisualOptionWidgets(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (modal != Modal.SWIRL_ANIMATION_SETTINGS || visualOptionWidgets.isEmpty()) return;
+        ModalBox box = modalBox();
+        int top = visualOptionsTop(box);
+        int bottom = visualOptionsBottom(box);
+        int effectiveMouseX = visualDropdownOpen ? Integer.MIN_VALUE : mouseX;
+        int effectiveMouseY = visualDropdownOpen ? Integer.MIN_VALUE : mouseY;
+        graphics.enableScissor(box.x() + 17, top, box.x() + box.width() - 17, bottom);
+        for (VisualWidgetBinding binding : visualOptionWidgets) {
+            if (binding.widget().visible) {
+                binding.widget().render(graphics, effectiveMouseX, effectiveMouseY, partialTick);
+            }
+        }
+        graphics.disableScissor();
+        graphics.flush();
     }
 
     private void renderPlacementIcons(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -640,6 +787,27 @@ public final class PortalConfigScreen extends Screen {
             if (!visualDropdownOpen && visualSelector != null && visualSelector.isHovered()) {
                 graphics.renderTooltip(font, Component.translatable(
                     PortalVisualPreferences.selected().descriptionKey()), mouseX, mouseY);
+            }
+            if (!visualDropdownOpen && visualAnimationSettingsButton != null) {
+                drawSwirlIcon(graphics, visualAnimationSettingsButton.getX() + 5,
+                    visualAnimationSettingsButton.getY() + 5, PortalTheme.ICE);
+                if (visualAnimationSettingsButton.isHovered()) graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.visual.swirl_animation_settings"), mouseX, mouseY);
+            }
+        }
+        if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+            if (swirlAnimationBackButton != null) {
+                drawBackIcon(graphics, swirlAnimationBackButton.getX() + 7,
+                    swirlAnimationBackButton.getY() + 6);
+                if (swirlAnimationBackButton.isHovered()) graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.visual.back_to_visuals"), mouseX, mouseY);
+            }
+            if (visualResetButton != null && visualResetButton.visible) {
+                drawResetIcon(graphics, visualResetButton.getX() + 5, visualResetButton.getY() + 4,
+                    visualResetButton.active ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
+                if (visualResetButton.isHovered()) graphics.renderTooltip(font,
+                    Component.translatable(PortalVisualPreferences.selected().options().resetTooltipKey()),
+                    mouseX, mouseY);
             }
         }
     }
@@ -767,6 +935,26 @@ public final class PortalConfigScreen extends Screen {
         graphics.fill(x, y + 3, x + 10, y + 4, PortalTheme.ICE);
         graphics.fill(x, y + 3, x + 4, y + 4, PortalTheme.ICE);
         graphics.fill(x + 1, y + 2, x + 3, y + 5, PortalTheme.ICE);
+    }
+
+    private static void drawResetIcon(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x + 2, y, x + 7, y + 1, color);
+        graphics.fill(x + 6, y + 1, x + 8, y + 3, color);
+        graphics.fill(x + 7, y + 2, x + 8, y + 6, color);
+        graphics.fill(x + 1, y + 6, x + 7, y + 7, color);
+        graphics.fill(x, y + 4, x + 2, y + 6, color);
+        graphics.fill(x, y + 4, x + 3, y + 5, color);
+        graphics.fill(x + 1, y + 3, x + 2, y + 4, color);
+    }
+
+    private static void drawSwirlIcon(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x + 3, y, x + 7, y + 1, color);
+        graphics.fill(x + 1, y + 1, x + 4, y + 2, color);
+        graphics.fill(x, y + 2, x + 2, y + 6, color);
+        graphics.fill(x + 1, y + 6, x + 6, y + 7, color);
+        graphics.fill(x + 5, y + 4, x + 7, y + 6, color);
+        graphics.fill(x + 3, y + 3, x + 6, y + 4, color);
+        graphics.fill(x + 3, y + 2, x + 4, y + 3, color);
     }
 
     private void renderGroupDropdown(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -1029,6 +1217,19 @@ public final class PortalConfigScreen extends Screen {
                 Math.max(0, orderedGroupIds().size() - visible));
             return true;
         }
+        if (modal == Modal.SWIRL_ANIMATION_SETTINGS && !visualOptionWidgets.isEmpty()) {
+            ModalBox box = modalBox();
+            int top = visualOptionsTop(box);
+            int bottom = visualOptionsBottom(box);
+            if (mouseX >= box.x() + 17 && mouseX < box.x() + box.width() - 17
+                && mouseY >= top && mouseY < bottom) {
+                visualOptionsScroll = Mth.clamp(
+                    visualOptionsScroll - (int) Math.signum(vertical) * 20,
+                    0, visualOptionsMaxScroll(box));
+                layoutVisualOptionWidgets(box);
+                return true;
+            }
+        }
         if (modal == Modal.NONE && mouseY >= listTop && mouseY < listBottom) {
             if (mouseX < panelX + listWidth) {
                 listScroll = Mth.clamp(listScroll - (int) Math.signum(vertical) * ROW_HEIGHT * 2,
@@ -1056,6 +1257,10 @@ public final class PortalConfigScreen extends Screen {
         if (modal == Modal.VISUAL_SETTINGS && visualSelector != null && visualSelector.isFocused()
             && (keyCode == 263 || keyCode == 262)) {
             shiftVisual(keyCode == 263 ? -1 : 1);
+            return true;
+        }
+        if (keyCode == 256 && modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+            backToVisualSettings();
             return true;
         }
         if (keyCode == 256 && (modal == Modal.PLACEMENT_SETTINGS || modal == Modal.VISUAL_SETTINGS)) {
@@ -1228,10 +1433,26 @@ public final class PortalConfigScreen extends Screen {
 
     private void openVisualSettings() {
         modal = Modal.VISUAL_SETTINGS;
+        visualOptionsScroll = 0;
+        rebuildWidgets();
+    }
+
+    private void openSwirlAnimationSettings() {
+        if (PortalVisualPreferences.selected().options().isEmpty()) return;
+        modal = Modal.SWIRL_ANIMATION_SETTINGS;
+        visualOptionsScroll = 0;
+        rebuildWidgets();
+    }
+
+    private void backToVisualSettings() {
+        flushVisualSettings();
+        modal = Modal.VISUAL_SETTINGS;
+        visualOptionsScroll = 0;
         rebuildWidgets();
     }
 
     private void backToSettings() {
+        flushVisualSettings();
         modal = Modal.SETTINGS;
         visualDropdownOpen = false;
         rebuildWidgets();
@@ -1526,17 +1747,17 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void shiftVisual(int direction) {
+        flushVisualSettings();
         PortalVisualPreferences.cycle(direction);
-        updateVisualSelectorMessage();
+        visualOptionsScroll = 0;
+        rebuildWidgets();
     }
 
     private void selectVisual(PortalVisualType type) {
+        flushVisualSettings();
         PortalVisualPreferences.select(type.id());
-        updateVisualSelectorMessage();
-    }
-
-    private void updateVisualSelectorMessage() {
-        if (visualSelector != null) visualSelector.setMessage(visualName(PortalVisualPreferences.selected()));
+        visualOptionsScroll = 0;
+        rebuildWidgets();
     }
 
     private boolean clickVisualDropdown(double mouseX, double mouseY) {
@@ -1698,6 +1919,18 @@ public final class PortalConfigScreen extends Screen {
     }
 
     /** Used only by the opt-in visual QA harness. */
+    public void selectSwirlVisualForQa() {
+        PortalVisualPreferences.select(PortalVisualRegistry.SWIRL_ID);
+        visualOptionsScroll = 0;
+        rebuildWidgets();
+    }
+
+    /** Used only by the opt-in visual QA harness. */
+    public void openSwirlAnimationSettingsForQa() {
+        if (modal == Modal.VISUAL_SETTINGS) openSwirlAnimationSettings();
+    }
+
+    /** Used only by the opt-in visual QA harness. */
     public void openVisualDropdownForQa() {
         if (modal == Modal.VISUAL_SETTINGS) openVisualDropdown();
     }
@@ -1754,7 +1987,9 @@ public final class PortalConfigScreen extends Screen {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
             case CREATE_CURRENT -> 164;
             case SETTINGS -> 182;
-            case PLACEMENT_SETTINGS, VISUAL_SETTINGS -> 132;
+            case PLACEMENT_SETTINGS -> 132;
+            case VISUAL_SETTINGS -> 132;
+            case SWIRL_ANIMATION_SETTINGS -> 182;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
                  CONFIRM_DIRTY, CONFIRM_CLEAR_FLUID -> 112;
             case NONE -> 0;
@@ -1762,6 +1997,22 @@ public final class PortalConfigScreen extends Screen {
         int boxWidth = Math.min(340, panelWidth - 16);
         int boxHeight = Math.min(desiredHeight, height - 8);
         return new ModalBox((width - boxWidth) / 2, (height - boxHeight) / 2, boxWidth, boxHeight);
+    }
+
+    private static int visualOptionsTop(ModalBox box) {
+        return box.y() + 34;
+    }
+
+    private static int visualOptionsBottom(ModalBox box) {
+        return box.y() + box.height() - 31;
+    }
+
+    private static int visualOptionsViewportHeight(ModalBox box) {
+        return Math.max(1, visualOptionsBottom(box) - visualOptionsTop(box));
+    }
+
+    private int visualOptionsMaxScroll(ModalBox box) {
+        return Math.max(0, visualOptionsContentHeight - visualOptionsViewportHeight(box));
     }
 
     private DropdownBox dropdownBox(int groupCount) {
@@ -1842,6 +2093,8 @@ public final class PortalConfigScreen extends Screen {
     private record Row(RowKind kind, UUID id, int y) {}
     private record ModalBox(int x, int y, int width, int height) {}
     private record DropdownBox(int x, int y, int width, int height) {}
+    private record VisualWidgetBinding(AbstractWidget widget, int contentOffset) {}
+    private record VisualToggleBinding(ThemedButton widget, PortalVisualOption.Toggle option) {}
 
     private enum Modal {
         NONE("", "", false, false),
@@ -1853,6 +2106,7 @@ public final class PortalConfigScreen extends Screen {
         SETTINGS("screen.riftgun.settings", "", false, false),
         PLACEMENT_SETTINGS("screen.riftgun.placement_settings", "", false, false),
         VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
+        SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
         CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
         CONFIRM_DELETE_GROUP("screen.riftgun.delete", "screen.riftgun.delete_group_body", false, false),
         CONFIRM_DIRTY("screen.riftgun.unsaved", "screen.riftgun.unsaved_body", false, false),
@@ -1874,6 +2128,42 @@ public final class PortalConfigScreen extends Screen {
         boolean hasInputs() { return hasName || hasCoordinates; }
         boolean isDestinationForm() {
             return this == CREATE_CURRENT || this == CREATE_COORDINATE || this == EDIT_DESTINATION;
+        }
+    }
+
+    private final class VisualPeriodSlider extends AbstractSliderButton {
+        private final PortalVisualOption.Range option;
+
+        private VisualPeriodSlider(int x, int y, int width, int height, PortalVisualOption.Range option) {
+            super(x, y, width, height, Component.empty(), option.normalizedValue());
+            this.option = option;
+            refreshFromOption();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable(option.labelKey(),
+                String.format(Locale.ROOT, "%.1f", option.currentValue())));
+        }
+
+        @Override
+        protected void applyValue() {
+            option.update().accept(option.valueAt(value));
+            value = option.normalizedValue();
+            updateMessage();
+            markVisualSettingsDirty();
+        }
+
+        @Override
+        public void onRelease(double mouseX, double mouseY) {
+            super.onRelease(mouseX, mouseY);
+            flushVisualSettings();
+        }
+
+        private void refreshFromOption() {
+            value = option.normalizedValue();
+            active = option.active();
+            updateMessage();
         }
     }
 

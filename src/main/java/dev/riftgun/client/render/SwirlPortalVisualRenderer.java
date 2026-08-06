@@ -2,6 +2,8 @@ package dev.riftgun.client.render;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalOrientation;
+import dev.riftgun.portal.PortalPlacement;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -13,41 +15,66 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         if (progress <= 0.0F) return;
 
         PortalEntity portal = context.portal();
+        PortalPlacement placement = portal.placement();
         PortalRenderBasis basis = PortalRenderBasis.from(portal);
         Matrix4f matrix = context.poseStack().last().pose();
         float eased = Mth.sin(progress * Mth.HALF_PI);
         float width = portal.portalWidth() * eased;
         float height = portal.portalHeight() * eased;
-        float shimmer = 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F;
+        boolean horizontal = portal.orientation() != PortalOrientation.VERTICAL;
+        if (horizontal) {
+            width *= SwirlVisualGeometry.HORIZONTAL_VISIBLE_SIZE;
+            height *= SwirlVisualGeometry.HORIZONTAL_VISIBLE_SIZE;
+        }
+        boolean animated = SwirlVisualOptions.animationEnabled();
+        float shimmer = animated ? 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F : 1.0F;
+        float depth = PortalEntity.DEPTH;
+        float normalOffset = 0.0F;
+        if (!horizontal && placement.anchored()) {
+            Vec3 wallFace = Vec3.atCenterOf(placement.anchor())
+                .add(placement.normal().scale(0.5));
+            double centerDistance = portal.position().subtract(wallFace).dot(placement.normal());
+            depth = SwirlVisualGeometry.WALL_DEPTH;
+            normalOffset = SwirlVisualGeometry.anchoredCenterOffset(centerDistance);
+        }
+        float phase = phase(portal);
         drawFaces(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.swirl()), width, height,
-            PortalEntity.DEPTH, context.style().surfaceColor(), shimmer);
+            depth, normalOffset, context.style().surfaceColor(), shimmer, phase, horizontal);
     }
 
     private static void drawFaces(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
-                                  float width, float height, float depth, int color, float shimmer) {
+                                  float width, float height, float depth, float normalOffset,
+                                  int color, float shimmer, float phase, boolean horizontal) {
         float red = red(color) * shimmer;
         float green = green(color) * shimmer;
         float blue = blue(color) * shimmer;
         float hw = width * 0.5F;
         float hh = height * 0.5F;
         float hd = depth * 0.5F;
+        float front = normalOffset + hd;
+        float back = normalOffset - hd;
 
         // Opposite winding plus viewer-relative UVs prevents the two opaque faces from overlapping.
-        vertex(vertices, matrix, basis.at(-hw, -hh, hd), red, green, blue, 0, 0);
-        vertex(vertices, matrix, basis.at(hw, -hh, hd), red, green, blue, 1, 0);
-        vertex(vertices, matrix, basis.at(hw, hh, hd), red, green, blue, 1, 1);
-        vertex(vertices, matrix, basis.at(-hw, hh, hd), red, green, blue, 0, 1);
+        vertex(vertices, matrix, basis.at(-hw, -hh, front), red, green, blue, phase, horizontal, 0, 0);
+        vertex(vertices, matrix, basis.at(hw, -hh, front), red, green, blue, phase, horizontal, 1, 0);
+        vertex(vertices, matrix, basis.at(hw, hh, front), red, green, blue, phase, horizontal, 1, 1);
+        vertex(vertices, matrix, basis.at(-hw, hh, front), red, green, blue, phase, horizontal, 0, 1);
 
-        vertex(vertices, matrix, basis.at(hw, -hh, -hd), red, green, blue, 0, 0);
-        vertex(vertices, matrix, basis.at(-hw, -hh, -hd), red, green, blue, 1, 0);
-        vertex(vertices, matrix, basis.at(-hw, hh, -hd), red, green, blue, 1, 1);
-        vertex(vertices, matrix, basis.at(hw, hh, -hd), red, green, blue, 0, 1);
+        vertex(vertices, matrix, basis.at(hw, -hh, back), red, green, blue, phase, horizontal, 0, 0);
+        vertex(vertices, matrix, basis.at(-hw, -hh, back), red, green, blue, phase, horizontal, 1, 0);
+        vertex(vertices, matrix, basis.at(-hw, hh, back), red, green, blue, phase, horizontal, 1, 1);
+        vertex(vertices, matrix, basis.at(hw, hh, back), red, green, blue, phase, horizontal, 0, 1);
     }
 
     private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
-                               float red, float green, float blue, float u, float v) {
+                               float red, float green, float blue, float phase,
+                               boolean horizontal, float u, float v) {
         vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-            .setColor(red, green, blue, 1.0F).setUv(u, v).setUv2(240, 240);
+            .setColor(red, green, blue, phase).setUv(u, v).setUv2(horizontal ? 1 : 0, 0);
+    }
+
+    private static float phase(PortalEntity portal) {
+        return ((portal.getUUID().hashCode() & 255) + 0.5F) / 256.0F;
     }
 
     private static float red(int color) { return ((color >> 16) & 255) / 255.0F; }

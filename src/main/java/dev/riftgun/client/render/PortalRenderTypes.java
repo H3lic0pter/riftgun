@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 
 public final class PortalRenderTypes extends RenderType {
+    private static final long SWIRL_TIME_ORIGIN = System.nanoTime();
     private static final ResourceLocation SWIRL_TEXTURE =
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
     private static ShaderInstance portalShader;
@@ -58,7 +59,7 @@ public final class PortalRenderTypes extends RenderType {
             .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
             .setCullState(CULL)
             .setLayeringState(NO_LAYERING)
-            .setShaderState(new ShaderStateShard(() -> swirlShader))
+            .setShaderState(new ShaderStateShard(PortalRenderTypes::configuredSwirlShader))
             .setTextureState(new TextureStateShard(SWIRL_TEXTURE, false, false))
             .setOutputState(PARTICLES_TARGET)
             .createCompositeState(true)
@@ -88,5 +89,17 @@ public final class PortalRenderTypes extends RenderType {
 
     public static void setSwirlShader(ShaderInstance shader) {
         swirlShader = shader;
+    }
+
+    private static ShaderInstance configuredSwirlShader() {
+        if (swirlShader == null) return null;
+        SwirlVisualOptions.Snapshot settings = SwirlVisualOptions.snapshot();
+        float elapsedSeconds = (System.nanoTime() - SWIRL_TIME_ORIGIN) / 1_000_000_000.0F;
+        swirlShader.safeGetUniform("AnimationEnabled").set(settings.animationEnabled() ? 1 : 0);
+        swirlShader.safeGetUniform("ElapsedSeconds").set(elapsedSeconds);
+        swirlShader.safeGetUniform("OuterPeriod").set(settings.outerPeriod());
+        swirlShader.safeGetUniform("InnerPeriod").set(settings.innerPeriod());
+        swirlShader.safeGetUniform("InwardPeriod").set(settings.inwardPeriod());
+        return swirlShader;
     }
 }

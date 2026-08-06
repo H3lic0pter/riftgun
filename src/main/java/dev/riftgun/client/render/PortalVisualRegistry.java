@@ -16,7 +16,8 @@ public final class PortalVisualRegistry {
         register(new PortalVisualType(CLASSIC_ID, "screen.riftgun.visual.classic",
             "screen.riftgun.visual.classic_description", new ClassicPortalVisualRenderer()));
         register(new PortalVisualType(SWIRL_ID, "screen.riftgun.visual.swirl",
-            "screen.riftgun.visual.swirl_description", new SwirlPortalVisualRenderer()));
+            "screen.riftgun.visual.swirl_description", new SwirlPortalVisualRenderer(),
+            SwirlVisualOptions.DESCRIPTOR));
     }
 
     public static PortalVisualType register(PortalVisualType type) {

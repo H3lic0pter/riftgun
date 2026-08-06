@@ -22,6 +22,36 @@
       "type": "matrix4x4",
       "count": 16,
       "values": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    },
+    {
+      "name": "AnimationEnabled",
+      "type": "int",
+      "count": 1,
+      "values": [1]
+    },
+    {
+      "name": "ElapsedSeconds",
+      "type": "float",
+      "count": 1,
+      "values": [0.0]
+    },
+    {
+      "name": "OuterPeriod",
+      "type": "float",
+      "count": 1,
+      "values": [5.0]
+    },
+    {
+      "name": "InnerPeriod",
+      "type": "float",
+      "count": 1,
+      "values": [10.0]
+    },
+    {
+      "name": "InwardPeriod",
+      "type": "float",
+      "count": 1,
+      "values": [2.5]
     }
   ]
 }

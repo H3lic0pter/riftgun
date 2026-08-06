@@ -109,6 +109,10 @@
 - [x] 客户端 visual registry 使用稳定 ResourceLocation ID；个人选择全客户端通用、立即影响所有已渲染 portal，不写入 server data/entity/network，未知 ID 回退 `riftgun:classic`。
 - [x] `classic` 保留原程序化六面门体和彩色边框；`swirl` 只绘制观察者方向一致的正反贴图，所有 orientation 均无侧棱和边框；两者删除白色移动短线。
 - [x] Settings 的眼睛图标进入独立视觉二级页；selector 左键选择下一个、右键选择上一个，向下图标打开遮罩列表，选择仅允许内置类型且立即保存。
+- [x] `swirl` 侧向贴墙视觉面回收到墙外约 `0.001 block`，正反贴图共面；碰撞、trigger 与冻结水花均不改动。
+- [x] 所有 TOP/BOTTOM（含 Downshot）漩涡使用 `0.95×0.95` 可见平面，并按源 PNG alpha bounds 在 shader 内裁切透明边缘。
+- [x] `swirl` fragment shader 使用单纹理极坐标扭曲、内外同向差速与 procedural 内吸流纹；旋转前圆形 mask 永久裁掉 quad 四角，整数 angular frequency 消除 `atan` 左侧接缝，UUID 固定相位避免多门同步。
+- [x] `visuals.swirl.*` 为纯客户端配置；视觉页仅在选中漩涡时显示小型旋涡入口，独立三级动画页提供总开关、外圈/内圈/内吸周期 slider 与无确认 reset，修改即时生效并 debounce 持久化。
 - [x] 三种完整 fluid（source/flowing/block/bucket）与单-fluid 8000 mB tank；标准 capability 严格限容。
 - [x] bucket mode 只抽取允许的完整 source；不放液、不回退开门；特殊整桶溢出隔离为可替换 policy。
 - [x] 灰/蓝 fuel 仅同维度，绿色 fuel 支持跨维度；门体与冻结水花使用开门时的 fuel RGB snapshot。

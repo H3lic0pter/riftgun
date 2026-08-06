@@ -69,18 +69,29 @@ final class GuiCaptureHarness {
         if (ticks == 156 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openVisualSettingsForQa();
         }
+        if (ticks == 158 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.selectSwirlVisualForQa();
+        }
         if (ticks == 164) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-visual-settings"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
         if (ticks == 166 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-            screen.openVisualDropdownForQa();
+            screen.openSwirlAnimationSettingsForQa();
         }
         if (ticks == 174) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-swirl-animation-settings"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 178 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openVisualSettingsForQa();
+            screen.openVisualDropdownForQa();
+        }
+        if (ticks == 186) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-visual-dropdown"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
-        if (ticks == 188) {
+        if (ticks == 200) {
             completed = true;
             minecraft.stop();
         }
