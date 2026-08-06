@@ -22,7 +22,7 @@ Costs and module limits are server-configurable. Random consumption can be disab
 
 ## Modules
 
-The Portal Gun has nine generic module slots. Open the destination GUI, then use the module-bay icon in the upper-right corner. The first implementation provides Coordinate Override, Reservoir Expansion, Passive/Hostile/Boss Transit, and Surface Range modules. Module configuration belongs to the individual gun; no survival recipes are included yet.
+The Portal Gun starts with nine generic module slots. Up to six Module Bay Expansions add three slots each, for a maximum three-row bay of 27 slots. Open the destination GUI, then use the module-bay icon in the upper-right corner. The current modules provide Coordinate Override, Reservoir Expansion, Passive/Hostile/Boss Transit, Surface Range, and Module Bay Expansion. Module configuration belongs to the individual gun; no survival recipes are included yet.
 
 ## Run
 

@@ -6,5 +6,6 @@ public enum PortalModuleKind {
     PASSIVE_TRANSIT,
     HOSTILE_TRANSIT,
     BOSS_TRANSIT,
-    SURFACE_RANGE
+    SURFACE_RANGE,
+    MODULE_BAY_EXPANSION
 }

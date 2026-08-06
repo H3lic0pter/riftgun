@@ -18,14 +18,16 @@ import net.minecraft.world.item.ItemStack;
 
 public final class PortalModuleMenu extends AbstractContainerMenu {
     public static final int MODULE_SLOT_COUNT = PortalGunModules.SLOT_COUNT;
-    public static final int DATA_CAPACITY = 0;
-    public static final int DATA_CONFIGURED_RANGE = 1;
-    public static final int DATA_MAXIMUM_RANGE = 2;
-    public static final int DATA_ENTITY_MASK = 3;
-    public static final int DATA_COORDINATE = 4;
-    public static final int DATA_INACTIVE_SLOTS = 5;
-    public static final int DATA_USED_SLOTS = 6;
-    private static final int DATA_COUNT = 7;
+    public static final int MODULE_COLUMNS = 9;
+    public static final int MODULE_ROWS = 3;
+    public static final int MODULE_START_X = 8;
+    public static final int MODULE_START_Y = 35;
+    public static final int PLAYER_INVENTORY_Y = 108;
+    public static final int HOTBAR_Y = 166;
+    private static final int DATA_INACTIVE_SLOTS = 0;
+    private static final int DATA_USED_SLOTS = 1;
+    private static final int DATA_UNLOCKED_SLOTS = 2;
+    private static final int DATA_COUNT = 3;
 
     private final Container modules;
     private final ContainerData data;
@@ -40,7 +42,7 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
         this(containerId, inventory,
             new PortalGunModuleContainer((ServerPlayer) inventory.player, locatedGun,
                 PortalDataStore.load(inventory.player).settings().smartDistance()),
-            locatedGun.saveReference(), serverData(locatedGun.stack(), inventory.player));
+            locatedGun.saveReference(), serverData(locatedGun.stack()));
     }
 
     private PortalModuleMenu(int containerId, Inventory inventory, Container modules,
@@ -53,16 +55,20 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
         this.gunReference = gunReference;
 
         for (int slot = 0; slot < MODULE_SLOT_COUNT; slot++) {
-            addSlot(new ModuleSlot(modules, slot, 8 + slot * 18, 35));
+            int column = slot % MODULE_COLUMNS;
+            int row = slot / MODULE_COLUMNS;
+            addSlot(new ModuleSlot(modules, slot,
+                MODULE_START_X + column * 18, MODULE_START_Y + row * 18));
         }
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 int inventorySlot = column + row * 9 + 9;
-                addSlot(playerSlot(inventory, inventorySlot, 8 + column * 18, 84 + row * 18));
+                addSlot(playerSlot(inventory, inventorySlot, 8 + column * 18,
+                    PLAYER_INVENTORY_Y + row * 18));
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(playerSlot(inventory, column, 8 + column * 18, 142));
+            addSlot(playerSlot(inventory, column, 8 + column * 18, HOTBAR_Y));
         }
         addDataSlots(data);
     }
@@ -78,32 +84,17 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
         return gunReference.copy();
     }
 
-    public int capacity() {
-        return data.get(DATA_CAPACITY);
-    }
-
-    public int configuredRange() {
-        return data.get(DATA_CONFIGURED_RANGE);
-    }
-
-    public int maximumRange() {
-        return data.get(DATA_MAXIMUM_RANGE);
-    }
-
-    public int entityMask() {
-        return data.get(DATA_ENTITY_MASK);
-    }
-
-    public boolean coordinateUnlocked() {
-        return data.get(DATA_COORDINATE) != 0;
-    }
-
     public int inactiveSlots() {
         return data.get(DATA_INACTIVE_SLOTS);
     }
 
     public int usedSlots() {
         return data.get(DATA_USED_SLOTS);
+    }
+
+    public int unlockedSlots() {
+        return Math.max(PortalGunModules.BASE_SLOT_COUNT,
+            Math.min(MODULE_SLOT_COUNT, data.get(DATA_UNLOCKED_SLOTS)));
     }
 
     @Override
@@ -123,7 +114,7 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
             if (!moveItemStackTo(source, MODULE_SLOT_COUNT, slots.size(), true)) return ItemStack.EMPTY;
         } else {
             if (!PortalModuleRegistry.isModule(source)
-                || !moveItemStackTo(source, 0, MODULE_SLOT_COUNT, false)) return ItemStack.EMPTY;
+                || !moveItemStackTo(source, 0, unlockedSlots(), false)) return ItemStack.EMPTY;
         }
         if (source.isEmpty()) slot.setByPlayer(ItemStack.EMPTY);
         else slot.setChanged();
@@ -142,22 +133,17 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
             && gunReference.getCompound("Token").getInt("Slot") == slot;
     }
 
-    private static ContainerData serverData(ItemStack gun, Player player) {
+    private static ContainerData serverData(ItemStack gun) {
         return new ContainerData() {
             @Override
             public int get(int index) {
-                PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
-                    gun, PortalDataStore.load(player).settings().smartDistance());
+                var modules = PortalGunModules.load(gun);
                 return switch (index) {
-                    case DATA_CAPACITY -> capabilities.nominalCapacity();
-                    case DATA_CONFIGURED_RANGE -> capabilities.configuredSurfaceRange();
-                    case DATA_MAXIMUM_RANGE -> capabilities.maximumSurfaceRange();
-                    case DATA_ENTITY_MASK -> capabilities.entityAccess().mask();
-                    case DATA_COORDINATE -> capabilities.coordinateOverride() ? 1 : 0;
-                    case DATA_INACTIVE_SLOTS -> PortalGunModules.inactiveSlots(
-                        PortalGunModules.load(gun), PortalModuleRules.current());
-                    case DATA_USED_SLOTS -> PortalGunModules.load(gun).stream()
+                    case DATA_INACTIVE_SLOTS -> PortalGunModules.inactiveSlots(modules,
+                        PortalModuleRules.current());
+                    case DATA_USED_SLOTS -> modules.stream()
                         .mapToInt(stack -> stack.isEmpty() ? 0 : 1).sum();
+                    case DATA_UNLOCKED_SLOTS -> PortalGunModules.unlockedSlotCount(modules);
                     default -> 0;
                 };
             }
@@ -177,14 +163,31 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
         return tag == null ? new CompoundTag() : tag;
     }
 
-    private static final class ModuleSlot extends Slot {
+    private final class ModuleSlot extends Slot {
         private ModuleSlot(Container container, int slot, int x, int y) {
             super(container, slot, x, y);
         }
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            return container.canPlaceItem(getContainerSlot(), stack);
+            return isActive() && PortalModuleRegistry.isModule(stack)
+                && container.canPlaceItem(getContainerSlot(), stack);
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            boolean allowed = super.mayPickup(player)
+                && PortalGunModules.canRemove(container, getContainerSlot());
+            if (!allowed && player.level().isClientSide) {
+                player.displayClientMessage(Component.translatable(
+                    "message.riftgun.modules.clear_expanded_slots"), true);
+            }
+            return allowed;
+        }
+
+        @Override
+        public boolean isActive() {
+            return getContainerSlot() < unlockedSlots();
         }
 
         @Override

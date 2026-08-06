@@ -47,11 +47,6 @@ final class PortalGuiSprites {
     static final ResourceLocation STAR_OFF = icon("star_off");
     static final ResourceLocation DELETE = icon("delete");
     static final ResourceLocation EDIT = icon("edit");
-    static final ResourceLocation STATUS_CAPACITY = icon("status_capacity");
-    static final ResourceLocation STATUS_RANGE = icon("status_range");
-    static final ResourceLocation STATUS_ENTITY = icon("status_entity");
-    static final ResourceLocation STATUS_COORDINATE_ON = icon("status_coordinate_on");
-    static final ResourceLocation STATUS_COORDINATE_OFF = icon("status_coordinate_off");
 
     private static final int SIZE = 16;
 

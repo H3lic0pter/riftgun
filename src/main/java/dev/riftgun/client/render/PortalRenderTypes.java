@@ -65,6 +65,22 @@ public final class PortalRenderTypes extends RenderType {
             .createCompositeState(true)
     );
 
+    private static final RenderType SWIRL_EDGE = create(
+        "rift_portal_swirl_edge",
+        DefaultVertexFormat.POSITION_COLOR,
+        VertexFormat.Mode.QUADS,
+        4096,
+        false,
+        true,
+        CompositeState.builder()
+            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+            .setCullState(NO_CULL)
+            .setLayeringState(NO_LAYERING)
+            .setShaderState(POSITION_COLOR_SHADER)
+            .setOutputState(PARTICLES_TARGET)
+            .createCompositeState(true)
+    );
+
     private PortalRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
                               boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState,
                               Runnable clearState) {
@@ -81,6 +97,10 @@ public final class PortalRenderTypes extends RenderType {
 
     public static RenderType swirl() {
         return SWIRL;
+    }
+
+    public static RenderType swirlEdge() {
+        return SWIRL_EDGE;
     }
 
     public static void setPortalShader(ShaderInstance shader) {

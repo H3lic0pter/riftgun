@@ -98,3 +98,16 @@ New-ModuleIcon 'surface_range_amplifier' ([System.Drawing.Color]::FromArgb(255, 
     for ($y = 6; $y -le 9; $y++) { Set-Pixel $b 6 $y $c; Set-Pixel $b 9 $y $c }
     Set-Pixel $b 7 7 $c; Set-Pixel $b 8 7 $c; Set-Pixel $b 7 8 $c; Set-Pixel $b 8 8 $c
 }
+
+New-ModuleIcon 'module_bay_expansion' ([System.Drawing.Color]::FromArgb(255, 124, 206, 216)) {
+    param($b, $c)
+    $slot = [System.Drawing.Color]::FromArgb(255, 226, 182, 107)
+    foreach ($p in @(@(5,5),@(4,6),@(3,7),@(4,8),@(5,9),
+                     @(10,5),@(11,6),@(12,7),@(11,8),@(10,9))) {
+        Set-Pixel $b $p[0] $p[1] $c
+    }
+    foreach ($x in 6, 8, 10) {
+        Set-Pixel $b $x 7 $slot
+        Set-Pixel $b $x 8 $slot
+    }
+}

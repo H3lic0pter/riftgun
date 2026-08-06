@@ -37,8 +37,13 @@ public final class PortalGunModuleContainer extends SimpleContainer {
     @Override
     public boolean canPlaceItem(int slot, ItemStack stack) {
         if (slot < 0 || slot >= getContainerSize()) return false;
+        if (slot >= PortalGunModules.unlockedSlotCount(getItems())) return false;
         if (!getItem(slot).isEmpty()) return false;
         return PortalGunModules.canAdd(getItems(), stack, PortalModuleRules.current());
+    }
+
+    public boolean canRemoveModule(int slot) {
+        return PortalGunModules.canRemove(getItems(), slot);
     }
 
     @Override

@@ -109,10 +109,10 @@
 - [x] 客户端 visual registry 使用稳定 ResourceLocation ID；个人选择全客户端通用、立即影响所有已渲染 portal，不写入 server data/entity/network，未知 ID 回退 `riftgun:classic`。
 - [x] `classic` 保留原程序化六面门体和彩色边框；`swirl` 只绘制观察者方向一致的正反贴图，所有 orientation 均无侧棱和边框；两者删除白色移动短线。
 - [x] Settings 的眼睛图标进入独立视觉二级页；selector 左键选择下一个、右键选择上一个，向下图标打开遮罩列表，选择仅允许内置类型且立即保存。
-- [x] `swirl` 侧向贴墙视觉面回收到墙外约 `0.001 block`，正反贴图共面；碰撞、trigger 与冻结水花均不改动。
-- [x] 所有 TOP/BOTTOM（含 Downshot）漩涡使用 `0.95×0.95` 可见平面，并按源 PNG alpha bounds 在 shader 内裁切透明边缘。
+- [x] `swirl` 使用 `1/128 block` 厚的椭圆薄片：正反面保留漩涡，侧棱使用当前 portal 主题色；贴面时以支撑面为中心、一半嵌入方块，碰撞、trigger 与冻结水花均不改动。
+- [x] 所有 TOP/BOTTOM（含 Downshot）漩涡将原 `0.95×0.95` 可见面放大 5%，并按源 PNG alpha bounds 在 shader 内裁切透明边缘；侧棱半径缩至正面的 80%，三种朝向一致；仅改变视觉。
 - [x] `swirl` fragment shader 使用单纹理极坐标扭曲、内外同向差速与 procedural 内吸流纹；旋转前圆形 mask 永久裁掉 quad 四角，整数 angular frequency 消除 `atan` 左侧接缝，UUID 固定相位避免多门同步。
-- [x] `visuals.swirl.*` 为纯客户端配置；视觉页仅在选中漩涡时显示小型旋涡入口，独立三级动画页提供总开关、外圈/内圈/内吸周期 slider 与无确认 reset，修改即时生效并 debounce 持久化。
+- [x] `visuals.swirl.*` 为纯客户端配置；视觉页仅在选中漩涡时显示小型旋涡入口，独立三级动画页提供总开关、外圈/内圈/内吸周期 slider 与无确认 reset，修改即时生效并 debounce 持久化；外圈与内圈的新默认/重置周期均为 20 秒，已有自定义值不强制迁移。
 - [x] 三种完整 fluid（source/flowing/block/bucket）与单-fluid 8000 mB tank；标准 capability 严格限容。
 - [x] bucket mode 只抽取允许的完整 source；不放液、不回退开门；特殊整桶溢出隔离为可替换 policy。
 - [x] 灰/蓝 fuel 仅同维度，绿色 fuel 支持跨维度；门体与冻结水花使用开门时的 fuel RGB snapshot。
@@ -121,7 +121,7 @@
 
 ## 7. Modular upgrades
 
-- [x] Portal Gun 使用 9 个 server-authoritative 通用模块槽；模块物品不可堆叠，枪所在 vanilla inventory 槽在容器中锁定。
+- [x] Portal Gun 基础为 9 个 server-authoritative 通用模块槽；最多 6 个模块仓扩展各增加 3 槽，总上限 27 槽；模块物品不可堆叠，枪所在 vanilla inventory 槽在容器中锁定。
 - [x] 模块定义、registry、物品容器、规则与 capability 聚合分层；内部以稳定 `ResourceLocation` ID 区分，暂不承诺 public addon API。
 - [x] 模块与模块配置保存在具体 Portal Gun ItemStack；多枪按打开 GUI 时的精确 `GunReference` 操作。
 - [x] Server config 控制储液与射程模块的最大生效数量/单模块增量；配置降低后保留物品，按槽位从左到右生效，超额槽显示红色无效遮罩。
@@ -130,9 +130,11 @@
 - [x] 温和/敌对/Boss 三类通行模块：每类最多 1 个；Boss 使用 `c:bosses`，其次 `Enemy`，其余非玩家 `LivingEntity` 归温和类。
 - [x] Portal 开启时冻结实体通行 capability snapshot；现存门不受之后拔插模块或开关变化影响。
 - [x] 贴面射程增幅模块：默认最多 3 个、每个 +16 blocks，基础 32、最大 80；每把枪保留期望配置值。
+- [x] 模块仓扩展模块：无配置项、占用普通槽、每个解锁 3 个末尾槽；模块区固定预留三排且隐藏未解锁槽，最多 6 个；缩容会截断非空末尾槽时拒绝拔出并提示先清空。
 - [x] 一级 GUI 右上角提供“配置传送枪”和“模块仓”图标；配置页只显示已安装的可配置能力，智能距离始终显示。
 - [x] 智能距离、贴面射程、生物通行使用独立二级图标页；slider 松手后发送，生物类别开关即时发送。
-- [x] 模块物品采用统一 16×16 深色芯片视觉；猪/僵尸/末影龙头与 crosshair/tank/range-wave 保持分类辨识。
+- [x] 模块物品采用统一 16×16 深色芯片视觉；猪/僵尸/末影龙头、crosshair/tank/range-wave 与三槽扩展箭头保持分类辨识。
+- [x] 模块仓页不显示容量/射程/生物/坐标能力示意图标，仅保留克制的 `已用/可用` 文字计数。
 - [x] 模块 tooltip 默认仅提示 Shift；展开后显示淡绿功能、淡红数量上限，储液模块额外显示金色拔出警告。
 - [x] 首版无 survival recipes；模块仅加入 creative tab，可由命令取得。
 - [ ] 手工验证 shift-click、drag、拔出容量模块截断、锁枪槽、外部 inventory locator 失效关闭。

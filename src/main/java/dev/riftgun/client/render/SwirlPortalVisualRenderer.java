@@ -9,6 +9,8 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
+    private static final int EDGE_SEGMENTS = 48;
+
     @Override
     public void render(PortalVisualRenderContext context) {
         float progress = context.visibleProgress();
@@ -28,18 +30,19 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         }
         boolean animated = SwirlVisualOptions.animationEnabled();
         float shimmer = animated ? 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F : 1.0F;
-        float depth = PortalEntity.DEPTH;
+        float depth = SwirlVisualGeometry.DEPTH;
         float normalOffset = 0.0F;
-        if (!horizontal && placement.anchored()) {
+        if (placement.anchored()) {
             Vec3 wallFace = Vec3.atCenterOf(placement.anchor())
                 .add(placement.normal().scale(0.5));
             double centerDistance = portal.position().subtract(wallFace).dot(placement.normal());
-            depth = SwirlVisualGeometry.WALL_DEPTH;
             normalOffset = SwirlVisualGeometry.anchoredCenterOffset(centerDistance);
         }
         float phase = phase(portal);
         drawFaces(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.swirl()), width, height,
             depth, normalOffset, context.style().surfaceColor(), shimmer, phase, horizontal);
+        drawEdge(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.swirlEdge()), width, height,
+            depth, normalOffset, context.style().surfaceColor(), shimmer);
     }
 
     private static void drawFaces(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
@@ -71,6 +74,36 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
                                boolean horizontal, float u, float v) {
         vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
             .setColor(red, green, blue, phase).setUv(u, v).setUv2(horizontal ? 1 : 0, 0);
+    }
+
+    private static void drawEdge(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
+                                 float width, float height, float depth, float normalOffset,
+                                 int color, float shimmer) {
+        float red = red(color) * shimmer;
+        float green = green(color) * shimmer;
+        float blue = blue(color) * shimmer;
+        float hw = width * 0.5F * SwirlVisualGeometry.EDGE_RADIUS_SCALE;
+        float hh = height * 0.5F * SwirlVisualGeometry.EDGE_RADIUS_SCALE;
+        float front = normalOffset + depth * 0.5F;
+        float back = normalOffset - depth * 0.5F;
+        for (int segment = 0; segment < EDGE_SEGMENTS; segment++) {
+            double firstAngle = (Math.PI * 2.0 * segment) / EDGE_SEGMENTS;
+            double secondAngle = (Math.PI * 2.0 * (segment + 1)) / EDGE_SEGMENTS;
+            float x1 = (float) Math.cos(firstAngle) * hw;
+            float y1 = (float) Math.sin(firstAngle) * hh;
+            float x2 = (float) Math.cos(secondAngle) * hw;
+            float y2 = (float) Math.sin(secondAngle) * hh;
+            edgeVertex(vertices, matrix, basis.at(x1, y1, back), red, green, blue);
+            edgeVertex(vertices, matrix, basis.at(x2, y2, back), red, green, blue);
+            edgeVertex(vertices, matrix, basis.at(x2, y2, front), red, green, blue);
+            edgeVertex(vertices, matrix, basis.at(x1, y1, front), red, green, blue);
+        }
+    }
+
+    private static void edgeVertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
+                                   float red, float green, float blue) {
+        vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+            .setColor(red, green, blue, 1.0F);
     }
 
     private static float phase(PortalEntity portal) {

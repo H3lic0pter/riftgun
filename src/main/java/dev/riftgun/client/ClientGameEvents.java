@@ -72,6 +72,10 @@ public final class ClientGameEvents {
                 event.getToolTip().add(Component.translatable("tooltip.riftgun.module.reservoir_warning")
                     .withStyle(ChatFormatting.GOLD));
             }
+            if (definition.kind() == PortalModuleKind.MODULE_BAY_EXPANSION) {
+                event.getToolTip().add(Component.translatable("tooltip.riftgun.module.module_bay_warning")
+                    .withStyle(ChatFormatting.GOLD));
+            }
             return;
         }
         if (!event.getItemStack().is(RiftGun.PORTAL_GUN.get())) return;

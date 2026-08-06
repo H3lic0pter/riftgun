@@ -42,7 +42,6 @@ changes unless you intend to reset them.
 | Visual settings | `visuals`, `swirl`, `reset_on/off` |
 | Navigation | `back`, `module_back`, `dropdown`, `group_expanded/collapsed` |
 | Destination list | `drag_handle`, `destination_dot_on/off`, `star_on/off`, `edit`, `delete` |
-| Module status bar | `status_capacity`, `status_range`, `status_entity`, `status_coordinate_on/off` |
 
 The reference sheet [`docs/art/gui-icons-reference.png`](art/gui-icons-reference.png) is for browsing
 only; the game loads the individual PNG files above.

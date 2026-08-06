@@ -258,29 +258,3 @@ New-Icon 'edit' {
     }
     Fill-Rect $b 4 10 2 2 $colors.Warning
 }
-
-New-Icon 'status_capacity' {
-    param($b)
-    Fill-Rect $b 5 4 6 1 $colors.Ice
-    Fill-Rect $b 4 5 8 7 $colors.IceDark
-    Fill-Rect $b 5 8 6 3 $colors.Ice
-}
-New-Icon 'status_range' {
-    param($b)
-    Fill-Rect $b 4 7 2 2 $colors.Warning
-    Fill-Rect $b 7 6 1 4 $colors.Warning
-    Fill-Rect $b 10 4 1 8 $colors.Warning
-}
-New-Icon 'status_entity' {
-    param($b)
-    Fill-Rect $b 4 5 3 3 $colors.Portal
-    Fill-Rect $b 9 4 3 3 $colors.Portal
-    Fill-Rect $b 6 9 5 3 $colors.Portal
-}
-function Draw-StatusCoordinate($Bitmap, $Color) {
-    Fill-Rect $Bitmap 7 4 2 8 $Color
-    Fill-Rect $Bitmap 4 7 8 2 $Color
-    Fill-Rect $Bitmap 6 6 4 4 $colors.Panel
-}
-New-Icon 'status_coordinate_on'  { param($b) Draw-StatusCoordinate $b $colors.Ice }
-New-Icon 'status_coordinate_off' { param($b) Draw-StatusCoordinate $b $colors.Muted }

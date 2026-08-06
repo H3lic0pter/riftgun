@@ -4,8 +4,8 @@ import dev.riftgun.config.ClientConfig;
 import java.util.List;
 
 public final class SwirlVisualOptions {
-    public static final double DEFAULT_OUTER_PERIOD = 5.0;
-    public static final double DEFAULT_INNER_PERIOD = 10.0;
+    public static final double DEFAULT_OUTER_PERIOD = 20.0;
+    public static final double DEFAULT_INNER_PERIOD = 20.0;
     public static final double DEFAULT_INWARD_PERIOD = 2.5;
 
     public static final PortalVisualOptions DESCRIPTOR = new PortalVisualOptions(
