@@ -33,6 +33,18 @@ final class PortalOrientationTest {
         assertEquals(PortalPlacement.DEPTH, bounds.getYsize(), 1.0E-8);
     }
 
+    @Test
+    void expandedGeometryPreservesLegacyOrdinalsAndUsesAgreedSizes() {
+        assertEquals(PortalGeometry.FLOATING_VERTICAL, PortalGeometry.byOrdinal(0));
+        assertEquals(PortalGeometry.SURFACE_VERTICAL, PortalGeometry.byOrdinal(1));
+        assertEquals(PortalGeometry.SURFACE_COMPACT, PortalGeometry.byOrdinal(2));
+        assertEquals(PortalGeometry.HORIZONTAL, PortalGeometry.byOrdinal(3));
+        assertEquals(2.2, PortalGeometry.FLOATING_EXPANDED.width(), 1.0E-6);
+        assertEquals(2.2, PortalGeometry.FLOATING_EXPANDED.height(), 1.0E-6);
+        assertEquals(2.0, PortalGeometry.SURFACE_EXPANDED.width(), 1.0E-6);
+        assertEquals(2.0, PortalGeometry.HORIZONTAL_EXPANDED.height(), 1.0E-6);
+    }
+
     private static void assertVec(Vec3 expected, Vec3 actual) {
         assertEquals(expected.x, actual.x, 1.0E-8);
         assertEquals(expected.y, actual.y, 1.0E-8);

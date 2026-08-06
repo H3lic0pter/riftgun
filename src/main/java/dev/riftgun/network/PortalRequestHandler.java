@@ -16,6 +16,7 @@ import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.service.CoordinateParser;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
@@ -356,6 +357,15 @@ public final class PortalRequestHandler {
                     PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules));
                 settings = settings.withDesiredSurfaceRange(
                     Math.max(rules.baseSurfaceRange(), Math.min(maximum, request.getInt("Value"))));
+            }
+            case "PortalDuration" -> settings = settings.withPortalDurationSeconds(
+                PortalOpenDuration.effectiveSeconds(request.getInt("Value"),
+                    ServerConfig.VALUES.maximumPortalDurationSeconds.get()));
+            case "ExpandedAperture" -> {
+                if (PortalGunModules.activeCount(gun, PortalModuleKind.APERTURE_EXPANSION, rules) <= 0) {
+                    throw error("message.riftgun.aperture_module_required");
+                }
+                settings = settings.withExpandedApertureEnabled(request.getBoolean("Enabled"));
             }
             case "PassiveTransit", "HostileTransit", "BossTransit" -> {
                 PortalModuleKind kind = switch (setting) {

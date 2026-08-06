@@ -26,6 +26,8 @@ public final class PortalModules {
     public static final ModuleEntry SURFACE_RANGE = register(
         "surface_range_amplifier", PortalModuleKind.SURFACE_RANGE,
         PortalModuleRules::maximumSurfaceRangeModules, 0xE3B75C);
+    public static final ModuleEntry APERTURE_EXPANSION = register(
+        "portal_aperture_module", PortalModuleKind.APERTURE_EXPANSION, ignored -> 1, 0x70D8A8);
     public static final ModuleEntry MODULE_BAY_EXPANSION = register(
         "module_bay_expansion", PortalModuleKind.MODULE_BAY_EXPANSION,
         ignored -> PortalGunModules.MAXIMUM_EXPANSION_MODULES, 0x7CCED8);

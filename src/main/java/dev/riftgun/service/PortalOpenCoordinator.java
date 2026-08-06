@@ -45,7 +45,7 @@ public final class PortalOpenCoordinator {
             locatedGun.stack(), data.settings().smartDistance());
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
-            data.settings().motionPredictionEnabled());
+            data.settings().motionPredictionEnabled(), gunCapabilities.aperture());
         PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(player, mode, constraints);
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());
@@ -73,7 +73,7 @@ public final class PortalOpenCoordinator {
         if (PortalOpenRoute.decide(crossDimension, targetTicksEntities) == PortalOpenRoute.DEFERRED_EXIT) {
             opened = PortalEntity.openDeferredExit(
                 player, entry.placement(), fuelPlan.use().profile(), PortalExitTarget.from(destination),
-                gunCapabilities.entityAccess(),
+                gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         } else {
             Destination resolved = destination;
@@ -88,13 +88,13 @@ public final class PortalOpenCoordinator {
             }
 
             PortalPlacementResult placement = PortalServices.PLACEMENT_RESOLVER.resolveExitPrepared(
-                targetLevel, PortalExitTarget.from(resolved), entry.placement());
+                targetLevel, PortalExitTarget.from(resolved), entry.placement(), gunCapabilities.aperture());
             if (!placement.successful()) {
                 failMessage(player, placement.errorKey());
                 return;
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),
-                gunCapabilities.entityAccess(),
+                gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         }
 

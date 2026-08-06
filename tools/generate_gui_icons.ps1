@@ -115,6 +115,13 @@ New-Icon 'smart_distance' {
     Outline-Rect $b 5 5 6 6 $colors.Ice
     Fill-Rect $b 12 3 2 2 $colors.Warning
 }
+New-Icon 'portal_duration' {
+    param($b)
+    Outline-Rect $b 3 3 10 10 $colors.Ice
+    Fill-Rect $b 7 5 2 4 $colors.Ice
+    Fill-Rect $b 8 8 3 2 $colors.Ice
+    Fill-Rect $b 6 1 4 2 $colors.Warning
+}
 New-Icon 'surface_range' {
     param($b)
     Fill-Rect $b 3 6 2 4 $colors.Warning
@@ -128,6 +135,20 @@ New-Icon 'entity_access' {
     Fill-Rect $b 2 9 5 4 $colors.Portal
     Fill-Rect $b 8 9 6 5 $colors.Portal
 }
+
+function Draw-Aperture($Bitmap, $PortalColor, $ArrowColor) {
+    Outline-Rect $Bitmap 5 5 6 6 $PortalColor
+    Fill-Rect $Bitmap 3 3 3 1 $ArrowColor
+    Fill-Rect $Bitmap 3 3 1 3 $ArrowColor
+    Fill-Rect $Bitmap 10 3 3 1 $ArrowColor
+    Fill-Rect $Bitmap 12 3 1 3 $ArrowColor
+    Fill-Rect $Bitmap 3 12 3 1 $ArrowColor
+    Fill-Rect $Bitmap 3 10 1 3 $ArrowColor
+    Fill-Rect $Bitmap 10 12 3 1 $ArrowColor
+    Fill-Rect $Bitmap 12 10 1 3 $ArrowColor
+}
+New-Icon 'aperture_on'  { param($b) Draw-Aperture $b $colors.Portal $colors.Ice }
+New-Icon 'aperture_off' { param($b) Draw-Aperture $b $colors.Muted $colors.Muted }
 
 function Draw-Pig($Bitmap, $Color) {
     Fill-Rect $Bitmap 2 3 12 9 $Color
@@ -257,4 +278,37 @@ New-Icon 'edit' {
         Fill-Rect $b (4 + $pixel) (9 - $pixel) 2 2 $colors.Ice
     }
     Fill-Rect $b 4 10 2 2 $colors.Warning
+}
+
+$referencePath = Join-Path $PSScriptRoot '..\docs\art\gui-icons-reference.png'
+$referenceFiles = Get-ChildItem -LiteralPath $outputDirectory -File -Filter '*.png' | Sort-Object Name
+$columns = 5
+$cellWidth = 180
+$cellHeight = 58
+$rows = [Math]::Ceiling($referenceFiles.Count / [double] $columns)
+$reference = [System.Drawing.Bitmap]::new($columns * $cellWidth, $rows * $cellHeight,
+    [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+$graphics = [System.Drawing.Graphics]::FromImage($reference)
+$graphics.Clear([System.Drawing.Color]::FromArgb(255, 27, 29, 34))
+$graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
+$graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
+$font = [System.Drawing.Font]::new('Consolas', 9, [System.Drawing.FontStyle]::Regular,
+    [System.Drawing.GraphicsUnit]::Pixel)
+$brush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 232, 235, 238))
+try {
+    for ($index = 0; $index -lt $referenceFiles.Count; $index++) {
+        $column = $index % $columns
+        $row = [Math]::Floor($index / $columns)
+        $x = $column * $cellWidth
+        $y = $row * $cellHeight
+        $icon = [System.Drawing.Image]::FromFile($referenceFiles[$index].FullName)
+        try { $graphics.DrawImage($icon, $x + 14, $y + 18, 16, 16) } finally { $icon.Dispose() }
+        $graphics.DrawString($referenceFiles[$index].BaseName, $font, $brush, $x + 47, $y + 21)
+    }
+    $reference.Save($referencePath, [System.Drawing.Imaging.ImageFormat]::Png)
+} finally {
+    $brush.Dispose()
+    $font.Dispose()
+    $graphics.Dispose()
+    $reference.Dispose()
 }

@@ -99,13 +99,16 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton gunSettingsButton;
     private @Nullable ThemedButton moduleBayButton;
     private @Nullable ThemedButton gunSettingsBackButton;
+    private @Nullable ThemedButton portalDurationSettingsButton;
     private @Nullable ThemedButton smartDistanceSettingsButton;
     private @Nullable ThemedButton surfaceRangeSettingsButton;
     private @Nullable ThemedButton entityTransitSettingsButton;
+    private @Nullable ThemedButton apertureSettingsButton;
     private @Nullable ThemedButton moduleSettingBackButton;
     private @Nullable ThemedButton passiveTransitButton;
     private @Nullable ThemedButton hostileTransitButton;
     private @Nullable ThemedButton bossTransitButton;
+    private @Nullable ThemedButton apertureToggleButton;
     private final List<EditBox> coordinateEditFields = new ArrayList<>();
     private @Nullable ThemedButton groupSelector;
     private @Nullable ThemedButton groupDropdownButton;
@@ -152,13 +155,16 @@ public final class PortalConfigScreen extends Screen {
         gunSettingsButton = null;
         moduleBayButton = null;
         gunSettingsBackButton = null;
+        portalDurationSettingsButton = null;
         smartDistanceSettingsButton = null;
         surfaceRangeSettingsButton = null;
         entityTransitSettingsButton = null;
+        apertureSettingsButton = null;
         moduleSettingBackButton = null;
         passiveTransitButton = null;
         hostileTransitButton = null;
         bossTransitButton = null;
+        apertureToggleButton = null;
         coordinateEditFields.clear();
         groupDropdownButton = null;
         motionPredictionButton = null;
@@ -310,6 +316,9 @@ public final class PortalConfigScreen extends Screen {
                 ignored -> openVisualSettings());
         } else if (modal == Modal.GUN_SETTINGS) {
             int buttonX = x + 18;
+            portalDurationSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
+                ignored -> openGunSetting(Modal.PORTAL_DURATION_SETTINGS));
+            buttonX += 31;
             smartDistanceSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
                 ignored -> openGunSetting(Modal.SMART_DISTANCE_SETTINGS));
             buttonX += 31;
@@ -321,7 +330,17 @@ public final class PortalConfigScreen extends Screen {
             if (hasEntityTransitModule()) {
                 entityTransitSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
                     ignored -> openGunSetting(Modal.ENTITY_TRANSIT_SETTINGS));
+                buttonX += 31;
             }
+            if (moduleCount("APERTURE_EXPANSION") > 0) {
+                apertureSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
+                    ignored -> openGunSetting(Modal.APERTURE_SETTINGS));
+            }
+        } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
+            int maximum = Math.max(1, PortalClientState.gun().getInt("MaximumPortalDurationSeconds"));
+            addRenderableWidget(new GunDistanceSlider(x + 18, y + 51, fieldWidth, 18,
+                "PortalDuration", "screen.riftgun.portal_duration_value", 1, maximum,
+                PortalClientState.gun().getInt("PortalDurationSeconds")));
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
             addRenderableWidget(new GunDistanceSlider(x + 18, y + 51, fieldWidth, 18,
                 "SmartDistance", "screen.riftgun.smart_distance_value", 1,
@@ -335,6 +354,9 @@ public final class PortalConfigScreen extends Screen {
                 PortalClientState.gun().getInt("SurfaceRange")));
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
             addEntityTransitButtons(x + 18, y + 48);
+        } else if (modal == Modal.APERTURE_SETTINGS) {
+            apertureToggleButton = button(x + 18, y + 48, 30, 30, Component.empty(), false,
+                ignored -> toggleGunBoolean("ExpandedAperture", "ExpandedApertureEnabled"));
         } else if (modal == Modal.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
@@ -767,6 +789,10 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.GUN_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.gun_settings_hint"),
                 x, y + 29, PortalTheme.TEXT_MUTED, false);
+        } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
+            label(graphics, "screen.riftgun.portal_duration", x, y + 34);
+            graphics.drawString(font, Component.translatable("screen.riftgun.portal_duration_hint"),
+                x, y + 76, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
             label(graphics, "screen.riftgun.smart_distance", x, y + 34);
             graphics.drawString(font, Component.translatable("screen.riftgun.maximum_surface_range",
@@ -778,6 +804,9 @@ public final class PortalConfigScreen extends Screen {
                 moduleCount("SURFACE_RANGE")), x, y + 76, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.entity_transit_hint"),
+                x, y + 32, PortalTheme.TEXT_MUTED, false);
+        } else if (modal == Modal.APERTURE_SETTINGS) {
+            graphics.drawString(font, Component.translatable("screen.riftgun.aperture_hint"),
                 x, y + 32, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.VISUAL_SETTINGS) {
             label(graphics, "screen.riftgun.portal_visual", x, y + 34);
@@ -873,6 +902,12 @@ public final class PortalConfigScreen extends Screen {
                 "screen.riftgun.back_to_gun_settings");
             if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
                 renderEntityTransitButtons(graphics, mouseX, mouseY);
+            } else if (modal == Modal.APERTURE_SETTINGS && apertureToggleButton != null) {
+                boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
+                drawApertureIcon(graphics, apertureToggleButton.getX() + 7,
+                    apertureToggleButton.getY() + 7, enabled);
+                entityTooltip(graphics, apertureToggleButton,
+                    "screen.riftgun.aperture", enabled, mouseX, mouseY);
             }
         }
         if (modal == Modal.VISUAL_SETTINGS) {
@@ -937,6 +972,12 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void renderGunSettingEntries(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (portalDurationSettingsButton != null) {
+            drawPortalDurationIcon(graphics, portalDurationSettingsButton.getX() + 7,
+                portalDurationSettingsButton.getY() + 7);
+            settingTooltip(graphics, portalDurationSettingsButton,
+                "screen.riftgun.portal_duration", mouseX, mouseY);
+        }
         if (smartDistanceSettingsButton != null) {
             drawSmartDistanceIcon(graphics, smartDistanceSettingsButton.getX() + 7,
                 smartDistanceSettingsButton.getY() + 7, PortalTheme.ICE);
@@ -954,6 +995,13 @@ public final class PortalConfigScreen extends Screen {
                 entityTransitSettingsButton.getY() + 7, PortalTheme.PORTAL);
             settingTooltip(graphics, entityTransitSettingsButton,
                 "screen.riftgun.entity_transit", mouseX, mouseY);
+        }
+        if (apertureSettingsButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
+            drawApertureIcon(graphics, apertureSettingsButton.getX() + 7,
+                apertureSettingsButton.getY() + 7, enabled);
+            settingTooltip(graphics, apertureSettingsButton,
+                "screen.riftgun.aperture", mouseX, mouseY);
         }
     }
 
@@ -1094,6 +1142,15 @@ public final class PortalConfigScreen extends Screen {
 
     private static void drawSmartDistanceIcon(GuiGraphics graphics, int x, int y, int color) {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.SMART_DISTANCE, x - 2, y - 2);
+    }
+
+    private static void drawPortalDurationIcon(GuiGraphics graphics, int x, int y) {
+        PortalGuiSprites.draw(graphics, PortalGuiSprites.PORTAL_DURATION, x - 2, y - 2);
+    }
+
+    private static void drawApertureIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        PortalGuiSprites.draw(graphics, enabled
+            ? PortalGuiSprites.APERTURE_ON : PortalGuiSprites.APERTURE_OFF, x - 2, y - 2);
     }
 
     private static void drawSurfaceRangeIcon(GuiGraphics graphics, int x, int y, int color) {
@@ -2177,8 +2234,20 @@ public final class PortalConfigScreen extends Screen {
     }
 
     /** Used only by the opt-in visual QA harness. */
+    public void openPortalDurationSettingsForQa() {
+        modal = Modal.PORTAL_DURATION_SETTINGS;
+        rebuildWidgets();
+    }
+
+    /** Used only by the opt-in visual QA harness. */
     public void openEntityTransitSettingsForQa() {
         modal = Modal.ENTITY_TRANSIT_SETTINGS;
+        rebuildWidgets();
+    }
+
+    /** Used only by the opt-in visual QA harness. */
+    public void openApertureSettingsForQa() {
+        modal = Modal.APERTURE_SETTINGS;
         rebuildWidgets();
     }
 
@@ -2234,7 +2303,8 @@ public final class PortalConfigScreen extends Screen {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
             case CREATE_CURRENT -> 164;
             case SETTINGS -> 182;
-            case GUN_SETTINGS, SMART_DISTANCE_SETTINGS, SURFACE_RANGE_SETTINGS -> 132;
+            case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
+                 SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS -> 132;
             case ENTITY_TRANSIT_SETTINGS -> 142;
             case VISUAL_SETTINGS -> 132;
             case SWIRL_ANIMATION_SETTINGS -> 182;
@@ -2331,9 +2401,11 @@ public final class PortalConfigScreen extends Screen {
         RENAME_GROUP("screen.riftgun.rename_group", "", true, false),
         SETTINGS("screen.riftgun.settings", "", false, false),
         GUN_SETTINGS("screen.riftgun.configure_gun", "", false, false),
+        PORTAL_DURATION_SETTINGS("screen.riftgun.portal_duration", "", false, false),
         SMART_DISTANCE_SETTINGS("screen.riftgun.smart_distance", "", false, false),
         SURFACE_RANGE_SETTINGS("screen.riftgun.surface_range", "", false, false),
         ENTITY_TRANSIT_SETTINGS("screen.riftgun.entity_transit", "", false, false),
+        APERTURE_SETTINGS("screen.riftgun.aperture", "", false, false),
         VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
         SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
         CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
@@ -2355,8 +2427,9 @@ public final class PortalConfigScreen extends Screen {
 
         boolean isConfirmation() { return name().startsWith("CONFIRM_"); }
         boolean isGunSettingPage() {
-            return this == SMART_DISTANCE_SETTINGS || this == SURFACE_RANGE_SETTINGS
-                || this == ENTITY_TRANSIT_SETTINGS;
+            return this == PORTAL_DURATION_SETTINGS || this == SMART_DISTANCE_SETTINGS
+                || this == SURFACE_RANGE_SETTINGS || this == ENTITY_TRANSIT_SETTINGS
+                || this == APERTURE_SETTINGS;
         }
         boolean hasInputs() { return hasName || hasCoordinates; }
         boolean isDestinationForm() {

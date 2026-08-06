@@ -23,8 +23,11 @@ final class PortalGuiSprites {
     static final ResourceLocation CONFIGURE_GUN = icon("configure_gun");
     static final ResourceLocation MODULE_BAY = icon("module_bay");
     static final ResourceLocation SMART_DISTANCE = icon("smart_distance");
+    static final ResourceLocation PORTAL_DURATION = icon("portal_duration");
     static final ResourceLocation SURFACE_RANGE = icon("surface_range");
     static final ResourceLocation ENTITY_ACCESS = icon("entity_access");
+    static final ResourceLocation APERTURE_ON = icon("aperture_on");
+    static final ResourceLocation APERTURE_OFF = icon("aperture_off");
     static final ResourceLocation PASSIVE_TRANSIT_ON = icon("passive_transit_on");
     static final ResourceLocation PASSIVE_TRANSIT_OFF = icon("passive_transit_off");
     static final ResourceLocation HOSTILE_TRANSIT_ON = icon("hostile_transit_on");

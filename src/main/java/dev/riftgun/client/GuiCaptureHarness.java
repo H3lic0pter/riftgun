@@ -100,20 +100,34 @@ final class GuiCaptureHarness {
                 minecraft.getMainRenderTarget(), message -> {});
         }
         if (ticks == 202 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-            screen.openSurfaceRangeSettingsForQa();
+            screen.openPortalDurationSettingsForQa();
         }
         if (ticks == 208) {
-            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-surface-range"),
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-portal-duration"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
         if (ticks == 212 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-            screen.openEntityTransitSettingsForQa();
+            screen.openSurfaceRangeSettingsForQa();
         }
         if (ticks == 218) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-surface-range"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 222 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openEntityTransitSettingsForQa();
+        }
+        if (ticks == 228) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-entity-transit"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
-        if (ticks == 230) {
+        if (ticks == 232 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openApertureSettingsForQa();
+        }
+        if (ticks == 238) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-aperture"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 250) {
             completed = true;
             minecraft.stop();
         }
@@ -156,6 +170,9 @@ final class GuiCaptureHarness {
         gun.putInt("MaximumSurfaceRange", 80);
         gun.putInt("SurfaceRange", 64);
         gun.putInt("SmartDistance", 12);
+        gun.putInt("PortalDurationSeconds", 8);
+        gun.putInt("MaximumPortalDurationSeconds", 15);
+        gun.putBoolean("ExpandedApertureEnabled", true);
         gun.putBoolean("PassiveTransitEnabled", true);
         gun.putBoolean("HostileTransitEnabled", false);
         gun.putBoolean("BossTransitEnabled", true);
@@ -166,6 +183,7 @@ final class GuiCaptureHarness {
         modules.putInt("HOSTILE_TRANSIT", 1);
         modules.putInt("BOSS_TRANSIT", 1);
         modules.putInt("SURFACE_RANGE", 3);
+        modules.putInt("APERTURE_EXPANSION", 1);
         gun.put("Modules", modules);
         envelope.put("Gun", gun);
         envelope.put("ModuleRules", PortalModuleRules.defaults().save());

@@ -8,7 +8,7 @@ Minecraft 1.21.1 / NeoForge portal-gun prototype. Java 21. Runtime dependency: N
 - Select a saved destination by clicking its row. The GUI button always opens a floating portal in front of the player.
 - Right-click with the gun to use its current `SMART`, `FRONT`, or `SURFACE` placement mode. `V` cycles the mode; direct front/surface keys are unbound by default.
 - In bucket mode, right-click scoops a supported full fluid source and never falls back to opening a portal.
-- Opening a new pair closes the previous pair owned by that player. Portals are bidirectional, preserve riders and momentum, and close three seconds after fully opening.
+- Opening a new pair closes the previous pair owned by that player. Portals are bidirectional and preserve riders and momentum. Each gun defaults to three fully-open seconds; its GUI can select up to the server-configured maximum (15 seconds by default).
 
 ## Portal fuel
 
@@ -22,7 +22,7 @@ Costs and module limits are server-configurable. Random consumption can be disab
 
 ## Modules
 
-The Portal Gun starts with nine generic module slots. Up to six Module Bay Expansions add three slots each, for a maximum three-row bay of 27 slots. Open the destination GUI, then use the module-bay icon in the upper-right corner. The current modules provide Coordinate Override, Reservoir Expansion, Passive/Hostile/Boss Transit, Surface Range, and Module Bay Expansion. Module configuration belongs to the individual gun; no survival recipes are included yet.
+The Portal Gun starts with nine generic module slots. Up to six Module Bay Expansions add three slots each, for a maximum three-row bay of 27 slots. Open the destination GUI, then use the module-bay icon in the upper-right corner. The current modules provide Coordinate Override, Reservoir Expansion, Passive/Hostile/Boss Transit, Surface Range, Portal Aperture, and Module Bay Expansion. Portal Aperture prefers 2x2 portals when its stricter clearance/support rules pass and otherwise falls back to the standard geometry. Module configuration belongs to the individual gun; no survival recipes are included yet.
 
 ## Run
 

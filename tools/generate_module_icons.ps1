@@ -111,3 +111,15 @@ New-ModuleIcon 'module_bay_expansion' ([System.Drawing.Color]::FromArgb(255, 124
         Set-Pixel $b $x 8 $slot
     }
 }
+
+New-ModuleIcon 'portal_aperture_module' ([System.Drawing.Color]::FromArgb(255, 112, 216, 168)) {
+    param($b, $c)
+    $arrow = [System.Drawing.Color]::FromArgb(255, 94, 202, 225)
+    for ($y = 6; $y -le 9; $y++) {
+        for ($x = 6; $x -le 9; $x++) { Set-Pixel $b $x $y $c }
+    }
+    foreach ($p in @(@(4,4),@(5,4),@(4,5), @(11,4),@(10,4),@(11,5),
+                     @(4,11),@(4,10),@(5,11), @(11,11),@(10,11),@(11,10))) {
+        Set-Pixel $b $p[0] $p[1] $arrow
+    }
+}

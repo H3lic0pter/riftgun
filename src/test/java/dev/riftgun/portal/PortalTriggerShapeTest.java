@@ -28,6 +28,16 @@ final class PortalTriggerShapeTest {
             new AABB(0.0, 0.05, -0.2, 0.60, 1.85, 0.2)));
     }
 
+    @Test
+    void expandedHorizontalPortalUsesItsLargerGeometryButKeepsEdgeInset() {
+        PortalPlacement placement = placement(PortalOrientation.TOP, PortalGeometry.HORIZONTAL_EXPANDED);
+
+        assertTrue(PortalTriggerShape.intersects(placement,
+            new AABB(0.70, 0.05, -0.05, 0.80, 1.85, 0.05)));
+        assertFalse(PortalTriggerShape.intersects(placement,
+            new AABB(0.90, 0.05, -0.05, 1.00, 1.85, 0.05)));
+    }
+
     private static PortalPlacement placement(PortalOrientation orientation, PortalGeometry geometry) {
         return new PortalPlacement(Vec3.ZERO, orientation, geometry, 0.0F, null, null);
     }

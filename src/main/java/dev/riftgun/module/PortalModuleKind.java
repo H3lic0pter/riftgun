@@ -7,5 +7,6 @@ public enum PortalModuleKind {
     HOSTILE_TRANSIT,
     BOSS_TRANSIT,
     SURFACE_RANGE,
+    APERTURE_EXPANSION,
     MODULE_BAY_EXPANSION
 }

@@ -2,6 +2,7 @@ package dev.riftgun.service;
 
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.portal.PortalGeometry;
+import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPairPlacement;
@@ -28,8 +29,10 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                                           PortalPlacementConstraints constraints) {
         EntryResult entry = switch (mode) {
             case FRONT -> EntryResult.frontRoute();
-            case SURFACE -> surface(player, false, constraints.smartDistance(), constraints.maximumSurfaceRange());
-            case SMART -> surface(player, true, constraints.smartDistance(), constraints.maximumSurfaceRange());
+            case SURFACE -> surface(player, false, constraints.smartDistance(),
+                constraints.maximumSurfaceRange(), constraints.aperture());
+            case SMART -> surface(player, true, constraints.smartDistance(),
+                constraints.maximumSurfaceRange(), constraints.aperture());
         };
         if (entry.front) return PortalPlacementCapture.success(PortalPlacementIntent.front(constraints.motionPrediction()));
         return entry.placement == null
@@ -41,7 +44,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent,
                                                    PortalPlacementConstraints constraints) {
         EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
-            ? front(player, intent.motionPrediction())
+            ? front(player, intent.motionPrediction(), constraints.aperture())
             : revalidateSurface(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
         return entry.placement == null
             ? PortalEntryPlacementResult.failure(entry.errorKey)
@@ -50,33 +53,45 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
     @Override
     public PortalPlacementResult resolveExitPrepared(ServerLevel targetLevel, PortalExitTarget target,
-                                                     PortalPlacement entry) {
-        PortalPlacement exit = resolveExit(targetLevel, target, entry);
+                                                     PortalPlacement entry, PortalAperture aperture) {
+        PortalPlacement exit = resolveExit(targetLevel, target, entry, aperture);
         return PortalPlacementResult.success(new PortalPairPlacement(target.dimension(), entry, exit));
     }
 
-    private EntryResult front(ServerPlayer player, boolean motionPrediction) {
+    private EntryResult front(ServerPlayer player, boolean motionPrediction, PortalAperture aperture) {
         boolean downShot = usesDownshot(player.getXRot(),
             PortalServices.PLACEMENT_CAPABILITIES.downshotMinimumPitch(player));
         PortalMotionPredictor.Purpose purpose = downShot
             ? PortalMotionPredictor.Purpose.DOWN_SHOT : PortalMotionPredictor.Purpose.FRONT;
         Vec3 prediction = motionPrediction ? predictedDisplacement(player, purpose) : Vec3.ZERO;
-        if (downShot) {
-            return downshot(player, prediction);
+        List<Vec3> positions = motionPrediction && prediction.lengthSqr() >= 1.0E-8
+            ? List.of(prediction, Vec3.ZERO) : List.of(prediction);
+        EntryResult last = null;
+        for (Vec3 displacement : positions) {
+            if (PortalAperturePolicy.expanded(aperture)) {
+                EntryResult expanded = downShot
+                    ? downshot(player, displacement, PortalAperturePolicy.horizontal(),
+                        PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)
+                    : verticalFront(player, displacement, PortalAperturePolicy.floatingVertical(),
+                        PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE);
+                if (expanded.placement != null) return expanded;
+                last = expanded;
+            }
+            EntryResult standard = downShot
+                ? downshot(player, displacement, PortalGeometry.HORIZONTAL,
+                    PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player))
+                : verticalFront(player, displacement, PortalGeometry.FLOATING_VERTICAL,
+                    PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player));
+            if (standard.placement != null) return standard;
+            last = standard;
         }
-
-        EntryResult predicted = verticalFront(player, prediction);
-        if (predicted.placement != null || !motionPrediction || prediction.lengthSqr() < 1.0E-8) {
-            return predicted;
-        }
-        if (!"message.riftgun.front_obstructed".equals(predicted.errorKey)) return predicted;
-        return verticalFront(player, Vec3.ZERO);
+        return last == null ? EntryResult.failure("message.riftgun.front_obstructed") : last;
     }
 
-    private EntryResult verticalFront(ServerPlayer player, Vec3 prediction) {
+    private EntryResult verticalFront(ServerPlayer player, Vec3 prediction,
+                                      PortalGeometry geometry, double minimumExposure) {
         Vec3 look = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
         Vec3 normal = look.scale(-1.0);
-        PortalGeometry geometry = PortalGeometry.FLOATING_VERTICAL;
         Vec3 center = player.position()
             .add(prediction)
             .add(look.scale(PortalServices.PLACEMENT_CAPABILITIES.frontDistance(player)))
@@ -85,18 +100,19 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             yawFromNormal(normal), null, null);
         return outsideWorld(player.serverLevel(), placement.bounds())
             ? EntryResult.failure("message.riftgun.front_outside_world")
-            : floatingObstructed(player, placement)
+            : floatingObstructed(player.serverLevel(), placement, minimumExposure)
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
-    private EntryResult downshot(ServerPlayer player, Vec3 prediction) {
+    private EntryResult downshot(ServerPlayer player, Vec3 prediction,
+                                 PortalGeometry geometry, double minimumExposure) {
         Vec3 center = player.position().add(prediction)
             .add(0.0, -PortalServices.PLACEMENT_CAPABILITIES.downshotDistance(player), 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.TOP,
-            PortalGeometry.HORIZONTAL, player.getYRot(), null, null);
+            geometry, player.getYRot(), null, null);
         return outsideWorld(player.serverLevel(), placement.bounds())
             ? EntryResult.failure("message.riftgun.front_outside_world")
-            : floatingObstructed(player, placement)
+            : floatingObstructed(player.serverLevel(), placement, minimumExposure)
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
@@ -111,7 +127,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     }
 
     private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance,
-                                double maximumRange) {
+                                double maximumRange, PortalAperture aperture) {
         double rayRange = smart ? maximumRange : maximumRange + 16.0;
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getLookAngle().scale(rayRange));
@@ -124,7 +140,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         double distance = eye.distanceTo(hit.getLocation());
         if (smart && distance > Math.min(requestedSmartDistance, maximumRange)) return EntryResult.frontRoute();
         if (distance > maximumRange) return EntryResult.failure("message.riftgun.surface_out_of_range");
-        return attached(player.serverLevel(), player, hit);
+        return attached(player.serverLevel(), player, hit, aperture);
     }
 
     private EntryResult revalidateSurface(ServerPlayer player, PortalPlacement placement, double maximumRange) {
@@ -140,17 +156,29 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         if (player.getEyePosition().distanceTo(placement.center()) > range) {
             return EntryResult.failure("message.riftgun.surface_out_of_range");
         }
+        if (placement.geometry().expanded()
+            && !PortalSupportArea.hasFullExpandedSupport(level, placement)) {
+            return EntryResult.failure("message.riftgun.surface_invalid");
+        }
         return blocked(level, placement.bounds())
             ? EntryResult.failure("message.riftgun.surface_obstructed")
             : EntryResult.success(placement);
     }
 
-    private EntryResult attached(ServerLevel level, ServerPlayer player, BlockHitResult hit) {
+    private EntryResult attached(ServerLevel level, ServerPlayer player, BlockHitResult hit,
+                                 PortalAperture aperture) {
         BlockPos anchor = hit.getBlockPos();
         Direction face = hit.getDirection();
         BlockState state = level.getBlockState(anchor);
         if (state.getCollisionShape(level, anchor).isEmpty()) {
             return EntryResult.failure("message.riftgun.surface_invalid");
+        }
+
+        if (PortalAperturePolicy.expanded(aperture)) {
+            PortalPlacement expanded = face.getAxis().isVertical()
+                ? expandedHorizontalAttached(level, player, hit)
+                : expandedVerticalAttached(level, player, hit);
+            if (expanded != null) return EntryResult.success(expanded);
         }
 
         if (face.getAxis().isVertical()) {
@@ -190,19 +218,85 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? EntryResult.failure("message.riftgun.surface_obstructed") : EntryResult.success(compact);
     }
 
-    private PortalPlacement resolveExit(ServerLevel level, PortalExitTarget destination, PortalPlacement entry) {
+    private PortalPlacement expandedVerticalAttached(ServerLevel level, ServerPlayer player,
+                                                      BlockHitResult hit) {
+        BlockPos hitBlock = hit.getBlockPos();
+        Direction face = hit.getDirection();
+        Direction lateral = face.getAxis() == Direction.Axis.Z ? Direction.EAST : Direction.SOUTH;
+        Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
+        Vec3 lateralVector = Vec3.atLowerCornerOf(lateral.getNormal());
+        float yaw = yawFromNormal(normal);
+        List<PortalPlacement> candidates = new ArrayList<>(4);
+        for (int lateralOffset = -1; lateralOffset <= 0; lateralOffset++) {
+            for (int verticalOffset = -1; verticalOffset <= 0; verticalOffset++) {
+                BlockPos origin = hitBlock.relative(lateral, lateralOffset).offset(0, verticalOffset, 0);
+                Vec3 center = Vec3.atCenterOf(origin)
+                    .add(lateralVector.scale(0.5))
+                    .add(0.0, 0.5, 0.0)
+                    .add(normal.scale(0.5 + SURFACE_OFFSET));
+                PortalPlacement placement = new PortalPlacement(center, PortalOrientation.VERTICAL,
+                    PortalAperturePolicy.attachedVertical(), yaw, origin.immutable(), face);
+                if (PortalSupportArea.hasFullExpandedSupport(level, placement)
+                    && !blocked(level, placement.bounds())) {
+                    candidates.add(placement);
+                }
+            }
+        }
+        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.choose(
+            candidates, hit.getLocation(), player.getBoundingBox().getCenter());
+    }
+
+    private PortalPlacement expandedHorizontalAttached(ServerLevel level, ServerPlayer player,
+                                                        BlockHitResult hit) {
+        List<PortalPlacement> candidates = expandedHorizontalCandidates(level, hit.getBlockPos(),
+            hit.getDirection(), player.getYRot());
+        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.choose(
+            candidates, hit.getLocation(), player.getBoundingBox().getCenter());
+    }
+
+    private List<PortalPlacement> expandedHorizontalCandidates(ServerLevel level, BlockPos hitBlock,
+                                                               Direction face, float yaw) {
+        List<PortalPlacement> candidates = new ArrayList<>(4);
+        PortalOrientation orientation = face == Direction.UP ? PortalOrientation.TOP : PortalOrientation.BOTTOM;
+        Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
+        for (int xOffset = -1; xOffset <= 0; xOffset++) {
+            for (int zOffset = -1; zOffset <= 0; zOffset++) {
+                BlockPos origin = hitBlock.offset(xOffset, 0, zOffset);
+                Vec3 center = Vec3.atCenterOf(origin)
+                    .add(0.5, 0.0, 0.5)
+                    .add(normal.scale(0.5 + SURFACE_OFFSET));
+                PortalPlacement placement = new PortalPlacement(center, orientation,
+                    PortalAperturePolicy.horizontal(), yaw, origin.immutable(), face);
+                if (PortalSupportArea.hasFullExpandedSupport(level, placement)
+                    && !blocked(level, placement.bounds())) {
+                    candidates.add(placement);
+                }
+            }
+        }
+        return candidates;
+    }
+
+    private PortalPlacement resolveExit(ServerLevel level, PortalExitTarget destination,
+                                        PortalPlacement entry, PortalAperture aperture) {
         return switch (entry.orientation().oppositeSurface()) {
-            case TOP -> horizontalTopExit(level, destination);
-            case BOTTOM -> horizontalBottomExit(level, destination);
-            case VERTICAL -> verticalExit(destination,
-                entry.geometry() == PortalGeometry.FLOATING_VERTICAL
-                    ? PortalGeometry.FLOATING_VERTICAL : PortalGeometry.SURFACE_VERTICAL);
+            case TOP -> horizontalTopExit(level, destination, aperture);
+            case BOTTOM -> horizontalBottomExit(level, destination, aperture);
+            case VERTICAL -> verticalExit(level, destination, entry, aperture);
         };
     }
 
-    private PortalPlacement horizontalTopExit(ServerLevel level, PortalExitTarget destination) {
+    private PortalPlacement horizontalTopExit(ServerLevel level, PortalExitTarget destination,
+                                              PortalAperture aperture) {
         BlockPos support = BlockPos.containing(destination.position().x, destination.position().y - 0.01,
             destination.position().z);
+        if (PortalAperturePolicy.expanded(aperture)) {
+            List<PortalPlacement> expanded = expandedHorizontalCandidates(level, support, Direction.UP,
+                destination.yaw());
+            if (!expanded.isEmpty()) {
+                return ExpandedPortalCandidateSelector.choose(
+                    expanded, destination.position(), destination.position());
+            }
+        }
         if (!level.getBlockState(support).isFaceSturdy(level, support, Direction.UP)) {
             return verticalExit(destination, PortalGeometry.SURFACE_VERTICAL);
         }
@@ -214,8 +308,17 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? verticalExit(destination, PortalGeometry.SURFACE_VERTICAL) : placement;
     }
 
-    private PortalPlacement horizontalBottomExit(ServerLevel level, PortalExitTarget destination) {
+    private PortalPlacement horizontalBottomExit(ServerLevel level, PortalExitTarget destination,
+                                                 PortalAperture aperture) {
         Vec3 center = destination.position().add(0.0, 3.0, 0.0);
+        if (PortalAperturePolicy.expanded(aperture)) {
+            BlockPos support = BlockPos.containing(center.x, center.y + 0.01, center.z);
+            List<PortalPlacement> expanded = expandedHorizontalCandidates(level, support, Direction.DOWN,
+                destination.yaw());
+            if (!expanded.isEmpty()) {
+                return ExpandedPortalCandidateSelector.choose(expanded, center, destination.position());
+            }
+        }
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.BOTTOM, PortalGeometry.HORIZONTAL,
             destination.yaw(), null, null);
         return blocked(level, placement.bounds())
@@ -230,13 +333,30 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             destination.yaw(), null, null);
     }
 
+    private PortalPlacement verticalExit(ServerLevel level, PortalExitTarget destination,
+                                         PortalPlacement entry, PortalAperture aperture) {
+        boolean floating = entry.geometry() == PortalGeometry.FLOATING_VERTICAL
+            || entry.geometry() == PortalGeometry.FLOATING_EXPANDED;
+        if (PortalAperturePolicy.expanded(aperture)) {
+            PortalGeometry expandedGeometry = floating
+                ? PortalGeometry.FLOATING_EXPANDED : PortalGeometry.SURFACE_EXPANDED;
+            PortalPlacement expanded = verticalExit(destination, expandedGeometry);
+            if (!outsideWorld(level, expanded.bounds())
+                && !floatingObstructed(level, expanded, PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)) {
+                return expanded;
+            }
+        }
+        return verticalExit(destination,
+            floating ? PortalGeometry.FLOATING_VERTICAL : PortalGeometry.SURFACE_VERTICAL);
+    }
+
     private static boolean blocked(ServerLevel level, AABB bounds) {
         return level.getBlockCollisions(null, bounds.deflate(0.002)).iterator().hasNext();
     }
 
-    private static boolean floatingObstructed(ServerPlayer player, PortalPlacement placement) {
-        return !PortalFaceExposure.hasMinimumExposure(player.serverLevel(), placement,
-            PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player));
+    private static boolean floatingObstructed(ServerLevel level, PortalPlacement placement,
+                                              double minimumExposure) {
+        return !PortalFaceExposure.hasMinimumExposure(level, placement, minimumExposure);
     }
 
     private static boolean outsideWorld(ServerLevel level, AABB bounds) {

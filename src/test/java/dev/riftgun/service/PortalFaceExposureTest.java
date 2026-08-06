@@ -59,6 +59,19 @@ final class PortalFaceExposureTest {
             placement, List.of(middleSixtyPercentCover), 0.40));
     }
 
+    @Test
+    void expandedPortalRequiresAtLeastEightyFivePercentExposure() {
+        PortalPlacement placement = new PortalPlacement(Vec3.ZERO, PortalOrientation.VERTICAL,
+            PortalGeometry.FLOATING_EXPANDED, 0.0F, null, null);
+        AABB tenPercentCover = new AABB(-1.1, -2.0, 0.0, -0.88, 2.0, 1.0);
+        AABB quarterCover = new AABB(-1.1, -2.0, 0.0, -0.55, 2.0, 1.0);
+
+        assertTrue(PortalFaceExposure.hasMinimumExposure(
+            placement, List.of(tenPercentCover), PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE));
+        assertFalse(PortalFaceExposure.hasMinimumExposure(
+            placement, List.of(quarterCover), PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE));
+    }
+
     private static PortalPlacement vertical(float yaw) {
         return new PortalPlacement(Vec3.ZERO, PortalOrientation.VERTICAL,
             PortalGeometry.FLOATING_VERTICAL, yaw, null, null);

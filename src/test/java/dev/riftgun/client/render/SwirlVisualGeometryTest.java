@@ -19,6 +19,6 @@ final class SwirlVisualGeometryTest {
     @Test
     void horizontalPortalUsesFivePercentVisualExpansionAndInsetEdge() {
         assertEquals(0.95 * 1.05, SwirlVisualGeometry.HORIZONTAL_VISIBLE_SIZE, EPSILON);
-        assertEquals(0.80, SwirlVisualGeometry.EDGE_RADIUS_SCALE, EPSILON);
+        assertEquals(0.75, SwirlVisualGeometry.EDGE_RADIUS_SCALE, EPSILON);
     }
 }

@@ -37,7 +37,7 @@ changes unless you intend to reset them.
 | Area | Files |
 |---|---|
 | Main controls | `bucket_on/off`, `drain_on/off`, `placement_smart/front/surface`, `prediction_on/off` |
-| Gun and modules | `configure_gun`, `module_bay`, `smart_distance`, `surface_range`, `entity_access` |
+| Gun and modules | `configure_gun`, `module_bay`, `portal_duration`, `smart_distance`, `surface_range`, `entity_access`, `aperture_on/off` |
 | Entity access | `passive_transit_on/off`, `hostile_transit_on/off`, `boss_transit_on/off` |
 | Visual settings | `visuals`, `swirl`, `reset_on/off` |
 | Navigation | `back`, `module_back`, `dropdown`, `group_expanded/collapsed` |

@@ -1,6 +1,7 @@
 package dev.riftgun.config;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
+import dev.riftgun.portal.PortalOpenDuration;
 
 public final class ServerConfig {
     public static final ModConfigSpec SPEC;
@@ -28,6 +29,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue reservoirModuleCapacity;
         public final ModConfigSpec.IntValue maxSurfaceRangeModules;
         public final ModConfigSpec.IntValue surfaceRangePerModule;
+        public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
 
         private Values(ModConfigSpec.Builder builder) {
             builder.push("destinations");
@@ -53,6 +55,13 @@ public final class ServerConfig {
             reservoirModuleCapacity = builder.defineInRange("reservoirCapacityPerModule", 8000, 1, 1_000_000);
             maxSurfaceRangeModules = builder.defineInRange("maximumSurfaceRangeModules", 3, 0, 9);
             surfaceRangePerModule = builder.defineInRange("surfaceRangePerModule", 16, 1, 1024);
+            builder.pop();
+
+            builder.push("portal");
+            maximumPortalDurationSeconds = builder.comment(
+                    "Maximum fully-open duration selectable on a Portal Gun, in seconds.")
+                .defineInRange("maximumDurationSeconds", 15,
+                    PortalOpenDuration.MINIMUM_SECONDS, PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS);
             builder.pop();
         }
     }

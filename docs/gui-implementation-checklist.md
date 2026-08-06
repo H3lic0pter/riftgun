@@ -110,7 +110,7 @@
 - [x] `classic` 保留原程序化六面门体和彩色边框；`swirl` 只绘制观察者方向一致的正反贴图，所有 orientation 均无侧棱和边框；两者删除白色移动短线。
 - [x] Settings 的眼睛图标进入独立视觉二级页；selector 左键选择下一个、右键选择上一个，向下图标打开遮罩列表，选择仅允许内置类型且立即保存。
 - [x] `swirl` 使用 `1/128 block` 厚的椭圆薄片：正反面保留漩涡，侧棱使用当前 portal 主题色；贴面时以支撑面为中心、一半嵌入方块，碰撞、trigger 与冻结水花均不改动。
-- [x] 所有 TOP/BOTTOM（含 Downshot）漩涡将原 `0.95×0.95` 可见面放大 5%，并按源 PNG alpha bounds 在 shader 内裁切透明边缘；侧棱半径缩至正面的 80%，三种朝向一致；仅改变视觉。
+- [x] 所有 TOP/BOTTOM（含 Downshot）漩涡将原 `0.95×0.95` 可见面放大 5%，并按源 PNG alpha bounds 在 shader 内裁切透明边缘；侧棱半径缩至正面的 75%，三种朝向一致；仅改变视觉。
 - [x] `swirl` fragment shader 使用单纹理极坐标扭曲、内外同向差速与 procedural 内吸流纹；旋转前圆形 mask 永久裁掉 quad 四角，整数 angular frequency 消除 `atan` 左侧接缝，UUID 固定相位避免多门同步。
 - [x] `visuals.swirl.*` 为纯客户端配置；视觉页仅在选中漩涡时显示小型旋涡入口，独立三级动画页提供总开关、外圈/内圈/内吸周期 slider 与无确认 reset，修改即时生效并 debounce 持久化；外圈与内圈的新默认/重置周期均为 20 秒，已有自定义值不强制迁移。
 - [x] 三种完整 fluid（source/flowing/block/bucket）与单-fluid 8000 mB tank；标准 capability 严格限容。
@@ -118,6 +118,10 @@
 - [x] 灰/蓝 fuel 仅同维度，绿色 fuel 支持跨维度；门体与冻结水花使用开门时的 fuel RGB snapshot。
 - [x] 跨维度目标已 entity-ticking 时同步生成双门；未加载时先生成入口，首个实体抵达后再检测并生成出口。
 - [x] 跨维度 lazy 出口不使用异步任务、目标预加载 ticket、pending request、轮询或 timeout。
+- [x] 每把枪保存独立 portal duration，默认 3 秒、1 秒步进；只计算完全 OPEN 时间，开门时冻结进 entity，普通 transit 不刷新。
+- [x] Server config 仅控制玩家可选上限，默认 15 秒、合法范围 1–300 秒；旧枪期望值不改写，snapshot/runtime lazy clamp。
+- [x] 跨维度 lazy 出口完全展开时保留现有 pair-clock 同步重置，让两端获得完整 frozen duration。
+- [ ] Future：增加“完全开启后 X 秒 / 首次穿过后 X 秒”关闭策略；保持为独立 policy，不与当前 fixed-open duration 糅合。
 
 ## 7. Modular upgrades
 
@@ -131,14 +135,19 @@
 - [x] Portal 开启时冻结实体通行 capability snapshot；现存门不受之后拔插模块或开关变化影响。
 - [x] 贴面射程增幅模块：默认最多 3 个、每个 +16 blocks，基础 32、最大 80；每把枪保留期望配置值。
 - [x] 模块仓扩展模块：无配置项、占用普通槽、每个解锁 3 个末尾槽；模块区固定预留三排且隐藏未解锁槽，最多 6 个；缩容会截断非空末尾槽时拒绝拔出并提示先清空。
+- [x] 门径扩展模块：最多 1 个；安装且每枪开关启用时冻结 `EXPANDED` capability，拔出不改变现有门，燃料倍率 seam 暂为 1.0。
+- [x] 浮空侧向/Downshot 大门为 `2.2×2.2`，要求至少 85% face exposure；预测回退顺序为预测大门→预测普通→原位大门→原位普通。
+- [x] 贴面侧向/TOP/BOTTOM 大门严格 `2×2`；枚举包含命中格的四种候选，命中点优先、玩家距离 tie-break；四格须为完整碰撞面且门前零碰撞，否则走原 2×1/1×1。
+- [x] 入口与出口独立选择最大可用 geometry；loaded/lazy exit 复用同类空间规则，geometry ordinal 仅尾部追加以兼容旧实体存档。
+- [ ] Future：在门径 capability tier 上增加 3×3/智能尺寸升级；不要以模块数量直接推导尺寸。
 - [x] 一级 GUI 右上角提供“配置传送枪”和“模块仓”图标；配置页只显示已安装的可配置能力，智能距离始终显示。
-- [x] 智能距离、贴面射程、生物通行使用独立二级图标页；slider 松手后发送，生物类别开关即时发送。
+- [x] 持续时间、智能距离、贴面射程、生物通行、门径开关使用独立二级图标页；slider 松手后发送，boolean 开关即时发送；未安装的模块配置入口隐藏。
 - [x] 模块物品采用统一 16×16 深色芯片视觉；猪/僵尸/末影龙头、crosshair/tank/range-wave 与三槽扩展箭头保持分类辨识。
 - [x] 模块仓页不显示容量/射程/生物/坐标能力示意图标，仅保留克制的 `已用/可用` 文字计数。
 - [x] 模块 tooltip 默认仅提示 Shift；展开后显示淡绿功能、淡红数量上限，储液模块额外显示金色拔出警告。
 - [x] 首版无 survival recipes；模块仅加入 creative tab，可由命令取得。
 - [ ] 手工验证 shift-click、drag、拔出容量模块截断、锁枪槽、外部 inventory locator 失效关闭。
-- [x] GUI scale 4 自动验证配置入口、智能距离、贴面射程和生物通行二级页无 clipping 或背景 hover 穿透。
+- [x] GUI scale 4 自动验证配置入口、持续时间、智能距离、贴面射程、生物通行和门径开关二级页无 clipping、missing sprite 或背景 hover 穿透。
 - [ ] GUI scale 1/2 与真实模块仓手工验证无 clipping、tooltip 穿透和误操作。
 
 ## 8. Verification

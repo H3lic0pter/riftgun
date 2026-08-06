@@ -39,10 +39,20 @@ final class PortalLifecycleTest {
     @Test
     void fixedPolicyClosesAfterThreeFullSecondsOpen() {
         FixedOpenDurationClosePolicy policy = new FixedOpenDurationClosePolicy();
+        int duration = FixedOpenDurationClosePolicy.DEFAULT_OPEN_TICKS;
         assertFalse(policy.shouldClose(PortalLifecycle.Phase.OPEN,
-            FixedOpenDurationClosePolicy.OPEN_TICKS - 1));
+            duration - 1, duration));
         assertTrue(policy.shouldClose(PortalLifecycle.Phase.OPEN,
-            FixedOpenDurationClosePolicy.OPEN_TICKS));
-        assertFalse(policy.shouldClose(PortalLifecycle.Phase.OPENING, 999));
+            duration, duration));
+        assertFalse(policy.shouldClose(PortalLifecycle.Phase.OPENING, 999, duration));
+    }
+
+    @Test
+    void durationRulesClampWithoutRewritingDesiredValue() {
+        assertEquals(3, PortalOpenDuration.effectiveSeconds(3, 15));
+        assertEquals(15, PortalOpenDuration.effectiveSeconds(30, 15));
+        assertEquals(1, PortalOpenDuration.effectiveSeconds(-4, 15));
+        assertEquals(300, PortalOpenDuration.effectiveSeconds(999, 999));
+        assertEquals(60, PortalOpenDuration.ticks(3));
     }
 }

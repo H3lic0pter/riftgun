@@ -5,6 +5,7 @@ import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.service.PortalPlacementResult;
 import dev.riftgun.service.PortalServices;
+import dev.riftgun.service.PortalSupportArea;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -72,6 +73,8 @@ public final class PortalEntity extends Entity {
     private @Nullable BlockPos ticketPosition;
     private boolean ticketHeld;
     private PortalEntityAccessSnapshot entityAccess = PortalEntityAccessSnapshot.NONE;
+    private int openDurationTicks = PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
+    private PortalAperture aperture = PortalAperture.STANDARD;
     private long lifecycleStartedAt;
     private long closeStartedAt = -1L;
 
@@ -82,6 +85,7 @@ public final class PortalEntity extends Entity {
 
     public static boolean openPair(ServerPlayer player, PortalPairPlacement pair,
                                    PortalFuelProfile fuel, PortalEntityAccessSnapshot entityAccess,
+                                   int openDurationTicks, PortalAperture aperture,
                                    BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
@@ -91,9 +95,9 @@ public final class PortalEntity extends Entity {
 
         long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
-            fuel.rgb(), fuel.id().toString(), entityAccess, startedAt);
+            fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt);
         PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
-            fuel.rgb(), fuel.id().toString(), entityAccess, startedAt);
+            fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt);
         link(entry, exit);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
@@ -114,12 +118,14 @@ public final class PortalEntity extends Entity {
     public static boolean openDeferredExit(ServerPlayer player, PortalPlacement placement,
                                            PortalFuelProfile fuel, PortalExitTarget target,
                                            PortalEntityAccessSnapshot entityAccess,
+                                           int openDurationTicks, PortalAperture aperture,
                                            BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
-            fuel.rgb(), fuel.id().toString(), entityAccess, server.overworld().getGameTime());
+            fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture,
+            server.overworld().getGameTime());
         entry.deferredTarget = target;
         entry.acquireChunkTicket();
         boolean added = entryLevel.addFreshEntity(entry);
@@ -164,7 +170,8 @@ public final class PortalEntity extends Entity {
 
     private static PortalEntity create(ServerLevel level, @Nullable UUID owner,
                                        PortalPlacement placement, int fuelRgb, String fuelId,
-                                       PortalEntityAccessSnapshot entityAccess, long startedAt) {
+                                       PortalEntityAccessSnapshot entityAccess, int openDurationTicks,
+                                       PortalAperture aperture, long startedAt) {
         PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
         portal.ownerId = owner;
         portal.setPos(placement.center());
@@ -177,6 +184,8 @@ public final class PortalEntity extends Entity {
         portal.entityData.set(FUEL_RGB, fuelRgb);
         portal.entityData.set(FUEL_ID, fuelId);
         portal.entityAccess = entityAccess;
+        portal.openDurationTicks = Math.max(1, openDurationTicks);
+        portal.aperture = aperture == null ? PortalAperture.STANDARD : aperture;
         portal.lifecycleStartedAt = startedAt;
         return portal;
     }
@@ -210,6 +219,10 @@ public final class PortalEntity extends Entity {
 
     public int phaseTicks() {
         return entityData.get(PHASE_TICKS);
+    }
+
+    public int openDurationTicks() {
+        return openDurationTicks;
     }
 
     public PortalOrientation orientation() {
@@ -334,6 +347,9 @@ public final class PortalEntity extends Entity {
 
     private boolean anchorStillValid() {
         if (anchor == null || anchorFace == null || !(level() instanceof ServerLevel serverLevel)) return true;
+        if (geometry().expanded() && !PortalSupportArea.hasFullExpandedSupport(serverLevel, placement())) {
+            return false;
+        }
         if (serverLevel.getBlockState(anchor).getCollisionShape(serverLevel, anchor).isEmpty()) return false;
         return !serverLevel.getBlockCollisions(null, placement().bounds().deflate(0.002)).iterator().hasNext();
     }
@@ -490,12 +506,12 @@ public final class PortalEntity extends Entity {
     private @Nullable PortalEntity createDeferredExit(ServerLevel targetLevel, PortalExitTarget target,
                                                        List<Entity> movedEntities) {
         PortalPlacementResult result = PortalServices.PLACEMENT_RESOLVER.resolveExitPrepared(
-            targetLevel, target, placement());
+            targetLevel, target, placement(), aperture);
         if (!result.successful()) return null;
 
         long now = serverTime();
         PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
-            fuelRgb(), fuelId(), entityAccess, now);
+            fuelRgb(), fuelId(), entityAccess, openDurationTicks, aperture, now);
         exit.acquireChunkTicket();
         if (!targetLevel.addFreshEntity(exit)) {
             exit.releaseChunkTicket();
@@ -640,6 +656,11 @@ public final class PortalEntity extends Entity {
         if (tag.contains("EntityAccess")) {
             entityAccess = PortalEntityAccessSnapshot.load(tag.getCompound("EntityAccess"));
         }
+        openDurationTicks = tag.contains("OpenDurationTicks")
+            ? Math.max(1, tag.getInt("OpenDurationTicks"))
+            : PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
+        aperture = tag.contains("Aperture")
+            ? PortalAperture.byOrdinal(tag.getInt("Aperture")) : PortalAperture.STANDARD;
     }
 
     @Override
@@ -661,6 +682,8 @@ public final class PortalEntity extends Entity {
         tag.putInt("FuelRgb", entityData.get(FUEL_RGB));
         tag.putString("FuelId", entityData.get(FUEL_ID));
         tag.put("EntityAccess", entityAccess.save());
+        tag.putInt("OpenDurationTicks", openDurationTicks);
+        tag.putInt("Aperture", aperture.ordinal());
     }
 
     @Override

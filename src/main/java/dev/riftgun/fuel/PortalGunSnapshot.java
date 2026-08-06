@@ -9,6 +9,8 @@ import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.config.ServerConfig;
+import dev.riftgun.portal.PortalOpenDuration;
 
 public final class PortalGunSnapshot {
     public static CompoundTag create(ItemStack gun, int legacySmartDistance) {
@@ -30,6 +32,11 @@ public final class PortalGunSnapshot {
         tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());
         tag.putBoolean("HostileTransitEnabled", settings.hostileTransitEnabled());
         tag.putBoolean("BossTransitEnabled", settings.bossTransitEnabled());
+        int maximumDuration = ServerConfig.VALUES.maximumPortalDurationSeconds.get();
+        tag.putInt("PortalDurationSeconds", PortalOpenDuration.effectiveSeconds(
+            settings.portalDurationSeconds(), maximumDuration));
+        tag.putInt("MaximumPortalDurationSeconds", maximumDuration);
+        tag.putBoolean("ExpandedApertureEnabled", settings.expandedApertureEnabled());
         CompoundTag modules = new CompoundTag();
         for (PortalModuleKind kind : PortalModuleKind.values()) {
             modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));
