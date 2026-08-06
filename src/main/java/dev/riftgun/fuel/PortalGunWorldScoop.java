@@ -41,7 +41,7 @@ public final class PortalGunWorldScoop {
         PortalGunTank tank = new PortalGunTank(gun);
         if (profile.isEmpty()) return fail(player, "message.riftgun.scoop_invalid_fluid");
         if (!tank.canFillWorldSource(source, OVERFLOW_POLICY)) {
-            return fail(player, tank.getFluid().getAmount() >= PortalGunTank.NOMINAL_CAPACITY
+            return fail(player, tank.getFluid().getAmount() >= tank.nominalCapacity()
                 ? "message.riftgun.scoop_full" : "message.riftgun.scoop_mixed");
         }
 
@@ -54,7 +54,7 @@ public final class PortalGunWorldScoop {
             player.level().playSound(null, pos, sound, SoundSource.PLAYERS, 1.0F, 1.0F));
         player.level().gameEvent(player, GameEvent.FLUID_PICKUP, pos);
         player.displayClientMessage(Component.translatable("message.riftgun.scoop_success",
-            PortalGunTank.WORLD_SOURCE_AMOUNT, tank.getFluid().getAmount(), PortalGunTank.NOMINAL_CAPACITY), true);
+            PortalGunTank.WORLD_SOURCE_AMOUNT, tank.getFluid().getAmount(), tank.nominalCapacity()), true);
         return true;
     }
 

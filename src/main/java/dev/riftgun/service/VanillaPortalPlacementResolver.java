@@ -24,24 +24,25 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     private static final double SURFACE_OFFSET = PortalPlacement.DEPTH * 0.5 + 0.002;
 
     @Override
-    public PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode, int smartDistance,
-                                          boolean motionPrediction) {
+    public PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode,
+                                          PortalPlacementConstraints constraints) {
         EntryResult entry = switch (mode) {
             case FRONT -> EntryResult.frontRoute();
-            case SURFACE -> surface(player, false, smartDistance);
-            case SMART -> surface(player, true, smartDistance);
+            case SURFACE -> surface(player, false, constraints.smartDistance(), constraints.maximumSurfaceRange());
+            case SMART -> surface(player, true, constraints.smartDistance(), constraints.maximumSurfaceRange());
         };
-        if (entry.front) return PortalPlacementCapture.success(PortalPlacementIntent.front(motionPrediction));
+        if (entry.front) return PortalPlacementCapture.success(PortalPlacementIntent.front(constraints.motionPrediction()));
         return entry.placement == null
             ? PortalPlacementCapture.failure(entry.errorKey)
             : PortalPlacementCapture.success(PortalPlacementIntent.surface(entry.placement));
     }
 
     @Override
-    public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent) {
+    public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent,
+                                                   PortalPlacementConstraints constraints) {
         EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
             ? front(player, intent.motionPrediction())
-            : revalidateSurface(player, intent.attachedPlacement());
+            : revalidateSurface(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
         return entry.placement == null
             ? PortalEntryPlacementResult.failure(entry.errorKey)
             : PortalEntryPlacementResult.success(entry.placement);
@@ -109,8 +110,8 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return pitch >= minimumPitch;
     }
 
-    private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance) {
-        double maximumRange = PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player);
+    private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance,
+                                double maximumRange) {
         double rayRange = smart ? maximumRange : maximumRange + 16.0;
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getLookAngle().scale(rayRange));
@@ -126,7 +127,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return attached(player.serverLevel(), player, hit);
     }
 
-    private EntryResult revalidateSurface(ServerPlayer player, PortalPlacement placement) {
+    private EntryResult revalidateSurface(ServerPlayer player, PortalPlacement placement, double maximumRange) {
         if (placement == null || placement.anchor() == null || placement.anchorFace() == null) {
             return EntryResult.failure("message.riftgun.surface_invalid");
         }
@@ -135,7 +136,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         if (level.getBlockState(anchor).getCollisionShape(level, anchor).isEmpty()) {
             return EntryResult.failure("message.riftgun.surface_invalid");
         }
-        double range = PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player) + 1.5;
+        double range = maximumRange + 1.5;
         if (player.getEyePosition().distanceTo(placement.center()) > range) {
             return EntryResult.failure("message.riftgun.surface_out_of_range");
         }

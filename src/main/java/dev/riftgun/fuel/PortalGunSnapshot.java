@@ -4,16 +4,38 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
+import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.module.PortalGunModuleSettings;
+import dev.riftgun.module.PortalGunModules;
+import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.module.PortalModuleRules;
 
 public final class PortalGunSnapshot {
-    public static CompoundTag create(ItemStack gun) {
+    public static CompoundTag create(ItemStack gun, int legacySmartDistance) {
         CompoundTag tag = new CompoundTag();
+        PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, legacySmartDistance);
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, legacySmartDistance);
+        PortalModuleRules rules = PortalModuleRules.current();
         PortalGunTank tank = new PortalGunTank(gun);
         FluidStack fluid = tank.getFluid();
         tag.putBoolean("BucketMode", PortalGunMode.bucketMode(gun));
         tag.putInt("Amount", fluid.getAmount());
-        tag.putInt("Capacity", PortalGunTank.NOMINAL_CAPACITY);
-        tag.putBoolean("Overfilled", fluid.getAmount() > PortalGunTank.NOMINAL_CAPACITY);
+        tag.putInt("Capacity", tank.nominalCapacity());
+        tag.putBoolean("Overfilled", fluid.getAmount() > tank.nominalCapacity());
+        tag.putBoolean("CoordinateOverride", capabilities.coordinateOverride());
+        tag.putInt("MaximumSurfaceRange", capabilities.maximumSurfaceRange());
+        tag.putInt("SurfaceRange", capabilities.configuredSurfaceRange());
+        tag.putInt("SmartDistance", capabilities.smartDistance());
+        tag.putInt("EntityAccess", capabilities.entityAccess().mask());
+        tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());
+        tag.putBoolean("HostileTransitEnabled", settings.hostileTransitEnabled());
+        tag.putBoolean("BossTransitEnabled", settings.bossTransitEnabled());
+        CompoundTag modules = new CompoundTag();
+        for (PortalModuleKind kind : PortalModuleKind.values()) {
+            modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));
+        }
+        tag.put("Modules", modules);
+        tag.put("ModuleRules", rules.save());
         PortalFuelProfiles.resolve(fluid).ifPresent(profile -> {
             tag.putString("Fluid", BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());
             tag.putInt("Rgb", profile.rgb());

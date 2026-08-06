@@ -9,9 +9,12 @@ import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
+import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.module.PortalModuleRegistry;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -52,6 +55,25 @@ public final class ClientGameEvents {
 
     @SubscribeEvent
     public static void itemTooltip(ItemTooltipEvent event) {
+        var module = PortalModuleRegistry.find(event.getItemStack());
+        if (module.isPresent()) {
+            if (!Screen.hasShiftDown()) {
+                event.getToolTip().add(Component.translatable("tooltip.riftgun.module.hold_shift")
+                    .withStyle(ChatFormatting.GRAY));
+                return;
+            }
+            var definition = module.get();
+            event.getToolTip().add(Component.translatable(definition.descriptionKey())
+                .withStyle(style -> style.withColor(0xA9D6A2)));
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.module.limit",
+                definition.maximumCount(PortalClientState.moduleRules()))
+                .withStyle(style -> style.withColor(0xE5A39C)));
+            if (definition.kind() == PortalModuleKind.RESERVOIR_EXPANSION) {
+                event.getToolTip().add(Component.translatable("tooltip.riftgun.module.reservoir_warning")
+                    .withStyle(ChatFormatting.GOLD));
+            }
+            return;
+        }
         if (!event.getItemStack().is(RiftGun.PORTAL_GUN.get())) return;
         PortalGunTank tank = new PortalGunTank(event.getItemStack());
         var fluid = tank.getFluid();
@@ -63,9 +85,9 @@ public final class ClientGameEvents {
             int fluidRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid)
                 .map(dev.riftgun.fuel.PortalFuelProfile::rgb).orElse(0xA7A39C);
             event.getToolTip().add(Component.translatable("tooltip.riftgun.fluid",
-                fluid.getHoverName(), fluid.getAmount(), PortalGunTank.NOMINAL_CAPACITY)
+                fluid.getHoverName(), fluid.getAmount(), tank.nominalCapacity())
                 .withStyle(style -> style.withColor(fluidRgb)));
-            if (fluid.getAmount() > PortalGunTank.NOMINAL_CAPACITY) {
+            if (fluid.getAmount() > tank.nominalCapacity()) {
                 event.getToolTip().add(Component.translatable("screen.riftgun.overfilled")
                     .withStyle(ChatFormatting.GOLD));
             }

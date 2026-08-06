@@ -3,6 +3,7 @@ package dev.riftgun.client;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.PortalPlayerData;
+import dev.riftgun.module.PortalModuleRules;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -91,7 +92,28 @@ final class GuiCaptureHarness {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-visual-dropdown"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
-        if (ticks == 200) {
+        if (ticks == 192 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openGunSettingsForQa();
+        }
+        if (ticks == 198) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-gun-settings"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 202 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openSurfaceRangeSettingsForQa();
+        }
+        if (ticks == 208) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-surface-range"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 212 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openEntityTransitSettingsForQa();
+        }
+        if (ticks == 218) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-entity-transit"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 230) {
             completed = true;
             minecraft.stop();
         }
@@ -127,6 +149,26 @@ final class GuiCaptureHarness {
         envelope.putString("Kind", "Snapshot");
         envelope.putBoolean("OpenScreen", true);
         envelope.put("Data", sample.save());
+        CompoundTag gun = new CompoundTag();
+        gun.putInt("Amount", 15000);
+        gun.putInt("Capacity", 24000);
+        gun.putBoolean("CoordinateOverride", true);
+        gun.putInt("MaximumSurfaceRange", 80);
+        gun.putInt("SurfaceRange", 64);
+        gun.putInt("SmartDistance", 12);
+        gun.putBoolean("PassiveTransitEnabled", true);
+        gun.putBoolean("HostileTransitEnabled", false);
+        gun.putBoolean("BossTransitEnabled", true);
+        CompoundTag modules = new CompoundTag();
+        modules.putInt("COORDINATE_OVERRIDE", 1);
+        modules.putInt("RESERVOIR_EXPANSION", 2);
+        modules.putInt("PASSIVE_TRANSIT", 1);
+        modules.putInt("HOSTILE_TRANSIT", 1);
+        modules.putInt("BOSS_TRANSIT", 1);
+        modules.putInt("SURFACE_RANGE", 3);
+        gun.put("Modules", modules);
+        envelope.put("Gun", gun);
+        envelope.put("ModuleRules", PortalModuleRules.defaults().save());
         PortalClientState.handle(envelope);
     }
 

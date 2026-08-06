@@ -5,6 +5,7 @@ import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.service.PortalPlacementResult;
 import dev.riftgun.service.PortalServices;
+import dev.riftgun.module.PortalEntityAccessSnapshot;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +71,7 @@ public final class PortalEntity extends Entity {
     private boolean closingPair;
     private @Nullable BlockPos ticketPosition;
     private boolean ticketHeld;
+    private PortalEntityAccessSnapshot entityAccess = PortalEntityAccessSnapshot.NONE;
     private long lifecycleStartedAt;
     private long closeStartedAt = -1L;
 
@@ -79,7 +81,8 @@ public final class PortalEntity extends Entity {
     }
 
     public static boolean openPair(ServerPlayer player, PortalPairPlacement pair,
-                                   PortalFuelProfile fuel, BooleanSupplier commitFuel) {
+                                   PortalFuelProfile fuel, PortalEntityAccessSnapshot entityAccess,
+                                   BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
@@ -88,9 +91,9 @@ public final class PortalEntity extends Entity {
 
         long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
-            fuel.rgb(), fuel.id().toString(), startedAt);
+            fuel.rgb(), fuel.id().toString(), entityAccess, startedAt);
         PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
-            fuel.rgb(), fuel.id().toString(), startedAt);
+            fuel.rgb(), fuel.id().toString(), entityAccess, startedAt);
         link(entry, exit);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
@@ -110,12 +113,13 @@ public final class PortalEntity extends Entity {
 
     public static boolean openDeferredExit(ServerPlayer player, PortalPlacement placement,
                                            PortalFuelProfile fuel, PortalExitTarget target,
+                                           PortalEntityAccessSnapshot entityAccess,
                                            BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
-            fuel.rgb(), fuel.id().toString(), server.overworld().getGameTime());
+            fuel.rgb(), fuel.id().toString(), entityAccess, server.overworld().getGameTime());
         entry.deferredTarget = target;
         entry.acquireChunkTicket();
         boolean added = entryLevel.addFreshEntity(entry);
@@ -160,7 +164,7 @@ public final class PortalEntity extends Entity {
 
     private static PortalEntity create(ServerLevel level, @Nullable UUID owner,
                                        PortalPlacement placement, int fuelRgb, String fuelId,
-                                       long startedAt) {
+                                       PortalEntityAccessSnapshot entityAccess, long startedAt) {
         PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
         portal.ownerId = owner;
         portal.setPos(placement.center());
@@ -172,6 +176,7 @@ public final class PortalEntity extends Entity {
         portal.anchorFace = placement.anchorFace();
         portal.entityData.set(FUEL_RGB, fuelRgb);
         portal.entityData.set(FUEL_ID, fuelId);
+        portal.entityAccess = entityAccess;
         portal.lifecycleStartedAt = startedAt;
         return portal;
     }
@@ -360,7 +365,7 @@ public final class PortalEntity extends Entity {
 
     private boolean canTeleport(Entity entity) {
         if (entity instanceof PortalEntity || entity.isPassenger()
-            || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity)) return false;
+            || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity, entityAccess::allows)) return false;
         return PortalTriggerShape.intersects(placement(), entity.getBoundingBox());
     }
 
@@ -490,7 +495,7 @@ public final class PortalEntity extends Entity {
 
         long now = serverTime();
         PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
-            fuelRgb(), fuelId(), now);
+            fuelRgb(), fuelId(), entityAccess, now);
         exit.acquireChunkTicket();
         if (!targetLevel.addFreshEntity(exit)) {
             exit.releaseChunkTicket();
@@ -632,6 +637,9 @@ public final class PortalEntity extends Entity {
         entityData.set(GEOMETRY, tag.getInt("Geometry"));
         if (tag.contains("FuelRgb")) entityData.set(FUEL_RGB, tag.getInt("FuelRgb"));
         if (tag.contains("FuelId")) entityData.set(FUEL_ID, tag.getString("FuelId"));
+        if (tag.contains("EntityAccess")) {
+            entityAccess = PortalEntityAccessSnapshot.load(tag.getCompound("EntityAccess"));
+        }
     }
 
     @Override
@@ -652,6 +660,7 @@ public final class PortalEntity extends Entity {
         tag.putInt("Geometry", entityData.get(GEOMETRY));
         tag.putInt("FuelRgb", entityData.get(FUEL_RGB));
         tag.putString("FuelId", entityData.get(FUEL_ID));
+        tag.put("EntityAccess", entityAccess.save());
     }
 
     @Override

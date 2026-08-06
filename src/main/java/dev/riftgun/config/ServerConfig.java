@@ -24,6 +24,10 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue portalFuelMax;
         public final ModConfigSpec.IntValue dimensionalFuelMin;
         public final ModConfigSpec.IntValue dimensionalFuelMax;
+        public final ModConfigSpec.IntValue maxReservoirModules;
+        public final ModConfigSpec.IntValue reservoirModuleCapacity;
+        public final ModConfigSpec.IntValue maxSurfaceRangeModules;
+        public final ModConfigSpec.IntValue surfaceRangePerModule;
 
         private Values(ModConfigSpec.Builder builder) {
             builder.push("destinations");
@@ -42,6 +46,13 @@ public final class ServerConfig {
             portalFuelMax = builder.defineInRange("portalMaximum", 8, 1, 8000);
             dimensionalFuelMin = builder.defineInRange("dimensionalMinimum", 5, 1, 8000);
             dimensionalFuelMax = builder.defineInRange("dimensionalMaximum", 8, 1, 8000);
+            builder.pop();
+
+            builder.push("modules");
+            maxReservoirModules = builder.defineInRange("maximumReservoirModules", 2, 0, 9);
+            reservoirModuleCapacity = builder.defineInRange("reservoirCapacityPerModule", 8000, 1, 1_000_000);
+            maxSurfaceRangeModules = builder.defineInRange("maximumSurfaceRangeModules", 3, 0, 9);
+            surfaceRangePerModule = builder.defineInRange("surfaceRangePerModule", 16, 1, 1024);
             builder.pop();
         }
     }

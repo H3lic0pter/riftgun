@@ -8,6 +8,8 @@ import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalExitTarget;
+import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.module.PortalGunModuleSettings;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -38,14 +40,19 @@ public final class PortalOpenCoordinator {
             return;
         }
 
-        PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(
-            player, mode, data.settings().smartDistance(), data.settings().motionPredictionEnabled());
+        PortalGunModuleSettings.ensure(locatedGun.stack(), data.settings().smartDistance());
+        PortalGunCapabilities gunCapabilities = PortalGunCapabilities.resolve(
+            locatedGun.stack(), data.settings().smartDistance());
+        PortalPlacementConstraints constraints = new PortalPlacementConstraints(
+            gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
+            data.settings().motionPredictionEnabled());
+        PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(player, mode, constraints);
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());
             return;
         }
         PortalEntryPlacementResult entry = PortalServices.PLACEMENT_RESOLVER.resolveEntry(
-            player, capture.intent());
+            player, capture.intent(), constraints);
         if (!entry.successful()) {
             failMessage(player, entry.errorKey());
             return;
@@ -66,6 +73,7 @@ public final class PortalOpenCoordinator {
         if (PortalOpenRoute.decide(crossDimension, targetTicksEntities) == PortalOpenRoute.DEFERRED_EXIT) {
             opened = PortalEntity.openDeferredExit(
                 player, entry.placement(), fuelPlan.use().profile(), PortalExitTarget.from(destination),
+                gunCapabilities.entityAccess(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         } else {
             Destination resolved = destination;
@@ -86,6 +94,7 @@ public final class PortalOpenCoordinator {
                 return;
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),
+                gunCapabilities.entityAccess(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         }
 
@@ -99,7 +108,7 @@ public final class PortalOpenCoordinator {
         data.selectedDestinationId(destination.id());
         data.replaceDestination(destination.usedAt(player.level().getGameTime()));
         PortalDataStore.save(player, data);
-        PortalNetworking.sendSnapshot(player, false);
+        PortalNetworking.sendSnapshot(player, false, locatedGun);
         if (fromGui) PortalNetworking.sendPortalOpened(player);
     }
 

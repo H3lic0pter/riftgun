@@ -4,11 +4,13 @@ import dev.riftgun.data.PortalPlayerData;
 import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
+import dev.riftgun.module.PortalModuleRules;
 
 public final class PortalClientState {
     private static PortalPlayerData data = new PortalPlayerData();
     private static CompoundTag gunReference = new CompoundTag();
     private static CompoundTag gun = new CompoundTag();
+    private static PortalModuleRules moduleRules = PortalModuleRules.defaults();
 
     public static PortalPlayerData data() {
         return data;
@@ -21,6 +23,8 @@ public final class PortalClientState {
             gunReference = envelope.contains("GunReference")
                 ? envelope.getCompound("GunReference").copy() : new CompoundTag();
             gun = envelope.contains("Gun") ? envelope.getCompound("Gun").copy() : new CompoundTag();
+            moduleRules = envelope.contains("ModuleRules")
+                ? PortalModuleRules.load(envelope.getCompound("ModuleRules")) : PortalModuleRules.defaults();
             if (envelope.getBoolean("OpenScreen")) {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PortalConfigScreen());
             } else if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
@@ -41,6 +45,10 @@ public final class PortalClientState {
 
     public static CompoundTag gun() {
         return gun;
+    }
+
+    public static PortalModuleRules moduleRules() {
+        return moduleRules;
     }
 
     private PortalClientState() {}

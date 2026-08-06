@@ -8,10 +8,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 public interface PortalPlacementResolver {
-    PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode, int smartDistance,
-                                   boolean motionPrediction);
+    PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode,
+                                   PortalPlacementConstraints constraints);
 
-    PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent);
+    PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent,
+                                            PortalPlacementConstraints constraints);
 
     PortalPlacementResult resolveExitPrepared(ServerLevel targetLevel, PortalExitTarget target,
                                               PortalPlacement entry);
@@ -27,7 +28,16 @@ public interface PortalPlacementResolver {
 
     default PortalPlacementResult resolvePrepared(ServerPlayer player, Destination destination,
                                                   PortalPlacementIntent intent) {
-        PortalEntryPlacementResult entry = resolveEntry(player, intent);
+        PortalPlacementConstraints constraints = new PortalPlacementConstraints(
+            (int) PortalPlacementCapabilities.DEFAULT_MAXIMUM_SURFACE_RANGE,
+            PortalPlacementCapabilities.DEFAULT_MAXIMUM_SURFACE_RANGE, false);
+        return resolvePrepared(player, destination, intent, constraints);
+    }
+
+    default PortalPlacementResult resolvePrepared(ServerPlayer player, Destination destination,
+                                                  PortalPlacementIntent intent,
+                                                  PortalPlacementConstraints constraints) {
+        PortalEntryPlacementResult entry = resolveEntry(player, intent, constraints);
         return entry.successful()
             ? resolveExitPrepared(player, destination, entry.placement())
             : PortalPlacementResult.failure(entry.errorKey());
@@ -36,9 +46,11 @@ public interface PortalPlacementResolver {
     default PortalPlacementResult resolve(ServerPlayer player, Destination destination,
                                           PortalPlacementMode mode, int smartDistance,
                                           boolean motionPrediction) {
-        PortalPlacementCapture capture = capture(player, mode, smartDistance, motionPrediction);
+        PortalPlacementConstraints constraints = new PortalPlacementConstraints(
+            smartDistance, PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player), motionPrediction);
+        PortalPlacementCapture capture = capture(player, mode, constraints);
         return capture.successful()
-            ? resolvePrepared(player, destination, capture.intent())
+            ? resolvePrepared(player, destination, capture.intent(), constraints)
             : PortalPlacementResult.failure(capture.errorKey());
     }
 }

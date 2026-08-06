@@ -4,6 +4,9 @@ import dev.riftgun.client.PortalClientPayloadHandler;
 import java.util.function.Consumer;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.fuel.PortalGunSnapshot;
+import dev.riftgun.data.PortalDataStore;
+import dev.riftgun.data.PortalPlayerData;
+import dev.riftgun.module.PortalModuleRules;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -44,10 +47,12 @@ public final class PortalNetworking {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Snapshot");
         envelope.putBoolean("OpenScreen", openScreen);
-        envelope.put("Data", dev.riftgun.data.PortalDataStore.snapshot(player));
+        PortalPlayerData data = PortalDataStore.load(player);
+        envelope.put("Data", data.save());
+        envelope.put("ModuleRules", PortalModuleRules.current().save());
         if (locatedGun != null) {
             envelope.put("GunReference", locatedGun.saveReference());
-            envelope.put("Gun", PortalGunSnapshot.create(locatedGun.stack()));
+            envelope.put("Gun", PortalGunSnapshot.create(locatedGun.stack(), data.settings().smartDistance()));
         }
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }

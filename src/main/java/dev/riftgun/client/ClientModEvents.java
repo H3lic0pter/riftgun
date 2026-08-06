@@ -22,6 +22,9 @@ import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import dev.riftgun.module.PortalModuleMenus;
+import dev.riftgun.client.screen.PortalModuleScreen;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.model.DynamicFluidContainerModel;
@@ -95,6 +98,11 @@ public final class ClientModEvents {
         event.register(new DynamicFluidContainerModel.Colors(),
             PortalFluids.UNSTABLE_BUCKET.get(), PortalFluids.PORTAL_BUCKET.get(),
             PortalFluids.DIMENSIONAL_BUCKET.get());
+    }
+
+    @SubscribeEvent
+    public static void registerScreens(RegisterMenuScreensEvent event) {
+        event.register(PortalModuleMenus.MODULES.get(), PortalModuleScreen::new);
     }
 
     private static IClientFluidTypeExtensions fluidStyle(int rgb) {

@@ -6,6 +6,9 @@ import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.module.PortalModules;
+import dev.riftgun.module.PortalModuleRegistry;
+import dev.riftgun.module.PortalModuleMenus;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.service.PortalServices;
@@ -60,6 +63,8 @@ public final class RiftGun {
         ENTITY_TYPES.register(modBus);
         PARTICLE_TYPES.register(modBus);
         PortalGunComponents.COMPONENTS.register(modBus);
+        PortalModules.register(modBus);
+        PortalModuleMenus.register(modBus);
         PortalFluids.register(modBus);
         modBus.addListener(this::addCreativeTabContents);
         modBus.addListener(this::registerCapabilities);
@@ -72,6 +77,7 @@ public final class RiftGun {
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(PORTAL_GUN.get());
+            PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
             event.accept(PortalFluids.UNSTABLE_BUCKET.get());
             event.accept(PortalFluids.PORTAL_BUCKET.get());
             event.accept(PortalFluids.DIMENSIONAL_BUCKET.get());

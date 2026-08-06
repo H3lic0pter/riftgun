@@ -2,6 +2,7 @@ package dev.riftgun.network;
 
 public enum PortalAction {
     OPEN_GUI,
+    OPEN_MODULES,
     CREATE_CURRENT,
     CREATE_COORDINATE,
     EDIT_DESTINATION,
@@ -19,6 +20,7 @@ public enum PortalAction {
     MOVE_DESTINATION_GROUP,
     SET_GROUP_EXPANDED,
     SET_SETTINGS,
+    SET_GUN_MODULE_SETTINGS,
     TOGGLE_BUCKET_MODE,
     CLEAR_GUN_FLUID
 }

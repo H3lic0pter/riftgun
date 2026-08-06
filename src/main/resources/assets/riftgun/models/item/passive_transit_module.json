@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "riftgun:item/modules/passive_transit_module" }
+}

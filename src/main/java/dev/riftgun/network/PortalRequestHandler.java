@@ -10,6 +10,12 @@ import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
+import dev.riftgun.module.PortalModuleMenu;
+import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.module.PortalGunModuleSettings;
+import dev.riftgun.module.PortalGunModules;
+import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.service.CoordinateParser;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
@@ -50,13 +56,17 @@ public final class PortalRequestHandler {
             PortalNetworking.sendSnapshot(player, true, locatedGun.get());
             return;
         }
+        if (action == PortalAction.OPEN_MODULES) {
+            PortalModuleMenu.open(player, locatedGun.get());
+            return;
+        }
 
         PortalPlayerData data = PortalDataStore.load(player);
         try {
             boolean changed = switch (action) {
                 case CREATE_CURRENT -> createCurrent(player, data, request);
-                case CREATE_COORDINATE -> createCoordinate(player, data, request);
-                case EDIT_DESTINATION -> editDestination(player, data, request);
+                case CREATE_COORDINATE -> createCoordinate(player, data, request, locatedGun.get().stack());
+                case EDIT_DESTINATION -> editDestination(player, data, request, locatedGun.get().stack());
                 case DELETE_DESTINATION -> deleteDestination(data, request);
                 case TOGGLE_PIN -> togglePin(data, request);
                 case VIEW_DESTINATION -> viewDestination(data, request);
@@ -78,9 +88,11 @@ public final class PortalRequestHandler {
                 case MOVE_DESTINATION_GROUP -> moveDestinationGroup(data, request);
                 case SET_GROUP_EXPANDED -> setExpanded(data, request);
                 case SET_SETTINGS -> setSettings(player, data, request);
+                case SET_GUN_MODULE_SETTINGS -> setGunModuleSettings(
+                    data, request, locatedGun.get().stack());
                 case TOGGLE_BUCKET_MODE -> toggleBucketMode(player, locatedGun.get().stack());
                 case CLEAR_GUN_FLUID -> clearGunFluid(player, locatedGun.get().stack());
-                case OPEN_GUI -> false;
+                case OPEN_GUI, OPEN_MODULES -> false;
             };
             if (changed) {
                 PortalDataStore.save(player, data);
@@ -149,7 +161,11 @@ public final class PortalRequestHandler {
         return true;
     }
 
-    private static boolean createCoordinate(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
+    private static boolean createCoordinate(ServerPlayer player, PortalPlayerData data, CompoundTag request,
+                                            ItemStack gun) {
+        if (!PortalGunCapabilities.resolve(gun, data.settings().smartDistance()).coordinateOverride()) {
+            throw error("message.riftgun.coordinate_module_required");
+        }
         requireDestinationCapacity(data);
         requireCoordinateLengths(request);
         UUID group = validGroup(data, optionalId(request, "Group"));
@@ -168,16 +184,20 @@ public final class PortalRequestHandler {
         return true;
     }
 
-    private static boolean editDestination(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
-        requireCoordinateLengths(request);
+    private static boolean editDestination(ServerPlayer player, PortalPlayerData data, CompoundTag request,
+                                           ItemStack gun) {
         UUID destinationId = id(request, "Destination");
         Destination current = data.destination(destinationId).orElseThrow(() -> error("message.riftgun.destination_missing"));
         UUID group = validGroup(data, optionalId(request, "Group"));
         String name = destinationName(data, request.getString("Name"), false);
-        double x = CoordinateParser.parse(request.getString("X"), player.getX());
-        double y = CoordinateParser.parse(request.getString("Y"), player.getY());
-        double z = CoordinateParser.parse(request.getString("Z"), player.getZ());
-        float yaw = CoordinateParser.parseYaw(request.getString("Yaw"), player.getYRot());
+        boolean coordinateOverride = PortalGunCapabilities.resolve(
+            gun, data.settings().smartDistance()).coordinateOverride();
+        if (coordinateOverride) requireCoordinateLengths(request);
+        double x = coordinateOverride ? CoordinateParser.parse(request.getString("X"), player.getX()) : current.x();
+        double y = coordinateOverride ? CoordinateParser.parse(request.getString("Y"), player.getY()) : current.y();
+        double z = coordinateOverride ? CoordinateParser.parse(request.getString("Z"), player.getZ()) : current.z();
+        float yaw = coordinateOverride
+            ? CoordinateParser.parseYaw(request.getString("Yaw"), player.getYRot()) : current.yaw();
         data.replaceDestination(current.withDetails(name, group, current.dimension(), x, y, z, yaw));
         return true;
     }
@@ -310,12 +330,47 @@ public final class PortalRequestHandler {
             request.getBoolean("Sounds"),
             sort,
             PortalPlacementMode.parse(request.getString("PlacementMode")),
-            Math.max(1, Math.min((int) PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player),
-                request.getInt("SmartDistance"))),
+            data.settings().smartDistance(),
             request.getBoolean("MotionPrediction")
         );
         data.settings(settings);
         PortalServices.MOTION_HISTORY.setPredictionEnabled(player, settings.motionPredictionEnabled());
+        return true;
+    }
+
+    private static boolean setGunModuleSettings(PortalPlayerData data, CompoundTag request, ItemStack gun) {
+        PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, data.settings().smartDistance());
+        PortalModuleRules rules = PortalModuleRules.current();
+        String setting = request.getString("Setting");
+        switch (setting) {
+            case "SmartDistance" -> {
+                int maximum = PortalGunCapabilities.resolve(
+                    gun, data.settings().smartDistance()).configuredSurfaceRange();
+                settings = settings.withSmartDistance(Math.max(1, Math.min(maximum, request.getInt("Value"))));
+            }
+            case "SurfaceRange" -> {
+                if (PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules) <= 0) {
+                    throw error("message.riftgun.surface_range_module_required");
+                }
+                int maximum = rules.maximumSurfaceRangeFor(
+                    PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules));
+                settings = settings.withDesiredSurfaceRange(
+                    Math.max(rules.baseSurfaceRange(), Math.min(maximum, request.getInt("Value"))));
+            }
+            case "PassiveTransit", "HostileTransit", "BossTransit" -> {
+                PortalModuleKind kind = switch (setting) {
+                    case "PassiveTransit" -> PortalModuleKind.PASSIVE_TRANSIT;
+                    case "HostileTransit" -> PortalModuleKind.HOSTILE_TRANSIT;
+                    default -> PortalModuleKind.BOSS_TRANSIT;
+                };
+                if (PortalGunModules.activeCount(gun, kind, rules) <= 0) {
+                    throw error("message.riftgun.entity_module_required");
+                }
+                settings = settings.withTransit(kind, request.getBoolean("Enabled"));
+            }
+            default -> throw error("message.riftgun.invalid_request");
+        }
+        settings.save(gun);
         return true;
     }
 

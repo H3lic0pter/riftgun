@@ -119,7 +119,27 @@
 - [x] 跨维度目标已 entity-ticking 时同步生成双门；未加载时先生成入口，首个实体抵达后再检测并生成出口。
 - [x] 跨维度 lazy 出口不使用异步任务、目标预加载 ticket、pending request、轮询或 timeout。
 
-## 7. Verification
+## 7. Modular upgrades
+
+- [x] Portal Gun 使用 9 个 server-authoritative 通用模块槽；模块物品不可堆叠，枪所在 vanilla inventory 槽在容器中锁定。
+- [x] 模块定义、registry、物品容器、规则与 capability 聚合分层；内部以稳定 `ResourceLocation` ID 区分，暂不承诺 public addon API。
+- [x] 模块与模块配置保存在具体 Portal Gun ItemStack；多枪按打开 GUI 时的精确 `GunReference` 操作。
+- [x] Server config 控制储液与射程模块的最大生效数量/单模块增量；配置降低后保留物品，按槽位从左到右生效，超额槽显示红色无效遮罩。
+- [x] 坐标覆写模块：未安装时隐藏“+坐标”，编辑页的坐标/yaw 只读；名称和分组仍可修改，已有地点仍可使用。
+- [x] 储液扩展模块：默认最多 2 个、每个 +8000 mB；拔出后立即按新 nominal capacity 截断流体，bucket overflow 不区分来源。
+- [x] 温和/敌对/Boss 三类通行模块：每类最多 1 个；Boss 使用 `c:bosses`，其次 `Enemy`，其余非玩家 `LivingEntity` 归温和类。
+- [x] Portal 开启时冻结实体通行 capability snapshot；现存门不受之后拔插模块或开关变化影响。
+- [x] 贴面射程增幅模块：默认最多 3 个、每个 +16 blocks，基础 32、最大 80；每把枪保留期望配置值。
+- [x] 一级 GUI 右上角提供“配置传送枪”和“模块仓”图标；配置页只显示已安装的可配置能力，智能距离始终显示。
+- [x] 智能距离、贴面射程、生物通行使用独立二级图标页；slider 松手后发送，生物类别开关即时发送。
+- [x] 模块物品采用统一 16×16 深色芯片视觉；猪/僵尸/末影龙头与 crosshair/tank/range-wave 保持分类辨识。
+- [x] 模块 tooltip 默认仅提示 Shift；展开后显示淡绿功能、淡红数量上限，储液模块额外显示金色拔出警告。
+- [x] 首版无 survival recipes；模块仅加入 creative tab，可由命令取得。
+- [ ] 手工验证 shift-click、drag、拔出容量模块截断、锁枪槽、外部 inventory locator 失效关闭。
+- [x] GUI scale 4 自动验证配置入口、智能距离、贴面射程和生物通行二级页无 clipping 或背景 hover 穿透。
+- [ ] GUI scale 1/2 与真实模块仓手工验证无 clipping、tooltip 穿透和误操作。
+
+## 8. Verification
 
 - [x] Domain/storage/network codec/lifecycle JUnit tests。
 - [ ] 完整 access、CRUD、group、sort、safety、vehicle traversal GameTests。
@@ -142,10 +162,10 @@
 - [ ] 独立维度选择器（跨维度传送与数据路径已完成）。
 - [ ] 三种 fluid 的 recipes、worldgen 与 progression。
 - [ ] 不稳定 fluid 的失控机制。
-- [ ] Portal Gun tank 容量升级与 multi-fluid 模块。
-- [ ] Portal upgrade module 组合不同实体 eligibility policy。
+- [ ] Multi-fluid 模块；当前储液升级仍保持单流体拒绝混装。
 - [ ] Portal geometry upgrade：根据空间在 3×3、2×1、1×1 之间动态选择。
-- [ ] Portal range upgrade：通过 `PortalPlacementCapabilities` 扩展 surface raycast 射程。
+- [ ] 模块 recipes、progression 与 upgrade material。
+- [ ] 模块 public addon API；当前仅保证内部 registry seam。
 - [ ] 可选 accessory / inventory mod locator integration。
 - [ ] 原创 UI 与 portal sound set。
 - [ ] internal seam 稳定后再设计 versioned public addon API。
