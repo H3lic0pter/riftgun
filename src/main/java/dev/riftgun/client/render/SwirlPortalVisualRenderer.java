@@ -24,10 +24,8 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         float width = portal.portalWidth() * eased;
         float height = portal.portalHeight() * eased;
         boolean horizontal = portal.orientation() != PortalOrientation.VERTICAL;
-        if (horizontal) {
-            width *= SwirlVisualGeometry.HORIZONTAL_VISIBLE_SIZE;
-            height *= SwirlVisualGeometry.HORIZONTAL_VISIBLE_SIZE;
-        }
+        width *= SwirlVisualGeometry.visibleWidthScale(placement);
+        height *= SwirlVisualGeometry.visibleHeightScale(placement);
         boolean animated = SwirlVisualOptions.animationEnabled();
         float shimmer = animated ? 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F : 1.0F;
         float depth = SwirlVisualGeometry.DEPTH;
