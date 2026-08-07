@@ -7,7 +7,15 @@ import dev.riftgun.fuel.PortalGunSnapshot;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.module.PortalModuleRules;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -67,6 +75,32 @@ public final class PortalNetworking {
     public static void sendPortalOpened(ServerPlayer player) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "PortalOpened");
+        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    /** Pushes the online player roster plus persisted player-target data for the GUI list. */
+    public static void sendPlayerList(ServerPlayer player) {
+        MinecraftServer server = player.getServer();
+        if (server == null) return;
+        PortalPlayerData data = PortalDataStore.load(player);
+        ListTag entries = new ListTag();
+        List<ServerPlayer> online = new ArrayList<>(server.getPlayerList().getPlayers());
+        online.sort(Comparator.comparing(value -> value.getGameProfile().getName()));
+        for (ServerPlayer candidate : online) {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("Id", candidate.getUUID());
+            entry.putString("Name", candidate.getGameProfile().getName());
+            entry.putString("Dimension", candidate.level().dimension().location().toString());
+            entry.putBoolean("Pinned", data.isPlayerPinned(candidate.getUUID()));
+            entry.putLong("LastUse", data.playerLastUseAt(candidate.getUUID()));
+            entry.putBoolean("Self", candidate.getUUID().equals(player.getUUID()));
+            entry.putDouble("X", candidate.getX());
+            entry.putDouble("Z", candidate.getZ());
+            entries.add(entry);
+        }
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "PlayerList");
+        envelope.put("Players", entries);
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 

@@ -66,6 +66,7 @@
   "screen.riftgun.visual.swirl_description": "Opaque two-sided vortex texture",
   "screen.riftgun.visual.swirl_animation_settings": "Swirl animation",
   "screen.riftgun.visual.swirl_animation": "Animation",
+  "screen.riftgun.visual.swirl_inward_animation": "Inward flow animation",
   "screen.riftgun.visual.swirl_outer_period": "Outer period: %s s",
   "screen.riftgun.visual.swirl_inner_period": "Inner period: %s s",
   "screen.riftgun.visual.swirl_inward_period": "Inward flow: %s s",
@@ -156,6 +157,7 @@
   ,"item.riftgun.surface_range_amplifier": "Surface Range Amplifier"
   ,"item.riftgun.module_bay_expansion": "Module Bay Expansion"
   ,"item.riftgun.portal_aperture_module": "Portal Aperture Module"
+  ,"item.riftgun.player_target_module": "Player Target Module"
   ,"screen.riftgun.configure_gun": "Configure Gun"
   ,"screen.riftgun.open_modules": "Module Bay"
   ,"screen.riftgun.gun_settings_hint": "Choose a gun setting or installed capability"
@@ -174,6 +176,12 @@
   ,"screen.riftgun.passive_transit": "Passive and friendly mobs"
   ,"screen.riftgun.hostile_transit": "Hostile mobs"
   ,"screen.riftgun.boss_transit": "Boss mobs"
+  ,"screen.riftgun.player_target": "Player targets"
+  ,"screen.riftgun.player_target_hint": "Click an installed switch to allow or block it"
+  ,"screen.riftgun.player_exclude": "Exclude the targeted player"
+  ,"screen.riftgun.player_group": "Player"
+  ,"screen.riftgun.player_self": "This is you"
+  ,"screen.riftgun.player_section_tooltip": "Online players · click the refresh icon to reload the list"
   ,"screen.riftgun.coordinate_read_only": "Install a Coordinate Override Module to edit coordinates"
   ,"screen.riftgun.modules.title": "Portal Gun Modules"
   ,"screen.riftgun.modules.back": "Back to destinations"
@@ -195,9 +203,12 @@
   ,"tooltip.riftgun.module.surface_range_amplifier.description": "Extends the maximum range of surface placement."
   ,"tooltip.riftgun.module.module_bay_expansion.description": "Adds three slots to the Portal Gun module bay."
   ,"tooltip.riftgun.module.portal_aperture_module.description": "Opens a larger portal whenever placement conditions allow."
+  ,"tooltip.riftgun.module.player_target_module.description": "Adds online players as portal targets and lets you open a portal next to them."
   ,"message.riftgun.aperture_module_required": "Portal Aperture Module required"
   ,"message.riftgun.coordinate_module_required": "A Coordinate Override Module is required"
   ,"message.riftgun.surface_range_module_required": "A Surface Range Amplifier is required"
   ,"message.riftgun.entity_module_required": "The corresponding entity transit module is required"
+  ,"message.riftgun.player_target_module_required": "A Player Target Module is required"
+  ,"message.riftgun.player_target_offline": "That player is no longer online"
   ,"message.riftgun.modules.clear_expanded_slots": "Clear the module slots that would be removed first"
 }

@@ -176,6 +176,9 @@ final class GuiCaptureHarness {
         gun.putBoolean("PassiveTransitEnabled", true);
         gun.putBoolean("HostileTransitEnabled", false);
         gun.putBoolean("BossTransitEnabled", true);
+        gun.putBoolean("PlayerTargetEnabled", true);
+        gun.putBoolean("PlayerExcludeEnabled", true);
+        gun.putBoolean("PlayerTargetInstalled", true);
         CompoundTag modules = new CompoundTag();
         modules.putInt("COORDINATE_OVERRIDE", 1);
         modules.putInt("RESERVOIR_EXPANSION", 2);
@@ -184,6 +187,7 @@ final class GuiCaptureHarness {
         modules.putInt("BOSS_TRANSIT", 1);
         modules.putInt("SURFACE_RANGE", 3);
         modules.putInt("APERTURE_EXPANSION", 1);
+        modules.putInt("PLAYER_TARGET", 1);
         gun.put("Modules", modules);
         envelope.put("Gun", gun);
         envelope.put("ModuleRules", PortalModuleRules.defaults().save());

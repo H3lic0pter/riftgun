@@ -1,5 +1,6 @@
 package dev.riftgun.client.screen;
 
+import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.render.PortalVisualPreferences;
 import dev.riftgun.client.render.PortalVisualOption;
@@ -34,6 +35,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalConfigScreen extends Screen {
@@ -41,6 +43,7 @@ public final class PortalConfigScreen extends Screen {
     private static final int FOOTER_HEIGHT = 36;
     private static final int ROW_HEIGHT = 18;
     private static final int ROW_ACTION_SIZE = 14;
+    private static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
     private static final int DETAIL_LINE_HEIGHT = 31;
 
     private int panelX;
@@ -109,7 +112,13 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton hostileTransitButton;
     private @Nullable ThemedButton bossTransitButton;
     private @Nullable ThemedButton apertureToggleButton;
+    private @Nullable ThemedButton playerTargetButton;
+    private @Nullable ThemedButton playerExcludeButton;
+    private @Nullable ThemedButton playerTargetSettingsButton;
     private final List<EditBox> coordinateEditFields = new ArrayList<>();
+    private @Nullable UUID selectedPlayerId;
+    private boolean playerSectionExpanded = true;
+    private boolean playerListRequested;
     private @Nullable ThemedButton groupSelector;
     private @Nullable ThemedButton groupDropdownButton;
     private @Nullable ThemedButton motionPredictionButton;
@@ -142,10 +151,17 @@ public final class PortalConfigScreen extends Screen {
     public PortalConfigScreen() {
         super(Component.translatable("screen.riftgun.config"));
         PortalPlayerData data = PortalClientState.data();
-        viewedDestination = data.selectedDestinationId() != null
-            ? data.selectedDestinationId() : data.lastViewedDestinationId();
-        focusedRowId = viewedDestination;
-        focusedRowKind = viewedDestination == null ? null : RowKind.DESTINATION;
+        selectedPlayerId = data.selectedPlayerId();
+        if (selectedPlayerId != null) {
+            viewedDestination = null;
+            focusedRowId = selectedPlayerId;
+            focusedRowKind = RowKind.PLAYER;
+        } else {
+            viewedDestination = data.selectedDestinationId() != null
+                ? data.selectedDestinationId() : data.lastViewedDestinationId();
+            focusedRowId = viewedDestination;
+            focusedRowKind = viewedDestination == null ? null : RowKind.DESTINATION;
+        }
     }
 
     @Override
@@ -165,6 +181,9 @@ public final class PortalConfigScreen extends Screen {
         hostileTransitButton = null;
         bossTransitButton = null;
         apertureToggleButton = null;
+        playerTargetButton = null;
+        playerExcludeButton = null;
+        playerTargetSettingsButton = null;
         coordinateEditFields.clear();
         groupDropdownButton = null;
         motionPredictionButton = null;
@@ -246,6 +265,10 @@ public final class PortalConfigScreen extends Screen {
         openPortalButton = generate;
         updateOpenPortalButton();
 
+        if (playerSectionVisible() && !playerListRequested) {
+            playerListRequested = true;
+            requestPlayerListRefresh();
+        }
     }
 
     @Override
@@ -316,46 +339,58 @@ public final class PortalConfigScreen extends Screen {
                 ignored -> openVisualSettings());
         } else if (modal == Modal.GUN_SETTINGS) {
             int buttonX = x + 18;
-            portalDurationSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
+            portalDurationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                 ignored -> openGunSetting(Modal.PORTAL_DURATION_SETTINGS));
             buttonX += 31;
-            smartDistanceSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
+            smartDistanceSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                 ignored -> openGunSetting(Modal.SMART_DISTANCE_SETTINGS));
             buttonX += 31;
             if (moduleCount("SURFACE_RANGE") > 0) {
-                surfaceRangeSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
+                surfaceRangeSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                     ignored -> openGunSetting(Modal.SURFACE_RANGE_SETTINGS));
                 buttonX += 31;
             }
             if (hasEntityTransitModule()) {
-                entityTransitSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
+                entityTransitSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                     ignored -> openGunSetting(Modal.ENTITY_TRANSIT_SETTINGS));
                 buttonX += 31;
             }
+            if (moduleCount("PLAYER_TARGET") > 0) {
+                playerTargetSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                    ignored -> openGunSetting(Modal.PLAYER_TARGET_SETTINGS));
+                buttonX += 31;
+            }
             if (moduleCount("APERTURE_EXPANSION") > 0) {
-                apertureSettingsButton = button(buttonX, y + 43, 26, 26, Component.empty(), false,
+                apertureSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                     ignored -> openGunSetting(Modal.APERTURE_SETTINGS));
             }
         } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
             int maximum = Math.max(1, PortalClientState.gun().getInt("MaximumPortalDurationSeconds"));
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 51, fieldWidth, 18,
+            addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
                 "PortalDuration", "screen.riftgun.portal_duration_value", 1, maximum,
                 PortalClientState.gun().getInt("PortalDurationSeconds")));
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 51, fieldWidth, 18,
+            addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
                 "SmartDistance", "screen.riftgun.smart_distance_value", 1,
                 Math.max(1, PortalClientState.gun().getInt("SurfaceRange")),
                 PortalClientState.gun().getInt("SmartDistance")));
         } else if (modal == Modal.SURFACE_RANGE_SETTINGS) {
             int minimum = PortalClientState.moduleRules().baseSurfaceRange();
             int maximum = Math.max(minimum, PortalClientState.gun().getInt("MaximumSurfaceRange"));
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 51, fieldWidth, 18,
+            addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
                 "SurfaceRange", "screen.riftgun.surface_range_value", minimum, maximum,
                 PortalClientState.gun().getInt("SurfaceRange")));
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
-            addEntityTransitButtons(x + 18, y + 48);
+            addEntityTransitButtons(x + 18, y + 45);
+        } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
+            int buttonX = x + 18;
+            playerTargetButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                ignored -> toggleGunBoolean("PlayerTarget", "PlayerTargetEnabled"));
+            buttonX += 31;
+            playerExcludeButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                ignored -> toggleGunBoolean("PlayerExclude", "PlayerExcludeEnabled"));
         } else if (modal == Modal.APERTURE_SETTINGS) {
-            apertureToggleButton = button(x + 18, y + 48, 30, 30, Component.empty(), false,
+            apertureToggleButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("ExpandedAperture", "ExpandedApertureEnabled"));
         } else if (modal == Modal.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
@@ -409,17 +444,17 @@ public final class PortalConfigScreen extends Screen {
     private void addEntityTransitButtons(int x, int y) {
         int buttonX = x;
         if (moduleCount("PASSIVE_TRANSIT") > 0) {
-            passiveTransitButton = button(buttonX, y, 30, 30, Component.empty(), false,
+            passiveTransitButton = button(buttonX, y, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("PassiveTransit", "PassiveTransitEnabled"));
-            buttonX += 35;
+            buttonX += 31;
         }
         if (moduleCount("HOSTILE_TRANSIT") > 0) {
-            hostileTransitButton = button(buttonX, y, 30, 30, Component.empty(), false,
+            hostileTransitButton = button(buttonX, y, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("HostileTransit", "HostileTransitEnabled"));
-            buttonX += 35;
+            buttonX += 31;
         }
         if (moduleCount("BOSS_TRANSIT") > 0) {
-            bossTransitButton = button(buttonX, y, 30, 30, Component.empty(), false,
+            bossTransitButton = button(buttonX, y, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("BossTransit", "BossTransitEnabled"));
         }
     }
@@ -439,7 +474,7 @@ public final class PortalConfigScreen extends Screen {
         visualSelectorY = y;
         visualSelectorWidth = width;
         visualSelector = button(x, y, width - 22, 18, visualName(PortalVisualPreferences.selected()),
-            false, ignored -> {});
+            false, ignored -> openVisualDropdown());
         visualDropdownButton = button(x + width - 20, y, 20, 18, Component.empty(), false,
             ignored -> openVisualDropdown());
     }
@@ -468,6 +503,7 @@ public final class PortalConfigScreen extends Screen {
                         refreshVisualOptionWidgets();
                         markVisualSettingsDirty();
                     });
+                widget.active = toggle.active();
                 addVisualWidget(widget, offset);
                 visualToggleWidgets.add(new VisualToggleBinding(widget, toggle));
             } else if (option instanceof PortalVisualOption.Range range) {
@@ -498,6 +534,7 @@ public final class PortalConfigScreen extends Screen {
     private void refreshVisualOptionWidgets() {
         for (VisualToggleBinding binding : visualToggleWidgets) {
             binding.widget().setMessage(visualToggleLabel(binding.option()));
+            binding.widget().active = binding.option().active();
         }
         for (VisualWidgetBinding binding : visualOptionWidgets) {
             if (binding.widget() instanceof VisualPeriodSlider slider) slider.refreshFromOption();
@@ -580,6 +617,7 @@ public final class PortalConfigScreen extends Screen {
         if (groupDropdownOpen) renderGroupDropdown(graphics, mouseX, mouseY);
         if (visualDropdownOpen) renderVisualDropdown(graphics, mouseX, mouseY);
         renderPlacementIcons(graphics, mouseX, mouseY);
+        renderPlacementTooltips(graphics, mouseX, mouseY);
     }
 
     private void renderRows(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -618,7 +656,8 @@ public final class PortalConfigScreen extends Screen {
                 && mouseY >= y && mouseY < y + ROW_HEIGHT;
             boolean focused = listFocused && row.id().equals(focusedRowId) && row.kind() == focusedRowKind;
             boolean selected = row.kind() == RowKind.DESTINATION
-                && row.id().equals(PortalClientState.data().selectedDestinationId());
+                && row.id().equals(PortalClientState.data().selectedDestinationId())
+                || row.kind() == RowKind.PLAYER && row.id().equals(selectedPlayerId);
             hitRows.add(new Row(row.kind(), row.id(), y));
             if (row.kind() == RowKind.GROUP) visibleGroupRows.put(row.id(), y);
             if (selected) graphics.fill(panelX + 4, y, panelX + listWidth - 4, y + ROW_HEIGHT, 0x663F7180);
@@ -626,7 +665,11 @@ public final class PortalConfigScreen extends Screen {
                 y + ROW_HEIGHT, 0x5530333A);
             if (focused) graphics.renderOutline(panelX + 4, y, listWidth - 8, ROW_HEIGHT, PortalTheme.BORDER_FOCUS);
             if (row.kind() == RowKind.GROUP) renderGroupRow(graphics, row.id(), y, hover, focused);
-            else renderDestinationRow(graphics, row.id(), y, hover, focused, mouseX, mouseY);
+            else if (row.kind() == RowKind.PLAYER_SECTION) {
+                renderPlayerSectionRow(graphics, row.id(), y, hover, focused);
+            } else if (row.kind() == RowKind.PLAYER) {
+                renderPlayerRow(graphics, row.id(), y, hover, focused, mouseX, mouseY);
+            } else renderDestinationRow(graphics, row.id(), y, hover, focused, mouseX, mouseY);
             if (destinationDragActive && row.kind() == RowKind.DESTINATION
                 && row.id().equals(draggingDestination)) {
                 graphics.fill(panelX + 4, y, panelX + listWidth - 4, y + ROW_HEIGHT, 0x55101115);
@@ -671,6 +714,69 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
+    private void renderPlayerSectionRow(GuiGraphics graphics, UUID id, int y, boolean hover, boolean focused) {
+        boolean expanded = playerSectionExpanded;
+        drawDisclosure(graphics, panelX + 17, y + 6, expanded);
+        int right = panelX + listWidth - 6;
+        boolean actions = hover || focused;
+        String sortLabel = playerSortLabel();
+        String title = "Player · " + sortLabel;
+        if (actions) {
+            int refreshRight = right - 11;
+            drawPlayerRefreshIcon(graphics, refreshRight - 16, y + 5);
+            graphics.drawString(font, trim(title, listWidth - 34 - 36), panelX + 28, y + 5,
+                PortalTheme.ICE, false);
+        } else {
+            long count = sortedPlayers("").size();
+            String countText = Long.toString(count);
+            graphics.drawString(font, trim(title, listWidth - 34 - 20), panelX + 28, y + 5,
+                PortalTheme.ICE, false);
+            graphics.drawString(font, countText, right - font.width(countText), y + 5,
+                PortalTheme.TEXT_MUTED, false);
+        }
+        if (hover) graphics.renderTooltip(font, Component.translatable("screen.riftgun.player_section_tooltip"),
+            panelX + 20, y + 2);
+    }
+
+    private static String playerSortLabel() {
+        return switch (PortalClientState.data().settings().sort()) {
+            case RECENT -> "Recent";
+            case NAME -> "Name";
+            case CREATED -> "Created";
+            case DISTANCE -> "Distance";
+        };
+    }
+
+    private void renderPlayerRow(GuiGraphics graphics, UUID id, int y, boolean hover, boolean focused,
+                                 int mouseX, int mouseY) {
+        PlayerListState.PlayerEntry entry = PlayerListState.player(id);
+        if (entry == null) return;
+        int right = panelX + listWidth - 6;
+        int starLeft = right - ROW_ACTION_SIZE - 2;
+        boolean selected = id.equals(selectedPlayerId);
+        String name = entry.name();
+        if (!entry.self()) {
+            String localDimension = minecraft != null && minecraft.player != null
+                ? minecraft.player.level().dimension().location().toString() : "";
+            if (!entry.dimension().equals(localDimension)) {
+                String dim = entry.dimension().contains(":")
+                    ? entry.dimension().substring(entry.dimension().lastIndexOf(':') + 1) : entry.dimension();
+                name = name + " (" + dim + ")";
+            }
+        }
+        int nameX = panelX + 23;
+        int nameWidth = starLeft - nameX - 12;
+        String shown = trim(name, nameWidth);
+        drawDestinationDragDot(graphics, panelX + 12, y + 8,
+            hover || focused ? PortalTheme.TEXT_MUTED : 0xFF50535A);
+        graphics.drawString(font, shown, nameX, y + 5,
+            selected ? PortalTheme.ICE : (entry.self() ? PortalTheme.TEXT_MUTED : PortalTheme.TEXT), false);
+        drawStar(graphics, starLeft + 4, y + 5, entry.pinned());
+        if (hover && mouseX >= nameX && mouseX < starLeft && font.width(name) > nameWidth) {
+            graphics.renderTooltip(font, Component.literal(name), mouseX, mouseY);
+        }
+    }
+
     private void renderDestinationRow(GuiGraphics graphics, UUID id, int y, boolean hover, boolean focused,
                                       int mouseX, int mouseY) {
         Destination destination = PortalClientState.data().destination(id).orElse(null);
@@ -712,7 +818,38 @@ public final class PortalConfigScreen extends Screen {
             PortalTheme.TEXT_MUTED, false);
         y += 19;
         Destination destination = viewed();
-        if (destination == null) {
+        if (selectedPlayerId != null) {
+            PlayerListState.PlayerEntry entry = PlayerListState.player(selectedPlayerId);
+            if (entry == null) {
+                selectedPlayerId = null;
+            } else {
+                int textWidth = panelWidth - listWidth - 20;
+                y = detailField(graphics, "screen.riftgun.name", entry.name(), x, y, textWidth);
+                y = detailField(graphics, "screen.riftgun.group", Component.translatable("screen.riftgun.player_group"),
+                    x, y, textWidth);
+                String dimension = friendlyDimension(entry.dimension().substring(
+                    entry.dimension().lastIndexOf(':') + 1));
+                int dimensionY = y;
+                y = detailField(graphics, "screen.riftgun.dimension", dimension, x, y, textWidth);
+                if (mouseX >= x && mouseX < right - 6
+                    && mouseY >= dimensionY + 9 && mouseY < dimensionY + 23) {
+                    graphics.renderTooltip(font, Component.literal(entry.dimension()), mouseX, mouseY);
+                }
+                if (minecraft != null && minecraft.player != null
+                    && !entry.dimension().equals(minecraft.player.level().dimension().location().toString())) {
+                    graphics.drawString(font, Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
+                        x, y, PortalTheme.WARNING, false);
+                    y += 18;
+                }
+                y = detailField(graphics, "screen.riftgun.coordinates", "—", x, y, textWidth);
+                if (entry.self()) {
+                    graphics.drawString(font, Component.translatable("screen.riftgun.player_self"),
+                        x, y, PortalTheme.TEXT_MUTED, false);
+                    y += 18;
+                }
+                detailEditY = -1;
+            }
+        } else if (destination == null) {
             graphics.drawString(font, Component.translatable("screen.riftgun.empty_details"), x, y,
                 PortalTheme.TEXT_MUTED, false);
             y += 22;
@@ -758,6 +895,12 @@ public final class PortalConfigScreen extends Screen {
         return y + DETAIL_LINE_HEIGHT;
     }
 
+    private int detailField(GuiGraphics graphics, String labelKey, Component value, int x, int y, int width) {
+        label(graphics, labelKey, x, y);
+        graphics.drawString(font, trim(value.getString(), width), x, y + 11, PortalTheme.TEXT, false);
+        return y + DETAIL_LINE_HEIGHT;
+    }
+
     private void renderModal(GuiGraphics graphics) {
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xB8101115);
         ModalBox box = modalBox();
@@ -788,26 +931,29 @@ public final class PortalConfigScreen extends Screen {
             label(graphics, "screen.riftgun.name", x, y + 32);
         } else if (modal == Modal.GUN_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.gun_settings_hint"),
-                x, y + 29, PortalTheme.TEXT_MUTED, false);
+                x, y + 30, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
-            label(graphics, "screen.riftgun.portal_duration", x, y + 34);
+            label(graphics, "screen.riftgun.portal_duration", x, y + 30);
             graphics.drawString(font, Component.translatable("screen.riftgun.portal_duration_hint"),
-                x, y + 76, PortalTheme.TEXT_MUTED, false);
+                x, y + 69, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
-            label(graphics, "screen.riftgun.smart_distance", x, y + 34);
+            label(graphics, "screen.riftgun.smart_distance", x, y + 30);
             graphics.drawString(font, Component.translatable("screen.riftgun.maximum_surface_range",
-                Math.max(1, PortalClientState.gun().getInt("SurfaceRange"))), x, y + 76,
+                Math.max(1, PortalClientState.gun().getInt("SurfaceRange"))), x, y + 69,
                 PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.SURFACE_RANGE_SETTINGS) {
-            label(graphics, "screen.riftgun.surface_range", x, y + 34);
+            label(graphics, "screen.riftgun.surface_range", x, y + 30);
             graphics.drawString(font, Component.translatable("screen.riftgun.surface_range_modules",
-                moduleCount("SURFACE_RANGE")), x, y + 76, PortalTheme.TEXT_MUTED, false);
+                moduleCount("SURFACE_RANGE")), x, y + 69, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.entity_transit_hint"),
-                x, y + 32, PortalTheme.TEXT_MUTED, false);
+                x, y + 30, PortalTheme.TEXT_MUTED, false);
+        } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
+            graphics.drawString(font, Component.translatable("screen.riftgun.player_target_hint"),
+                x, y + 30, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.APERTURE_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.aperture_hint"),
-                x, y + 32, PortalTheme.TEXT_MUTED, false);
+                x, y + 30, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.VISUAL_SETTINGS) {
             label(graphics, "screen.riftgun.portal_visual", x, y + 34);
         } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
@@ -857,11 +1003,78 @@ public final class PortalConfigScreen extends Screen {
             drawDownIcon(graphics, groupDropdownButton.getX() + 6, groupDropdownButton.getY() + 7);
         }
         if (modal == Modal.NONE && placementModeButton != null) {
-            renderMainModuleIcons(graphics, mouseX, mouseY);
+            renderMainModuleIcons(graphics);
             if (motionPredictionButton != null) {
                 boolean enabled = PortalClientState.data().settings().motionPredictionEnabled();
                 drawPredictionIcon(graphics, motionPredictionButton.getX() + 5,
                     motionPredictionButton.getY() + 5, enabled ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
+            }
+            int x = placementModeButton.getX() + 5;
+            int y = placementModeButton.getY() + 5;
+            drawPlacementModeIcon(graphics, x, y, PortalClientState.data().settings().placementMode());
+            renderGunControls(graphics, mouseX, mouseY);
+        }
+        if (modal == Modal.SETTINGS) {
+            if (visualSettingsButton != null) {
+                drawEyeIcon(graphics, visualSettingsButton.getX() + 5, visualSettingsButton.getY() + 5);
+            }
+        }
+        if (modal == Modal.GUN_SETTINGS) {
+            renderGunSettingEntries(graphics);
+            renderBackButton(graphics, gunSettingsBackButton);
+        }
+        if (modal.isGunSettingPage()) {
+            renderBackButton(graphics, moduleSettingBackButton);
+            if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
+                renderEntityTransitButtons(graphics);
+            } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
+                renderPlayerTargetButtons(graphics);
+            } else if (modal == Modal.APERTURE_SETTINGS && apertureToggleButton != null) {
+                boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
+                drawApertureIcon(graphics, apertureToggleButton.getX() + 7,
+                    apertureToggleButton.getY() + 7, enabled);
+            }
+        }
+        if (modal == Modal.VISUAL_SETTINGS) {
+            if (visualBackButton != null) {
+                drawBackIcon(graphics, visualBackButton.getX() + 7, visualBackButton.getY() + 6);
+            }
+            if (visualDropdownButton != null) {
+                drawDownIcon(graphics, visualDropdownButton.getX() + 6, visualDropdownButton.getY() + 7);
+            }
+            if (!visualDropdownOpen && visualAnimationSettingsButton != null) {
+                drawSwirlIcon(graphics, visualAnimationSettingsButton.getX() + 5,
+                    visualAnimationSettingsButton.getY() + 5, PortalTheme.ICE);
+            }
+        }
+        if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+            if (swirlAnimationBackButton != null) {
+                drawBackIcon(graphics, swirlAnimationBackButton.getX() + 7,
+                    swirlAnimationBackButton.getY() + 6);
+            }
+            if (visualResetButton != null && visualResetButton.visible) {
+                drawResetIcon(graphics, visualResetButton.getX() + 5, visualResetButton.getY() + 4,
+                    visualResetButton.active ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
+            }
+        }
+    }
+
+    /** Rendered last so icons never cover tooltip text. */
+    private void renderPlacementTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (modal.isDestinationForm() && groupDropdownButton != null) {
+            // no tooltip
+        }
+        if (modal == Modal.NONE && placementModeButton != null) {
+            if (gunSettingsButton != null && gunSettingsButton.isHovered()) {
+                graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.configure_gun"), mouseX, mouseY);
+            }
+            if (moduleBayButton != null && moduleBayButton.isHovered()) {
+                graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.open_modules"), mouseX, mouseY);
+            }
+            if (motionPredictionButton != null) {
+                boolean enabled = PortalClientState.data().settings().motionPredictionEnabled();
                 if (motionPredictionButton.isHovered()) {
                     graphics.renderComponentTooltip(font, List.of(
                         Component.translatable("screen.riftgun.motion_prediction_tooltip",
@@ -870,9 +1083,6 @@ public final class PortalConfigScreen extends Screen {
                     ), mouseX, mouseY);
                 }
             }
-            int x = placementModeButton.getX() + 5;
-            int y = placementModeButton.getY() + 5;
-            drawPlacementModeIcon(graphics, x, y, PortalClientState.data().settings().placementMode());
             if (placementModeButton.isHovered()) {
                 graphics.renderTooltip(font, Component.translatable("screen.riftgun.placement_mode_tooltip",
                     Component.translatable("screen.riftgun.placement_mode."
@@ -883,64 +1093,54 @@ public final class PortalConfigScreen extends Screen {
                 graphics.renderTooltip(font, Component.translatable("screen.riftgun.open_front_tooltip"),
                     mouseX, mouseY);
             }
-            renderGunControls(graphics, mouseX, mouseY);
+            renderGunControlTooltips(graphics, mouseX, mouseY);
         }
         if (modal == Modal.SETTINGS) {
-            if (visualSettingsButton != null) {
-                drawEyeIcon(graphics, visualSettingsButton.getX() + 5, visualSettingsButton.getY() + 5);
-                if (visualSettingsButton.isHovered()) graphics.renderTooltip(font,
+            if (visualSettingsButton != null && visualSettingsButton.isHovered()) {
+                graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.visual_settings"), mouseX, mouseY);
             }
         }
         if (modal == Modal.GUN_SETTINGS) {
-            renderGunSettingEntries(graphics, mouseX, mouseY);
-            renderBackButton(graphics, gunSettingsBackButton, mouseX, mouseY,
+            renderGunSettingTooltips(graphics, mouseX, mouseY);
+            renderBackButtonTooltip(graphics, gunSettingsBackButton, mouseX, mouseY,
                 "screen.riftgun.back");
         }
         if (modal.isGunSettingPage()) {
-            renderBackButton(graphics, moduleSettingBackButton, mouseX, mouseY,
+            renderBackButtonTooltip(graphics, moduleSettingBackButton, mouseX, mouseY,
                 "screen.riftgun.back_to_gun_settings");
             if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
-                renderEntityTransitButtons(graphics, mouseX, mouseY);
+                renderEntityTransitTooltips(graphics, mouseX, mouseY);
+            } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
+                renderPlayerTargetTooltips(graphics, mouseX, mouseY);
             } else if (modal == Modal.APERTURE_SETTINGS && apertureToggleButton != null) {
                 boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
-                drawApertureIcon(graphics, apertureToggleButton.getX() + 7,
-                    apertureToggleButton.getY() + 7, enabled);
                 entityTooltip(graphics, apertureToggleButton,
                     "screen.riftgun.aperture", enabled, mouseX, mouseY);
             }
         }
         if (modal == Modal.VISUAL_SETTINGS) {
-            if (visualBackButton != null) {
-                drawBackIcon(graphics, visualBackButton.getX() + 7, visualBackButton.getY() + 6);
-                if (visualBackButton.isHovered()) graphics.renderTooltip(font,
+            if (visualBackButton != null && visualBackButton.isHovered()) {
+                graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.back_to_settings"), mouseX, mouseY);
-            }
-            if (visualDropdownButton != null) {
-                drawDownIcon(graphics, visualDropdownButton.getX() + 6, visualDropdownButton.getY() + 7);
             }
             if (!visualDropdownOpen && visualSelector != null && visualSelector.isHovered()) {
                 graphics.renderTooltip(font, Component.translatable(
                     PortalVisualPreferences.selected().descriptionKey()), mouseX, mouseY);
             }
-            if (!visualDropdownOpen && visualAnimationSettingsButton != null) {
-                drawSwirlIcon(graphics, visualAnimationSettingsButton.getX() + 5,
-                    visualAnimationSettingsButton.getY() + 5, PortalTheme.ICE);
-                if (visualAnimationSettingsButton.isHovered()) graphics.renderTooltip(font,
+            if (!visualDropdownOpen && visualAnimationSettingsButton != null
+                && visualAnimationSettingsButton.isHovered()) {
+                graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.visual.swirl_animation_settings"), mouseX, mouseY);
             }
         }
         if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
-            if (swirlAnimationBackButton != null) {
-                drawBackIcon(graphics, swirlAnimationBackButton.getX() + 7,
-                    swirlAnimationBackButton.getY() + 6);
-                if (swirlAnimationBackButton.isHovered()) graphics.renderTooltip(font,
+            if (swirlAnimationBackButton != null && swirlAnimationBackButton.isHovered()) {
+                graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.visual.back_to_visuals"), mouseX, mouseY);
             }
-            if (visualResetButton != null && visualResetButton.visible) {
-                drawResetIcon(graphics, visualResetButton.getX() + 5, visualResetButton.getY() + 4,
-                    visualResetButton.active ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
-                if (visualResetButton.isHovered()) graphics.renderTooltip(font,
+            if (visualResetButton != null && visualResetButton.visible && visualResetButton.isHovered()) {
+                graphics.renderTooltip(font,
                     Component.translatable(PortalVisualPreferences.selected().options().resetTooltipKey()),
                     mouseX, mouseY);
             }
@@ -956,73 +1156,114 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
-    private void renderMainModuleIcons(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderMainModuleIcons(GuiGraphics graphics) {
         if (gunSettingsButton != null) {
             drawGunSettingsIcon(graphics, gunSettingsButton.getX() + 5, gunSettingsButton.getY() + 4,
                 PortalTheme.ICE);
-            if (gunSettingsButton.isHovered()) graphics.renderTooltip(font,
-                Component.translatable("screen.riftgun.configure_gun"), mouseX, mouseY);
         }
         if (moduleBayButton != null) {
             drawModuleBayIcon(graphics, moduleBayButton.getX() + 4, moduleBayButton.getY() + 4,
                 PortalTheme.WARNING);
-            if (moduleBayButton.isHovered()) graphics.renderTooltip(font,
-                Component.translatable("screen.riftgun.open_modules"), mouseX, mouseY);
         }
     }
 
-    private void renderGunSettingEntries(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderGunSettingEntries(GuiGraphics graphics) {
         if (portalDurationSettingsButton != null) {
             drawPortalDurationIcon(graphics, portalDurationSettingsButton.getX() + 7,
                 portalDurationSettingsButton.getY() + 7);
-            settingTooltip(graphics, portalDurationSettingsButton,
-                "screen.riftgun.portal_duration", mouseX, mouseY);
         }
         if (smartDistanceSettingsButton != null) {
             drawSmartDistanceIcon(graphics, smartDistanceSettingsButton.getX() + 7,
                 smartDistanceSettingsButton.getY() + 7, PortalTheme.ICE);
-            settingTooltip(graphics, smartDistanceSettingsButton,
-                "screen.riftgun.smart_distance", mouseX, mouseY);
         }
         if (surfaceRangeSettingsButton != null) {
             drawSurfaceRangeIcon(graphics, surfaceRangeSettingsButton.getX() + 7,
                 surfaceRangeSettingsButton.getY() + 8, PortalTheme.WARNING);
-            settingTooltip(graphics, surfaceRangeSettingsButton,
-                "screen.riftgun.surface_range", mouseX, mouseY);
         }
         if (entityTransitSettingsButton != null) {
             drawEntityAccessIcon(graphics, entityTransitSettingsButton.getX() + 7,
                 entityTransitSettingsButton.getY() + 7, PortalTheme.PORTAL);
-            settingTooltip(graphics, entityTransitSettingsButton,
-                "screen.riftgun.entity_transit", mouseX, mouseY);
+        }
+        if (playerTargetSettingsButton != null) {
+            drawPlayerTargetIcon(graphics, playerTargetSettingsButton.getX() + 6,
+                playerTargetSettingsButton.getY() + 6, PortalTheme.ICE);
         }
         if (apertureSettingsButton != null) {
             boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
             drawApertureIcon(graphics, apertureSettingsButton.getX() + 7,
                 apertureSettingsButton.getY() + 7, enabled);
-            settingTooltip(graphics, apertureSettingsButton,
-                "screen.riftgun.aperture", mouseX, mouseY);
         }
     }
 
-    private void renderEntityTransitButtons(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderGunSettingTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
+        settingTooltip(graphics, portalDurationSettingsButton,
+            "screen.riftgun.portal_duration", mouseX, mouseY);
+        settingTooltip(graphics, smartDistanceSettingsButton,
+            "screen.riftgun.smart_distance", mouseX, mouseY);
+        settingTooltip(graphics, surfaceRangeSettingsButton,
+            "screen.riftgun.surface_range", mouseX, mouseY);
+        settingTooltip(graphics, entityTransitSettingsButton,
+            "screen.riftgun.entity_transit", mouseX, mouseY);
+        settingTooltip(graphics, playerTargetSettingsButton,
+            "screen.riftgun.player_target", mouseX, mouseY);
+        settingTooltip(graphics, apertureSettingsButton,
+            "screen.riftgun.aperture", mouseX, mouseY);
+    }
+
+    private void renderEntityTransitButtons(GuiGraphics graphics) {
         if (passiveTransitButton != null) {
             boolean enabled = PortalClientState.gun().getBoolean("PassiveTransitEnabled");
-            drawPigIcon(graphics, passiveTransitButton.getX() + 7, passiveTransitButton.getY() + 8,
+            drawPigIcon(graphics, passiveTransitButton.getX() + 6, passiveTransitButton.getY() + 7,
                 enabled ? 0xFFA7D79B : PortalTheme.TEXT_MUTED);
+        }
+        if (hostileTransitButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("HostileTransitEnabled");
+            drawZombieIcon(graphics, hostileTransitButton.getX() + 7, hostileTransitButton.getY() + 7,
+                enabled ? 0xFFD98264 : PortalTheme.TEXT_MUTED);
+        }
+        if (bossTransitButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("BossTransitEnabled");
+            drawDragonIcon(graphics, bossTransitButton.getX() + 6, bossTransitButton.getY() + 7,
+                enabled ? 0xFFB38AD8 : PortalTheme.TEXT_MUTED);
+        }
+    }
+
+    private void renderEntityTransitTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (passiveTransitButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("PassiveTransitEnabled");
             entityTooltip(graphics, passiveTransitButton, "screen.riftgun.passive_transit", enabled, mouseX, mouseY);
         }
         if (hostileTransitButton != null) {
             boolean enabled = PortalClientState.gun().getBoolean("HostileTransitEnabled");
-            drawZombieIcon(graphics, hostileTransitButton.getX() + 8, hostileTransitButton.getY() + 7,
-                enabled ? 0xFFD98264 : PortalTheme.TEXT_MUTED);
             entityTooltip(graphics, hostileTransitButton, "screen.riftgun.hostile_transit", enabled, mouseX, mouseY);
         }
         if (bossTransitButton != null) {
             boolean enabled = PortalClientState.gun().getBoolean("BossTransitEnabled");
-            drawDragonIcon(graphics, bossTransitButton.getX() + 6, bossTransitButton.getY() + 8,
-                enabled ? 0xFFB38AD8 : PortalTheme.TEXT_MUTED);
             entityTooltip(graphics, bossTransitButton, "screen.riftgun.boss_transit", enabled, mouseX, mouseY);
+        }
+    }
+
+    private void renderPlayerTargetButtons(GuiGraphics graphics) {
+        if (playerTargetButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("PlayerTargetEnabled");
+            drawPlayerTargetIcon(graphics, playerTargetButton.getX() + 7, playerTargetButton.getY() + 7,
+                enabled ? 0xFF5CC8D9 : PortalTheme.TEXT_MUTED);
+        }
+        if (playerExcludeButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("PlayerExcludeEnabled");
+            drawPlayerExcludeIcon(graphics, playerExcludeButton.getX() + 7, playerExcludeButton.getY() + 7,
+                enabled ? 0xFF5CC8D9 : PortalTheme.TEXT_MUTED);
+        }
+    }
+
+    private void renderPlayerTargetTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (playerTargetButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("PlayerTargetEnabled");
+            entityTooltip(graphics, playerTargetButton, "screen.riftgun.player_target", enabled, mouseX, mouseY);
+        }
+        if (playerExcludeButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("PlayerExcludeEnabled");
+            entityTooltip(graphics, playerExcludeButton, "screen.riftgun.player_exclude", enabled, mouseX, mouseY);
         }
     }
 
@@ -1041,11 +1282,14 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
-    private void renderBackButton(GuiGraphics graphics, @Nullable ThemedButton button,
-                                  int mouseX, int mouseY, String tooltipKey) {
+    private void renderBackButton(GuiGraphics graphics, @Nullable ThemedButton button) {
         if (button == null) return;
         drawBackIcon(graphics, button.getX() + 7, button.getY() + 6);
-        if (button.isHovered()) graphics.renderTooltip(font,
+    }
+
+    private void renderBackButtonTooltip(GuiGraphics graphics, @Nullable ThemedButton button,
+                                         int mouseX, int mouseY, String tooltipKey) {
+        if (button != null && button.isHovered()) graphics.renderTooltip(font,
             Component.translatable(tooltipKey), mouseX, mouseY);
     }
 
@@ -1057,16 +1301,22 @@ public final class PortalConfigScreen extends Screen {
             int iconColor = PortalClientState.gun().getBoolean("BucketMode")
                 ? PortalTheme.ICE : PortalTheme.TEXT_MUTED;
             drawBucketIcon(graphics, x, y, iconColor);
-            if (bucketModeButton.isHovered()) {
-                graphics.renderTooltip(font, Component.translatable("screen.riftgun.bucket_mode_simple",
-                    Component.translatable(PortalClientState.gun().getBoolean("BucketMode")
-                        ? "screen.riftgun.on" : "screen.riftgun.off")), mouseX, mouseY);
-            }
         }
         if (clearFluidButton != null) {
             drawDrainIcon(graphics, clearFluidButton.getX() + 5, clearFluidButton.getY() + 4,
                 clearFluidButton.active ? PortalTheme.DANGER : PortalTheme.TEXT_MUTED);
-            if (clearFluidButton.isHovered()) graphics.renderTooltip(font,
+        }
+    }
+
+    private void renderGunControlTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
+        renderFuelGaugeTooltip(graphics, mouseX, mouseY);
+        if (bucketModeButton != null && bucketModeButton.isHovered()) {
+            graphics.renderTooltip(font, Component.translatable("screen.riftgun.bucket_mode_simple",
+                Component.translatable(PortalClientState.gun().getBoolean("BucketMode")
+                    ? "screen.riftgun.on" : "screen.riftgun.off")), mouseX, mouseY);
+        }
+        if (clearFluidButton != null && clearFluidButton.isHovered()) {
+            graphics.renderTooltip(font,
                 Component.translatable("screen.riftgun.clear_fluid_tooltip"), mouseX, mouseY);
         }
     }
@@ -1090,6 +1340,12 @@ public final class PortalConfigScreen extends Screen {
         String shortAmount = shortFluidAmount(amount);
         graphics.drawCenteredString(font, shortAmount, fuelGaugeX + FUEL_GAUGE_WIDTH / 2,
             fuelGaugeY + 3, amount == 0 ? PortalTheme.TEXT_MUTED : PortalTheme.TEXT);
+    }
+
+    private void renderFuelGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int amount = PortalClientState.gun().getInt("Amount");
+        int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity"));
+        boolean overfilled = amount > capacity;
         if (mouseX >= fuelGaugeX && mouseX < fuelGaugeX + FUEL_GAUGE_WIDTH
             && mouseY >= fuelGaugeY && mouseY < fuelGaugeY + 19) {
             List<Component> tooltip = new ArrayList<>();
@@ -1174,6 +1430,20 @@ public final class PortalConfigScreen extends Screen {
     private static void drawDragonIcon(GuiGraphics graphics, int x, int y, int color) {
         PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
             ? PortalGuiSprites.BOSS_TRANSIT_OFF : PortalGuiSprites.BOSS_TRANSIT_ON, x - 1, y - 2);
+    }
+
+    private static void drawPlayerTargetIcon(GuiGraphics graphics, int x, int y, int color) {
+        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
+            ? PortalGuiSprites.PLAYER_TARGET_OFF : PortalGuiSprites.PLAYER_TARGET_ON, x - 2, y - 2);
+    }
+
+    private static void drawPlayerExcludeIcon(GuiGraphics graphics, int x, int y, int color) {
+        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
+            ? PortalGuiSprites.PLAYER_EXCLUDE_OFF : PortalGuiSprites.PLAYER_EXCLUDE_ON, x - 2, y - 2);
+    }
+
+    private static void drawPlayerRefreshIcon(GuiGraphics graphics, int x, int y) {
+        PortalGuiSprites.draw(graphics, PortalGuiSprites.PLAYER_REFRESH, x - 4, y - 4);
     }
 
     private static void drawEyeIcon(GuiGraphics graphics, int x, int y) {
@@ -1265,8 +1535,64 @@ public final class PortalConfigScreen extends Screen {
             if (data.expandedGroups().contains(groupId) || !normalizedQuery.isEmpty()) {
                 destinations.forEach(destination -> rows.add(new Row(RowKind.DESTINATION, destination.id(), 0)));
             }
+            if (groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
+                rows.addAll(playerSectionRows(normalizedQuery));
+            }
+        }
+        if (rows.stream().noneMatch(row -> row.kind() == RowKind.PLAYER_SECTION)) {
+            rows.addAll(playerSectionRows(normalizedQuery));
         }
         return rows;
+    }
+
+    private List<Row> playerSectionRows(String normalizedQuery) {
+        List<Row> rows = new ArrayList<>();
+        if (!playerSectionVisible()) return rows;
+        boolean sectionMatch = normalizedQuery.isEmpty() || "player".contains(normalizedQuery);
+        if (!sectionMatch && sortedPlayers(normalizedQuery).isEmpty()) return rows;
+        rows.add(new Row(RowKind.PLAYER_SECTION, PLAYER_SECTION_ID, 0));
+        if (playerSectionExpanded || !normalizedQuery.isEmpty()) {
+            for (PlayerListState.PlayerEntry entry : sortedPlayers(normalizedQuery)) {
+                rows.add(new Row(RowKind.PLAYER, entry.id(), 0));
+            }
+        }
+        return rows;
+    }
+
+    private List<PlayerListState.PlayerEntry> sortedPlayers(String normalizedQuery) {
+        PortalPlayerData data = PortalClientState.data();
+        List<PlayerListState.PlayerEntry> list = PlayerListState.players().stream()
+            .filter(entry -> normalizedQuery.isEmpty()
+                || entry.name().toLowerCase(Locale.ROOT).contains(normalizedQuery))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        DestinationSort sort = data.settings().sort();
+        list.sort(Comparator.comparing(PlayerListState.PlayerEntry::pinned).reversed()
+            .thenComparing(playerComparator(sort)));
+        return list;
+    }
+
+    private Comparator<PlayerListState.PlayerEntry> playerComparator(DestinationSort sort) {
+        return switch (sort) {
+            case NAME -> Comparator.comparing(entry -> entry.name().toLowerCase(Locale.ROOT));
+            case CREATED -> Comparator.comparing(entry -> entry.name().toLowerCase(Locale.ROOT));
+            case DISTANCE -> Comparator.comparingDouble(this::playerDistanceSquared)
+                .thenComparing(entry -> entry.name().toLowerCase(Locale.ROOT));
+            case RECENT -> Comparator.comparingLong(PlayerListState.PlayerEntry::lastUse).reversed()
+                .thenComparing(entry -> entry.name().toLowerCase(Locale.ROOT));
+        };
+    }
+
+    private double playerDistanceSquared(PlayerListState.PlayerEntry entry) {
+        if (minecraft == null || minecraft.player == null) return Double.POSITIVE_INFINITY;
+        if (entry.x() == null || entry.z() == null) return Double.POSITIVE_INFINITY;
+        if (!entry.dimension().equals(minecraft.player.level().dimension().location().toString())) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return minecraft.player.position().distanceToSqr(new Vec3(entry.x(), minecraft.player.getY(), entry.z()));
+    }
+
+    private boolean playerSectionVisible() {
+        return moduleCount("PLAYER_TARGET") > 0 && PortalClientState.gun().getBoolean("PlayerTargetEnabled");
     }
 
     private List<UUID> orderedGroupIds() {
@@ -1348,6 +1674,29 @@ public final class PortalConfigScreen extends Screen {
                 if (mouseY < row.y() || mouseY >= row.y() + ROW_HEIGHT) continue;
                 focusRow(row);
                 int right = panelX + listWidth - 6;
+                if (row.kind() == RowKind.PLAYER_SECTION) {
+                    if (mouseX >= right - 27 && mouseX < right - 11) {
+                        requestPlayerListRefresh();
+                    } else if (mouseX < panelX + 16) {
+                        playerSectionExpanded = !playerSectionExpanded;
+                        if (playerSectionExpanded) requestPlayerListRefresh();
+                    } else {
+                        playerSectionExpanded = !playerSectionExpanded;
+                    }
+                    return true;
+                }
+                if (row.kind() == RowKind.PLAYER) {
+                    PlayerListState.PlayerEntry entry = PlayerListState.player(row.id());
+                    if (entry != null) {
+                        int starLeft = right - ROW_ACTION_SIZE - 2;
+                        if (mouseX >= starLeft && mouseX < starLeft + ROW_ACTION_SIZE) {
+                            togglePlayerPin(entry.id(), entry.pinned());
+                        } else {
+                            selectPlayer(entry.id());
+                        }
+                    }
+                    return true;
+                }
                 if (row.kind() == RowKind.DESTINATION) {
                     if (mouseX >= panelX + 7 && mouseX < panelX + 20) {
                         draggingDestination = row.id();
@@ -1547,11 +1896,18 @@ public final class PortalConfigScreen extends Screen {
         }
         if ((keyCode == 257 || keyCode == 335) && focusedRowId != null) {
             if (focusedRowKind == RowKind.DESTINATION) selectDestination(focusedRowId);
-            else toggleGroup(focusedRowId);
+            else if (focusedRowKind == RowKind.PLAYER) {
+                PlayerListState.PlayerEntry entry = PlayerListState.player(focusedRowId);
+                if (entry != null && !entry.self()) selectPlayer(entry.id());
+            } else if (focusedRowKind == RowKind.PLAYER_SECTION) {
+                playerSectionExpanded = !playerSectionExpanded;
+                if (playerSectionExpanded) requestPlayerListRefresh();
+            } else toggleGroup(focusedRowId);
             return true;
         }
-        if (keyCode == 80 && focusedRowKind == RowKind.DESTINATION && focusedRowId != null) {
-            togglePin(focusedRowId);
+        if (keyCode == 80 && focusedRowKind == RowKind.PLAYER && focusedRowId != null) {
+            PlayerListState.PlayerEntry entry = PlayerListState.player(focusedRowId);
+            if (entry != null && !entry.self()) togglePlayerPin(entry.id(), entry.pinned());
             return true;
         }
         if (keyCode == 69 && focusedRowKind == RowKind.DESTINATION && focusedRowId != null) {
@@ -1578,12 +1934,36 @@ public final class PortalConfigScreen extends Screen {
         PortalClientState.data().lastViewedDestinationId(id);
         viewedDestination = id;
         selectedGroup = null;
+        selectedPlayerId = null;
         if (!id.equals(previous)) detailScroll = 0;
         if (!id.equals(previous)) {
             pendingSelection = id;
             selectionDueTick = clientTicks + 6L;
         }
         updateOpenPortalButton();
+    }
+
+    private void selectPlayer(UUID id) {
+        selectedPlayerId = id;
+        viewedDestination = null;
+        selectedGroup = null;
+        pendingSelection = null;
+        selectionDueTick = -1L;
+        detailScroll = 0;
+        focusedRowId = id;
+        focusedRowKind = RowKind.PLAYER;
+        ensureVisibleId = id;
+        updateOpenPortalButton();
+        PortalNetworking.sendRequest(PortalAction.SELECT_PLAYER, tag -> tag.putUUID("Target", id));
+    }
+
+    private void togglePlayerPin(UUID id, boolean pinned) {
+        PlayerListState.markPinned(id, !pinned);
+        PortalNetworking.sendRequest(PortalAction.TOGGLE_PLAYER_PIN, tag -> tag.putUUID("Target", id));
+    }
+
+    private void requestPlayerListRefresh() {
+        PortalNetworking.sendRequest(PortalAction.REQUEST_PLAYERS);
     }
 
     private void flushSelection() {
@@ -1595,6 +1975,11 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void generatePortal() {
+        if (selectedPlayerId != null) {
+            PortalNetworking.sendRequest(PortalAction.OPEN_PLAYER_PORTAL,
+                tag -> tag.putUUID("Target", selectedPlayerId));
+            return;
+        }
         if (viewedDestination == null) return;
         flushSelection();
         PortalNetworking.sendRequest(PortalAction.OPEN_PORTAL,
@@ -2147,18 +2532,32 @@ public final class PortalConfigScreen extends Screen {
     }
 
     public void refreshFromServer(Set<UUID> ignoredInvalidatedSafety) {
+        UUID serverSelectedPlayer = PortalClientState.data().selectedPlayerId();
+        if (serverSelectedPlayer != null) {
+            if (!serverSelectedPlayer.equals(selectedPlayerId)) {
+                selectedPlayerId = serverSelectedPlayer;
+                viewedDestination = null;
+                detailScroll = 0;
+                ensureVisibleId = serverSelectedPlayer;
+                updateOpenPortalButton();
+            }
+        } else if (selectedPlayerId != null) {
+            selectedPlayerId = null;
+            updateOpenPortalButton();
+        }
         if (pendingSelection != null) {
             PortalClientState.data().selectedDestinationId(pendingSelection);
             PortalClientState.data().lastViewedDestinationId(pendingSelection);
         }
         UUID selected = PortalClientState.data().selectedDestinationId();
-        if (selected != null && !selected.equals(viewedDestination)) {
+        if (selectedPlayerId == null && selected != null && !selected.equals(viewedDestination)) {
             viewedDestination = selected;
             focusedRowId = selected;
             focusedRowKind = RowKind.DESTINATION;
             detailScroll = 0;
             ensureVisibleId = selected;
-        } else if (viewedDestination != null && PortalClientState.data().destination(viewedDestination).isEmpty()) {
+        } else if (selectedPlayerId == null && viewedDestination != null
+            && PortalClientState.data().destination(viewedDestination).isEmpty()) {
             viewedDestination = selected;
             detailScroll = 0;
         }
@@ -2173,8 +2572,17 @@ public final class PortalConfigScreen extends Screen {
 
     private void updateOpenPortalButton() {
         if (openPortalButton == null) return;
-        openPortalButton.active = viewed() != null;
+        openPortalButton.active = viewed() != null || selectedPlayerId != null;
         openPortalButton.setMessage(Component.translatable("screen.riftgun.generate"));
+    }
+
+    /** Called when the server refreshes the online player roster. */
+    public void onPlayerListRefresh() {
+        if (selectedPlayerId != null && PlayerListState.player(selectedPlayerId) == null) {
+            selectedPlayerId = null;
+            updateOpenPortalButton();
+        }
+        if (modal == Modal.NONE) rebuildWidgets();
     }
 
     /** Used only by the opt-in visual QA harness. */
@@ -2304,10 +2712,10 @@ public final class PortalConfigScreen extends Screen {
             case CREATE_CURRENT -> 164;
             case SETTINGS -> 182;
             case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
-                 SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS -> 132;
-            case ENTITY_TRANSIT_SETTINGS -> 142;
+                 SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS, ENTITY_TRANSIT_SETTINGS,
+                 PLAYER_TARGET_SETTINGS -> 132;
             case VISUAL_SETTINGS -> 132;
-            case SWIRL_ANIMATION_SETTINGS -> 182;
+            case SWIRL_ANIMATION_SETTINGS -> 210;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
                  CONFIRM_DIRTY, CONFIRM_CLEAR_FLUID -> 112;
             case NONE -> 0;
@@ -2385,7 +2793,7 @@ public final class PortalConfigScreen extends Screen {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.EDIT, x - 4, y - 3);
     }
 
-    private enum RowKind { GROUP, DESTINATION }
+    private enum RowKind { GROUP, DESTINATION, PLAYER_SECTION, PLAYER }
     private record Row(RowKind kind, UUID id, int y) {}
     private record ModalBox(int x, int y, int width, int height) {}
     private record DropdownBox(int x, int y, int width, int height) {}
@@ -2406,6 +2814,7 @@ public final class PortalConfigScreen extends Screen {
         SURFACE_RANGE_SETTINGS("screen.riftgun.surface_range", "", false, false),
         ENTITY_TRANSIT_SETTINGS("screen.riftgun.entity_transit", "", false, false),
         APERTURE_SETTINGS("screen.riftgun.aperture", "", false, false),
+        PLAYER_TARGET_SETTINGS("screen.riftgun.player_target", "", false, false),
         VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
         SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
         CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
@@ -2429,7 +2838,7 @@ public final class PortalConfigScreen extends Screen {
         boolean isGunSettingPage() {
             return this == PORTAL_DURATION_SETTINGS || this == SMART_DISTANCE_SETTINGS
                 || this == SURFACE_RANGE_SETTINGS || this == ENTITY_TRANSIT_SETTINGS
-                || this == APERTURE_SETTINGS;
+                || this == APERTURE_SETTINGS || this == PLAYER_TARGET_SETTINGS;
         }
         boolean hasInputs() { return hasName || hasCoordinates; }
         boolean isDestinationForm() {

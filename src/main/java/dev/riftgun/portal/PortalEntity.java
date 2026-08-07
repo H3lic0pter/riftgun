@@ -34,6 +34,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.DimensionTransition;
@@ -62,6 +63,7 @@ public final class PortalEntity extends Entity {
     private @Nullable UUID linkedPortalId;
     private @Nullable ResourceKey<Level> linkedDimension;
     private @Nullable UUID ownerId;
+    private @Nullable UUID excludedPlayerId;
     private @Nullable BlockPos anchor;
     private @Nullable Direction anchorFace;
     private @Nullable PortalExitTarget deferredTarget;
@@ -86,6 +88,7 @@ public final class PortalEntity extends Entity {
     public static boolean openPair(ServerPlayer player, PortalPairPlacement pair,
                                    PortalFuelProfile fuel, PortalEntityAccessSnapshot entityAccess,
                                    int openDurationTicks, PortalAperture aperture,
+                                   @Nullable UUID excludedPlayerId,
                                    BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
@@ -95,9 +98,11 @@ public final class PortalEntity extends Entity {
 
         long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
-            fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt);
+            fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt,
+            excludedPlayerId);
         PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
-            fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt);
+            fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt,
+            excludedPlayerId);
         link(entry, exit);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
@@ -119,13 +124,14 @@ public final class PortalEntity extends Entity {
                                            PortalFuelProfile fuel, PortalExitTarget target,
                                            PortalEntityAccessSnapshot entityAccess,
                                            int openDurationTicks, PortalAperture aperture,
+                                           @Nullable UUID excludedPlayerId,
                                            BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
             fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture,
-            server.overworld().getGameTime());
+            server.overworld().getGameTime(), excludedPlayerId);
         entry.deferredTarget = target;
         entry.acquireChunkTicket();
         boolean added = entryLevel.addFreshEntity(entry);
@@ -171,9 +177,11 @@ public final class PortalEntity extends Entity {
     private static PortalEntity create(ServerLevel level, @Nullable UUID owner,
                                        PortalPlacement placement, int fuelRgb, String fuelId,
                                        PortalEntityAccessSnapshot entityAccess, int openDurationTicks,
-                                       PortalAperture aperture, long startedAt) {
+                                       PortalAperture aperture, long startedAt,
+                                       @Nullable UUID excludedPlayerId) {
         PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
         portal.ownerId = owner;
+        portal.excludedPlayerId = excludedPlayerId;
         portal.setPos(placement.center());
         portal.setYRot(placement.yaw());
         portal.setYHeadRot(placement.yaw());
@@ -380,6 +388,8 @@ public final class PortalEntity extends Entity {
     }
 
     private boolean canTeleport(Entity entity) {
+        if (excludedPlayerId != null && entity instanceof Player player
+            && player.getUUID().equals(excludedPlayerId)) return false;
         if (entity instanceof PortalEntity || entity.isPassenger()
             || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity, entityAccess::allows)) return false;
         return PortalTriggerShape.intersects(placement(), entity.getBoundingBox());
@@ -511,7 +521,7 @@ public final class PortalEntity extends Entity {
 
         long now = serverTime();
         PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
-            fuelRgb(), fuelId(), entityAccess, openDurationTicks, aperture, now);
+            fuelRgb(), fuelId(), entityAccess, openDurationTicks, aperture, now, excludedPlayerId);
         exit.acquireChunkTicket();
         if (!targetLevel.addFreshEntity(exit)) {
             exit.releaseChunkTicket();
@@ -619,6 +629,7 @@ public final class PortalEntity extends Entity {
             linkedDimension = ResourceKey.create(Registries.DIMENSION, linkedDimensionId);
         }
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
+        if (tag.hasUUID("ExcludedPlayer")) excludedPlayerId = tag.getUUID("ExcludedPlayer");
         if (tag.contains("Anchor")) anchor = BlockPos.of(tag.getLong("Anchor"));
         if (tag.contains("AnchorFace")) {
             try {
@@ -668,6 +679,7 @@ public final class PortalEntity extends Entity {
         if (linkedPortalId != null) tag.putUUID("LinkedPortal", linkedPortalId);
         if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
         if (ownerId != null) tag.putUUID("Owner", ownerId);
+        if (excludedPlayerId != null) tag.putUUID("ExcludedPlayer", excludedPlayerId);
         if (anchor != null) tag.putLong("Anchor", anchor.asLong());
         if (anchorFace != null) tag.putString("AnchorFace", anchorFace.name());
         if (deferredTarget != null) tag.put("DeferredTarget", deferredTarget.save());

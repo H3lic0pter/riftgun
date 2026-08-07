@@ -13,6 +13,7 @@ uniform float ElapsedSeconds;
 uniform float OuterPeriod;
 uniform float InnerPeriod;
 uniform float InwardPeriod;
+uniform int InwardDirection;
 
 const float TAU = 6.28318530718;
 
@@ -39,11 +40,12 @@ void main() {
         float outerSpeed = TAU / max(OuterPeriod, 0.1);
         float rotation = ElapsedSeconds * mix(innerSpeed, outerSpeed, speedBlend)
             + portalPhase * TAU;
-        angle -= rotation;
+        angle += rotation;
         centered = vec2(cos(angle), sin(angle)) * radius;
 
+        float inwardDirection = InwardDirection == 0 ? -1.0 : 1.0;
         float inwardPhase = radius * 42.0 + angle * 2.0
-            + ElapsedSeconds * TAU / max(InwardPeriod, 0.1) + portalPhase * TAU;
+            + ElapsedSeconds * TAU / max(InwardPeriod, 0.1) * inwardDirection + portalPhase * TAU;
         float edgeFade = 1.0 - smoothstep(0.38, 0.5, radius);
         flowShade = sin(inwardPhase) * 0.075 * edgeFade;
     }

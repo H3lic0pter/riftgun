@@ -120,6 +120,7 @@ public final class PortalRenderTypes extends RenderType {
         swirlShader.safeGetUniform("OuterPeriod").set(settings.outerPeriod());
         swirlShader.safeGetUniform("InnerPeriod").set(settings.innerPeriod());
         swirlShader.safeGetUniform("InwardPeriod").set(settings.inwardPeriod());
+        swirlShader.safeGetUniform("InwardDirection").set((int) settings.inwardDirection());
         return swirlShader;
     }
 }

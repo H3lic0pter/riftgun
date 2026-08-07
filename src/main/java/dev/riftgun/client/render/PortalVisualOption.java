@@ -13,10 +13,10 @@ public sealed interface PortalVisualOption permits PortalVisualOption.Toggle, Po
     void reset();
 
     record Toggle(String labelKey, BooleanSupplier value, Consumer<Boolean> update,
-                  boolean defaultValue) implements PortalVisualOption {
+                  boolean defaultValue, BooleanSupplier enabled) implements PortalVisualOption {
         @Override
         public boolean active() {
-            return true;
+            return enabled.getAsBoolean();
         }
 
         public void toggle() {

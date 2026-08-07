@@ -14,7 +14,9 @@ public record PortalGunCapabilities(
     int smartDistance,
     PortalEntityAccessSnapshot entityAccess,
     int openDurationTicks,
-    PortalAperture aperture
+    PortalAperture aperture,
+    boolean playerTarget,
+    boolean playerExclude
 ) {
     public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance) {
         PortalModuleRules rules = PortalModuleRules.current();
@@ -27,6 +29,8 @@ public record PortalGunCapabilities(
             ServerConfig.VALUES.maximumPortalDurationSeconds.get());
         boolean apertureInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
+        boolean playerTargetInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.PLAYER_TARGET, rules) > 0;
         return new PortalGunCapabilities(
             PortalGunModules.activeCount(gun, PortalModuleKind.COORDINATE_OVERRIDE, rules) > 0,
             rules.capacityFor(reservoirCount),
@@ -43,7 +47,9 @@ public record PortalGunCapabilities(
             ),
             PortalOpenDuration.ticks(durationSeconds),
             apertureInstalled && settings.expandedApertureEnabled()
-                ? PortalAperture.EXPANDED : PortalAperture.STANDARD
+                ? PortalAperture.EXPANDED : PortalAperture.STANDARD,
+            playerTargetInstalled && settings.playerTargetEnabled(),
+            playerTargetInstalled && settings.playerExcludeEnabled()
         );
     }
 }

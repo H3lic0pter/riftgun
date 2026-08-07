@@ -37,6 +37,10 @@ public final class PortalGunSnapshot {
             settings.portalDurationSeconds(), maximumDuration));
         tag.putInt("MaximumPortalDurationSeconds", maximumDuration);
         tag.putBoolean("ExpandedApertureEnabled", settings.expandedApertureEnabled());
+        tag.putBoolean("PlayerTargetEnabled", capabilities.playerTarget());
+        tag.putBoolean("PlayerExcludeEnabled", capabilities.playerExclude());
+        tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(
+            gun, PortalModuleKind.PLAYER_TARGET, rules) > 0);
         CompoundTag modules = new CompoundTag();
         for (PortalModuleKind kind : PortalModuleKind.values()) {
             modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));

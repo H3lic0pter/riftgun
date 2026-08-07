@@ -18,6 +18,7 @@ public final class ClientConfig {
         public final ModConfigSpec.DoubleValue swirlOuterPeriod;
         public final ModConfigSpec.DoubleValue swirlInnerPeriod;
         public final ModConfigSpec.DoubleValue swirlInwardPeriod;
+        public final ModConfigSpec.BooleanValue swirlInwardDirection;
 
         private Values(ModConfigSpec.Builder builder) {
             portalVisualType = builder.comment("Client-local portal visual type ID")
@@ -27,11 +28,13 @@ public final class ClientConfig {
             swirlAnimationEnabled = builder.comment("Animate the swirl portal texture")
                 .define("animationEnabled", true);
             swirlOuterPeriod = builder.comment("Outer rotation period in seconds")
-                .defineInRange("outerPeriod", 20.0, 1.5, 20.0);
+                .defineInRange("outerPeriod", 20.0, 1.5, 40.0);
             swirlInnerPeriod = builder.comment("Inner rotation period in seconds")
-                .defineInRange("innerPeriod", 20.0, 2.0, 30.0);
+                .defineInRange("innerPeriod", 20.0, 2.0, 45.0);
             swirlInwardPeriod = builder.comment("Inward highlight period in seconds")
                 .defineInRange("inwardPeriod", 2.5, 0.8, 10.0);
+            swirlInwardDirection = builder.comment("Inward flow direction of the swirl animation; true flows toward the center")
+                .define("inwardDirection", true);
             builder.pop(2);
         }
     }

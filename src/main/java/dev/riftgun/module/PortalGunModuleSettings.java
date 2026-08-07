@@ -13,7 +13,9 @@ public record PortalGunModuleSettings(
     boolean hostileTransitEnabled,
     boolean bossTransitEnabled,
     int portalDurationSeconds,
-    boolean expandedApertureEnabled
+    boolean expandedApertureEnabled,
+    boolean playerTargetEnabled,
+    boolean playerExcludeEnabled
 ) {
     public static final int DEFAULT_SMART_DISTANCE = 8;
     public static final Codec<PortalGunModuleSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -30,7 +32,11 @@ public record PortalGunModuleSettings(
         Codec.INT.optionalFieldOf("portal_duration_seconds", PortalOpenDuration.DEFAULT_SECONDS)
             .forGetter(PortalGunModuleSettings::portalDurationSeconds),
         Codec.BOOL.optionalFieldOf("expanded_aperture_enabled", true)
-            .forGetter(PortalGunModuleSettings::expandedApertureEnabled)
+            .forGetter(PortalGunModuleSettings::expandedApertureEnabled),
+        Codec.BOOL.optionalFieldOf("player_target_enabled", true)
+            .forGetter(PortalGunModuleSettings::playerTargetEnabled),
+        Codec.BOOL.optionalFieldOf("player_exclude_enabled", true)
+            .forGetter(PortalGunModuleSettings::playerExcludeEnabled)
     ).apply(instance, PortalGunModuleSettings::new));
 
     public PortalGunModuleSettings {
@@ -42,7 +48,7 @@ public record PortalGunModuleSettings(
     public static PortalGunModuleSettings defaults(int legacySmartDistance) {
         return new PortalGunModuleSettings(Math.max(1, legacySmartDistance),
             PortalModuleRules.DEFAULT_BASE_SURFACE_RANGE, true, true, true,
-            PortalOpenDuration.DEFAULT_SECONDS, true);
+            PortalOpenDuration.DEFAULT_SECONDS, true, true, true);
     }
 
     public static PortalGunModuleSettings get(ItemStack gun, int legacySmartDistance) {
@@ -64,39 +70,51 @@ public record PortalGunModuleSettings(
     public PortalGunModuleSettings withSmartDistance(int value) {
         return new PortalGunModuleSettings(value, desiredSurfaceRange,
             passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled);
+            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, playerExcludeEnabled);
     }
 
     public PortalGunModuleSettings withDesiredSurfaceRange(int value) {
         return new PortalGunModuleSettings(smartDistance, value,
             passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled);
+            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, playerExcludeEnabled);
     }
 
     public PortalGunModuleSettings withTransit(PortalModuleKind kind, boolean enabled) {
         return switch (kind) {
             case PASSIVE_TRANSIT -> new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
                 enabled, hostileTransitEnabled, bossTransitEnabled, portalDurationSeconds,
-                expandedApertureEnabled);
+                expandedApertureEnabled, playerTargetEnabled, playerExcludeEnabled);
             case HOSTILE_TRANSIT -> new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
                 passiveTransitEnabled, enabled, bossTransitEnabled, portalDurationSeconds,
-                expandedApertureEnabled);
+                expandedApertureEnabled, playerTargetEnabled, playerExcludeEnabled);
             case BOSS_TRANSIT -> new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
                 passiveTransitEnabled, hostileTransitEnabled, enabled, portalDurationSeconds,
-                expandedApertureEnabled);
+                expandedApertureEnabled, playerTargetEnabled, playerExcludeEnabled);
             default -> this;
         };
+    }
+
+    public PortalGunModuleSettings withPlayerTargetEnabled(boolean enabled) {
+        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
+            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
+            portalDurationSeconds, expandedApertureEnabled, enabled, playerExcludeEnabled);
+    }
+
+    public PortalGunModuleSettings withPlayerExcludeEnabled(boolean enabled) {
+        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
+            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
+            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, enabled);
     }
 
     public PortalGunModuleSettings withPortalDurationSeconds(int value) {
         return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
             passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            value, expandedApertureEnabled);
+            value, expandedApertureEnabled, playerTargetEnabled, playerExcludeEnabled);
     }
 
     public PortalGunModuleSettings withExpandedApertureEnabled(boolean enabled) {
         return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
             passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, enabled);
+            portalDurationSeconds, enabled, playerTargetEnabled, playerExcludeEnabled);
     }
 }

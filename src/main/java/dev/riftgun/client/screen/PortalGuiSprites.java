@@ -34,6 +34,11 @@ final class PortalGuiSprites {
     static final ResourceLocation HOSTILE_TRANSIT_OFF = icon("hostile_transit_off");
     static final ResourceLocation BOSS_TRANSIT_ON = icon("boss_transit_on");
     static final ResourceLocation BOSS_TRANSIT_OFF = icon("boss_transit_off");
+    static final ResourceLocation PLAYER_TARGET_ON = icon("player_target_on");
+    static final ResourceLocation PLAYER_TARGET_OFF = icon("player_target_off");
+    static final ResourceLocation PLAYER_EXCLUDE_ON = icon("player_exclude_on");
+    static final ResourceLocation PLAYER_EXCLUDE_OFF = icon("player_exclude_off");
+    static final ResourceLocation PLAYER_REFRESH = icon("player_refresh");
     static final ResourceLocation VISUALS = icon("visuals");
     static final ResourceLocation DROPDOWN = icon("dropdown");
     static final ResourceLocation BACK = icon("back");

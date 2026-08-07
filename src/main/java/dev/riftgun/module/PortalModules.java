@@ -31,6 +31,8 @@ public final class PortalModules {
     public static final ModuleEntry MODULE_BAY_EXPANSION = register(
         "module_bay_expansion", PortalModuleKind.MODULE_BAY_EXPANSION,
         ignored -> PortalGunModules.MAXIMUM_EXPANSION_MODULES, 0x7CCED8);
+    public static final ModuleEntry PLAYER_TARGET = register(
+        "player_target_module", PortalModuleKind.PLAYER_TARGET, ignored -> 1, 0x5CC8D9);
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {

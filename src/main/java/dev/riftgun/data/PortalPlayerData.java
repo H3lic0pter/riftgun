@@ -15,15 +15,18 @@ import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 4;
+    public static final int CURRENT_VERSION = 5;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
 
     private final List<DestinationGroup> groups = new ArrayList<>();
     private final List<Destination> destinations = new ArrayList<>();
     private final Set<UUID> expandedGroups = new HashSet<>();
     private final Map<UUID, DestinationSafetyResult> safetyResults = new HashMap<>();
+    private final Set<UUID> pinnedPlayers = new HashSet<>();
+    private final Map<UUID, Long> playerLastUseAt = new HashMap<>();
     private @Nullable UUID selectedDestinationId;
     private @Nullable UUID lastViewedDestinationId;
+    private @Nullable UUID selectedPlayerId;
     private long nextLocationNumber = 1L;
     private PortalPlayerSettings settings = PortalPlayerSettings.defaults();
 
@@ -59,6 +62,14 @@ public final class PortalPlayerData {
         lastViewedDestinationId = id;
     }
 
+    public @Nullable UUID selectedPlayerId() {
+        return selectedPlayerId;
+    }
+
+    public void selectedPlayerId(@Nullable UUID id) {
+        selectedPlayerId = id;
+    }
+
     public PortalPlayerSettings settings() {
         return settings;
     }
@@ -85,6 +96,22 @@ public final class PortalPlayerData {
 
     public void clearSafetyResult(UUID destinationId) {
         safetyResults.remove(destinationId);
+    }
+
+    public Set<UUID> pinnedPlayers() {
+        return pinnedPlayers;
+    }
+
+    public boolean isPlayerPinned(UUID playerId) {
+        return pinnedPlayers.contains(playerId);
+    }
+
+    public long playerLastUseAt(UUID playerId) {
+        return playerLastUseAt.getOrDefault(playerId, 0L);
+    }
+
+    public void recordPlayerUse(UUID playerId, long time) {
+        playerLastUseAt.put(playerId, time);
     }
 
     public String nextLocationName() {
@@ -124,6 +151,7 @@ public final class PortalPlayerData {
         root.putLong("NextLocationNumber", nextLocationNumber);
         if (selectedDestinationId != null) root.putUUID("Selected", selectedDestinationId);
         if (lastViewedDestinationId != null) root.putUUID("LastViewed", lastViewedDestinationId);
+        if (selectedPlayerId != null) root.putUUID("SelectedPlayer", selectedPlayerId);
         root.put("Settings", settings.save());
 
         ListTag groupTags = new ListTag();
@@ -150,6 +178,23 @@ public final class PortalPlayerData {
             expandedTags.add(tag);
         });
         root.put("ExpandedGroups", expandedTags);
+
+        ListTag pinnedTags = new ListTag();
+        pinnedPlayers.forEach(id -> {
+            CompoundTag tag = new CompoundTag();
+            tag.putUUID("Id", id);
+            pinnedTags.add(tag);
+        });
+        root.put("PinnedPlayers", pinnedTags);
+
+        ListTag lastUseTags = new ListTag();
+        playerLastUseAt.forEach((id, time) -> {
+            CompoundTag tag = new CompoundTag();
+            tag.putUUID("Id", id);
+            tag.putLong("Time", time);
+            lastUseTags.add(tag);
+        });
+        root.put("PlayerLastUse", lastUseTags);
         return root;
     }
 
@@ -158,6 +203,7 @@ public final class PortalPlayerData {
         data.nextLocationNumber = Math.max(1L, root.getLong("NextLocationNumber"));
         if (root.hasUUID("Selected")) data.selectedDestinationId = root.getUUID("Selected");
         if (root.hasUUID("LastViewed")) data.lastViewedDestinationId = root.getUUID("LastViewed");
+        if (root.hasUUID("SelectedPlayer")) data.selectedPlayerId = root.getUUID("SelectedPlayer");
         data.settings = PortalPlayerSettings.load(root.getCompound("Settings"));
 
         ListTag groups = root.getList("Groups", Tag.TAG_COMPOUND);
@@ -179,6 +225,20 @@ public final class PortalPlayerData {
             expanded.forEach(tag -> {
                 CompoundTag compound = (CompoundTag) tag;
                 if (compound.hasUUID("Id")) data.expandedGroups.add(compound.getUUID("Id"));
+            });
+        }
+        if (root.contains("PinnedPlayers")) {
+            ListTag pinned = root.getList("PinnedPlayers", Tag.TAG_COMPOUND);
+            pinned.forEach(tag -> {
+                CompoundTag compound = (CompoundTag) tag;
+                if (compound.hasUUID("Id")) data.pinnedPlayers.add(compound.getUUID("Id"));
+            });
+        }
+        if (root.contains("PlayerLastUse")) {
+            ListTag lastUse = root.getList("PlayerLastUse", Tag.TAG_COMPOUND);
+            lastUse.forEach(tag -> {
+                CompoundTag compound = (CompoundTag) tag;
+                if (compound.hasUUID("Id")) data.playerLastUseAt.put(compound.getUUID("Id"), compound.getLong("Time"));
             });
         }
 
@@ -206,5 +266,12 @@ public final class PortalPlayerData {
         if (lastViewedDestinationId != null && destination(lastViewedDestinationId).isEmpty()) lastViewedDestinationId = null;
         safetyResults.keySet().removeIf(id -> destination(id).isEmpty());
         expandedGroups.retainAll(groupIds);
+    }
+
+    /** Clears pinned flags, use timestamps, and selection for players that are no longer online. */
+    public void prunePlayerTargets(Set<UUID> onlinePlayers) {
+        pinnedPlayers.removeIf(id -> !onlinePlayers.contains(id));
+        playerLastUseAt.keySet().removeIf(id -> !onlinePlayers.contains(id));
+        if (selectedPlayerId != null && !onlinePlayers.contains(selectedPlayerId)) selectedPlayerId = null;
     }
 }

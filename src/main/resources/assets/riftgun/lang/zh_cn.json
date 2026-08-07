@@ -65,7 +65,6 @@
   "screen.riftgun.visual.swirl": "漩涡",
   "screen.riftgun.visual.swirl_description": "不透明的双面漩涡贴图",
   "screen.riftgun.visual.swirl_animation_settings": "漩涡动画",
-  "screen.riftgun.visual.swirl_animation": "动画",
   "screen.riftgun.visual.swirl_outer_period": "外圈周期：%s 秒",
   "screen.riftgun.visual.swirl_inner_period": "内圈周期：%s 秒",
   "screen.riftgun.visual.swirl_inward_period": "内吸流纹：%s 秒",
@@ -123,81 +122,93 @@
   "message.riftgun.default_group_immutable": "Default 分组不能修改",
   "message.riftgun.invalid_coordinate": "坐标格式无效；支持数字和 ~，不支持 ^",
   "message.riftgun.invalid_request": "请求无效",
-  "message.riftgun.dimension_unavailable": "目的地维度不可用"
-  ,"message.riftgun.placement_mode": "传送门放置模式：%s"
-  ,"message.riftgun.front_obstructed": "面前空间不足，无法开启传送门"
-  ,"message.riftgun.front_outside_world": "预测的传送门位置超出世界高度"
-  ,"message.riftgun.surface_missing": "视线内没有可用方块表面"
-  ,"message.riftgun.surface_out_of_range": "目标表面超出射程"
-  ,"message.riftgun.surface_invalid": "该方块表面无法锚定传送门"
-  ,"message.riftgun.surface_obstructed": "该表面没有足够的开门空间"
-  ,"message.riftgun.fuel_empty": "传送枪内没有有效传送液"
-  ,"message.riftgun.fuel_insufficient": "传送液不足，无法开启传送门"
-  ,"message.riftgun.fuel_dimension_denied": "跨维度传送需要维度传送液"
-  ,"message.riftgun.portal_open_failed": "传送门开启失败，未消耗燃料"
-  ,"message.riftgun.bucket_mode_enabled": "已开启桶模式"
-  ,"message.riftgun.bucket_mode_disabled": "已关闭桶模式"
-  ,"message.riftgun.fluid_cleared": "已丢弃 %s mB 传送液"
-  ,"message.riftgun.scoop_no_source": "请瞄准传送流体 source block"
-  ,"message.riftgun.scoop_protected": "你不能在此处抽取流体"
-  ,"message.riftgun.scoop_invalid_fluid": "这种流体不能作为传送枪燃料"
-  ,"message.riftgun.scoop_full": "传送枪无法再装入一个 source block"
-  ,"message.riftgun.scoop_mixed": "请先清空传送枪，再抽取另一种流体"
-  ,"message.riftgun.scoop_failed": "无法抽取该流体 source block"
-  ,"message.riftgun.scoop_success": "已抽取 %s mB · %s/%s mB"
-  ,"screen.riftgun.bucket_mode_simple": "桶模式：%s"
-  ,"message.riftgun.exit_generation_failed": "传送已完成，但出口传送门生成失败。"
-  ,"message.riftgun.destination_teleport_failed": "目标维度拒绝了此次实体传送。"
-  ,"item.riftgun.coordinate_override_module": "\u5750\u6807\u8986\u5199\u6a21\u5757"
-  ,"item.riftgun.reservoir_expansion_module": "\u50a8\u6db2\u6269\u5c55\u6a21\u5757"
-  ,"item.riftgun.passive_transit_module": "\u6e29\u548c\u751f\u7269\u901a\u884c\u6a21\u5757"
-  ,"item.riftgun.hostile_transit_module": "\u654c\u5bf9\u751f\u7269\u901a\u884c\u6a21\u5757"
-  ,"item.riftgun.boss_transit_module": "Boss \u751f\u7269\u901a\u884c\u6a21\u5757"
-  ,"item.riftgun.surface_range_amplifier": "\u8d34\u9762\u5c04\u7a0b\u589e\u5e45\u6a21\u5757"
-  ,"item.riftgun.module_bay_expansion": "\u6a21\u5757\u4ed3\u6269\u5c55\u6a21\u5757"
-  ,"item.riftgun.portal_aperture_module": "门径扩展模块"
-  ,"screen.riftgun.configure_gun": "\u914d\u7f6e\u4f20\u9001\u67aa"
-  ,"screen.riftgun.open_modules": "\u6a21\u5757\u4ed3"
-  ,"screen.riftgun.gun_settings_hint": "选择传送枪设置或已安装能力进行配置"
-  ,"screen.riftgun.back": "\u8fd4\u56de"
-  ,"screen.riftgun.back_to_gun_settings": "\u8fd4\u56de\u4f20\u9001\u67aa\u914d\u7f6e"
-  ,"screen.riftgun.portal_duration": "传送门持续时间"
-  ,"screen.riftgun.portal_duration_value": "开放时间：%s 秒"
-  ,"screen.riftgun.portal_duration_hint": "从传送门完全开启时开始计时"
-  ,"screen.riftgun.aperture": "扩大门径"
-  ,"screen.riftgun.aperture_hint": "条件允许时优先开启更大的传送门"
-  ,"screen.riftgun.surface_range": "\u8d34\u9762\u5f00\u95e8\u5c04\u7a0b"
-  ,"screen.riftgun.surface_range_value": "\u8d34\u9762\u5c04\u7a0b\uff1a%s \u683c"
-  ,"screen.riftgun.surface_range_modules": "\u5df2\u5b89\u88c5\u5c04\u7a0b\u589e\u5e45\u6a21\u5757\uff1a%s"
-  ,"screen.riftgun.entity_transit": "\u751f\u7269\u901a\u884c"
-  ,"screen.riftgun.entity_transit_hint": "\u70b9\u51fb\u5df2\u5b89\u88c5\u7684\u7c7b\u522b\u4ee5\u5141\u8bb8\u6216\u7981\u6b62\u901a\u884c"
-  ,"screen.riftgun.passive_transit": "\u6e29\u548c\u4e0e\u53cb\u597d\u751f\u7269"
-  ,"screen.riftgun.hostile_transit": "\u654c\u5bf9\u751f\u7269"
-  ,"screen.riftgun.boss_transit": "Boss \u751f\u7269"
-  ,"screen.riftgun.coordinate_read_only": "\u5b89\u88c5\u5750\u6807\u8986\u5199\u6a21\u5757\u540e\u624d\u80fd\u4fee\u6539\u5750\u6807"
-  ,"screen.riftgun.modules.title": "\u4f20\u9001\u67aa\u6a21\u5757"
-  ,"screen.riftgun.modules.back": "\u8fd4\u56de\u5730\u70b9\u5217\u8868"
-  ,"screen.riftgun.modules.slot_count": "\u6a21\u5757\uff1a%s/%s"
-  ,"screen.riftgun.modules.capacity": "\u5bb9\u91cf\uff1a%s mB"
-  ,"screen.riftgun.modules.surface_range": "\u8d34\u9762\u5c04\u7a0b\uff1a%s / %s \u683c"
-  ,"screen.riftgun.modules.entity_access": "\u5df2\u542f\u7528\u751f\u7269\u7c7b\u522b\uff1a%s"
-  ,"screen.riftgun.modules.coordinate_unlocked": "\u5df2\u89e3\u9501\u5750\u6807\u8986\u5199"
-  ,"screen.riftgun.modules.coordinate_locked": "\u5750\u6807\u8986\u5199\u672a\u89e3\u9501"
-  ,"tooltip.riftgun.module.hold_shift": "\u6309\u4f4f Shift \u67e5\u770b\u6a21\u5757\u8be6\u60c5"
-  ,"tooltip.riftgun.module.limit": "\u6bcf\u628a\u67aa\u6700\u591a\u751f\u6548\uff1a%s \u4e2a"
-  ,"tooltip.riftgun.module.reservoir_warning": "\u62d4\u51fa\u540e\u4f1a\u4e22\u5f03\u8d85\u8fc7\u65b0\u5bb9\u91cf\u4e0a\u9650\u7684\u6d41\u4f53"
-  ,"tooltip.riftgun.module.module_bay_warning": "\u62d4\u51fa\u524d\u9700\u5148\u6e05\u7a7a\u5c06\u88ab\u79fb\u9664\u7684\u672b\u5c3e\u69fd\u4f4d"
-  ,"tooltip.riftgun.module.coordinate_override_module.description": "\u89e3\u9501\u8f93\u5165\u5750\u6807\u5efa\u7acb\u5730\u70b9\uff0c\u5e76\u5141\u8bb8\u4fee\u6539\u5df2\u6709\u5730\u70b9\u5750\u6807\u3002"
-  ,"tooltip.riftgun.module.reservoir_expansion_module.description": "\u6269\u5c55\u4f20\u9001\u67aa\u7684\u6d41\u4f53\u50a8\u91cf\u3002"
-  ,"tooltip.riftgun.module.passive_transit_module.description": "\u542f\u7528\u65f6\u5141\u8bb8\u6e29\u548c\u4e0e\u53cb\u597d\u751f\u7269\u7a7f\u8fc7\u4f20\u9001\u95e8\u3002"
-  ,"tooltip.riftgun.module.hostile_transit_module.description": "\u542f\u7528\u65f6\u5141\u8bb8\u654c\u5bf9\u751f\u7269\u7a7f\u8fc7\u4f20\u9001\u95e8\u3002"
-  ,"tooltip.riftgun.module.boss_transit_module.description": "\u542f\u7528\u65f6\u5141\u8bb8 Boss \u6807\u7b7e\u751f\u7269\u7a7f\u8fc7\u4f20\u9001\u95e8\u3002"
-  ,"tooltip.riftgun.module.surface_range_amplifier.description": "\u63d0\u5347\u8d34\u9762\u5f00\u95e8\u7684\u6700\u5927\u5c04\u7a0b\u3002"
-  ,"tooltip.riftgun.module.module_bay_expansion.description": "\u4e3a\u4f20\u9001\u67aa\u6a21\u5757\u4ed3\u589e\u52a0\u4e09\u4e2a\u69fd\u4f4d\u3002"
-  ,"tooltip.riftgun.module.portal_aperture_module.description": "在放置条件允许时开启更大的传送门。"
-  ,"message.riftgun.aperture_module_required": "需要安装门径扩展模块"
-  ,"message.riftgun.coordinate_module_required": "\u9700\u8981\u5750\u6807\u8986\u5199\u6a21\u5757"
-  ,"message.riftgun.surface_range_module_required": "\u9700\u8981\u8d34\u9762\u5c04\u7a0b\u589e\u5e45\u6a21\u5757"
-  ,"message.riftgun.entity_module_required": "\u9700\u8981\u5bf9\u5e94\u7684\u751f\u7269\u901a\u884c\u6a21\u5757"
-  ,"message.riftgun.modules.clear_expanded_slots": "\u8bf7\u5148\u6e05\u7a7a\u5c06\u88ab\u79fb\u9664\u7684\u6a21\u5757\u69fd\u4f4d"
+  "message.riftgun.dimension_unavailable": "目的地维度不可用",
+  "message.riftgun.placement_mode": "传送门放置模式：%s",
+  "message.riftgun.front_obstructed": "面前空间不足，无法开启传送门",
+  "message.riftgun.front_outside_world": "预测的传送门位置超出世界高度",
+  "message.riftgun.surface_missing": "视线内没有可用方块表面",
+  "message.riftgun.surface_out_of_range": "目标表面超出射程",
+  "message.riftgun.surface_invalid": "该方块表面无法锚定传送门",
+  "message.riftgun.surface_obstructed": "该表面没有足够的开门空间",
+  "message.riftgun.fuel_empty": "传送枪内没有有效传送液",
+  "message.riftgun.fuel_insufficient": "传送液不足，无法开启传送门",
+  "message.riftgun.fuel_dimension_denied": "跨维度传送需要维度传送液",
+  "message.riftgun.portal_open_failed": "传送门开启失败，未消耗燃料",
+  "message.riftgun.bucket_mode_enabled": "已开启桶模式",
+  "message.riftgun.bucket_mode_disabled": "已关闭桶模式",
+  "message.riftgun.fluid_cleared": "已丢弃 %s mB 传送液",
+  "message.riftgun.scoop_no_source": "请瞄准传送流体 source block",
+  "message.riftgun.scoop_protected": "你不能在此处抽取流体",
+  "message.riftgun.scoop_invalid_fluid": "这种流体不能作为传送枪燃料",
+  "message.riftgun.scoop_full": "传送枪无法再装入一个 source block",
+  "message.riftgun.scoop_mixed": "请先清空传送枪，再抽取另一种流体",
+  "message.riftgun.scoop_failed": "无法抽取该流体 source block",
+  "message.riftgun.scoop_success": "已抽取 %s mB · %s/%s mB",
+  "screen.riftgun.bucket_mode_simple": "桶模式：%s",
+  "message.riftgun.exit_generation_failed": "传送已完成，但出口传送门生成失败。",
+  "message.riftgun.destination_teleport_failed": "目标维度拒绝了此次实体传送。",
+  "item.riftgun.coordinate_override_module": "坐标覆写模块",
+  "item.riftgun.reservoir_expansion_module": "储液扩展模块",
+  "item.riftgun.passive_transit_module": "温和生物通行模块",
+  "item.riftgun.hostile_transit_module": "敌对生物通行模块",
+  "item.riftgun.boss_transit_module": "Boss 生物通行模块",
+  "item.riftgun.surface_range_amplifier": "贴面射程增幅模块",
+  "item.riftgun.module_bay_expansion": "模块仓扩展模块",
+  "item.riftgun.portal_aperture_module": "门径扩展模块",
+  "screen.riftgun.configure_gun": "配置传送枪",
+  "screen.riftgun.open_modules": "模块仓",
+  "screen.riftgun.gun_settings_hint": "选择传送枪设置或已安装能力进行配置",
+  "screen.riftgun.back": "返回",
+  "screen.riftgun.back_to_gun_settings": "返回传送枪配置",
+  "screen.riftgun.portal_duration": "传送门持续时间",
+  "screen.riftgun.portal_duration_value": "开放时间：%s 秒",
+  "screen.riftgun.portal_duration_hint": "从传送门完全开启时开始计时",
+  "screen.riftgun.aperture": "扩大门径",
+  "screen.riftgun.aperture_hint": "条件允许时优先开启更大的传送门",
+  "screen.riftgun.surface_range": "贴面开门射程",
+  "screen.riftgun.surface_range_value": "贴面射程：%s 格",
+  "screen.riftgun.surface_range_modules": "已安装射程增幅模块：%s",
+  "screen.riftgun.entity_transit": "生物通行",
+  "screen.riftgun.entity_transit_hint": "点击已安装的类别以允许或禁止通行",
+  "screen.riftgun.passive_transit": "温和与友好生物",
+  "screen.riftgun.hostile_transit": "敌对生物",
+  "screen.riftgun.boss_transit": "Boss 生物",
+  "screen.riftgun.coordinate_read_only": "安装坐标覆写模块后才能修改坐标",
+  "screen.riftgun.modules.title": "传送枪模块",
+  "screen.riftgun.modules.back": "返回地点列表",
+  "screen.riftgun.modules.slot_count": "模块：%s/%s",
+  "screen.riftgun.modules.capacity": "容量：%s mB",
+  "screen.riftgun.modules.surface_range": "贴面射程：%s / %s 格",
+  "screen.riftgun.modules.entity_access": "已启用生物类别：%s",
+  "screen.riftgun.modules.coordinate_unlocked": "已解锁坐标覆写",
+  "screen.riftgun.modules.coordinate_locked": "坐标覆写未解锁",
+  "tooltip.riftgun.module.hold_shift": "按住 Shift 查看模块详情",
+  "tooltip.riftgun.module.limit": "每把枪最多生效：%s 个",
+  "tooltip.riftgun.module.reservoir_warning": "拔出后会丢弃超过新容量上限的流体",
+  "tooltip.riftgun.module.module_bay_warning": "拔出前需先清空将被移除的末尾槽位",
+  "tooltip.riftgun.module.coordinate_override_module.description": "解锁输入坐标建立地点，并允许修改已有地点坐标。",
+  "tooltip.riftgun.module.reservoir_expansion_module.description": "扩展传送枪的流体储量。",
+  "tooltip.riftgun.module.passive_transit_module.description": "启用时允许温和与友好生物穿过传送门。",
+  "tooltip.riftgun.module.hostile_transit_module.description": "启用时允许敌对生物穿过传送门。",
+  "tooltip.riftgun.module.boss_transit_module.description": "启用时允许 Boss 标签生物穿过传送门。",
+  "tooltip.riftgun.module.surface_range_amplifier.description": "提升贴面开门的最大射程。",
+  "tooltip.riftgun.module.module_bay_expansion.description": "为传送枪模块仓增加三个槽位。",
+  "tooltip.riftgun.module.portal_aperture_module.description": "在放置条件允许时开启更大的传送门。",
+  "message.riftgun.aperture_module_required": "需要安装门径扩展模块",
+  "message.riftgun.coordinate_module_required": "需要坐标覆写模块",
+  "message.riftgun.surface_range_module_required": "需要贴面射程增幅模块",
+  "message.riftgun.entity_module_required": "需要对应的生物通行模块",
+  "message.riftgun.modules.clear_expanded_slots": "请先清空将被移除的模块槽位",
+  "item.riftgun.player_target_module": "玩家目标模块",
+  "screen.riftgun.player_target": "玩家目标",
+  "screen.riftgun.player_target_hint": "点击已安装的开关以允许或禁止",
+  "screen.riftgun.player_exclude": "排除目标玩家",
+  "screen.riftgun.player_section_tooltip": "在线玩家 · 点击刷新图标重新加载列表",
+  "tooltip.riftgun.module.player_target_module.description": "将在线玩家加入目标点列表，并可在目标玩家附近开启传送门。",
+  "message.riftgun.player_target_module_required": "需要玩家目标模块",
+  "message.riftgun.player_target_offline": "该玩家已不在线",
+  "screen.riftgun.player_group": "玩家",
+  "screen.riftgun.player_self": "这是你自己",
+  "screen.riftgun.visual.swirl_animation": "动画",
+  "screen.riftgun.visual.swirl_inward_animation": "内吸流纹动画"
 }

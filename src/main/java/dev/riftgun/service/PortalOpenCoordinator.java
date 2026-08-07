@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import org.jetbrains.annotations.Nullable;
 
 /** Synchronous portal-open router. Unloaded cross-dimension exits are created after first transit. */
 public final class PortalOpenCoordinator {
@@ -27,17 +28,58 @@ public final class PortalOpenCoordinator {
             failMessage(player, "message.riftgun.destination_missing");
             return;
         }
+        if (open(player, data, destination, mode, locatedGun, null, true, fromGui)) {
+            PortalDataStore.save(player, data);
+            PortalNetworking.sendSnapshot(player, false, locatedGun);
+            if (fromGui) PortalNetworking.sendPortalOpened(player);
+        }
+    }
 
+    /** Opens a portal whose exit lands next to the given online player. */
+    public static void requestPlayerTarget(ServerPlayer player, PortalPlayerData data,
+                                           UUID targetPlayerId, boolean fromGui,
+                                           PortalPlacementMode mode, PortalGunLocator.LocatedGun locatedGun) {
+        MinecraftServer server = player.getServer();
+        ServerPlayer target = server == null ? null : server.getPlayerList().getPlayer(targetPlayerId);
+        if (target == null) {
+            failMessage(player, "message.riftgun.player_target_offline");
+            return;
+        }
+        PortalGunModuleSettings.ensure(locatedGun.stack(), data.settings().smartDistance());
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            locatedGun.stack(), data.settings().smartDistance());
+        if (!capabilities.playerTarget()) {
+            failMessage(player, "message.riftgun.player_target_module_required");
+            return;
+        }
+        long time = player.level().getGameTime();
+        Destination destination = new Destination(
+            UUID.randomUUID(), target.getGameProfile().getName(), PortalPlayerData.DEFAULT_GROUP_ID,
+            target.level().dimension(), target.getX(), target.getY(), target.getZ(),
+            target.getYRot(), time, 0L, false);
+        UUID excluded = capabilities.playerExclude() ? targetPlayerId : null;
+        if (open(player, data, destination, mode, locatedGun, excluded, false, fromGui)) {
+            data.recordPlayerUse(targetPlayerId, time);
+            PortalDataStore.save(player, data);
+            PortalNetworking.sendSnapshot(player, false, locatedGun);
+            if (fromGui) PortalNetworking.sendPortalOpened(player);
+        }
+    }
+
+    private static boolean open(ServerPlayer player, PortalPlayerData data,
+                                Destination destination, PortalPlacementMode mode,
+                                PortalGunLocator.LocatedGun locatedGun, @Nullable UUID excludedPlayerId,
+                                boolean recordAsDestination, boolean fromGui) {
         var dimensionResult = PortalServices.DIMENSION_POLICY.validate(player, destination);
         if (!dimensionResult.allowed()) {
             player.displayClientMessage(dimensionResult.message(), true);
-            return;
+            return false;
         }
         MinecraftServer server = player.getServer();
         ServerLevel targetLevel = server == null ? null : server.getLevel(destination.dimension());
         if (targetLevel == null) {
             failMessage(player, "message.riftgun.dimension_unavailable");
-            return;
+            return false;
         }
 
         PortalGunModuleSettings.ensure(locatedGun.stack(), data.settings().smartDistance());
@@ -49,20 +91,20 @@ public final class PortalOpenCoordinator {
         PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(player, mode, constraints);
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());
-            return;
+            return false;
         }
         PortalEntryPlacementResult entry = PortalServices.PLACEMENT_RESOLVER.resolveEntry(
             player, capture.intent(), constraints);
         if (!entry.successful()) {
             failMessage(player, entry.errorKey());
-            return;
+            return false;
         }
 
         PortalFuelManager.Plan fuelPlan = PortalFuelManager.plan(
             player, locatedGun.stack(), destination.dimension());
         if (!fuelPlan.successful()) {
             failMessage(player, fuelPlan.errorKey());
-            return;
+            return false;
         }
 
         boolean crossDimension = !player.level().dimension().equals(destination.dimension());
@@ -74,7 +116,7 @@ public final class PortalOpenCoordinator {
             opened = PortalEntity.openDeferredExit(
                 player, entry.placement(), fuelPlan.use().profile(), PortalExitTarget.from(destination),
                 gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
+                excludedPlayerId, () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         } else {
             Destination resolved = destination;
             if (!crossDimension && data.settings().safetyCheckEnabled()) {
@@ -91,25 +133,25 @@ public final class PortalOpenCoordinator {
                 targetLevel, PortalExitTarget.from(resolved), entry.placement(), gunCapabilities.aperture());
             if (!placement.successful()) {
                 failMessage(player, placement.errorKey());
-                return;
+                return false;
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),
                 gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
+                excludedPlayerId, () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         }
 
         if (!opened) {
             failMessage(player, "message.riftgun.portal_open_failed");
-            return;
+            return false;
         }
 
-        if (crossDimension) data.clearSafetyResult(destination.id());
-        else if (safetyReport != null) data.recordSafetyResult(destination.id(), safetyReport.safe());
-        data.selectedDestinationId(destination.id());
-        data.replaceDestination(destination.usedAt(player.level().getGameTime()));
-        PortalDataStore.save(player, data);
-        PortalNetworking.sendSnapshot(player, false, locatedGun);
-        if (fromGui) PortalNetworking.sendPortalOpened(player);
+        if (recordAsDestination) {
+            if (crossDimension) data.clearSafetyResult(destination.id());
+            else if (safetyReport != null) data.recordSafetyResult(destination.id(), safetyReport.safe());
+            data.selectedDestinationId(destination.id());
+            data.replaceDestination(destination.usedAt(player.level().getGameTime()));
+        }
+        return true;
     }
 
     private static void failMessage(ServerPlayer player, String translationKey) {
