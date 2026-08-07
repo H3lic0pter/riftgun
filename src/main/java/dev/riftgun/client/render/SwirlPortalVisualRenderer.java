@@ -31,7 +31,8 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         float shimmer = animated ? 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F : 1.0F;
         // 1x1 side portals share the top/bottom texture mapping so the swirl fills the face.
         boolean mapped = horizontal || placement.geometry() == PortalGeometry.SURFACE_COMPACT;
-        float depth = SwirlVisualGeometry.DEPTH;
+        // Top/bottom faces lie flat on the same plane; sides keep a thin gap.
+        float depth = horizontal ? 0.0F : SwirlVisualGeometry.DEPTH;
         float normalOffset = 0.0F;
         if (placement.anchored()) {
             Vec3 wallFace = Vec3.atCenterOf(placement.anchor())
