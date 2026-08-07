@@ -2,6 +2,7 @@ package dev.riftgun.client.render;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacement;
 import net.minecraft.util.Mth;
@@ -28,6 +29,8 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         height *= SwirlVisualGeometry.visibleHeightScale(placement);
         boolean animated = SwirlVisualOptions.animationEnabled();
         float shimmer = animated ? 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F : 1.0F;
+        // 1x1 side portals share the top/bottom texture mapping so the swirl fills the face.
+        boolean mapped = horizontal || placement.geometry() == PortalGeometry.SURFACE_COMPACT;
         float depth = SwirlVisualGeometry.DEPTH;
         float normalOffset = 0.0F;
         if (placement.anchored()) {
@@ -38,7 +41,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         }
         float phase = phase(portal);
         drawFaces(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.swirl()), width, height,
-            depth, normalOffset, context.style().surfaceColor(), shimmer, phase, horizontal);
+            depth, normalOffset, context.style().surfaceColor(), shimmer, phase, mapped);
         drawEdge(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.swirlEdge()), width, height,
             depth, normalOffset, context.style().surfaceColor(), shimmer);
     }
