@@ -160,7 +160,7 @@
   "screen.riftgun.gun_settings_hint": "选择传送枪设置或已安装能力进行配置",
   "screen.riftgun.back": "返回",
   "screen.riftgun.back_to_gun_settings": "返回传送枪配置",
-  "screen.riftgun.portal_duration": "传送门持续时间",
+  "screen.riftgun.portal_duration": "传送时机",
   "screen.riftgun.portal_duration_value": "开放时间：%s 秒",
   "screen.riftgun.portal_duration_hint": "从传送门完全开启时开始计时",
   "screen.riftgun.aperture": "扩大门径",
@@ -210,5 +210,7 @@
   "screen.riftgun.player_group": "玩家",
   "screen.riftgun.player_self": "这是你自己",
   "screen.riftgun.visual.swirl_animation": "动画",
-  "screen.riftgun.visual.swirl_inward_animation": "内吸流纹动画"
+  "screen.riftgun.visual.swirl_inward_animation": "内吸流纹动画",
+  "screen.riftgun.portal_timing_hint": "持续时长与传送冷却",
+  "screen.riftgun.transit_cooldown_value": "传送冷却：%s 秒"
 }

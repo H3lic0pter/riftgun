@@ -37,6 +37,8 @@ public final class PortalGunSnapshot {
             settings.portalDurationSeconds(), maximumDuration));
         tag.putInt("MaximumPortalDurationSeconds", maximumDuration);
         tag.putBoolean("ExpandedApertureEnabled", settings.expandedApertureEnabled());
+        tag.putInt("TransitCooldownTenths", settings.transitCooldownTenths());
+        tag.putInt("MaximumTransitCooldownTenths", PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
         tag.putBoolean("PlayerTargetEnabled", capabilities.playerTarget());
         tag.putBoolean("PlayerExcludeEnabled", capabilities.playerExclude());
         tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(

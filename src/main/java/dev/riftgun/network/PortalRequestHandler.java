@@ -431,6 +431,7 @@ public final class PortalRequestHandler {
             case "PortalDuration" -> settings = settings.withPortalDurationSeconds(
                 PortalOpenDuration.effectiveSeconds(request.getInt("Value"),
                     ServerConfig.VALUES.maximumPortalDurationSeconds.get()));
+            case "TransitCooldown" -> settings = settings.withTransitCooldownTenths(request.getInt("Value"));
             case "ExpandedAperture" -> {
                 if (PortalGunModules.activeCount(gun, PortalModuleKind.APERTURE_EXPANSION, rules) <= 0) {
                     throw error("message.riftgun.aperture_module_required");

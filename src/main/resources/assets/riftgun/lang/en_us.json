@@ -124,91 +124,93 @@
   "message.riftgun.default_group_immutable": "The Default group cannot be changed",
   "message.riftgun.invalid_coordinate": "Invalid coordinates; numbers and ~ are supported, ^ is not",
   "message.riftgun.invalid_request": "Invalid request",
-  "message.riftgun.dimension_unavailable": "The destination dimension is unavailable"
-  ,"message.riftgun.placement_mode": "Portal placement mode: %s"
-  ,"message.riftgun.front_obstructed": "Not enough room to open a portal in front of you"
-  ,"message.riftgun.front_outside_world": "The predicted portal position is outside the world"
-  ,"message.riftgun.surface_missing": "No block surface in sight"
-  ,"message.riftgun.surface_out_of_range": "The targeted surface is out of range"
-  ,"message.riftgun.surface_invalid": "That block face cannot anchor a portal"
-  ,"message.riftgun.surface_obstructed": "There is not enough room on that surface"
-  ,"message.riftgun.fuel_empty": "The Portal Gun has no valid portal fluid"
-  ,"message.riftgun.fuel_insufficient": "Not enough portal fluid for this portal"
-  ,"message.riftgun.fuel_dimension_denied": "Dimensional Portal Fluid is required for cross-dimensional travel"
-  ,"message.riftgun.portal_open_failed": "The portal could not be opened; no fuel was consumed"
-  ,"message.riftgun.bucket_mode_enabled": "Bucket mode enabled"
-  ,"message.riftgun.bucket_mode_disabled": "Bucket mode disabled"
-  ,"message.riftgun.fluid_cleared": "Discarded %s mB of portal fluid"
-  ,"message.riftgun.scoop_no_source": "Aim at a portal fluid source block"
-  ,"message.riftgun.scoop_protected": "You cannot collect fluid here"
-  ,"message.riftgun.scoop_invalid_fluid": "That fluid cannot fuel the Portal Gun"
-  ,"message.riftgun.scoop_full": "The Portal Gun cannot accept another source block"
-  ,"message.riftgun.scoop_mixed": "Empty the Portal Gun before collecting a different fluid"
-  ,"message.riftgun.scoop_failed": "The fluid source could not be collected"
-  ,"message.riftgun.scoop_success": "Collected %s mB · %s/%s mB"
-  ,"screen.riftgun.bucket_mode_simple": "Bucket mode: %s"
-  ,"message.riftgun.exit_generation_failed": "Teleported, but the exit portal could not be created."
-  ,"message.riftgun.destination_teleport_failed": "The destination rejected the dimension transfer."
-  ,"item.riftgun.coordinate_override_module": "Coordinate Override Module"
-  ,"item.riftgun.reservoir_expansion_module": "Reservoir Expansion Module"
-  ,"item.riftgun.passive_transit_module": "Passive Transit Module"
-  ,"item.riftgun.hostile_transit_module": "Hostile Transit Module"
-  ,"item.riftgun.boss_transit_module": "Boss Transit Module"
-  ,"item.riftgun.surface_range_amplifier": "Surface Range Amplifier"
-  ,"item.riftgun.module_bay_expansion": "Module Bay Expansion"
-  ,"item.riftgun.portal_aperture_module": "Portal Aperture Module"
-  ,"item.riftgun.player_target_module": "Player Target Module"
-  ,"screen.riftgun.configure_gun": "Configure Gun"
-  ,"screen.riftgun.open_modules": "Module Bay"
-  ,"screen.riftgun.gun_settings_hint": "Choose a gun setting or installed capability"
-  ,"screen.riftgun.back": "Back"
-  ,"screen.riftgun.back_to_gun_settings": "Back to gun configuration"
-  ,"screen.riftgun.portal_duration": "Portal duration"
-  ,"screen.riftgun.portal_duration_value": "Open duration: %s s"
-  ,"screen.riftgun.portal_duration_hint": "Counts from the moment the portal is fully open"
-  ,"screen.riftgun.aperture": "Expanded aperture"
-  ,"screen.riftgun.aperture_hint": "Prefer a larger portal whenever placement conditions allow"
-  ,"screen.riftgun.surface_range": "Surface placement range"
-  ,"screen.riftgun.surface_range_value": "Surface range: %s blocks"
-  ,"screen.riftgun.surface_range_modules": "Installed range amplifiers: %s"
-  ,"screen.riftgun.entity_transit": "Entity transit"
-  ,"screen.riftgun.entity_transit_hint": "Click an installed category to allow or block it"
-  ,"screen.riftgun.passive_transit": "Passive and friendly mobs"
-  ,"screen.riftgun.hostile_transit": "Hostile mobs"
-  ,"screen.riftgun.boss_transit": "Boss mobs"
-  ,"screen.riftgun.player_target": "Player targets"
-  ,"screen.riftgun.player_target_hint": "Click an installed switch to allow or block it"
-  ,"screen.riftgun.player_exclude": "Exclude the targeted player"
-  ,"screen.riftgun.player_group": "Player"
-  ,"screen.riftgun.player_self": "This is you"
-  ,"screen.riftgun.player_section_tooltip": "Online players · click the refresh icon to reload the list"
-  ,"screen.riftgun.coordinate_read_only": "Install a Coordinate Override Module to edit coordinates"
-  ,"screen.riftgun.modules.title": "Portal Gun Modules"
-  ,"screen.riftgun.modules.back": "Back to destinations"
-  ,"screen.riftgun.modules.slot_count": "Modules: %s/%s"
-  ,"screen.riftgun.modules.capacity": "Capacity: %s mB"
-  ,"screen.riftgun.modules.surface_range": "Surface range: %s / %s blocks"
-  ,"screen.riftgun.modules.entity_access": "Enabled mob categories: %s"
-  ,"screen.riftgun.modules.coordinate_unlocked": "Coordinate override unlocked"
-  ,"screen.riftgun.modules.coordinate_locked": "Coordinate override locked"
-  ,"tooltip.riftgun.module.hold_shift": "Hold Shift for module details"
-  ,"tooltip.riftgun.module.limit": "Maximum active per gun: %s"
-  ,"tooltip.riftgun.module.reservoir_warning": "Removing this module discards fluid above the reduced capacity"
-  ,"tooltip.riftgun.module.module_bay_warning": "Clear slots beyond the reduced limit before removing"
-  ,"tooltip.riftgun.module.coordinate_override_module.description": "Unlocks coordinate-created locations and coordinate editing."
-  ,"tooltip.riftgun.module.reservoir_expansion_module.description": "Expands the Portal Gun fluid reservoir."
-  ,"tooltip.riftgun.module.passive_transit_module.description": "Allows passive and friendly mobs to use portals when enabled."
-  ,"tooltip.riftgun.module.hostile_transit_module.description": "Allows hostile mobs to use portals when enabled."
-  ,"tooltip.riftgun.module.boss_transit_module.description": "Allows boss-tagged mobs to use portals when enabled."
-  ,"tooltip.riftgun.module.surface_range_amplifier.description": "Extends the maximum range of surface placement."
-  ,"tooltip.riftgun.module.module_bay_expansion.description": "Adds three slots to the Portal Gun module bay."
-  ,"tooltip.riftgun.module.portal_aperture_module.description": "Opens a larger portal whenever placement conditions allow."
-  ,"tooltip.riftgun.module.player_target_module.description": "Adds online players as portal targets and lets you open a portal next to them."
-  ,"message.riftgun.aperture_module_required": "Portal Aperture Module required"
-  ,"message.riftgun.coordinate_module_required": "A Coordinate Override Module is required"
-  ,"message.riftgun.surface_range_module_required": "A Surface Range Amplifier is required"
-  ,"message.riftgun.entity_module_required": "The corresponding entity transit module is required"
-  ,"message.riftgun.player_target_module_required": "A Player Target Module is required"
-  ,"message.riftgun.player_target_offline": "That player is no longer online"
-  ,"message.riftgun.modules.clear_expanded_slots": "Clear the module slots that would be removed first"
+  "message.riftgun.dimension_unavailable": "The destination dimension is unavailable",
+  "message.riftgun.placement_mode": "Portal placement mode: %s",
+  "message.riftgun.front_obstructed": "Not enough room to open a portal in front of you",
+  "message.riftgun.front_outside_world": "The predicted portal position is outside the world",
+  "message.riftgun.surface_missing": "No block surface in sight",
+  "message.riftgun.surface_out_of_range": "The targeted surface is out of range",
+  "message.riftgun.surface_invalid": "That block face cannot anchor a portal",
+  "message.riftgun.surface_obstructed": "There is not enough room on that surface",
+  "message.riftgun.fuel_empty": "The Portal Gun has no valid portal fluid",
+  "message.riftgun.fuel_insufficient": "Not enough portal fluid for this portal",
+  "message.riftgun.fuel_dimension_denied": "Dimensional Portal Fluid is required for cross-dimensional travel",
+  "message.riftgun.portal_open_failed": "The portal could not be opened; no fuel was consumed",
+  "message.riftgun.bucket_mode_enabled": "Bucket mode enabled",
+  "message.riftgun.bucket_mode_disabled": "Bucket mode disabled",
+  "message.riftgun.fluid_cleared": "Discarded %s mB of portal fluid",
+  "message.riftgun.scoop_no_source": "Aim at a portal fluid source block",
+  "message.riftgun.scoop_protected": "You cannot collect fluid here",
+  "message.riftgun.scoop_invalid_fluid": "That fluid cannot fuel the Portal Gun",
+  "message.riftgun.scoop_full": "The Portal Gun cannot accept another source block",
+  "message.riftgun.scoop_mixed": "Empty the Portal Gun before collecting a different fluid",
+  "message.riftgun.scoop_failed": "The fluid source could not be collected",
+  "message.riftgun.scoop_success": "Collected %s mB · %s/%s mB",
+  "screen.riftgun.bucket_mode_simple": "Bucket mode: %s",
+  "message.riftgun.exit_generation_failed": "Teleported, but the exit portal could not be created.",
+  "message.riftgun.destination_teleport_failed": "The destination rejected the dimension transfer.",
+  "item.riftgun.coordinate_override_module": "Coordinate Override Module",
+  "item.riftgun.reservoir_expansion_module": "Reservoir Expansion Module",
+  "item.riftgun.passive_transit_module": "Passive Transit Module",
+  "item.riftgun.hostile_transit_module": "Hostile Transit Module",
+  "item.riftgun.boss_transit_module": "Boss Transit Module",
+  "item.riftgun.surface_range_amplifier": "Surface Range Amplifier",
+  "item.riftgun.module_bay_expansion": "Module Bay Expansion",
+  "item.riftgun.portal_aperture_module": "Portal Aperture Module",
+  "item.riftgun.player_target_module": "Player Target Module",
+  "screen.riftgun.configure_gun": "Configure Gun",
+  "screen.riftgun.open_modules": "Module Bay",
+  "screen.riftgun.gun_settings_hint": "Choose a gun setting or installed capability",
+  "screen.riftgun.back": "Back",
+  "screen.riftgun.back_to_gun_settings": "Back to gun configuration",
+  "screen.riftgun.portal_duration": "Portal timing",
+  "screen.riftgun.portal_duration_value": "Open duration: %s s",
+  "screen.riftgun.portal_duration_hint": "Counts from the moment the portal is fully open",
+  "screen.riftgun.aperture": "Expanded aperture",
+  "screen.riftgun.aperture_hint": "Prefer a larger portal whenever placement conditions allow",
+  "screen.riftgun.surface_range": "Surface placement range",
+  "screen.riftgun.surface_range_value": "Surface range: %s blocks",
+  "screen.riftgun.surface_range_modules": "Installed range amplifiers: %s",
+  "screen.riftgun.entity_transit": "Entity transit",
+  "screen.riftgun.entity_transit_hint": "Click an installed category to allow or block it",
+  "screen.riftgun.passive_transit": "Passive and friendly mobs",
+  "screen.riftgun.hostile_transit": "Hostile mobs",
+  "screen.riftgun.boss_transit": "Boss mobs",
+  "screen.riftgun.player_target": "Player targets",
+  "screen.riftgun.player_target_hint": "Click an installed switch to allow or block it",
+  "screen.riftgun.player_exclude": "Exclude the targeted player",
+  "screen.riftgun.player_group": "Player",
+  "screen.riftgun.player_self": "This is you",
+  "screen.riftgun.player_section_tooltip": "Online players · click the refresh icon to reload the list",
+  "screen.riftgun.coordinate_read_only": "Install a Coordinate Override Module to edit coordinates",
+  "screen.riftgun.modules.title": "Portal Gun Modules",
+  "screen.riftgun.modules.back": "Back to destinations",
+  "screen.riftgun.modules.slot_count": "Modules: %s/%s",
+  "screen.riftgun.modules.capacity": "Capacity: %s mB",
+  "screen.riftgun.modules.surface_range": "Surface range: %s / %s blocks",
+  "screen.riftgun.modules.entity_access": "Enabled mob categories: %s",
+  "screen.riftgun.modules.coordinate_unlocked": "Coordinate override unlocked",
+  "screen.riftgun.modules.coordinate_locked": "Coordinate override locked",
+  "tooltip.riftgun.module.hold_shift": "Hold Shift for module details",
+  "tooltip.riftgun.module.limit": "Maximum active per gun: %s",
+  "tooltip.riftgun.module.reservoir_warning": "Removing this module discards fluid above the reduced capacity",
+  "tooltip.riftgun.module.module_bay_warning": "Clear slots beyond the reduced limit before removing",
+  "tooltip.riftgun.module.coordinate_override_module.description": "Unlocks coordinate-created locations and coordinate editing.",
+  "tooltip.riftgun.module.reservoir_expansion_module.description": "Expands the Portal Gun fluid reservoir.",
+  "tooltip.riftgun.module.passive_transit_module.description": "Allows passive and friendly mobs to use portals when enabled.",
+  "tooltip.riftgun.module.hostile_transit_module.description": "Allows hostile mobs to use portals when enabled.",
+  "tooltip.riftgun.module.boss_transit_module.description": "Allows boss-tagged mobs to use portals when enabled.",
+  "tooltip.riftgun.module.surface_range_amplifier.description": "Extends the maximum range of surface placement.",
+  "tooltip.riftgun.module.module_bay_expansion.description": "Adds three slots to the Portal Gun module bay.",
+  "tooltip.riftgun.module.portal_aperture_module.description": "Opens a larger portal whenever placement conditions allow.",
+  "tooltip.riftgun.module.player_target_module.description": "Adds online players as portal targets and lets you open a portal next to them.",
+  "message.riftgun.aperture_module_required": "Portal Aperture Module required",
+  "message.riftgun.coordinate_module_required": "A Coordinate Override Module is required",
+  "message.riftgun.surface_range_module_required": "A Surface Range Amplifier is required",
+  "message.riftgun.entity_module_required": "The corresponding entity transit module is required",
+  "message.riftgun.player_target_module_required": "A Player Target Module is required",
+  "message.riftgun.player_target_offline": "That player is no longer online",
+  "message.riftgun.modules.clear_expanded_slots": "Clear the module slots that would be removed first",
+  "screen.riftgun.portal_timing_hint": "Open duration and transit cooldown",
+  "screen.riftgun.transit_cooldown_value": "Transit cooldown: %s s"
 }
