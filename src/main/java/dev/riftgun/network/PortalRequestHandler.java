@@ -463,7 +463,9 @@ public final class PortalRequestHandler {
                 if (PortalGunModules.activeCount(gun, PortalModuleKind.PLAYER_TARGET, rules) <= 0) {
                     throw error("message.riftgun.player_target_module_required");
                 }
-                settings = settings.withPlayerExcludeEnabled(request.getBoolean("Enabled"));
+                int mode = settings.playerExcludeMode();
+                settings = settings.withPlayerExcludeMode(
+                    Math.floorMod(mode + request.getInt("Step"), 3));
             }
             default -> throw error("message.riftgun.invalid_request");
         }

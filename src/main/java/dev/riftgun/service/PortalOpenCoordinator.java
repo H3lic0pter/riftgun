@@ -28,7 +28,7 @@ public final class PortalOpenCoordinator {
             failMessage(player, "message.riftgun.destination_missing");
             return;
         }
-        if (open(player, data, destination, mode, locatedGun, null, true, fromGui)) {
+        if (open(player, data, destination, mode, locatedGun, null, null, true, fromGui)) {
             PortalDataStore.save(player, data);
             PortalNetworking.sendSnapshot(player, false, locatedGun);
             if (fromGui) PortalNetworking.sendPortalOpened(player);
@@ -57,8 +57,12 @@ public final class PortalOpenCoordinator {
             UUID.randomUUID(), target.getGameProfile().getName(), PortalPlayerData.DEFAULT_GROUP_ID,
             target.level().dimension(), target.getX(), target.getY(), target.getZ(),
             target.getYRot(), time, 0L, false);
-        UUID excluded = capabilities.playerExclude() ? targetPlayerId : null;
-        if (open(player, data, destination, mode, locatedGun, excluded, false, fromGui)) {
+        int excludeMode = capabilities.playerExcludeMode();
+        UUID entryExclude = excludeMode == PortalGunModuleSettings.PLAYER_EXCLUDE_ENTRY_AND_EXIT
+            ? targetPlayerId : null;
+        UUID exitExclude = excludeMode != PortalGunModuleSettings.PLAYER_EXCLUDE_OFF
+            ? targetPlayerId : null;
+        if (open(player, data, destination, mode, locatedGun, entryExclude, exitExclude, false, fromGui)) {
             data.recordPlayerUse(targetPlayerId, time);
             PortalDataStore.save(player, data);
             PortalNetworking.sendSnapshot(player, false, locatedGun);
@@ -68,8 +72,8 @@ public final class PortalOpenCoordinator {
 
     private static boolean open(ServerPlayer player, PortalPlayerData data,
                                 Destination destination, PortalPlacementMode mode,
-                                PortalGunLocator.LocatedGun locatedGun, @Nullable UUID excludedPlayerId,
-                                boolean recordAsDestination, boolean fromGui) {
+                                PortalGunLocator.LocatedGun locatedGun, @Nullable UUID entryExclude,
+                                @Nullable UUID exitExclude, boolean recordAsDestination, boolean fromGui) {
         var dimensionResult = PortalServices.DIMENSION_POLICY.validate(player, destination);
         if (!dimensionResult.allowed()) {
             player.displayClientMessage(dimensionResult.message(), true);
@@ -116,7 +120,7 @@ public final class PortalOpenCoordinator {
             opened = PortalEntity.openDeferredExit(
                 player, entry.placement(), fuelPlan.use().profile(), PortalExitTarget.from(destination),
                 gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                excludedPlayerId, gunCapabilities.transitCooldownTicks(),
+                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         } else {
             Destination resolved = destination;
@@ -138,7 +142,7 @@ public final class PortalOpenCoordinator {
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),
                 gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                excludedPlayerId, gunCapabilities.transitCooldownTicks(),
+                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         }
 

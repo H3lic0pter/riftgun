@@ -32,6 +32,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxDurationExtensionModules;
         public final ModConfigSpec.IntValue durationExtensionSecondsPerModule;
         public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
+        public final ModConfigSpec.DoubleValue horizontalTriggerExtend;
 
         private Values(ModConfigSpec.Builder builder) {
             builder.push("destinations");
@@ -66,6 +67,11 @@ public final class ServerConfig {
                     "Maximum fully-open duration selectable on a Portal Gun, in seconds.")
                 .defineInRange("maximumDurationSeconds", 15,
                     PortalOpenDuration.MINIMUM_SECONDS, PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS);
+            horizontalTriggerExtend = builder.comment(
+                    "Extra trigger reach along the normal for flat top/bottom portals, in blocks. "
+                        + "Catches falling bodies before their feet touch the ground so fall damage "
+                        + "is resolved at the exit.")
+                .defineInRange("horizontalTriggerExtend", 0.35, 0.0, 2.0);
             builder.pop();
         }
     }

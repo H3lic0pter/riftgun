@@ -217,5 +217,8 @@
   "item.riftgun.duration_eternal_module": "永恒持续模块",
   "screen.riftgun.portal_duration_permanent": "开放时间：永久",
   "tooltip.riftgun.module.duration_extension_module.description": "延长传送门最大开启时长。",
-  "tooltip.riftgun.module.duration_eternal_module.description": "触发后传送门永久开启。不能与持续时长扩展模块同时安装。"
+  "tooltip.riftgun.module.duration_eternal_module.description": "触发后传送门永久开启。不能与持续时长扩展模块同时安装。",
+  "screen.riftgun.player_exclude_off": "玩家排除：关",
+  "screen.riftgun.player_exclude_entry_exit": "玩家排除：入口与出口",
+  "screen.riftgun.player_exclude_exit_only": "玩家排除：仅出口"
 }

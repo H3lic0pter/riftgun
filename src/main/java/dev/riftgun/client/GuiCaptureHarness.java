@@ -178,7 +178,7 @@ final class GuiCaptureHarness {
         gun.putBoolean("HostileTransitEnabled", false);
         gun.putBoolean("BossTransitEnabled", true);
         gun.putBoolean("PlayerTargetEnabled", true);
-        gun.putBoolean("PlayerExcludeEnabled", true);
+        gun.putInt("PlayerExcludeMode", 1);
         gun.putBoolean("PlayerTargetInstalled", true);
         CompoundTag modules = new CompoundTag();
         modules.putInt("COORDINATE_OVERRIDE", 1);

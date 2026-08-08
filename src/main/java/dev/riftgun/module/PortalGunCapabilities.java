@@ -16,7 +16,7 @@ public record PortalGunCapabilities(
     int openDurationTicks,
     PortalAperture aperture,
     boolean playerTarget,
-    boolean playerExclude,
+    int playerExcludeMode,
     int transitCooldownTicks
 ) {
     public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance) {
@@ -53,7 +53,7 @@ public record PortalGunCapabilities(
             apertureInstalled && settings.expandedApertureEnabled()
                 ? PortalAperture.EXPANDED : PortalAperture.STANDARD,
             playerTargetInstalled && settings.playerTargetEnabled(),
-            playerTargetInstalled && settings.playerExcludeEnabled(),
+            settings.playerExcludeMode(),
             settings.transitCooldownTenths() * 2
         );
     }

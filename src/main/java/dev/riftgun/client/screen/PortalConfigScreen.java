@@ -394,7 +394,7 @@ public final class PortalConfigScreen extends Screen {
                 ignored -> toggleGunBoolean("PlayerTarget", "PlayerTargetEnabled"));
             buttonX += 31;
             playerExcludeButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("PlayerExclude", "PlayerExcludeEnabled"));
+                ignored -> cyclePlayerExclude());
         } else if (modal == Modal.APERTURE_SETTINGS) {
             apertureToggleButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("ExpandedAperture", "ExpandedApertureEnabled"));
@@ -1243,9 +1243,9 @@ public final class PortalConfigScreen extends Screen {
                 enabled ? 0xFF5CC8D9 : PortalTheme.TEXT_MUTED);
         }
         if (playerExcludeButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("PlayerExcludeEnabled");
+            int mode = PortalClientState.gun().getInt("PlayerExcludeMode");
             drawPlayerExcludeIcon(graphics, playerExcludeButton.getX() + 7, playerExcludeButton.getY() + 7,
-                enabled ? 0xFF5CC8D9 : PortalTheme.TEXT_MUTED);
+                mode == 0 ? PortalTheme.TEXT_MUTED : 0xFF5CC8D9);
         }
     }
 
@@ -1255,8 +1255,15 @@ public final class PortalConfigScreen extends Screen {
             entityTooltip(graphics, playerTargetButton, "screen.riftgun.player_target", enabled, mouseX, mouseY);
         }
         if (playerExcludeButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("PlayerExcludeEnabled");
-            entityTooltip(graphics, playerExcludeButton, "screen.riftgun.player_exclude", enabled, mouseX, mouseY);
+            int mode = PortalClientState.gun().getInt("PlayerExcludeMode");
+            String key = switch (mode) {
+                case 0 -> "screen.riftgun.player_exclude_off";
+                case 1 -> "screen.riftgun.player_exclude_entry_exit";
+                default -> "screen.riftgun.player_exclude_exit_only";
+            };
+            if (playerExcludeButton.isHovered()) {
+                graphics.renderTooltip(font, Component.translatable(key), mouseX, mouseY);
+            }
         }
     }
 
@@ -2111,6 +2118,15 @@ public final class PortalConfigScreen extends Screen {
         PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
             tag.putString("Setting", setting);
             tag.putBoolean("Enabled", enabled);
+        });
+    }
+
+    private void cyclePlayerExclude() {
+        int mode = Math.floorMod(PortalClientState.gun().getInt("PlayerExcludeMode") + 1, 3);
+        PortalClientState.gun().putInt("PlayerExcludeMode", mode);
+        PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
+            tag.putString("Setting", "PlayerExclude");
+            tag.putInt("Step", 1);
         });
     }
 

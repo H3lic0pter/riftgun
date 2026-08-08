@@ -45,7 +45,7 @@ public final class PortalGunSnapshot {
         tag.putInt("TransitCooldownTenths", settings.transitCooldownTenths());
         tag.putInt("MaximumTransitCooldownTenths", PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
         tag.putBoolean("PlayerTargetEnabled", capabilities.playerTarget());
-        tag.putBoolean("PlayerExcludeEnabled", capabilities.playerExclude());
+        tag.putInt("PlayerExcludeMode", capabilities.playerExcludeMode());
         tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(
             gun, PortalModuleKind.PLAYER_TARGET, rules) > 0);
         CompoundTag modules = new CompoundTag();

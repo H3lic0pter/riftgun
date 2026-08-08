@@ -67,6 +67,7 @@ public final class PortalEntity extends Entity {
     private @Nullable ResourceKey<Level> linkedDimension;
     private @Nullable UUID ownerId;
     private @Nullable UUID excludedPlayerId;
+    private @Nullable UUID deferredExitExclude;
     private @Nullable BlockPos anchor;
     private @Nullable Direction anchorFace;
     private @Nullable PortalExitTarget deferredTarget;
@@ -92,8 +93,8 @@ public final class PortalEntity extends Entity {
     public static boolean openPair(ServerPlayer player, PortalPairPlacement pair,
                                    PortalFuelProfile fuel, PortalEntityAccessSnapshot entityAccess,
                                    int openDurationTicks, PortalAperture aperture,
-                                   @Nullable UUID excludedPlayerId, int transitCooldownTicks,
-                                   BooleanSupplier commitFuel) {
+                                   @Nullable UUID entryExclude, @Nullable UUID exitExclude,
+                                   int transitCooldownTicks, BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
@@ -103,10 +104,10 @@ public final class PortalEntity extends Entity {
         long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
             fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt,
-            excludedPlayerId, transitCooldownTicks);
+            entryExclude, transitCooldownTicks);
         PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
             fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt,
-            excludedPlayerId, transitCooldownTicks);
+            exitExclude, transitCooldownTicks);
         link(entry, exit);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
@@ -128,15 +129,16 @@ public final class PortalEntity extends Entity {
                                            PortalFuelProfile fuel, PortalExitTarget target,
                                            PortalEntityAccessSnapshot entityAccess,
                                            int openDurationTicks, PortalAperture aperture,
-                                           @Nullable UUID excludedPlayerId, int transitCooldownTicks,
-                                           BooleanSupplier commitFuel) {
+                                           @Nullable UUID entryExclude, @Nullable UUID exitExclude,
+                                           int transitCooldownTicks, BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
             fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture,
-            server.overworld().getGameTime(), excludedPlayerId, transitCooldownTicks);
+            server.overworld().getGameTime(), entryExclude, transitCooldownTicks);
         entry.deferredTarget = target;
+        entry.deferredExitExclude = exitExclude;
         entry.acquireChunkTicket();
         boolean added = entryLevel.addFreshEntity(entry);
         if (!added || !commitFuel.getAsBoolean()) {
@@ -545,7 +547,7 @@ public final class PortalEntity extends Entity {
 
         long now = serverTime();
         PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
-            fuelRgb(), fuelId(), entityAccess, openDurationTicks, aperture, now, excludedPlayerId,
+            fuelRgb(), fuelId(), entityAccess, openDurationTicks, aperture, now, deferredExitExclude,
             transitCooldownTicks);
         exit.acquireChunkTicket();
         if (!targetLevel.addFreshEntity(exit)) {
@@ -658,6 +660,7 @@ public final class PortalEntity extends Entity {
         }
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
         if (tag.hasUUID("ExcludedPlayer")) excludedPlayerId = tag.getUUID("ExcludedPlayer");
+        if (tag.hasUUID("DeferredExitExclude")) deferredExitExclude = tag.getUUID("DeferredExitExclude");
         if (tag.contains("Anchor")) anchor = BlockPos.of(tag.getLong("Anchor"));
         if (tag.contains("AnchorFace")) {
             try {
@@ -708,6 +711,7 @@ public final class PortalEntity extends Entity {
         if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
         if (ownerId != null) tag.putUUID("Owner", ownerId);
         if (excludedPlayerId != null) tag.putUUID("ExcludedPlayer", excludedPlayerId);
+        if (deferredExitExclude != null) tag.putUUID("DeferredExitExclude", deferredExitExclude);
         if (anchor != null) tag.putLong("Anchor", anchor.asLong());
         if (anchorFace != null) tag.putString("AnchorFace", anchorFace.name());
         if (deferredTarget != null) tag.put("DeferredTarget", deferredTarget.save());

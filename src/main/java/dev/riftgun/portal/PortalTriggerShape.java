@@ -1,5 +1,6 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.config.ServerConfig;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -18,8 +19,11 @@ public final class PortalTriggerShape {
         double entityRightRadius = projectedRadius(entityBounds, right);
         double entityUpRadius = projectedRadius(entityBounds, up);
         double entityNormalRadius = projectedRadius(entityBounds, normal);
+        // Extra trigger reach along the normal for flat doors catches falling bodies before
+        // their feet touch the ground, so fall damage is resolved at the exit. Server-configurable.
         double normalHalfDepth = placement.orientation() == PortalOrientation.VERTICAL
-            ? VERTICAL_DEPTH * 0.5 : HORIZONTAL_HEIGHT * 0.5;
+            ? VERTICAL_DEPTH * 0.5
+            : HORIZONTAL_HEIGHT * 0.5 + ServerConfig.VALUES.horizontalTriggerExtend.get();
 
         boolean withinNormal = Math.abs(delta.dot(normal)) <= normalHalfDepth + entityNormalRadius;
         if (placement.orientation() != PortalOrientation.VERTICAL) {
