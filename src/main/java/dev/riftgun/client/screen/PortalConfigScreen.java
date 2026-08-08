@@ -101,6 +101,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton coordinateButton;
     private @Nullable ThemedButton gunSettingsButton;
     private @Nullable ThemedButton moduleBayButton;
+    private @Nullable ThemedButton closePortalsButton;
     private @Nullable ThemedButton gunSettingsBackButton;
     private @Nullable ThemedButton portalDurationSettingsButton;
     private @Nullable ThemedButton smartDistanceSettingsButton;
@@ -172,6 +173,7 @@ public final class PortalConfigScreen extends Screen {
         coordinateButton = null;
         gunSettingsButton = null;
         moduleBayButton = null;
+        closePortalsButton = null;
         gunSettingsBackButton = null;
         portalDurationSettingsButton = null;
         smartDistanceSettingsButton = null;
@@ -241,6 +243,8 @@ public final class PortalConfigScreen extends Screen {
             Component.empty(), false, ignored -> PortalNetworking.sendRequest(PortalAction.OPEN_MODULES));
         gunSettingsButton = button(panelX + panelWidth - 51, panelY + 3, 19, 18,
             Component.empty(), false, ignored -> openGunSettings());
+        closePortalsButton = button(panelX + panelWidth - 73, panelY + 3, 19, 18,
+            Component.empty(), false, ignored -> PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS));
 
         int footerY = panelY + panelHeight - 28;
         button(panelX + 10, footerY, 54, 19, "screen.riftgun.settings", false,
@@ -1085,6 +1089,10 @@ public final class PortalConfigScreen extends Screen {
                 graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.open_modules"), mouseX, mouseY);
             }
+            if (closePortalsButton != null && closePortalsButton.isHovered()) {
+                graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.close_portals"), mouseX, mouseY);
+            }
             if (motionPredictionButton != null) {
                 boolean enabled = PortalClientState.data().settings().motionPredictionEnabled();
                 if (motionPredictionButton.isHovered()) {
@@ -1180,6 +1188,9 @@ public final class PortalConfigScreen extends Screen {
         if (moduleBayButton != null) {
             drawModuleBayIcon(graphics, moduleBayButton.getX() + 4, moduleBayButton.getY() + 4,
                 PortalTheme.WARNING);
+        }
+        if (closePortalsButton != null) {
+            drawPortalCloseIcon(graphics, closePortalsButton.getX() + 4, closePortalsButton.getY() + 4);
         }
     }
 
@@ -1424,6 +1435,10 @@ public final class PortalConfigScreen extends Screen {
 
     private static void drawModuleBayIcon(GuiGraphics graphics, int x, int y, int color) {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.MODULE_BAY, x - 2, y - 2);
+    }
+
+    private static void drawPortalCloseIcon(GuiGraphics graphics, int x, int y) {
+        PortalGuiSprites.draw(graphics, PortalGuiSprites.PORTAL_CLOSE, x - 2, y - 2);
     }
 
     private static void drawSmartDistanceIcon(GuiGraphics graphics, int x, int y, int color) {

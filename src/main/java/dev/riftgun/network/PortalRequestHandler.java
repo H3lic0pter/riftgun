@@ -16,6 +16,7 @@ import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.service.CoordinateParser;
 import dev.riftgun.service.PortalGunLocator;
@@ -104,6 +105,10 @@ public final class PortalRequestHandler {
                     yield false;
                 }
                 case TOGGLE_PLAYER_PIN -> togglePlayerPin(data, request);
+                case CLOSE_PORTALS -> {
+                    closePortals(player);
+                    yield false;
+                }
                 case OPEN_GUI, OPEN_MODULES -> false;
             };
             if (changed) {
@@ -373,6 +378,13 @@ public final class PortalRequestHandler {
         if (data.isPlayerPinned(playerId)) data.pinnedPlayers().remove(playerId);
         else data.pinnedPlayers().add(playerId);
         return true;
+    }
+
+    private static void closePortals(ServerPlayer player) {
+        if (player.getServer() != null) {
+            PortalEntity.closeOwnedPortals(player.getServer(), player.getUUID());
+        }
+        player.displayClientMessage(Component.translatable("message.riftgun.portals_closed"), true);
     }
 
     private static boolean setExpanded(PortalPlayerData data, CompoundTag request) {

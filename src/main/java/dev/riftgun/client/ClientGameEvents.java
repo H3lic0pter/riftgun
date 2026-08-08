@@ -45,6 +45,11 @@ public final class ClientGameEvents {
         while (ClientModEvents.FORCE_SURFACE.consumeClick()) {
             sendForcedOpen(minecraft, PortalPlacementMode.SURFACE);
         }
+        while (ClientModEvents.CLOSE_PORTALS.consumeClick()) {
+            if (minecraft.player != null && minecraft.getConnection() != null) {
+                PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS);
+            }
+        }
     }
 
     private static void sendForcedOpen(Minecraft minecraft, PortalPlacementMode mode) {

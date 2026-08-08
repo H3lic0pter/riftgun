@@ -46,6 +46,10 @@ public final class ClientModEvents {
         "key.riftgun.force_surface", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
         "key.categories.riftgun"
     );
+    public static final KeyMapping CLOSE_PORTALS = new KeyMapping(
+        "key.riftgun.close_portals", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        "key.categories.riftgun"
+    );
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
@@ -79,6 +83,7 @@ public final class ClientModEvents {
         event.register(CYCLE_PLACEMENT);
         event.register(FORCE_FRONT);
         event.register(FORCE_SURFACE);
+        event.register(CLOSE_PORTALS);
     }
 
     @SubscribeEvent

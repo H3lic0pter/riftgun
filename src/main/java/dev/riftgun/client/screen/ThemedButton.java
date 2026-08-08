@@ -36,8 +36,7 @@ final class ThemedButton extends AbstractButton {
         int hover = portalAction ? PortalTheme.PORTAL : PortalTheme.PANEL_HOVER;
         int color = active ? lerpColor(base, hover, hoverProgress) : 0xFF202126;
         graphics.fill(getX(), getY(), getX() + width, getY() + height, color);
-        graphics.renderOutline(getX(), getY(), width, height,
-            isFocused() ? PortalTheme.BORDER_FOCUS : PortalTheme.BORDER);
+        graphics.renderOutline(getX(), getY(), width, height, PortalTheme.BORDER);
         int textColor = active ? PortalTheme.TEXT : 0xFF777777;
         renderString(graphics, Minecraft.getInstance().font, textColor);
     }
