@@ -39,6 +39,13 @@ public final class PortalClientState {
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.onPlayerListRefresh();
             }
+        } else if (kind.equals("PrivacyTerminal")) {
+            PrivacyTerminalState.handle(envelope);
+            if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PrivacyTerminalScreen screen) {
+                screen.refreshFromServer();
+            } else {
+                Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PrivacyTerminalScreen());
+            }
         }
     }
 

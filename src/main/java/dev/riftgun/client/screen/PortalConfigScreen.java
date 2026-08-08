@@ -43,7 +43,6 @@ public final class PortalConfigScreen extends Screen {
     private static final int FOOTER_HEIGHT = 36;
     private static final int ROW_HEIGHT = 18;
     private static final int ROW_ACTION_SIZE = 14;
-    private static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
     private static final int DETAIL_LINE_HEIGHT = 31;
 
     private int panelX;
@@ -155,6 +154,7 @@ public final class PortalConfigScreen extends Screen {
         super(Component.translatable("screen.riftgun.config"));
         PortalPlayerData data = PortalClientState.data();
         selectedPlayerId = data.selectedPlayerId();
+        playerSectionExpanded = data.expandedGroups().contains(PortalPlayerData.PLAYER_SECTION_ID);
         if (selectedPlayerId != null) {
             viewedDestination = null;
             focusedRowId = selectedPlayerId;
@@ -1600,7 +1600,7 @@ public final class PortalConfigScreen extends Screen {
         if (!playerSectionVisible()) return rows;
         boolean sectionMatch = normalizedQuery.isEmpty() || "player".contains(normalizedQuery);
         if (!sectionMatch && sortedPlayers(normalizedQuery).isEmpty()) return rows;
-        rows.add(new Row(RowKind.PLAYER_SECTION, PLAYER_SECTION_ID, 0));
+        rows.add(new Row(RowKind.PLAYER_SECTION, PortalPlayerData.PLAYER_SECTION_ID, 0));
         if (playerSectionExpanded || !normalizedQuery.isEmpty()) {
             for (PlayerListState.PlayerEntry entry : sortedPlayers(normalizedQuery)) {
                 rows.add(new Row(RowKind.PLAYER, entry.id(), 0));
@@ -1727,11 +1727,8 @@ public final class PortalConfigScreen extends Screen {
                 if (row.kind() == RowKind.PLAYER_SECTION) {
                     if (mouseX >= right - 27 && mouseX < right - 11) {
                         requestPlayerListRefresh();
-                    } else if (mouseX < panelX + 16) {
-                        playerSectionExpanded = !playerSectionExpanded;
-                        if (playerSectionExpanded) requestPlayerListRefresh();
                     } else {
-                        playerSectionExpanded = !playerSectionExpanded;
+                        togglePlayerSection();
                     }
                     return true;
                 }
@@ -1950,8 +1947,7 @@ public final class PortalConfigScreen extends Screen {
                 PlayerListState.PlayerEntry entry = PlayerListState.player(focusedRowId);
                 if (entry != null && !entry.self()) selectPlayer(entry.id());
             } else if (focusedRowKind == RowKind.PLAYER_SECTION) {
-                playerSectionExpanded = !playerSectionExpanded;
-                if (playerSectionExpanded) requestPlayerListRefresh();
+                togglePlayerSection();
             } else toggleGroup(focusedRowId);
             return true;
         }
@@ -2075,6 +2071,15 @@ public final class PortalConfigScreen extends Screen {
         PortalNetworking.sendRequest(PortalAction.SET_GROUP_EXPANDED, tag -> {
             tag.putUUID("Group", id);
             tag.putBoolean("Expanded", expanded);
+        });
+    }
+
+    private void togglePlayerSection() {
+        playerSectionExpanded = !playerSectionExpanded;
+        if (playerSectionExpanded) requestPlayerListRefresh();
+        PortalNetworking.sendRequest(PortalAction.SET_GROUP_EXPANDED, tag -> {
+            tag.putUUID("Group", PortalPlayerData.PLAYER_SECTION_ID);
+            tag.putBoolean("Expanded", playerSectionExpanded);
         });
     }
 
@@ -2622,6 +2627,8 @@ public final class PortalConfigScreen extends Screen {
         }
         if (selectedGroup != null && !selectedGroup.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && PortalClientState.data().group(selectedGroup).isEmpty()) selectedGroup = null;
+        playerSectionExpanded = PortalClientState.data().expandedGroups()
+            .contains(PortalPlayerData.PLAYER_SECTION_ID);
         if (modal == Modal.NONE) rebuildWidgets();
     }
 

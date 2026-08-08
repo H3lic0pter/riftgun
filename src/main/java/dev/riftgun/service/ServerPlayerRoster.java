@@ -18,5 +18,9 @@ public final class ServerPlayerRoster {
         return server.getPlayerList().getPlayer(playerId) != null;
     }
 
+    public static @org.jetbrains.annotations.Nullable ServerPlayer onlinePlayer(MinecraftServer server, UUID playerId) {
+        return server.getPlayerList().getPlayer(playerId);
+    }
+
     private ServerPlayerRoster() {}
 }

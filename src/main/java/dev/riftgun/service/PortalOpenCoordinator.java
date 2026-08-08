@@ -52,6 +52,25 @@ public final class PortalOpenCoordinator {
             failMessage(player, "message.riftgun.player_target_module_required");
             return;
         }
+
+        // Privacy gate. Self-targeting bypasses all privacy rules; transit protection also
+        // never applies to the player's own exit doors.
+        boolean selfTarget = target.getUUID().equals(player.getUUID());
+        if (!selfTarget) {
+            PortalPrivacyService.Access access = PortalPrivacyService.checkPortalAccess(server, target, player);
+            if (access == PortalPrivacyService.Access.DENIED) {
+                failMessage(player, "message.riftgun.player_privacy_denied");
+                return;
+            }
+            if (access == PortalPrivacyService.Access.REQUESTED) {
+                boolean fresh = PortalPrivacyService.promptRequest(server, target, player);
+                failMessage(player, fresh
+                    ? "message.riftgun.player_privacy_request_sent"
+                    : "message.riftgun.player_privacy_request_pending");
+                return;
+            }
+        }
+
         long time = player.level().getGameTime();
         Destination destination = new Destination(
             UUID.randomUUID(), target.getGameProfile().getName(), PortalPlayerData.DEFAULT_GROUP_ID,
@@ -60,8 +79,10 @@ public final class PortalOpenCoordinator {
         int excludeMode = capabilities.playerExcludeMode();
         UUID entryExclude = excludeMode == PortalGunModuleSettings.PLAYER_EXCLUDE_ENTRY_AND_EXIT
             ? targetPlayerId : null;
-        UUID exitExclude = excludeMode != PortalGunModuleSettings.PLAYER_EXCLUDE_OFF
-            ? targetPlayerId : null;
+        boolean transitProtects = !selfTarget && PortalPrivacyService.transitProtectsTarget(target);
+        UUID exitExclude = transitProtects
+            ? targetPlayerId
+            : excludeMode != PortalGunModuleSettings.PLAYER_EXCLUDE_OFF ? targetPlayerId : null;
         if (open(player, data, destination, mode, locatedGun, entryExclude, exitExclude, false, fromGui)) {
             data.recordPlayerUse(targetPlayerId, time);
             PortalDataStore.save(player, data);

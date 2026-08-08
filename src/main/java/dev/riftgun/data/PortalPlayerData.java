@@ -15,8 +15,10 @@ import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 5;
+    public static final int CURRENT_VERSION = 6;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
+    /** Sentinel id for the Player section's collapsed/expanded state in {@link #expandedGroups()}. */
+    public static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
 
     private final List<DestinationGroup> groups = new ArrayList<>();
     private final List<Destination> destinations = new ArrayList<>();
@@ -24,14 +26,18 @@ public final class PortalPlayerData {
     private final Map<UUID, DestinationSafetyResult> safetyResults = new HashMap<>();
     private final Set<UUID> pinnedPlayers = new HashSet<>();
     private final Map<UUID, Long> playerLastUseAt = new HashMap<>();
+    private final Map<UUID, PlayerPermissionOverride> privacyOverrides = new HashMap<>();
     private @Nullable UUID selectedDestinationId;
     private @Nullable UUID lastViewedDestinationId;
     private @Nullable UUID selectedPlayerId;
     private long nextLocationNumber = 1L;
     private PortalPlayerSettings settings = PortalPlayerSettings.defaults();
+    private TargetPrivacy targetPrivacy = TargetPrivacy.PUBLIC;
+    private boolean transitPrivacyEnabled;
 
     public PortalPlayerData() {
         expandedGroups.add(DEFAULT_GROUP_ID);
+        expandedGroups.add(PLAYER_SECTION_ID);
     }
 
     public List<DestinationGroup> groups() {
@@ -76,6 +82,35 @@ public final class PortalPlayerData {
 
     public void settings(PortalPlayerSettings value) {
         settings = value;
+    }
+
+    public TargetPrivacy targetPrivacy() {
+        return targetPrivacy;
+    }
+
+    public void targetPrivacy(TargetPrivacy value) {
+        targetPrivacy = value;
+    }
+
+    public boolean transitPrivacyEnabled() {
+        return transitPrivacyEnabled;
+    }
+
+    public void transitPrivacyEnabled(boolean value) {
+        transitPrivacyEnabled = value;
+    }
+
+    public PlayerPermissionOverride privacyOverride(UUID playerId) {
+        return privacyOverrides.getOrDefault(playerId, PlayerPermissionOverride.DEFAULT);
+    }
+
+    public void privacyOverride(UUID playerId, PlayerPermissionOverride mode) {
+        if (mode == PlayerPermissionOverride.DEFAULT) privacyOverrides.remove(playerId);
+        else privacyOverrides.put(playerId, mode);
+    }
+
+    public Map<UUID, PlayerPermissionOverride> privacyOverrides() {
+        return privacyOverrides;
     }
 
     public Optional<Destination> destination(UUID id) {
@@ -153,6 +188,17 @@ public final class PortalPlayerData {
         if (lastViewedDestinationId != null) root.putUUID("LastViewed", lastViewedDestinationId);
         if (selectedPlayerId != null) root.putUUID("SelectedPlayer", selectedPlayerId);
         root.put("Settings", settings.save());
+        root.putString("TargetPrivacy", targetPrivacy.name());
+        root.putBoolean("TransitPrivacy", transitPrivacyEnabled);
+
+        ListTag overrideTags = new ListTag();
+        privacyOverrides.forEach((id, mode) -> {
+            CompoundTag tag = new CompoundTag();
+            tag.putUUID("Id", id);
+            tag.putString("Mode", mode.name());
+            overrideTags.add(tag);
+        });
+        root.put("PrivacyOverrides", overrideTags);
 
         ListTag groupTags = new ListTag();
         groups.stream().sorted(Comparator.comparingInt(DestinationGroup::order)).forEach(group -> groupTags.add(group.save()));
@@ -205,6 +251,20 @@ public final class PortalPlayerData {
         if (root.hasUUID("LastViewed")) data.lastViewedDestinationId = root.getUUID("LastViewed");
         if (root.hasUUID("SelectedPlayer")) data.selectedPlayerId = root.getUUID("SelectedPlayer");
         data.settings = PortalPlayerSettings.load(root.getCompound("Settings"));
+        data.targetPrivacy = TargetPrivacy.parse(root.getString("TargetPrivacy"), TargetPrivacy.PUBLIC);
+        data.transitPrivacyEnabled = root.getBoolean("TransitPrivacy");
+        if (root.contains("PrivacyOverrides")) {
+            ListTag overrides = root.getList("PrivacyOverrides", Tag.TAG_COMPOUND);
+            overrides.forEach(tag -> {
+                CompoundTag compound = (CompoundTag) tag;
+                if (!compound.hasUUID("Id")) return;
+                PlayerPermissionOverride mode = PlayerPermissionOverride.parse(
+                    compound.getString("Mode"), PlayerPermissionOverride.DEFAULT);
+                if (mode != PlayerPermissionOverride.DEFAULT) {
+                    data.privacyOverrides.put(compound.getUUID("Id"), mode);
+                }
+            });
+        }
 
         ListTag groups = root.getList("Groups", Tag.TAG_COMPOUND);
         groups.forEach(tag -> data.groups.add(DestinationGroup.load((CompoundTag) tag)));
@@ -265,7 +325,7 @@ public final class PortalPlayerData {
         if (selectedDestinationId != null && destination(selectedDestinationId).isEmpty()) selectedDestinationId = null;
         if (lastViewedDestinationId != null && destination(lastViewedDestinationId).isEmpty()) lastViewedDestinationId = null;
         safetyResults.keySet().removeIf(id -> destination(id).isEmpty());
-        expandedGroups.retainAll(groupIds);
+        expandedGroups.removeIf(id -> !groupIds.contains(id) && !id.equals(PLAYER_SECTION_ID));
     }
 
     /** Clears pinned flags, use timestamps, and selection for players that are no longer online. */

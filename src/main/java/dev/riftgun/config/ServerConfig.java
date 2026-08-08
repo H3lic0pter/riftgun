@@ -33,6 +33,8 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue durationExtensionSecondsPerModule;
         public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
         public final ModConfigSpec.DoubleValue horizontalTriggerExtend;
+        public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultTargetPrivacy;
+        public final ModConfigSpec.IntValue privacyRequestTimeoutSeconds;
 
         private Values(ModConfigSpec.Builder builder) {
             builder.push("destinations");
@@ -72,6 +74,16 @@ public final class ServerConfig {
                         + "Catches falling bodies before their feet touch the ground so fall damage "
                         + "is resolved at the exit.")
                 .defineInRange("horizontalTriggerExtend", 0.35, 0.0, 2.0);
+            builder.pop();
+
+            builder.push("privacy");
+            defaultTargetPrivacy = builder.comment(
+                    "Default Target privacy for players who have not configured the Privacy Terminal: "
+                        + "PUBLIC, REQUEST, or PRIVATE.")
+                .defineEnum("defaultTargetPrivacy", dev.riftgun.data.TargetPrivacy.PUBLIC);
+            privacyRequestTimeoutSeconds = builder.comment(
+                    "How long a privacy request stays valid before the requester must ask again, in seconds.")
+                .defineInRange("privacyRequestTimeoutSeconds", 30, 10, 300);
             builder.pop();
         }
     }

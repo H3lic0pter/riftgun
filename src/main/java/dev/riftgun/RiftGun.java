@@ -15,10 +15,15 @@ import dev.riftgun.service.PortalServices;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.ModContainer;
@@ -34,14 +39,32 @@ public final class RiftGun {
     public static final String MOD_ID = "riftgun";
 
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, MOD_ID);
+    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, MOD_ID);
+    private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
+        DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
         DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
     private static final DeferredRegister<ParticleType<?>> PARTICLE_TYPES =
         DeferredRegister.create(Registries.PARTICLE_TYPE, MOD_ID);
 
+    public static final DeferredHolder<Block, dev.riftgun.block.PrivacyTerminalBlock> PRIVACY_TERMINAL =
+        BLOCKS.register("privacy_terminal", dev.riftgun.block.PrivacyTerminalBlock::new);
+    public static final DeferredHolder<Item, BlockItem> PRIVACY_TERMINAL_ITEM = ITEMS.register(
+        "privacy_terminal",
+        () -> new BlockItem(PRIVACY_TERMINAL.get(), new Item.Properties())
+    );
+
     public static final DeferredHolder<Item, PortalGunItem> PORTAL_GUN = ITEMS.register(
         "portal_gun",
         () -> new PortalGunItem(new Item.Properties().stacksTo(1))
+    );
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> RIFT_GUN_TAB = CREATIVE_TABS.register(
+        "riftgun",
+        () -> CreativeModeTab.builder()
+            .icon(() -> new ItemStack(PORTAL_GUN.get()))
+            .title(Component.translatable("itemGroup.riftgun"))
+            .build()
     );
 
     public static final DeferredHolder<EntityType<?>, EntityType<PortalEntity>> PORTAL = ENTITY_TYPES.register(
@@ -60,6 +83,8 @@ public final class RiftGun {
 
     public RiftGun(IEventBus modBus, ModContainer container) {
         ITEMS.register(modBus);
+        BLOCKS.register(modBus);
+        CREATIVE_TABS.register(modBus);
         ENTITY_TYPES.register(modBus);
         PARTICLE_TYPES.register(modBus);
         PortalGunComponents.COMPONENTS.register(modBus);
@@ -76,12 +101,30 @@ public final class RiftGun {
 
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(PORTAL_GUN.get());
-            PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
-            event.accept(PortalFluids.UNSTABLE_BUCKET.get());
-            event.accept(PortalFluids.PORTAL_BUCKET.get());
-            event.accept(PortalFluids.DIMENSIONAL_BUCKET.get());
+            acceptLegacyItems(event);
+        } else if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            event.accept(PRIVACY_TERMINAL_ITEM.get());
+        } else if (event.getTab() == RIFT_GUN_TAB.get()) {
+            acceptModItems(event);
         }
+    }
+
+    private void acceptModItems(BuildCreativeModeTabContentsEvent event) {
+        event.accept(PORTAL_GUN.get());
+        PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
+        event.accept(PortalFluids.UNSTABLE_BUCKET.get());
+        event.accept(PortalFluids.PORTAL_BUCKET.get());
+        event.accept(PortalFluids.DIMENSIONAL_BUCKET.get());
+        event.accept(PRIVACY_TERMINAL_ITEM.get());
+    }
+
+    /** Items kept in the vanilla Tools & Utilities tab (Privacy Terminal stays out of it). */
+    private void acceptLegacyItems(BuildCreativeModeTabContentsEvent event) {
+        event.accept(PORTAL_GUN.get());
+        PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
+        event.accept(PortalFluids.UNSTABLE_BUCKET.get());
+        event.accept(PortalFluids.PORTAL_BUCKET.get());
+        event.accept(PortalFluids.DIMENSIONAL_BUCKET.get());
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {

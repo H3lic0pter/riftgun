@@ -87,6 +87,7 @@ public final class PortalNetworking {
         List<ServerPlayer> online = new ArrayList<>(server.getPlayerList().getPlayers());
         online.sort(Comparator.comparing(value -> value.getGameProfile().getName()));
         for (ServerPlayer candidate : online) {
+            if (!dev.riftgun.service.PortalPrivacyService.isVisibleTo(server, player, candidate)) continue;
             CompoundTag entry = new CompoundTag();
             entry.putUUID("Id", candidate.getUUID());
             entry.putString("Name", candidate.getGameProfile().getName());
@@ -102,6 +103,38 @@ public final class PortalNetworking {
         envelope.putString("Kind", "PlayerList");
         envelope.put("Players", entries);
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    /** Opens or refreshes the Privacy Terminal screen with the viewer's privacy data and full roster. */
+    public static void sendPrivacyTerminal(ServerPlayer player) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "PrivacyTerminal");
+        envelope.put("Data", PortalDataStore.load(player).save());
+        envelope.put("Players", privacyRoster(player));
+        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    /** Refreshes only the online roster of the Privacy Terminal screen. */
+    public static void sendPrivacyPlayers(ServerPlayer player) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "PrivacyTerminal");
+        envelope.put("Players", privacyRoster(player));
+        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    private static ListTag privacyRoster(ServerPlayer player) {
+        MinecraftServer server = player.getServer();
+        ListTag entries = new ListTag();
+        if (server == null) return entries;
+        List<ServerPlayer> online = new ArrayList<>(server.getPlayerList().getPlayers());
+        online.sort(Comparator.comparing(value -> value.getGameProfile().getName()));
+        for (ServerPlayer candidate : online) {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID("Id", candidate.getUUID());
+            entry.putString("Name", candidate.getGameProfile().getName());
+            entries.add(entry);
+        }
+        return entries;
     }
 
     private static void handleRequest(PortalRequestPayload payload, IPayloadContext context) {

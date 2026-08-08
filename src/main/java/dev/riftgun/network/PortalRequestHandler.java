@@ -4,10 +4,12 @@ import dev.riftgun.config.ServerConfig;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.DestinationSort;
+import dev.riftgun.data.PlayerPermissionOverride;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.data.TargetPrivacy;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.module.PortalModuleMenu;
@@ -47,7 +49,10 @@ public final class PortalRequestHandler {
         Optional<PortalGunLocator.LocatedGun> locatedGun = request.contains("GunReference")
             ? PortalGunLocator.resolveReference(player, request.getCompound("GunReference"))
             : PortalGunLocator.first(player);
-        if (player.isSpectator() || locatedGun.isEmpty()) {
+        boolean privacyAction = action == PortalAction.SET_PRIVACY
+            || action == PortalAction.SET_PRIVACY_OVERRIDE
+            || action == PortalAction.REQUEST_PRIVACY_PLAYERS;
+        if (player.isSpectator() || (locatedGun.isEmpty() && !privacyAction)) {
             if (action == PortalAction.CYCLE_PLACEMENT_MODE) return;
             player.displayClientMessage(Component.translatable(
                 player.isSpectator() ? "message.riftgun.spectator_denied" : "message.riftgun.no_portal_gun"
@@ -107,6 +112,18 @@ public final class PortalRequestHandler {
                 case TOGGLE_PLAYER_PIN -> togglePlayerPin(data, request);
                 case CLOSE_PORTALS -> {
                     closePortals(player);
+                    yield false;
+                }
+                case SET_PRIVACY -> {
+                    setPrivacy(player, data, request);
+                    yield false;
+                }
+                case SET_PRIVACY_OVERRIDE -> {
+                    setPrivacyOverride(player, data, request);
+                    yield false;
+                }
+                case REQUEST_PRIVACY_PLAYERS -> {
+                    sendPrivacyPlayers(player);
                     yield false;
                 }
                 case OPEN_GUI, OPEN_MODULES -> false;
@@ -387,9 +404,31 @@ public final class PortalRequestHandler {
         player.displayClientMessage(Component.translatable("message.riftgun.portals_closed"), true);
     }
 
+    private static void setPrivacy(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
+        data.targetPrivacy(TargetPrivacy.parse(request.getString("Privacy"), TargetPrivacy.PUBLIC));
+        data.transitPrivacyEnabled(request.getBoolean("TransitPrivacy"));
+        PortalDataStore.save(player, data);
+        PortalNetworking.sendPrivacyTerminal(player);
+    }
+
+    private static void setPrivacyOverride(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
+        UUID target = id(request, "Target");
+        PlayerPermissionOverride mode = PlayerPermissionOverride.parse(
+            request.getString("Mode"), PlayerPermissionOverride.DEFAULT);
+        data.privacyOverride(target, mode);
+        PortalDataStore.save(player, data);
+        PortalNetworking.sendPrivacyTerminal(player);
+    }
+
+    private static void sendPrivacyPlayers(ServerPlayer player) {
+        PortalNetworking.sendPrivacyPlayers(player);
+    }
+
     private static boolean setExpanded(PortalPlayerData data, CompoundTag request) {
         UUID groupId = id(request, "Group");
-        if (!groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID) && data.group(groupId).isEmpty()) {
+        if (!groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
+            && !groupId.equals(PortalPlayerData.PLAYER_SECTION_ID)
+            && data.group(groupId).isEmpty()) {
             throw error("message.riftgun.group_missing");
         }
         if (request.getBoolean("Expanded")) data.expandedGroups().add(groupId);

@@ -83,6 +83,16 @@ public final class ClientGameEvents {
             }
             return;
         }
+        if (event.getItemStack().is(RiftGun.PRIVACY_TERMINAL_ITEM.get())) {
+            if (!Screen.hasShiftDown()) {
+                event.getToolTip().add(Component.translatable("tooltip.riftgun.module.hold_shift")
+                    .withStyle(ChatFormatting.GRAY));
+                return;
+            }
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.privacy_terminal.description")
+                .withStyle(style -> style.withColor(0xA9D6A2)));
+            return;
+        }
         if (!event.getItemStack().is(RiftGun.PORTAL_GUN.get())) return;
         PortalGunTank tank = new PortalGunTank(event.getItemStack());
         var fluid = tank.getFluid();
