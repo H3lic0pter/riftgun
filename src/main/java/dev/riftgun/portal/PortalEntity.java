@@ -45,6 +45,9 @@ import org.jetbrains.annotations.Nullable;
 public final class PortalEntity extends Entity {
     public static final float DEPTH = (float) PortalPlacement.DEPTH;
 
+    /** Blend width for the exit-facing adjustment, in look·normal units. */
+    private static final float FACING_THRESHOLD = 0.35F;
+
     private static final EntityDataAccessor<Integer> PHASE =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE_TICKS =
@@ -420,6 +423,20 @@ public final class PortalEntity extends Entity {
         if (outwardSpeed < 0.12) momentum = momentum.add(target.normal().scale(0.12 - outwardSpeed));
 
         Vec3 look = transformVector(entity.getLookAngle(), target).normalize();
+        if (entity instanceof Player) {
+            // Backing through the entrance (back to the door) should exit facing the
+            // portal, mirrored so entering from the portal's left exits from the target's
+            // right. Walk-in players keep the standard away-facing exit unchanged.
+            float dot = (float) entity.getLookAngle().normalize().dot(normal());
+            if (dot > 0.0F) {
+                float t = Mth.clamp(dot / FACING_THRESHOLD, 0.0F, 1.0F);
+                Vec3 mirrored = PortalTransform.betweenFactors(entity.getLookAngle(), orientation(), getYRot(),
+                    target.orientation(), target.getYRot(), -1.0F, 1.0F).normalize();
+                Vec3 flipped = PortalTransform.betweenFactors(entity.getLookAngle(), orientation(), getYRot(),
+                    target.orientation(), target.getYRot(), -1.0F, -1.0F).normalize();
+                look = mirrored.lerp(flipped, t).normalize();
+            }
+        }
         float newYaw = (float) Math.toDegrees(Math.atan2(-look.x, look.z));
         float newPitch = (float) Math.toDegrees(Math.asin(Mth.clamp(-look.y, -1.0, 1.0)));
         Vec3 destination = target.outputPosition(entity);
