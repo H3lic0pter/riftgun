@@ -32,10 +32,15 @@ public final class PortalGunSnapshot {
         tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());
         tag.putBoolean("HostileTransitEnabled", settings.hostileTransitEnabled());
         tag.putBoolean("BossTransitEnabled", settings.bossTransitEnabled());
-        int maximumDuration = ServerConfig.VALUES.maximumPortalDurationSeconds.get();
+        boolean eternalInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.DURATION_ETERNAL, rules) > 0;
+        int extensionCount = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_EXTENSION, rules);
+        int maximumDuration = eternalInstalled ? PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS
+            : rules.maximumPortalDurationSeconds(extensionCount);
         tag.putInt("PortalDurationSeconds", PortalOpenDuration.effectiveSeconds(
             settings.portalDurationSeconds(), maximumDuration));
         tag.putInt("MaximumPortalDurationSeconds", maximumDuration);
+        tag.putBoolean("EternalDurationInstalled", eternalInstalled);
         tag.putBoolean("ExpandedApertureEnabled", settings.expandedApertureEnabled());
         tag.putInt("TransitCooldownTenths", settings.transitCooldownTenths());
         tag.putInt("MaximumTransitCooldownTenths", PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS);

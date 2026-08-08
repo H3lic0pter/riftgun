@@ -1,6 +1,7 @@
 package dev.riftgun.module;
 
 import dev.riftgun.config.ServerConfig;
+import dev.riftgun.portal.PortalOpenDuration;
 import net.minecraft.nbt.CompoundTag;
 
 public record PortalModuleRules(
@@ -9,7 +10,9 @@ public record PortalModuleRules(
     int maximumReservoirModules,
     int baseSurfaceRange,
     int surfaceRangeBonus,
-    int maximumSurfaceRangeModules
+    int maximumSurfaceRangeModules,
+    int maximumDurationExtensionModules,
+    int durationExtensionSecondsPerModule
 ) {
     public static final int DEFAULT_BASE_CAPACITY = 8000;
     public static final int DEFAULT_RESERVOIR_BONUS = 8000;
@@ -17,6 +20,8 @@ public record PortalModuleRules(
     public static final int DEFAULT_BASE_SURFACE_RANGE = 32;
     public static final int DEFAULT_SURFACE_RANGE_BONUS = 16;
     public static final int DEFAULT_MAXIMUM_SURFACE_RANGE_MODULES = 3;
+    public static final int DEFAULT_MAXIMUM_DURATION_EXTENSION_MODULES = 1;
+    public static final int DEFAULT_DURATION_EXTENSION_SECONDS_PER_MODULE = 45;
 
     public PortalModuleRules {
         baseCapacity = Math.max(1, baseCapacity);
@@ -25,6 +30,8 @@ public record PortalModuleRules(
         baseSurfaceRange = Math.max(1, baseSurfaceRange);
         surfaceRangeBonus = Math.max(1, surfaceRangeBonus);
         maximumSurfaceRangeModules = Math.max(0, maximumSurfaceRangeModules);
+        maximumDurationExtensionModules = Math.max(0, maximumDurationExtensionModules);
+        durationExtensionSecondsPerModule = Math.max(1, durationExtensionSecondsPerModule);
     }
 
     public static PortalModuleRules current() {
@@ -34,7 +41,9 @@ public record PortalModuleRules(
             ServerConfig.VALUES.maxReservoirModules.get(),
             DEFAULT_BASE_SURFACE_RANGE,
             ServerConfig.VALUES.surfaceRangePerModule.get(),
-            ServerConfig.VALUES.maxSurfaceRangeModules.get()
+            ServerConfig.VALUES.maxSurfaceRangeModules.get(),
+            ServerConfig.VALUES.maxDurationExtensionModules.get(),
+            ServerConfig.VALUES.durationExtensionSecondsPerModule.get()
         );
     }
 
@@ -45,7 +54,9 @@ public record PortalModuleRules(
             DEFAULT_MAXIMUM_RESERVOIR_MODULES,
             DEFAULT_BASE_SURFACE_RANGE,
             DEFAULT_SURFACE_RANGE_BONUS,
-            DEFAULT_MAXIMUM_SURFACE_RANGE_MODULES
+            DEFAULT_MAXIMUM_SURFACE_RANGE_MODULES,
+            DEFAULT_MAXIMUM_DURATION_EXTENSION_MODULES,
+            DEFAULT_DURATION_EXTENSION_SECONDS_PER_MODULE
         );
     }
 
@@ -59,6 +70,13 @@ public record PortalModuleRules(
         return (int) Math.min(Integer.MAX_VALUE, result);
     }
 
+    public int maximumPortalDurationSeconds(int installedExtensionModules) {
+        long result = (long) ServerConfig.VALUES.maximumPortalDurationSeconds.get()
+            + (long) Math.max(0, Math.min(maximumDurationExtensionModules, installedExtensionModules))
+                * durationExtensionSecondsPerModule;
+        return (int) Math.min(PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS, result);
+    }
+
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         tag.putInt("BaseCapacity", baseCapacity);
@@ -67,6 +85,8 @@ public record PortalModuleRules(
         tag.putInt("BaseSurfaceRange", baseSurfaceRange);
         tag.putInt("SurfaceRangeBonus", surfaceRangeBonus);
         tag.putInt("MaximumSurfaceRangeModules", maximumSurfaceRangeModules);
+        tag.putInt("MaximumDurationExtensionModules", maximumDurationExtensionModules);
+        tag.putInt("DurationExtensionSecondsPerModule", durationExtensionSecondsPerModule);
         return tag;
     }
 
@@ -78,7 +98,9 @@ public record PortalModuleRules(
             tag.getInt("MaximumReservoirModules"),
             tag.getInt("BaseSurfaceRange"),
             tag.getInt("SurfaceRangeBonus"),
-            tag.getInt("MaximumSurfaceRangeModules")
+            tag.getInt("MaximumSurfaceRangeModules"),
+            tag.getInt("MaximumDurationExtensionModules"),
+            tag.getInt("DurationExtensionSecondsPerModule")
         );
     }
 }

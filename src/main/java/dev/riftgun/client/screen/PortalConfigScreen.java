@@ -365,10 +365,12 @@ public final class PortalConfigScreen extends Screen {
                     ignored -> openGunSetting(Modal.APERTURE_SETTINGS));
             }
         } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
-            int maximum = Math.max(1, PortalClientState.gun().getInt("MaximumPortalDurationSeconds"));
+            boolean eternal = PortalClientState.gun().getBoolean("EternalDurationInstalled");
+            int maximum = eternal ? 301 : Math.max(1, PortalClientState.gun().getInt("MaximumPortalDurationSeconds"));
             addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
                 "PortalDuration", "screen.riftgun.portal_duration_value", 1, maximum,
-                PortalClientState.gun().getInt("PortalDurationSeconds")));
+                PortalClientState.gun().getInt("PortalDurationSeconds"), 1.0,
+                eternal ? 301 : 0, "screen.riftgun.portal_duration_permanent"));
             int cooldownMaximum = Math.max(1, PortalClientState.gun().getInt("MaximumTransitCooldownTenths"));
             addRenderableWidget(new GunDistanceSlider(x + 18, y + 69, fieldWidth, 18,
                 "TransitCooldown", "screen.riftgun.transit_cooldown_value", 0, cooldownMaximum,
@@ -2879,6 +2881,8 @@ public final class PortalConfigScreen extends Screen {
         private final int minimum;
         private final int maximum;
         private final double displayDivisor;
+        private final int permanentValue;
+        private final String permanentLabelKey;
         private int committedValue;
 
         private GunDistanceSlider(int x, int y, int width, int height, String setting,
@@ -2889,19 +2893,30 @@ public final class PortalConfigScreen extends Screen {
         private GunDistanceSlider(int x, int y, int width, int height, String setting,
                                   String labelKey, int minimum, int maximum, int distance,
                                   double displayDivisor) {
+            this(x, y, width, height, setting, labelKey, minimum, maximum, distance,
+                displayDivisor, 0, null);
+        }
+
+        private GunDistanceSlider(int x, int y, int width, int height, String setting,
+                                  String labelKey, int minimum, int maximum, int distance,
+                                  double displayDivisor, int permanentValue, String permanentLabelKey) {
             super(x, y, width, height, Component.empty(), normalize(distance, minimum, maximum));
             this.setting = setting;
             this.labelKey = labelKey;
             this.minimum = minimum;
             this.maximum = Math.max(minimum, maximum);
             this.displayDivisor = displayDivisor;
+            this.permanentValue = permanentValue;
+            this.permanentLabelKey = permanentLabelKey;
             committedValue = distance();
             updateMessage();
         }
 
         @Override
         protected void updateMessage() {
-            if (displayDivisor == 1.0) {
+            if (permanentValue > 0 && distance() >= permanentValue) {
+                setMessage(Component.translatable(permanentLabelKey));
+            } else if (displayDivisor == 1.0) {
                 setMessage(Component.translatable(labelKey, distance()));
             } else {
                 setMessage(Component.translatable(labelKey,

@@ -29,6 +29,8 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue reservoirModuleCapacity;
         public final ModConfigSpec.IntValue maxSurfaceRangeModules;
         public final ModConfigSpec.IntValue surfaceRangePerModule;
+        public final ModConfigSpec.IntValue maxDurationExtensionModules;
+        public final ModConfigSpec.IntValue durationExtensionSecondsPerModule;
         public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
 
         private Values(ModConfigSpec.Builder builder) {
@@ -55,6 +57,8 @@ public final class ServerConfig {
             reservoirModuleCapacity = builder.defineInRange("reservoirCapacityPerModule", 8000, 1, 1_000_000);
             maxSurfaceRangeModules = builder.defineInRange("maximumSurfaceRangeModules", 3, 0, 9);
             surfaceRangePerModule = builder.defineInRange("surfaceRangePerModule", 16, 1, 1024);
+            maxDurationExtensionModules = builder.defineInRange("maximumDurationExtensionModules", 1, 0, 9);
+            durationExtensionSecondsPerModule = builder.defineInRange("durationExtensionSecondsPerModule", 45, 1, 300);
             builder.pop();
 
             builder.push("portal");

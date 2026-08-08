@@ -26,8 +26,11 @@ public record PortalGunCapabilities(
         int rangeCount = PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules);
         int maximumRange = rules.maximumSurfaceRangeFor(rangeCount);
         int configuredRange = Mth.clamp(settings.desiredSurfaceRange(), rules.baseSurfaceRange(), maximumRange);
-        int durationSeconds = PortalOpenDuration.effectiveSeconds(settings.portalDurationSeconds(),
-            ServerConfig.VALUES.maximumPortalDurationSeconds.get());
+        boolean eternal = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_ETERNAL, rules) > 0;
+        int extensionCount = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_EXTENSION, rules);
+        int durationCap = eternal ? PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS
+            : rules.maximumPortalDurationSeconds(extensionCount);
+        int durationSeconds = PortalOpenDuration.effectiveSeconds(settings.portalDurationSeconds(), durationCap);
         boolean apertureInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
         boolean playerTargetInstalled = PortalGunModules.activeCount(

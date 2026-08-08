@@ -428,9 +428,13 @@ public final class PortalRequestHandler {
                 settings = settings.withDesiredSurfaceRange(
                     Math.max(rules.baseSurfaceRange(), Math.min(maximum, request.getInt("Value"))));
             }
-            case "PortalDuration" -> settings = settings.withPortalDurationSeconds(
-                PortalOpenDuration.effectiveSeconds(request.getInt("Value"),
-                    ServerConfig.VALUES.maximumPortalDurationSeconds.get()));
+            case "PortalDuration" -> {
+                int value = request.getInt("Value");
+                settings = value >= 301
+                    ? settings.withPortalDurationSeconds(PortalOpenDuration.ETERNAL_SECONDS)
+                    : settings.withPortalDurationSeconds(PortalOpenDuration.effectiveSeconds(
+                        value, ServerConfig.VALUES.maximumPortalDurationSeconds.get()));
+            }
             case "TransitCooldown" -> settings = settings.withTransitCooldownTenths(request.getInt("Value"));
             case "ExpandedAperture" -> {
                 if (PortalGunModules.activeCount(gun, PortalModuleKind.APERTURE_EXPANSION, rules) <= 0) {

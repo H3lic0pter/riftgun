@@ -33,6 +33,11 @@ public final class PortalModules {
         ignored -> PortalGunModules.MAXIMUM_EXPANSION_MODULES, 0x7CCED8);
     public static final ModuleEntry PLAYER_TARGET = register(
         "player_target_module", PortalModuleKind.PLAYER_TARGET, ignored -> 1, 0x5CC8D9);
+    public static final ModuleEntry DURATION_EXTENSION = register(
+        "duration_extension_module", PortalModuleKind.DURATION_EXTENSION,
+        PortalModuleRules::maximumDurationExtensionModules, 0x8FC7E8);
+    public static final ModuleEntry DURATION_ETERNAL = register(
+        "duration_eternal_module", PortalModuleKind.DURATION_ETERNAL, ignored -> 1, 0xD8C77F);
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {

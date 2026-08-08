@@ -78,7 +78,7 @@
   "screen.riftgun.placement_mode.front": "面前",
   "screen.riftgun.placement_mode.surface": "贴面",
   "screen.riftgun.placement_mode_tooltip": "传送枪模式：%s（点击切换）",
-  "screen.riftgun.open_front_tooltip": "在面前开门；垂直向下时使用下射开门",
+  "screen.riftgun.open_front_tooltip": "使用面前模式开门",
   "screen.riftgun.motion_prediction_tooltip": "动量预测：%s",
   "screen.riftgun.motion_prediction_description": "根据当前移动提前修正面前传送门位置",
   "screen.riftgun.bucket_mode_tooltip": "桶模式：%s · %s · %s/%s mB · %s",
@@ -100,7 +100,7 @@
   "screen.riftgun.unsaved_body": "尚有未保存的修改。确定放弃吗？",
   "screen.riftgun.delete_destination_body": "地点会被永久删除，且无法撤销。",
   "screen.riftgun.delete_group_body": "分组会被删除，其中地点将移至 Default。",
-  "screen.riftgun.unsafe_body": "检测到碰撞、缺少支撑或危险方块。不会偏移或破坏方块；你仍可开门后自行决定是否进入。",
+  "screen.riftgun.unsafe_body": "检测到碰撞、缺少支撑或危险方块。你可自行决定是否进入。",
   "tooltip.riftgun.no_target": "未选择目标",
   "tooltip.riftgun.target": "目标：%s",
   "tooltip.riftgun.group": "分组：%s",
@@ -111,7 +111,7 @@
   "message.riftgun.no_portal_gun": "背包中没有传送枪",
   "message.riftgun.no_destination_selected": "尚未选择传送目的地",
   "message.riftgun.destination_selected": "已选择：%s",
-  "message.riftgun.destination_unsafe": "警告：目的地可能不安全；传送门仍会照常开启",
+  "message.riftgun.destination_unsafe": "警告：目的地可能不安全",
   "message.riftgun.destination_missing": "目的地不存在",
   "message.riftgun.group_missing": "分组不存在",
   "message.riftgun.destination_limit": "已达到地点数量上限",
@@ -212,5 +212,10 @@
   "screen.riftgun.visual.swirl_animation": "动画",
   "screen.riftgun.visual.swirl_inward_animation": "内吸流纹动画",
   "screen.riftgun.portal_timing_hint": "持续时长与传送冷却",
-  "screen.riftgun.transit_cooldown_value": "传送冷却：%s 秒"
+  "screen.riftgun.transit_cooldown_value": "传送冷却：%s 秒",
+  "item.riftgun.duration_extension_module": "持续时长模块",
+  "item.riftgun.duration_eternal_module": "永恒持续模块",
+  "screen.riftgun.portal_duration_permanent": "开放时间：永久",
+  "tooltip.riftgun.module.duration_extension_module.description": "延长传送门最大开启时长。",
+  "tooltip.riftgun.module.duration_eternal_module.description": "触发后传送门永久开启。不能与持续时长扩展模块同时安装。"
 }

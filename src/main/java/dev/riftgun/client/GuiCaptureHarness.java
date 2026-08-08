@@ -172,6 +172,7 @@ final class GuiCaptureHarness {
         gun.putInt("SmartDistance", 12);
         gun.putInt("PortalDurationSeconds", 8);
         gun.putInt("MaximumPortalDurationSeconds", 15);
+        gun.putBoolean("EternalDurationInstalled", false);
         gun.putBoolean("ExpandedApertureEnabled", true);
         gun.putBoolean("PassiveTransitEnabled", true);
         gun.putBoolean("HostileTransitEnabled", false);

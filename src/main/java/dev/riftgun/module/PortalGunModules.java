@@ -99,8 +99,14 @@ public final class PortalGunModules {
     public static boolean canAdd(Iterable<ItemStack> items, ItemStack candidate, PortalModuleRules rules) {
         PortalModules.bootstrap();
         PortalModuleDefinition definition = PortalModuleRegistry.find(candidate).orElse(null);
-        return definition != null
-            && installedCount(items, definition.kind()) < definition.maximumCount(rules);
+        if (definition == null || installedCount(items, definition.kind()) >= definition.maximumCount(rules)) {
+            return false;
+        }
+        if (definition.kind() == PortalModuleKind.DURATION_EXTENSION
+            && installedCount(items, PortalModuleKind.DURATION_ETERNAL) > 0) return false;
+        if (definition.kind() == PortalModuleKind.DURATION_ETERNAL
+            && installedCount(items, PortalModuleKind.DURATION_EXTENSION) > 0) return false;
+        return true;
     }
 
     private static Iterable<ItemStack> activeItems(NonNullList<ItemStack> items) {
