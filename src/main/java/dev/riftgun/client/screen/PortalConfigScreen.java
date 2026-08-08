@@ -719,8 +719,7 @@ public final class PortalConfigScreen extends Screen {
         drawDisclosure(graphics, panelX + 17, y + 6, expanded);
         int right = panelX + listWidth - 6;
         boolean actions = hover || focused;
-        String sortLabel = playerSortLabel();
-        String title = "Player · " + sortLabel;
+        String title = "Player";
         if (actions) {
             int refreshRight = right - 11;
             drawPlayerRefreshIcon(graphics, refreshRight - 16, y + 5);
@@ -734,17 +733,6 @@ public final class PortalConfigScreen extends Screen {
             graphics.drawString(font, countText, right - font.width(countText), y + 5,
                 PortalTheme.TEXT_MUTED, false);
         }
-        if (hover) graphics.renderTooltip(font, Component.translatable("screen.riftgun.player_section_tooltip"),
-            panelX + 20, y + 2);
-    }
-
-    private static String playerSortLabel() {
-        return switch (PortalClientState.data().settings().sort()) {
-            case RECENT -> "Recent";
-            case NAME -> "Name";
-            case CREATED -> "Created";
-            case DISTANCE -> "Distance";
-        };
     }
 
     private void renderPlayerRow(GuiGraphics graphics, UUID id, int y, boolean hover, boolean focused,

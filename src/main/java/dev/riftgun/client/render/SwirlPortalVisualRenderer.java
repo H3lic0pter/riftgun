@@ -29,8 +29,10 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         height *= SwirlVisualGeometry.visibleHeightScale(placement);
         boolean animated = SwirlVisualOptions.animationEnabled();
         float shimmer = animated ? 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F : 1.0F;
-        // 1x1 side portals share the top/bottom texture mapping so the swirl fills the face.
-        boolean mapped = horizontal || placement.geometry() == PortalGeometry.SURFACE_COMPACT;
+        // Side portals (1x1 compact and expanded) share the top/bottom texture mapping
+        // so the swirl fills the face at the same coverage as horizontal portals.
+        boolean mapped = horizontal || placement.geometry() == PortalGeometry.SURFACE_COMPACT
+            || placement.geometry().expanded();
         // Top/bottom faces lie flat on the same plane; sides keep a thin gap.
         float depth = horizontal ? 0.0F : SwirlVisualGeometry.DEPTH;
         float normalOffset = 0.0F;
