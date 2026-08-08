@@ -81,6 +81,7 @@ public final class PortalEntity extends Entity {
     private PortalEntityAccessSnapshot entityAccess = PortalEntityAccessSnapshot.NONE;
     private int openDurationTicks = PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
     private int transitCooldownTicks = 20;
+    private boolean fallGuard;
     private PortalAperture aperture = PortalAperture.STANDARD;
     private long lifecycleStartedAt;
     private long closeStartedAt = -1L;
@@ -94,7 +95,7 @@ public final class PortalEntity extends Entity {
                                    PortalFuelProfile fuel, PortalEntityAccessSnapshot entityAccess,
                                    int openDurationTicks, PortalAperture aperture,
                                    @Nullable UUID entryExclude, @Nullable UUID exitExclude,
-                                   int transitCooldownTicks, BooleanSupplier commitFuel) {
+                                   int transitCooldownTicks, boolean fallGuard, BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
@@ -104,10 +105,10 @@ public final class PortalEntity extends Entity {
         long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
             fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt,
-            entryExclude, transitCooldownTicks);
+            entryExclude, transitCooldownTicks, fallGuard);
         PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
             fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture, startedAt,
-            exitExclude, transitCooldownTicks);
+            exitExclude, transitCooldownTicks, fallGuard);
         link(entry, exit);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
@@ -130,13 +131,13 @@ public final class PortalEntity extends Entity {
                                            PortalEntityAccessSnapshot entityAccess,
                                            int openDurationTicks, PortalAperture aperture,
                                            @Nullable UUID entryExclude, @Nullable UUID exitExclude,
-                                           int transitCooldownTicks, BooleanSupplier commitFuel) {
+                                           int transitCooldownTicks, boolean fallGuard, BooleanSupplier commitFuel) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
             fuel.rgb(), fuel.id().toString(), entityAccess, openDurationTicks, aperture,
-            server.overworld().getGameTime(), entryExclude, transitCooldownTicks);
+            server.overworld().getGameTime(), entryExclude, transitCooldownTicks, fallGuard);
         entry.deferredTarget = target;
         entry.deferredExitExclude = exitExclude;
         entry.acquireChunkTicket();
@@ -184,7 +185,8 @@ public final class PortalEntity extends Entity {
                                        PortalPlacement placement, int fuelRgb, String fuelId,
                                        PortalEntityAccessSnapshot entityAccess, int openDurationTicks,
                                        PortalAperture aperture, long startedAt,
-                                       @Nullable UUID excludedPlayerId, int transitCooldownTicks) {
+                                       @Nullable UUID excludedPlayerId, int transitCooldownTicks,
+                                       boolean fallGuard) {
         PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
         portal.ownerId = owner;
         portal.excludedPlayerId = excludedPlayerId;
@@ -200,6 +202,7 @@ public final class PortalEntity extends Entity {
         portal.entityAccess = entityAccess;
         portal.openDurationTicks = Math.max(1, openDurationTicks);
         portal.transitCooldownTicks = Math.max(0, transitCooldownTicks);
+        portal.fallGuard = fallGuard;
         portal.aperture = aperture == null ? PortalAperture.STANDARD : aperture;
         portal.lifecycleStartedAt = startedAt;
         return portal;
@@ -463,6 +466,7 @@ public final class PortalEntity extends Entity {
         if (moved != null) {
             moved.setDeltaMovement(momentum);
             moved.hasImpulse = true;
+            if (fallGuard) moved.fallDistance = 0.0F;
             if (moved instanceof ServerPlayer player) PortalServices.MOTION_HISTORY.reset(player);
         }
         return moved;
@@ -548,7 +552,7 @@ public final class PortalEntity extends Entity {
         long now = serverTime();
         PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
             fuelRgb(), fuelId(), entityAccess, openDurationTicks, aperture, now, deferredExitExclude,
-            transitCooldownTicks);
+            transitCooldownTicks, fallGuard);
         exit.acquireChunkTicket();
         if (!targetLevel.addFreshEntity(exit)) {
             exit.releaseChunkTicket();

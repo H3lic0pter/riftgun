@@ -120,7 +120,7 @@ public final class PortalOpenCoordinator {
             opened = PortalEntity.openDeferredExit(
                 player, entry.placement(), fuelPlan.use().profile(), PortalExitTarget.from(destination),
                 gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(),
+                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(), gunCapabilities.fallGuard(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         } else {
             Destination resolved = destination;
@@ -142,7 +142,7 @@ public final class PortalOpenCoordinator {
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),
                 gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(),
+                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(), gunCapabilities.fallGuard(),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         }
 

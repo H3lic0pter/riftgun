@@ -38,6 +38,8 @@ public final class PortalModules {
         PortalModuleRules::maximumDurationExtensionModules, 0x8FC7E8);
     public static final ModuleEntry DURATION_ETERNAL = register(
         "duration_eternal_module", PortalModuleKind.DURATION_ETERNAL, ignored -> 1, 0xD8C77F);
+    public static final ModuleEntry FALL_GUARD = register(
+        "fall_guard_module", PortalModuleKind.FALL_GUARD, ignored -> 1, 0x6FBF73);
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {

@@ -28,6 +28,8 @@ final class PortalGuiSprites {
     static final ResourceLocation ENTITY_ACCESS = icon("entity_access");
     static final ResourceLocation APERTURE_ON = icon("aperture_on");
     static final ResourceLocation APERTURE_OFF = icon("aperture_off");
+    static final ResourceLocation FALL_GUARD_ON = icon("fall_guard_on");
+    static final ResourceLocation FALL_GUARD_OFF = icon("fall_guard_off");
     static final ResourceLocation PASSIVE_TRANSIT_ON = icon("passive_transit_on");
     static final ResourceLocation PASSIVE_TRANSIT_OFF = icon("passive_transit_off");
     static final ResourceLocation HOSTILE_TRANSIT_ON = icon("hostile_transit_on");

@@ -220,5 +220,10 @@
   "tooltip.riftgun.module.duration_eternal_module.description": "触发后传送门永久开启。不能与持续时长扩展模块同时安装。",
   "screen.riftgun.player_exclude_off": "玩家排除：关",
   "screen.riftgun.player_exclude_entry_exit": "玩家排除：入口与出口",
-  "screen.riftgun.player_exclude_exit_only": "玩家排除：仅出口"
+  "screen.riftgun.player_exclude_exit_only": "玩家排除：仅出口",
+  "item.riftgun.fall_guard_module": "坠落防护模块",
+  "tooltip.riftgun.module.fall_guard_module.description": "穿过传送门时清除坠落距离，避免进门前的下落造成坠落伤害。",
+  "screen.riftgun.fall_guard": "坠落防护",
+  "screen.riftgun.fall_guard_hint": "穿过传送门时清除坠落距离",
+  "message.riftgun.fall_guard_module_required": "需要安装坠落防护模块"
 }

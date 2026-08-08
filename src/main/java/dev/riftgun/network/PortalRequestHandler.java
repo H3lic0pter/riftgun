@@ -467,6 +467,12 @@ public final class PortalRequestHandler {
                 settings = settings.withPlayerExcludeMode(
                     Math.floorMod(mode + request.getInt("Step"), 3));
             }
+            case "FallGuard" -> {
+                if (PortalGunModules.activeCount(gun, PortalModuleKind.FALL_GUARD, rules) <= 0) {
+                    throw error("message.riftgun.fall_guard_module_required");
+                }
+                settings = settings.withFallGuardEnabled(request.getBoolean("Enabled"));
+            }
             default -> throw error("message.riftgun.invalid_request");
         }
         settings.save(gun);

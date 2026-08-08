@@ -17,7 +17,8 @@ public record PortalGunCapabilities(
     PortalAperture aperture,
     boolean playerTarget,
     int playerExcludeMode,
-    int transitCooldownTicks
+    int transitCooldownTicks,
+    boolean fallGuard
 ) {
     public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance) {
         PortalModuleRules rules = PortalModuleRules.current();
@@ -54,7 +55,9 @@ public record PortalGunCapabilities(
                 ? PortalAperture.EXPANDED : PortalAperture.STANDARD,
             playerTargetInstalled && settings.playerTargetEnabled(),
             settings.playerExcludeMode(),
-            settings.transitCooldownTenths() * 2
+            settings.transitCooldownTenths() * 2,
+            PortalGunModules.activeCount(gun, PortalModuleKind.FALL_GUARD, rules) > 0
+                && settings.fallGuardEnabled()
         );
     }
 }
