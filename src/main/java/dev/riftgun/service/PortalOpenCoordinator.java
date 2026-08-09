@@ -112,7 +112,7 @@ public final class PortalOpenCoordinator {
             locatedGun.stack(), data.settings().smartDistance());
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
-            data.settings().motionPredictionEnabled(), gunCapabilities.aperture());
+            data.settings().predictionMode(), gunCapabilities.aperture());
         PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(player, mode, constraints);
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());

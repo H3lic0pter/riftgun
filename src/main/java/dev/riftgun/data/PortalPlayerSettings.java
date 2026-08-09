@@ -1,6 +1,7 @@
 package dev.riftgun.data;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 
 public record PortalPlayerSettings(
     boolean safetyCheckEnabled,
@@ -12,13 +13,13 @@ public record PortalPlayerSettings(
     DestinationSort sort,
     PortalPlacementMode placementMode,
     int smartDistance,
-    boolean motionPredictionEnabled
+    PortalPredictionMode predictionMode
 ) {
     public static final int DEFAULT_SMART_DISTANCE = 8;
 
     public static PortalPlayerSettings defaults() {
         return new PortalPlayerSettings(true, true, true, true, true, true, DestinationSort.RECENT,
-            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, false);
+            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, PortalPredictionMode.OFF);
     }
 
     public CompoundTag save() {
@@ -32,7 +33,7 @@ public record PortalPlayerSettings(
         tag.putString("Sort", sort.name());
         tag.putString("PlacementMode", placementMode.name());
         tag.putInt("SmartDistance", smartDistance);
-        tag.putBoolean("MotionPrediction", motionPredictionEnabled);
+        tag.putString("MotionPrediction", predictionMode.name());
         return tag;
     }
 
@@ -44,6 +45,16 @@ public record PortalPlayerSettings(
         } catch (IllegalArgumentException ignored) {
             sort = DestinationSort.RECENT;
         }
+        PortalPredictionMode predictionMode;
+        if (tag.contains("MotionPrediction", Tag.TAG_STRING)) {
+            predictionMode = PortalPredictionMode.parse(tag.getString("MotionPrediction"),
+                PortalPredictionMode.OFF);
+        } else if (tag.contains("MotionPrediction")) {
+            predictionMode = tag.getBoolean("MotionPrediction")
+                ? PortalPredictionMode.TRAJECTORY : PortalPredictionMode.OFF;
+        } else {
+            predictionMode = PortalPredictionMode.OFF;
+        }
         return new PortalPlayerSettings(
             !tag.contains("SafetyCheck") || tag.getBoolean("SafetyCheck"),
             !tag.contains("ConfirmDeletion") || tag.getBoolean("ConfirmDeletion"),
@@ -54,7 +65,7 @@ public record PortalPlayerSettings(
             sort,
             PortalPlacementMode.parse(tag.getString("PlacementMode")),
             tag.contains("SmartDistance") ? Math.max(1, tag.getInt("SmartDistance")) : DEFAULT_SMART_DISTANCE,
-            tag.contains("MotionPrediction") && tag.getBoolean("MotionPrediction")
+            predictionMode
         );
     }
 }

@@ -1,6 +1,8 @@
 package dev.riftgun.service;
 
+import dev.riftgun.config.ServerConfig;
 import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalExitTarget;
@@ -20,9 +22,13 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
 
 public final class VanillaPortalPlacementResolver implements PortalPlacementResolver {
     private static final double SURFACE_OFFSET = PortalPlacement.DEPTH * 0.5 + 0.002;
+    /** Blocks of extra door distance per block/second of velocity projected on the door axis. */
+    private static final double MAXIMUM_PROJECTION_EXTRA = 16.0;
+    private static final double TICKS_PER_SECOND = 20.0;
 
     @Override
     public PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode,
@@ -34,7 +40,8 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             case SMART -> surface(player, true, constraints.smartDistance(),
                 constraints.maximumSurfaceRange(), constraints.aperture());
         };
-        if (entry.front) return PortalPlacementCapture.success(PortalPlacementIntent.front(constraints.motionPrediction()));
+        if (entry.front) return PortalPlacementCapture.success(
+            PortalPlacementIntent.front(constraints.predictionMode()));
         return entry.placement == null
             ? PortalPlacementCapture.failure(entry.errorKey)
             : PortalPlacementCapture.success(PortalPlacementIntent.surface(entry.placement));
@@ -44,7 +51,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent,
                                                    PortalPlacementConstraints constraints) {
         EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
-            ? front(player, intent.motionPrediction(), constraints.aperture())
+            ? front(player, intent.predictionMode(), constraints.aperture())
             : revalidateSurface(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
         return entry.placement == null
             ? PortalEntryPlacementResult.failure(entry.errorKey)
@@ -58,29 +65,41 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return PortalPlacementResult.success(new PortalPairPlacement(target.dimension(), entry, exit));
     }
 
-    private EntryResult front(ServerPlayer player, boolean motionPrediction, PortalAperture aperture) {
+    private EntryResult front(ServerPlayer player, PortalPredictionMode mode, PortalAperture aperture) {
         boolean downShot = usesDownshot(player.getXRot(),
             PortalServices.PLACEMENT_CAPABILITIES.downshotMinimumPitch(player));
         PortalMotionPredictor.Purpose purpose = downShot
             ? PortalMotionPredictor.Purpose.DOWN_SHOT : PortalMotionPredictor.Purpose.FRONT;
-        Vec3 prediction = motionPrediction ? predictedDisplacement(player, purpose) : Vec3.ZERO;
-        List<Vec3> positions = motionPrediction && prediction.lengthSqr() >= 1.0E-8
+        boolean trajectory = mode == PortalPredictionMode.TRAJECTORY;
+        Vec3 prediction = trajectory ? predictedDisplacement(player, purpose) : Vec3.ZERO;
+        List<Vec3> positions = trajectory && prediction.lengthSqr() >= 1.0E-8
             ? List.of(prediction, Vec3.ZERO) : List.of(prediction);
+        double frontDistance = PortalServices.PLACEMENT_CAPABILITIES.frontDistance(player);
+        double downshotDistance = PortalServices.PLACEMENT_CAPABILITIES.downshotDistance(player);
+        if (mode == PortalPredictionMode.PROJECTION) {
+            double extra = downShot
+                ? projectionExtra(player, downshotProjectionAxis(),
+                    ServerConfig.VALUES.downshotProjectionFactor.get())
+                : projectionExtra(player, frontProjectionAxis(player),
+                    ServerConfig.VALUES.frontProjectionFactor.get());
+            frontDistance += extra;
+            downshotDistance += extra;
+        }
         EntryResult last = null;
         for (Vec3 displacement : positions) {
             if (PortalAperturePolicy.expanded(aperture)) {
                 EntryResult expanded = downShot
-                    ? downshot(player, displacement, PortalAperturePolicy.horizontal(),
+                    ? downshot(player, displacement, downshotDistance, PortalAperturePolicy.horizontal(),
                         PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)
-                    : verticalFront(player, displacement, PortalAperturePolicy.floatingVertical(),
+                    : verticalFront(player, displacement, frontDistance, PortalAperturePolicy.floatingVertical(),
                         PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE);
                 if (expanded.placement != null) return expanded;
                 last = expanded;
             }
             EntryResult standard = downShot
-                ? downshot(player, displacement, PortalGeometry.HORIZONTAL,
+                ? downshot(player, displacement, downshotDistance, PortalGeometry.HORIZONTAL,
                     PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player))
-                : verticalFront(player, displacement, PortalGeometry.FLOATING_VERTICAL,
+                : verticalFront(player, displacement, frontDistance, PortalGeometry.FLOATING_VERTICAL,
                     PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player));
             if (standard.placement != null) return standard;
             last = standard;
@@ -88,13 +107,36 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return last == null ? EntryResult.failure("message.riftgun.front_obstructed") : last;
     }
 
-    private EntryResult verticalFront(ServerPlayer player, Vec3 prediction,
+    /**
+     * Distance added to the door when PROJECTION mode is active. Uses the sampled recent
+     * velocity (blocks/tick scaled to per-second) so doors opened from the modal GUI still
+     * see the player's movement right before opening. Falls back to instantaneous velocity.
+     * The factor is per door type: front uses the view axis factor, downshot the vertical one.
+     */
+    private static double projectionExtra(ServerPlayer player, Vec3 axis, double factor) {
+        Vec3 velocity = PortalServices.MOTION_HISTORY.recentVelocity(player)
+            .orElse(player.getDeltaMovement());
+        double projection = velocity.dot(axis) * TICKS_PER_SECOND;
+        return Mth.clamp(projection * factor, 0.0, MAXIMUM_PROJECTION_EXTRA);
+    }
+
+    /** Projection axis for the downshot door: straight down in world coordinates. */
+    private static Vec3 downshotProjectionAxis() {
+        return new Vec3(0.0, -1.0, 0.0);
+    }
+
+    /** Projection axis for the front door: the view heading in the xz plane. */
+    private static Vec3 frontProjectionAxis(ServerPlayer player) {
+        return Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
+    }
+
+    private EntryResult verticalFront(ServerPlayer player, Vec3 prediction, double frontDistance,
                                       PortalGeometry geometry, double minimumExposure) {
         Vec3 look = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
         Vec3 normal = look.scale(-1.0);
         Vec3 center = player.position()
             .add(prediction)
-            .add(look.scale(PortalServices.PLACEMENT_CAPABILITIES.frontDistance(player)))
+            .add(look.scale(frontDistance))
             .add(0.0, geometry.height() * 0.5, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.VERTICAL, geometry,
             yawFromNormal(normal), null, null);
@@ -104,10 +146,10 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
-    private EntryResult downshot(ServerPlayer player, Vec3 prediction,
+    private EntryResult downshot(ServerPlayer player, Vec3 prediction, double downshotDistance,
                                  PortalGeometry geometry, double minimumExposure) {
         Vec3 center = player.position().add(prediction)
-            .add(0.0, -PortalServices.PLACEMENT_CAPABILITIES.downshotDistance(player), 0.0);
+            .add(0.0, -downshotDistance, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.TOP,
             geometry, player.getYRot(), null, null);
         return outsideWorld(player.serverLevel(), placement.bounds())

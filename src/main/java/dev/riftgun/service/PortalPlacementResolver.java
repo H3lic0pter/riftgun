@@ -2,6 +2,7 @@ package dev.riftgun.service;
 
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalPlacement;
@@ -31,7 +32,8 @@ public interface PortalPlacementResolver {
                                                   PortalPlacementIntent intent) {
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             (int) PortalPlacementCapabilities.DEFAULT_MAXIMUM_SURFACE_RANGE,
-            PortalPlacementCapabilities.DEFAULT_MAXIMUM_SURFACE_RANGE, false, PortalAperture.STANDARD);
+            PortalPlacementCapabilities.DEFAULT_MAXIMUM_SURFACE_RANGE,
+            PortalPredictionMode.OFF, PortalAperture.STANDARD);
         return resolvePrepared(player, destination, intent, constraints);
     }
 
@@ -46,9 +48,9 @@ public interface PortalPlacementResolver {
 
     default PortalPlacementResult resolve(ServerPlayer player, Destination destination,
                                           PortalPlacementMode mode, int smartDistance,
-                                          boolean motionPrediction) {
+                                          PortalPredictionMode predictionMode) {
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
-            smartDistance, PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player), motionPrediction,
+            smartDistance, PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player), predictionMode,
             PortalAperture.STANDARD);
         PortalPlacementCapture capture = capture(player, mode, constraints);
         return capture.successful()

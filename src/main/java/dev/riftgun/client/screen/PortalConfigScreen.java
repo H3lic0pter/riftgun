@@ -255,7 +255,7 @@ public final class PortalConfigScreen extends Screen {
                 "screen.riftgun.sort." + PortalClientState.data().settings().sort().name().toLowerCase(Locale.ROOT))),
             false, ignored -> cycleSort());
         motionPredictionButton = button(panelX + listWidth - 50, footerY, 19, 19,
-            Component.empty(), false, ignored -> toggleMotionPrediction());
+            Component.empty(), false, ignored -> cycleMotionPrediction());
         placementModeButton = button(panelX + listWidth - 28, footerY, 19, 19,
             Component.empty(), false, ignored -> cyclePlacementMode());
         fuelGaugeX = rightX;
@@ -1017,9 +1017,10 @@ public final class PortalConfigScreen extends Screen {
         if (modal == Modal.NONE && placementModeButton != null) {
             renderMainModuleIcons(graphics);
             if (motionPredictionButton != null) {
-                boolean enabled = PortalClientState.data().settings().motionPredictionEnabled();
+                boolean active = PortalClientState.data().settings().predictionMode()
+                    != dev.riftgun.data.PortalPredictionMode.OFF;
                 drawPredictionIcon(graphics, motionPredictionButton.getX() + 5,
-                    motionPredictionButton.getY() + 5, enabled ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
+                    motionPredictionButton.getY() + 5, active ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
             }
             int x = placementModeButton.getX() + 5;
             int y = placementModeButton.getY() + 5;
@@ -1094,12 +1095,15 @@ public final class PortalConfigScreen extends Screen {
                     Component.translatable("screen.riftgun.close_portals"), mouseX, mouseY);
             }
             if (motionPredictionButton != null) {
-                boolean enabled = PortalClientState.data().settings().motionPredictionEnabled();
+                dev.riftgun.data.PortalPredictionMode mode =
+                    PortalClientState.data().settings().predictionMode();
                 if (motionPredictionButton.isHovered()) {
+                    String modeKey = "screen.riftgun.prediction."
+                        + mode.name().toLowerCase(Locale.ROOT);
                     graphics.renderComponentTooltip(font, List.of(
                         Component.translatable("screen.riftgun.motion_prediction_tooltip",
-                            Component.translatable(enabled ? "screen.riftgun.on" : "screen.riftgun.off")),
-                        Component.translatable("screen.riftgun.motion_prediction_description")
+                            Component.translatable(modeKey)),
+                        Component.translatable(modeKey + ".description")
                     ), mouseX, mouseY);
                 }
             }
@@ -2088,26 +2092,27 @@ public final class PortalConfigScreen extends Screen {
         sendSettings(new PortalPlayerSettings(current.safetyCheckEnabled(), current.confirmDeletion(),
             current.confirmDiscardedChanges(), current.confirmClearFluid(), current.animationsEnabled(), current.soundsEnabled(),
             current.sort().next(), current.placementMode(), current.smartDistance(),
-            current.motionPredictionEnabled()));
+            current.predictionMode()));
     }
 
     private void cyclePlacementMode() {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-            old.placementMode().next(), old.smartDistance(), old.motionPredictionEnabled());
+            old.placementMode().next(), old.smartDistance(), old.predictionMode());
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
     }
 
-    private void toggleMotionPrediction() {
+    private void cycleMotionPrediction() {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(),
-            old.sort(), old.placementMode(), old.smartDistance(), !old.motionPredictionEnabled());
+            old.sort(), old.placementMode(), old.smartDistance(), old.predictionMode().next());
         PortalClientState.data().settings(next);
         sendSettings(next);
+        rebuildWidgets();
     }
 
     private void openGunSettings() {
@@ -2257,22 +2262,22 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings next = switch (setting) {
             case 0 -> new PortalPlayerSettings(!old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
+                old.placementMode(), old.smartDistance(), old.predictionMode());
             case 1 -> new PortalPlayerSettings(old.safetyCheckEnabled(), !old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
+                old.placementMode(), old.smartDistance(), old.predictionMode());
             case 2 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 !old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
+                old.placementMode(), old.smartDistance(), old.predictionMode());
             case 3 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), !old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
+                old.placementMode(), old.smartDistance(), old.predictionMode());
             case 4 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), !old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
+                old.placementMode(), old.smartDistance(), old.predictionMode());
             default -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), !old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.motionPredictionEnabled());
+                old.placementMode(), old.smartDistance(), old.predictionMode());
         };
         PortalClientState.data().settings(next);
         sendSettings(next);
@@ -2290,7 +2295,7 @@ public final class PortalConfigScreen extends Screen {
             tag.putString("Sort", settings.sort().name());
             tag.putString("PlacementMode", settings.placementMode().name());
             tag.putInt("SmartDistance", settings.smartDistance());
-            tag.putBoolean("MotionPrediction", settings.motionPredictionEnabled());
+            tag.putString("MotionPrediction", settings.predictionMode().name());
         });
     }
 

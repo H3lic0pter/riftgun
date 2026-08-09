@@ -19,7 +19,8 @@ public final class CommonEvents {
             PortalDataStore.copy(original, replacement);
             PortalServices.MOTION_HISTORY.remove(original.getUUID());
             PortalServices.MOTION_HISTORY.setPredictionEnabled(replacement,
-                PortalDataStore.load(replacement).settings().motionPredictionEnabled());
+                PortalDataStore.load(replacement).settings().predictionMode()
+                    != dev.riftgun.data.PortalPredictionMode.OFF);
         }
     }
 
@@ -27,7 +28,8 @@ public final class CommonEvents {
     public static void playerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PortalServices.MOTION_HISTORY.setPredictionEnabled(player,
-                PortalDataStore.load(player).settings().motionPredictionEnabled());
+                PortalDataStore.load(player).settings().predictionMode()
+                    != dev.riftgun.data.PortalPredictionMode.OFF);
             PortalNetworking.sendSnapshot(player, false);
         }
     }

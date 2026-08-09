@@ -35,6 +35,8 @@ public final class ServerConfig {
         public final ModConfigSpec.DoubleValue horizontalTriggerExtend;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultTargetPrivacy;
         public final ModConfigSpec.IntValue privacyRequestTimeoutSeconds;
+        public final ModConfigSpec.DoubleValue frontProjectionFactor;
+        public final ModConfigSpec.DoubleValue downshotProjectionFactor;
 
         private Values(ModConfigSpec.Builder builder) {
             builder.push("destinations");
@@ -84,6 +86,17 @@ public final class ServerConfig {
             privacyRequestTimeoutSeconds = builder.comment(
                     "How long a privacy request stays valid before the requester must ask again, in seconds.")
                 .defineInRange("privacyRequestTimeoutSeconds", 30, 10, 300);
+            builder.pop();
+
+            builder.push("prediction");
+            frontProjectionFactor = builder.comment(
+                    "Blocks of extra door distance per block/second of velocity projected onto the "
+                        + "view axis, for front doors opened in Projection mode.")
+                .defineInRange("frontProjectionFactor", 0.7, 0.0, 8.0);
+            downshotProjectionFactor = builder.comment(
+                    "Blocks of extra door distance per block/second of velocity projected onto the "
+                        + "downward axis, for downshot doors opened in Projection mode.")
+                .defineInRange("downshotProjectionFactor", 1.0, 0.0, 8.0);
             builder.pop();
         }
     }

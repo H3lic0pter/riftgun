@@ -1,5 +1,6 @@
 package dev.riftgun.service;
 
+import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.portal.PortalPlacement;
 import org.jetbrains.annotations.Nullable;
 
@@ -7,14 +8,14 @@ import org.jetbrains.annotations.Nullable;
 public record PortalPlacementIntent(
     Route route,
     @Nullable PortalPlacement attachedPlacement,
-    boolean motionPrediction
+    PortalPredictionMode predictionMode
 ) {
-    public static PortalPlacementIntent front(boolean motionPrediction) {
-        return new PortalPlacementIntent(Route.FRONT, null, motionPrediction);
+    public static PortalPlacementIntent front(PortalPredictionMode predictionMode) {
+        return new PortalPlacementIntent(Route.FRONT, null, predictionMode);
     }
 
     public static PortalPlacementIntent surface(PortalPlacement placement) {
-        return new PortalPlacementIntent(Route.SURFACE, placement, false);
+        return new PortalPlacementIntent(Route.SURFACE, placement, PortalPredictionMode.OFF);
     }
 
     public enum Route {

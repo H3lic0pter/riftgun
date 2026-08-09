@@ -9,6 +9,7 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.data.TargetPrivacy;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
@@ -198,7 +199,7 @@ public final class PortalRequestHandler {
         PortalPlacementMode next = old.placementMode().next();
         data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-            next, old.smartDistance(), old.motionPredictionEnabled()));
+            next, old.smartDistance(), old.predictionMode()));
         player.displayClientMessage(Component.translatable(
             "message.riftgun.placement_mode", Component.translatable("screen.riftgun.placement_mode."
                 + next.name().toLowerCase(Locale.ROOT))), true);
@@ -453,10 +454,11 @@ public final class PortalRequestHandler {
             sort,
             PortalPlacementMode.parse(request.getString("PlacementMode")),
             data.settings().smartDistance(),
-            request.getBoolean("MotionPrediction")
+            PortalPredictionMode.parse(request.getString("MotionPrediction"), PortalPredictionMode.OFF)
         );
         data.settings(settings);
-        PortalServices.MOTION_HISTORY.setPredictionEnabled(player, settings.motionPredictionEnabled());
+        PortalServices.MOTION_HISTORY.setPredictionEnabled(player,
+            settings.predictionMode() != PortalPredictionMode.OFF);
         return true;
     }
 
