@@ -18,8 +18,13 @@ import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.sound.PortalSoundChannel;
+import dev.riftgun.sound.PortalSoundChoice;
+import dev.riftgun.sound.PortalSoundRegistry;
+import dev.riftgun.sound.PortalSoundSettings;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -95,6 +100,8 @@ public final class PortalConfigScreen extends Screen {
     private int visualOptionsContentHeight;
     private boolean visualSettingsDirty;
     private long visualSettingsSaveDueTick = -1L;
+    private @Nullable PortalSoundChannel soundDropdownChannel;
+    private int soundDropdownIndex;
 
     private @Nullable EditBox searchBox;
     private @Nullable ThemedButton firstCreateButton;
@@ -125,6 +132,13 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton motionPredictionButton;
     private @Nullable ThemedButton placementModeButton;
     private @Nullable ThemedButton visualSettingsButton;
+    private @Nullable ThemedButton soundSettingsButton;
+    private @Nullable ThemedButton soundBackButton;
+    private @Nullable ThemedButton splashSoundButton;
+    private final Map<PortalSoundChannel, ThemedButton> soundSelectors =
+        new EnumMap<>(PortalSoundChannel.class);
+    private final Map<PortalSoundChannel, ThemedButton> soundDropdownButtons =
+        new EnumMap<>(PortalSoundChannel.class);
     private @Nullable ThemedButton visualBackButton;
     private @Nullable ThemedButton swirlAnimationBackButton;
     private @Nullable ThemedButton visualSelector;
@@ -192,6 +206,11 @@ public final class PortalConfigScreen extends Screen {
         groupDropdownButton = null;
         motionPredictionButton = null;
         visualSettingsButton = null;
+        soundSettingsButton = null;
+        soundBackButton = null;
+        splashSoundButton = null;
+        soundSelectors.clear();
+        soundDropdownButtons.clear();
         visualBackButton = null;
         swirlAnimationBackButton = null;
         visualSelector = null;
@@ -303,6 +322,7 @@ public final class PortalConfigScreen extends Screen {
         int fieldWidth = box.width() - 36;
         groupDropdownOpen = false;
         visualDropdownOpen = false;
+        soundDropdownChannel = null;
 
         if (modal == Modal.CREATE_COORDINATE || modal == Modal.EDIT_DESTINATION) {
             addField(x + 18, y + 41, fieldWidth, formName, 48, value -> formName = value);
@@ -338,8 +358,10 @@ public final class PortalConfigScreen extends Screen {
             button(x + 18, y + 123, fieldWidth, 18,
                 toggleLabel("screen.riftgun.sounds", settings.soundsEnabled()), false,
                 ignored -> updateSetting(5));
-            visualSettingsButton = button(x + box.width() - 40, y + 8, 20, 18, Component.empty(), false,
+            visualSettingsButton = button(x + box.width() - 64, y + 8, 20, 18, Component.empty(), false,
                 ignored -> openVisualSettings());
+            soundSettingsButton = button(x + box.width() - 40, y + 8, 20, 18, Component.empty(), false,
+                ignored -> openSoundSettings());
         } else if (modal == Modal.GUN_SETTINGS) {
             int buttonX = x + 18;
             portalDurationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
@@ -417,6 +439,16 @@ public final class PortalConfigScreen extends Screen {
             }
         } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
             addVisualOptionWidgets(box, fieldWidth);
+        } else if (modal == Modal.SOUND_SETTINGS) {
+            int selectorY = y + 34;
+            for (PortalSoundChannel channel : PortalSoundChannel.values()) {
+                addSoundSelector(channel, x + 18, selectorY, fieldWidth);
+                selectorY += 24;
+            }
+            splashSoundButton = button(x + 18, selectorY, fieldWidth, 18,
+                toggleLabel("screen.riftgun.sound.splash",
+                    PortalClientState.data().settings().portalSounds().splashEnabled()), false,
+                ignored -> toggleSplashSound());
         }
 
         int actionY = y + box.height() - 27;
@@ -440,6 +472,9 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
             swirlAnimationBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToVisualSettings());
+        } else if (modal == Modal.SOUND_SETTINGS) {
+            soundBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
+                ignored -> backToSettings());
         } else {
             button(x + 18, actionY, (box.width() - 42) / 2, 19,
                 "screen.riftgun.cancel", false, ignored -> requestCloseModal());
@@ -494,6 +529,15 @@ public final class PortalConfigScreen extends Screen {
             false, ignored -> openVisualDropdown());
         visualDropdownButton = button(x + width - 20, y, 20, 18, Component.empty(), false,
             ignored -> openVisualDropdown());
+    }
+
+    private void addSoundSelector(PortalSoundChannel channel, int x, int y, int width) {
+        ThemedButton selector = button(x, y, width - 22, 18, soundName(channel), false,
+            ignored -> openSoundDropdown(channel));
+        ThemedButton dropdown = button(x + width - 20, y, 20, 18, Component.empty(), false,
+            ignored -> openSoundDropdown(channel));
+        soundSelectors.put(channel, selector);
+        soundDropdownButtons.put(channel, dropdown);
     }
 
     private void addVisualOptionWidgets(ModalBox box, int width) {
@@ -633,6 +677,7 @@ public final class PortalConfigScreen extends Screen {
         renderVisualOptionWidgets(graphics, mouseX, mouseY, partialTick);
         if (groupDropdownOpen) renderGroupDropdown(graphics, mouseX, mouseY);
         if (visualDropdownOpen) renderVisualDropdown(graphics, mouseX, mouseY);
+        if (soundDropdownChannel != null) renderSoundDropdown(graphics, mouseX, mouseY);
         renderPlacementIcons(graphics, mouseX, mouseY);
         renderPlacementTooltips(graphics, mouseX, mouseY);
     }
@@ -1026,6 +1071,9 @@ public final class PortalConfigScreen extends Screen {
             if (visualSettingsButton != null) {
                 drawEyeIcon(graphics, visualSettingsButton.getX() + 5, visualSettingsButton.getY() + 5);
             }
+            if (soundSettingsButton != null) {
+                drawSoundIcon(graphics, soundSettingsButton.getX() + 5, soundSettingsButton.getY() + 5);
+            }
         }
         if (modal == Modal.GUN_SETTINGS) {
             renderGunSettingEntries(graphics);
@@ -1067,6 +1115,14 @@ public final class PortalConfigScreen extends Screen {
             if (visualResetButton != null && visualResetButton.visible) {
                 drawResetIcon(graphics, visualResetButton.getX() + 5, visualResetButton.getY() + 4,
                     visualResetButton.active ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
+            }
+        }
+        if (modal == Modal.SOUND_SETTINGS) {
+            if (soundBackButton != null) {
+                drawBackIcon(graphics, soundBackButton.getX() + 7, soundBackButton.getY() + 6);
+            }
+            for (ThemedButton dropdown : soundDropdownButtons.values()) {
+                drawDownIcon(graphics, dropdown.getX() + 6, dropdown.getY() + 7);
             }
         }
     }
@@ -1119,6 +1175,10 @@ public final class PortalConfigScreen extends Screen {
                 graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.visual_settings"), mouseX, mouseY);
             }
+            if (soundSettingsButton != null && soundSettingsButton.isHovered()) {
+                graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.sound_settings"), mouseX, mouseY);
+            }
         }
         if (modal == Modal.GUN_SETTINGS) {
             renderGunSettingTooltips(graphics, mouseX, mouseY);
@@ -1167,6 +1227,10 @@ public final class PortalConfigScreen extends Screen {
                     Component.translatable(PortalVisualPreferences.selected().options().resetTooltipKey()),
                     mouseX, mouseY);
             }
+        }
+        if (modal == Modal.SOUND_SETTINGS && soundBackButton != null && soundBackButton.isHovered()) {
+            graphics.renderTooltip(font,
+                Component.translatable("screen.riftgun.back_to_settings"), mouseX, mouseY);
         }
         if (modal == Modal.EDIT_DESTINATION && !coordinateOverrideUnlocked()) {
             for (EditBox field : coordinateEditFields) {
@@ -1455,6 +1519,34 @@ public final class PortalConfigScreen extends Screen {
         graphics.pose().popPose();
     }
 
+    private void renderSoundDropdown(GuiGraphics graphics, int mouseX, int mouseY) {
+        PortalSoundChannel channel = soundDropdownChannel;
+        ThemedButton selector = channel == null ? null : soundSelectors.get(channel);
+        if (channel == null || selector == null) return;
+        List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
+        DropdownBox box = selectorDropdownBox(selector, choices.size());
+        ResourceLocation selected = PortalClientState.data().settings().portalSounds().selected(channel);
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0F, 0.0F, 300.0F);
+        graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
+            box.y() + box.height() + 3, 0xCC000000);
+        graphics.fill(box.x(), box.y(), box.x() + box.width(), box.y() + box.height(), PortalTheme.FIELD);
+        graphics.renderOutline(box.x(), box.y(), box.width(), box.height(), PortalTheme.BORDER_FOCUS);
+        for (int index = 0; index < choices.size(); index++) {
+            PortalSoundChoice choice = choices.get(index);
+            int rowY = box.y() + 2 + index * ROW_HEIGHT;
+            boolean hover = mouseX >= box.x() + 2 && mouseX < box.x() + box.width() - 2
+                && mouseY >= rowY && mouseY < rowY + ROW_HEIGHT;
+            if (hover || index == soundDropdownIndex) {
+                graphics.fill(box.x() + 2, rowY, box.x() + box.width() - 2, rowY + ROW_HEIGHT,
+                    choice.id().equals(selected) ? 0x773F7180 : 0x5530333A);
+            }
+            graphics.drawString(font, Component.translatable(choice.nameKey()), box.x() + 6, rowY + 5,
+                choice.id().equals(selected) ? PortalTheme.ICE : PortalTheme.TEXT, false);
+        }
+        graphics.pose().popPose();
+    }
+
     private List<Row> buildRows() {
         PortalPlayerData data = PortalClientState.data();
         List<Row> rows = new ArrayList<>();
@@ -1529,6 +1621,11 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (soundDropdownChannel != null) {
+            if (button == 0) clickSoundDropdown(mouseX, mouseY);
+            soundDropdownChannel = null;
+            return true;
+        }
         if (visualDropdownOpen) {
             if (button == 0) clickVisualDropdown(mouseX, mouseY);
             visualDropdownOpen = false;
@@ -1562,6 +1659,21 @@ public final class PortalConfigScreen extends Screen {
             }
             setFocused(visualSelector);
             return true;
+        }
+        if (modal == Modal.SOUND_SETTINGS && (button == 0 || button == 1)) {
+            for (var entry : soundSelectors.entrySet()) {
+                ThemedButton selector = entry.getValue();
+                if (mouseX < selector.getX() || mouseX >= selector.getX() + selector.getWidth()
+                    || mouseY < selector.getY() || mouseY >= selector.getY() + selector.getHeight()) continue;
+                PortalSoundChannel channel = entry.getKey();
+                ResourceLocation before = selectedSound(channel);
+                shiftSound(channel, button == 0 ? 1 : -1);
+                if (!before.equals(selectedSound(channel)) && minecraft != null) {
+                    selector.playDownSound(minecraft.getSoundManager());
+                }
+                setFocused(soundSelectors.get(channel));
+                return true;
+            }
         }
         if (modal != Modal.NONE) return super.mouseClicked(mouseX, mouseY, button);
         if (button == 0 && mouseX >= panelX + listWidth && mouseX < panelX + panelWidth
@@ -1733,6 +1845,7 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (soundDropdownChannel != null) return soundDropdownKeyPressed(keyCode);
         if (visualDropdownOpen) return visualDropdownKeyPressed(keyCode);
         if (groupDropdownOpen) return dropdownKeyPressed(keyCode);
         if (modal != Modal.NONE && modal.isDestinationForm() && groupSelector != null
@@ -1745,6 +1858,13 @@ public final class PortalConfigScreen extends Screen {
             shiftVisual(keyCode == 263 ? -1 : 1);
             return true;
         }
+        if (modal == Modal.SOUND_SETTINGS && (keyCode == 263 || keyCode == 262)) {
+            for (var entry : soundSelectors.entrySet()) {
+                if (!entry.getValue().isFocused()) continue;
+                shiftSound(entry.getKey(), keyCode == 263 ? -1 : 1);
+                return true;
+            }
+        }
         if (keyCode == 256 && modal == Modal.SWIRL_ANIMATION_SETTINGS) {
             backToVisualSettings();
             return true;
@@ -1754,6 +1874,10 @@ public final class PortalConfigScreen extends Screen {
             return true;
         }
         if (keyCode == 256 && modal == Modal.VISUAL_SETTINGS) {
+            backToSettings();
+            return true;
+        }
+        if (keyCode == 256 && modal == Modal.SOUND_SETTINGS) {
             backToSettings();
             return true;
         }
@@ -1930,14 +2054,14 @@ public final class PortalConfigScreen extends Screen {
         sendSettings(new PortalPlayerSettings(current.safetyCheckEnabled(), current.confirmDeletion(),
             current.confirmDiscardedChanges(), current.confirmClearFluid(), current.animationsEnabled(), current.soundsEnabled(),
             current.sort().next(), current.placementMode(), current.smartDistance(),
-            current.predictionMode()));
+            current.predictionMode(), current.portalSounds()));
     }
 
     private void cyclePlacementMode() {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-            old.placementMode().next(), old.smartDistance(), old.predictionMode());
+            old.placementMode().next(), old.smartDistance(), old.predictionMode(), old.portalSounds());
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
@@ -1947,7 +2071,8 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(),
-            old.sort(), old.placementMode(), old.smartDistance(), old.predictionMode().next());
+            old.sort(), old.placementMode(), old.smartDistance(), old.predictionMode().next(),
+            old.portalSounds());
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
@@ -1975,6 +2100,12 @@ public final class PortalConfigScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void openSoundSettings() {
+        modal = Modal.SOUND_SETTINGS;
+        soundDropdownChannel = null;
+        rebuildWidgets();
+    }
+
     private void openSwirlAnimationSettings() {
         if (PortalVisualPreferences.selected().options().isEmpty()) return;
         modal = Modal.SWIRL_ANIMATION_SETTINGS;
@@ -1993,6 +2124,7 @@ public final class PortalConfigScreen extends Screen {
         flushVisualSettings();
         modal = Modal.SETTINGS;
         visualDropdownOpen = false;
+        soundDropdownChannel = null;
         rebuildWidgets();
     }
 
@@ -2100,22 +2232,22 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings next = switch (setting) {
             case 0 -> new PortalPlayerSettings(!old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode());
+                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
             case 1 -> new PortalPlayerSettings(old.safetyCheckEnabled(), !old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode());
+                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
             case 2 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 !old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode());
+                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
             case 3 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), !old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode());
+                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
             case 4 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), !old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode());
+                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
             default -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
                 old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), !old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode());
+                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
         };
         PortalClientState.data().settings(next);
         sendSettings(next);
@@ -2134,6 +2266,7 @@ public final class PortalConfigScreen extends Screen {
             tag.putString("PlacementMode", settings.placementMode().name());
             tag.putInt("SmartDistance", settings.smartDistance());
             tag.putString("MotionPrediction", settings.predictionMode().name());
+            tag.put("PortalSounds", settings.portalSounds().save());
         });
     }
 
@@ -2322,6 +2455,82 @@ public final class PortalConfigScreen extends Screen {
             }
         }
         setFocused(visualSelector);
+    }
+
+    private void openSoundDropdown(PortalSoundChannel channel) {
+        soundDropdownChannel = channel;
+        List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
+        ResourceLocation selected = selectedSound(channel);
+        soundDropdownIndex = 0;
+        for (int index = 0; index < choices.size(); index++) {
+            if (choices.get(index).id().equals(selected)) {
+                soundDropdownIndex = index;
+                break;
+            }
+        }
+        setFocused(soundSelectors.get(channel));
+    }
+
+    private void shiftSound(PortalSoundChannel channel, int direction) {
+        ResourceLocation next = PortalSoundRegistry.cycle(channel, selectedSound(channel), direction);
+        selectSound(channel, next);
+    }
+
+    private void selectSound(PortalSoundChannel channel, ResourceLocation id) {
+        PortalSoundSettings current = PortalClientState.data().settings().portalSounds();
+        updatePortalSounds(current.withSelection(channel, id));
+    }
+
+    private void toggleSplashSound() {
+        PortalSoundSettings current = PortalClientState.data().settings().portalSounds();
+        updatePortalSounds(current.withSplashEnabled(!current.splashEnabled()));
+    }
+
+    private void updatePortalSounds(PortalSoundSettings sounds) {
+        PortalPlayerSettings next = PortalClientState.data().settings().withPortalSounds(sounds);
+        PortalClientState.data().settings(next);
+        sendSettings(next);
+        rebuildWidgets();
+    }
+
+    private ResourceLocation selectedSound(PortalSoundChannel channel) {
+        return PortalClientState.data().settings().portalSounds().selected(channel);
+    }
+
+    private boolean clickSoundDropdown(double mouseX, double mouseY) {
+        PortalSoundChannel channel = soundDropdownChannel;
+        ThemedButton selector = channel == null ? null : soundSelectors.get(channel);
+        if (channel == null || selector == null) return false;
+        List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
+        DropdownBox box = selectorDropdownBox(selector, choices.size());
+        if (mouseX < box.x() || mouseX >= box.x() + box.width()
+            || mouseY < box.y() || mouseY >= box.y() + box.height()) return false;
+        if (mouseY < box.y() + 2 || mouseY >= box.y() + 2 + choices.size() * ROW_HEIGHT) return true;
+        int index = (int) ((mouseY - box.y() - 2) / ROW_HEIGHT);
+        if (index >= 0 && index < choices.size()) selectSound(channel, choices.get(index).id());
+        soundDropdownChannel = null;
+        return true;
+    }
+
+    private boolean soundDropdownKeyPressed(int keyCode) {
+        PortalSoundChannel channel = soundDropdownChannel;
+        if (channel == null) return false;
+        List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
+        if (keyCode == 256) {
+            soundDropdownChannel = null;
+            return true;
+        }
+        if (keyCode == 265 || keyCode == 264) {
+            soundDropdownIndex = Mth.clamp(
+                soundDropdownIndex + (keyCode == 265 ? -1 : 1), 0, choices.size() - 1);
+            return true;
+        }
+        if (keyCode == 257 || keyCode == 335) {
+            selectSound(channel, choices.get(soundDropdownIndex).id());
+            soundDropdownChannel = null;
+            return true;
+        }
+        return true;
     }
 
     private void shiftVisual(int direction) {
@@ -2612,6 +2821,13 @@ public final class PortalConfigScreen extends Screen {
         return Component.translatable(type.nameKey());
     }
 
+    private static Component soundName(PortalSoundChannel channel) {
+        PortalSoundChoice choice = PortalSoundRegistry.resolve(
+            channel, PortalClientState.data().settings().portalSounds().selected(channel));
+        return Component.translatable(channel.labelKey()).append(": ")
+            .append(Component.translatable(choice.nameKey()));
+    }
+
     private ModalBox modalBox() {
         int desiredHeight = switch (modal) {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
@@ -2622,6 +2838,7 @@ public final class PortalConfigScreen extends Screen {
                  PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS -> 132;
             case VISUAL_SETTINGS -> 132;
             case SWIRL_ANIMATION_SETTINGS -> 210;
+            case SOUND_SETTINGS -> 178;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
                  CONFIRM_DIRTY, CONFIRM_CLEAR_FLUID -> 112;
             case NONE -> 0;
@@ -2671,6 +2888,18 @@ public final class PortalConfigScreen extends Screen {
         return new DropdownBox(visualSelectorX, top, visualSelectorWidth, height);
     }
 
+    private DropdownBox selectorDropdownBox(ThemedButton selector, int choiceCount) {
+        int height = choiceCount * ROW_HEIGHT + 4;
+        ModalBox modalBounds = modalBox();
+        int width = selector.getWidth() + 22;
+        int minY = modalBounds.y() + 3;
+        int maxY = modalBounds.y() + modalBounds.height() - height - 3;
+        int downward = selector.getY() + 20;
+        int upward = selector.getY() - height - 2;
+        int top = downward <= maxY ? downward : Math.max(minY, upward);
+        return new DropdownBox(selector.getX(), top, width, height);
+    }
+
     private enum RowKind { GROUP, DESTINATION, PLAYER_SECTION, PLAYER }
     private record Row(RowKind kind, UUID id, int y) {}
     private record ModalBox(int x, int y, int width, int height) {}
@@ -2696,6 +2925,7 @@ public final class PortalConfigScreen extends Screen {
         PLAYER_TARGET_SETTINGS("screen.riftgun.player_target", "", false, false),
         VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
         SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
+        SOUND_SETTINGS("screen.riftgun.sound_settings", "", false, false),
         CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
         CONFIRM_DELETE_GROUP("screen.riftgun.delete", "screen.riftgun.delete_group_body", false, false),
         CONFIRM_DIRTY("screen.riftgun.unsaved", "screen.riftgun.unsaved_body", false, false),

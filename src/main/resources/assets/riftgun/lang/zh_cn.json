@@ -275,5 +275,17 @@
   "chat.riftgun.privacy_request_expired_requester": "向 %s 发送的传送门请求已过期",
   "chat.riftgun.privacy_grant_expired_target": "您给予 %s 的单次准许已过期",
   "chat.riftgun.privacy_grant_expired_requester": "%s 给予您的单次准许已过期",
-  "message.riftgun.privacy_respond_denied": "只有玩家可以回应传送门请求"
+  "message.riftgun.privacy_respond_denied": "只有玩家可以回应传送门请求",
+  "screen.riftgun.sound_settings": "传送门音效",
+  "screen.riftgun.sound.shot": "开枪音效",
+  "screen.riftgun.sound.portal": "传送门音效",
+  "screen.riftgun.sound.transit": "穿过音效",
+  "screen.riftgun.sound.splash": "水花音效",
+  "screen.riftgun.sound.rift": "裂隙",
+  "screen.riftgun.sound.ender": "末影",
+  "screen.riftgun.sound.none": "无",
+  "subtitles.riftgun.rift_shot": "传送枪发射",
+  "subtitles.riftgun.portal_open": "传送门开启",
+  "subtitles.riftgun.portal_close": "传送门关闭",
+  "subtitles.riftgun.portal_transit": "实体穿过传送门"
 }

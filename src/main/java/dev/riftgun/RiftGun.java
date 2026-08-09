@@ -12,6 +12,7 @@ import dev.riftgun.module.PortalModuleMenus;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.service.PortalServices;
+import dev.riftgun.sound.PortalSounds;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -91,6 +92,7 @@ public final class RiftGun {
         PortalModules.register(modBus);
         PortalModuleMenus.register(modBus);
         PortalFluids.register(modBus);
+        PortalSounds.register(modBus);
         modBus.addListener(this::addCreativeTabContents);
         modBus.addListener(this::registerCapabilities);
         modBus.addListener(PortalNetworking::register);

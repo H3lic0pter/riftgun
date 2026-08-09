@@ -1,5 +1,6 @@
 package dev.riftgun.data;
 
+import dev.riftgun.sound.PortalSoundSettings;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
@@ -13,13 +14,25 @@ public record PortalPlayerSettings(
     DestinationSort sort,
     PortalPlacementMode placementMode,
     int smartDistance,
-    PortalPredictionMode predictionMode
+    PortalPredictionMode predictionMode,
+    PortalSoundSettings portalSounds
 ) {
     public static final int DEFAULT_SMART_DISTANCE = 8;
 
+    public PortalPlayerSettings {
+        if (portalSounds == null) portalSounds = PortalSoundSettings.defaults();
+    }
+
     public static PortalPlayerSettings defaults() {
         return new PortalPlayerSettings(true, true, true, true, true, true, DestinationSort.RECENT,
-            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, PortalPredictionMode.OFF);
+            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, PortalPredictionMode.OFF,
+            PortalSoundSettings.defaults());
+    }
+
+    public PortalPlayerSettings withPortalSounds(PortalSoundSettings value) {
+        return new PortalPlayerSettings(safetyCheckEnabled, confirmDeletion, confirmDiscardedChanges,
+            confirmClearFluid, animationsEnabled, soundsEnabled, sort, placementMode, smartDistance,
+            predictionMode, value);
     }
 
     public CompoundTag save() {
@@ -34,6 +47,7 @@ public record PortalPlayerSettings(
         tag.putString("PlacementMode", placementMode.name());
         tag.putInt("SmartDistance", smartDistance);
         tag.putString("MotionPrediction", predictionMode.name());
+        tag.put("PortalSounds", portalSounds.save());
         return tag;
     }
 
@@ -65,7 +79,10 @@ public record PortalPlayerSettings(
             sort,
             PortalPlacementMode.parse(tag.getString("PlacementMode")),
             tag.contains("SmartDistance") ? Math.max(1, tag.getInt("SmartDistance")) : DEFAULT_SMART_DISTANCE,
-            predictionMode
+            predictionMode,
+            tag.contains("PortalSounds", Tag.TAG_COMPOUND)
+                ? PortalSoundSettings.load(tag.getCompound("PortalSounds"))
+                : PortalSoundSettings.defaults()
         );
     }
 }

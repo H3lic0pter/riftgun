@@ -15,7 +15,7 @@ import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 6;
+    public static final int CURRENT_VERSION = 7;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
     /** Sentinel id for the Player section's collapsed/expanded state in {@link #expandedGroups()}. */
     public static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
@@ -314,7 +314,7 @@ public final class PortalPlayerData {
     }
 
     private void migrate(int storedVersion) {
-        // Settings and v4 safety history are backward-compatible through missing-field defaults.
+        // Settings, sound themes, and v4 safety history use missing-field defaults.
     }
 
     private void repairReferences() {

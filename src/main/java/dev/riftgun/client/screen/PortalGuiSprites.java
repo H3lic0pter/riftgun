@@ -43,6 +43,7 @@ final class PortalGuiSprites {
     static final ResourceLocation PLAYER_EXCLUDE_OFF = icon("player_exclude_off");
     static final ResourceLocation PLAYER_REFRESH = icon("player_refresh");
     static final ResourceLocation VISUALS = icon("visuals");
+    static final ResourceLocation SOUNDS = icon("sounds");
     static final ResourceLocation DROPDOWN = icon("dropdown");
     static final ResourceLocation BACK = icon("back");
     static final ResourceLocation MODULE_BACK = icon("module_back");

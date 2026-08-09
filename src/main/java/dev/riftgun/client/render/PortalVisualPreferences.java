@@ -10,21 +10,21 @@ public final class PortalVisualPreferences {
 
     public static ResourceLocation selectedId() {
         ResourceLocation parsed = ResourceLocation.tryParse(ClientConfig.VALUES.portalVisualType.get());
-        ResourceLocation resolved = parsed == null ? PortalVisualRegistry.CLASSIC_ID
-            : PortalVisualSelection.resolve(PortalVisualRegistry.values(), parsed, PortalVisualRegistry.CLASSIC_ID);
+        ResourceLocation resolved = parsed == null ? PortalVisualRegistry.DEFAULT_ID
+            : PortalVisualSelection.resolve(PortalVisualRegistry.values(), parsed, PortalVisualRegistry.DEFAULT_ID);
         if (parsed == null || !parsed.equals(resolved)) save(resolved);
         return resolved;
     }
 
     public static void select(ResourceLocation id) {
         ResourceLocation resolved = PortalVisualSelection.resolve(
-            PortalVisualRegistry.values(), id, PortalVisualRegistry.CLASSIC_ID);
+            PortalVisualRegistry.values(), id, PortalVisualRegistry.DEFAULT_ID);
         save(resolved);
     }
 
     public static void cycle(int direction) {
         select(PortalVisualSelection.cycle(PortalVisualRegistry.values(), selectedId(), direction,
-            PortalVisualRegistry.CLASSIC_ID));
+            PortalVisualRegistry.DEFAULT_ID));
     }
 
     public static void flush() {

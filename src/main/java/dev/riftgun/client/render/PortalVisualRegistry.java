@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 public final class PortalVisualRegistry {
     public static final ResourceLocation CLASSIC_ID = id("classic");
     public static final ResourceLocation SWIRL_ID = id("swirl");
+    public static final ResourceLocation DEFAULT_ID = SWIRL_ID;
     private static final Map<ResourceLocation, PortalVisualType> TYPES = new LinkedHashMap<>();
 
     static {
@@ -29,7 +30,7 @@ public final class PortalVisualRegistry {
     }
 
     public static PortalVisualType resolve(ResourceLocation id) {
-        return TYPES.getOrDefault(id, TYPES.get(CLASSIC_ID));
+        return TYPES.getOrDefault(id, TYPES.get(DEFAULT_ID));
     }
 
     public static boolean contains(ResourceLocation id) {

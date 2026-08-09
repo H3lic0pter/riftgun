@@ -275,5 +275,17 @@
   "chat.riftgun.privacy_request_expired_requester": "Your portal request to %s has expired",
   "chat.riftgun.privacy_grant_expired_target": "Your one-time allowance for %s has expired",
   "chat.riftgun.privacy_grant_expired_requester": "%s's one-time allowance for you has expired",
-  "message.riftgun.privacy_respond_denied": "Only players can respond to portal requests"
+  "message.riftgun.privacy_respond_denied": "Only players can respond to portal requests",
+  "screen.riftgun.sound_settings": "Portal Sounds",
+  "screen.riftgun.sound.shot": "Shot Sound",
+  "screen.riftgun.sound.portal": "Portal Sound",
+  "screen.riftgun.sound.transit": "Transit Sound",
+  "screen.riftgun.sound.splash": "Splash Sound",
+  "screen.riftgun.sound.rift": "Rift",
+  "screen.riftgun.sound.ender": "Ender",
+  "screen.riftgun.sound.none": "None",
+  "subtitles.riftgun.rift_shot": "Portal gun fires",
+  "subtitles.riftgun.portal_open": "Portal opens",
+  "subtitles.riftgun.portal_close": "Portal closes",
+  "subtitles.riftgun.portal_transit": "Entity travels through a portal"
 }

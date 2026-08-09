@@ -22,7 +22,7 @@ public final class ClientConfig {
 
         private Values(ModConfigSpec.Builder builder) {
             portalVisualType = builder.comment("Client-local portal visual type ID")
-                .define("portalVisualType", "riftgun:classic");
+                .define("portalVisualType", "riftgun:swirl");
 
             builder.push("visuals").push("swirl");
             swirlAnimationEnabled = builder.comment("Animate the swirl portal texture")

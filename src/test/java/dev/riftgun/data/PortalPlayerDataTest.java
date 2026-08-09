@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.riftgun.sound.PortalSoundRegistry;
+import dev.riftgun.sound.PortalSoundSettings;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
@@ -39,8 +41,10 @@ final class PortalPlayerDataTest {
     @Test
     void settingsRoundTripAndOldDataKeepsConfirmationDefaults() {
         assertEquals(PortalPredictionMode.OFF, PortalPlayerSettings.defaults().predictionMode());
+        PortalSoundSettings sounds = new PortalSoundSettings(
+            PortalSoundRegistry.NONE_ID, PortalSoundRegistry.RIFT_ID, PortalSoundRegistry.ENDER_ID, true);
         PortalPlayerSettings configured = new PortalPlayerSettings(false, false, false, false, true, false,
-            DestinationSort.NAME, PortalPlacementMode.SURFACE, 14, PortalPredictionMode.PROJECTION);
+            DestinationSort.NAME, PortalPlacementMode.SURFACE, 14, PortalPredictionMode.PROJECTION, sounds);
         PortalPlayerSettings restored = PortalPlayerSettings.load(configured.save());
         assertFalse(restored.safetyCheckEnabled());
         assertFalse(restored.confirmDeletion());
@@ -51,6 +55,7 @@ final class PortalPlayerDataTest {
         assertEquals(PortalPlacementMode.SURFACE, restored.placementMode());
         assertEquals(14, restored.smartDistance());
         assertEquals(PortalPredictionMode.PROJECTION, restored.predictionMode());
+        assertEquals(sounds, restored.portalSounds());
 
         CompoundTag legacy = new CompoundTag();
         legacy.putBoolean("SafetyCheck", false);
@@ -61,6 +66,7 @@ final class PortalPlayerDataTest {
         assertEquals(PortalPlacementMode.SMART, migrated.placementMode());
         assertEquals(PortalPlayerSettings.DEFAULT_SMART_DISTANCE, migrated.smartDistance());
         assertEquals(PortalPredictionMode.OFF, migrated.predictionMode());
+        assertEquals(PortalSoundSettings.defaults(), migrated.portalSounds());
     }
 
     @Test

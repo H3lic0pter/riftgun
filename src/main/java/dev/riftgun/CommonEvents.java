@@ -5,12 +5,14 @@ import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.PortalServices;
+import dev.riftgun.sound.PortalSounds;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID)
@@ -68,6 +70,12 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void serverStopped(ServerStoppedEvent event) {
         PortalPrivacyService.reset();
+        PortalSounds.endServerShutdown();
+    }
+
+    @SubscribeEvent
+    public static void serverStopping(ServerStoppingEvent event) {
+        PortalSounds.beginServerShutdown();
     }
 
     private static void closeOwned(ServerPlayer player) {

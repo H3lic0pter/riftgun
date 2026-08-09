@@ -1,0 +1,36 @@
+{
+  "rift_shot": {
+    "subtitle": "subtitles.riftgun.rift_shot",
+    "sounds": [
+      "riftgun:portal/shot"
+    ]
+  },
+  "rift_portal_open": {
+    "subtitle": "subtitles.riftgun.portal_open",
+    "sounds": [
+      "riftgun:portal/open1"
+    ]
+  },
+  "rift_portal_close": {
+    "subtitle": "subtitles.riftgun.portal_close",
+    "sounds": [
+      "riftgun:portal/close1",
+      "riftgun:portal/close2"
+    ]
+  },
+  "rift_transit": {
+    "subtitle": "subtitles.riftgun.portal_transit",
+    "sounds": [
+      "riftgun:portal/through"
+    ]
+  },
+  "ender_transit": {
+    "subtitle": "subtitles.riftgun.portal_transit",
+    "sounds": [
+      {
+        "name": "minecraft:entity.enderman.teleport",
+        "type": "event"
+      }
+    ]
+  }
+}

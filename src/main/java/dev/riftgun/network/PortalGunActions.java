@@ -13,8 +13,10 @@ import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.service.PortalServices;
+import dev.riftgun.sound.PortalSoundSettings;
 import java.util.Locale;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -26,7 +28,8 @@ final class PortalGunActions {
         PortalPlacementMode next = old.placementMode().next();
         data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(),
-            old.soundsEnabled(), old.sort(), next, old.smartDistance(), old.predictionMode()));
+            old.soundsEnabled(), old.sort(), next, old.smartDistance(), old.predictionMode(),
+            old.portalSounds()));
         player.displayClientMessage(Component.translatable(
             "message.riftgun.placement_mode", Component.translatable("screen.riftgun.placement_mode."
                 + next.name().toLowerCase(Locale.ROOT))), true);
@@ -50,7 +53,10 @@ final class PortalGunActions {
             sort,
             PortalPlacementMode.parse(request.getString("PlacementMode")),
             data.settings().smartDistance(),
-            PortalPredictionMode.parse(request.getString("MotionPrediction"), PortalPredictionMode.OFF)
+            PortalPredictionMode.parse(request.getString("MotionPrediction"), PortalPredictionMode.OFF),
+            request.contains("PortalSounds", Tag.TAG_COMPOUND)
+                ? PortalSoundSettings.load(request.getCompound("PortalSounds"))
+                : data.settings().portalSounds()
         );
         data.settings(settings);
         PortalServices.MOTION_HISTORY.setPredictionEnabled(player,

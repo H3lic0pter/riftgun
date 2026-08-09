@@ -10,6 +10,7 @@ import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalExclusions;
 import dev.riftgun.portal.PortalRuntimeOptions;
+import dev.riftgun.sound.PortalSoundSnapshot;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PlayerExcludeMode;
@@ -150,7 +151,8 @@ public final class PortalOpenCoordinator {
         PortalRuntimeOptions runtimeOptions = new PortalRuntimeOptions(
             gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(),
             gunCapabilities.aperture(), gunCapabilities.transitCooldownTicks(),
-            gunCapabilities.fallGuard(), ServerConfig.VALUES.horizontalTriggerExtend.get());
+            gunCapabilities.fallGuard(), ServerConfig.VALUES.horizontalTriggerExtend.get(),
+            PortalSoundSnapshot.from(data.settings().portalSounds()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;

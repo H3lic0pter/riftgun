@@ -6,6 +6,8 @@ import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.service.PortalPlacementResult;
 import dev.riftgun.service.PortalServices;
 import dev.riftgun.service.PortalSupportArea;
+import dev.riftgun.sound.PortalSoundSnapshot;
+import dev.riftgun.sound.PortalSounds;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,8 +30,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -85,6 +85,7 @@ public final class PortalEntity extends Entity {
     private boolean fallGuard;
     private double horizontalTriggerExtend;
     private PortalAperture aperture = PortalAperture.STANDARD;
+    private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
     private long lifecycleStartedAt;
     private long closeStartedAt = -1L;
 
@@ -122,7 +123,9 @@ public final class PortalEntity extends Entity {
         }
 
         closeOwnedPortals(server, player.getUUID(), Set.of(entry.getUUID(), exit.getUUID()));
-        playOpeningSounds(entryLevel, pair.entry());
+        PortalSounds.playShot(player, entry.sounds);
+        playOpeningSounds(entryLevel, pair.entry(), entry.sounds);
+        playOpeningSounds(exitLevel, pair.exit(), exit.sounds);
         return true;
     }
 
@@ -146,7 +149,8 @@ public final class PortalEntity extends Entity {
         }
 
         closeOwnedPortals(server, player.getUUID(), Set.of(entry.getUUID()));
-        playOpeningSounds(entryLevel, placement);
+        PortalSounds.playShot(player, entry.sounds);
+        playOpeningSounds(entryLevel, placement, entry.sounds);
         return true;
     }
 
@@ -155,11 +159,9 @@ public final class PortalEntity extends Entity {
         else portal.releaseChunkTicket();
     }
 
-    private static void playOpeningSounds(ServerLevel level, PortalPlacement placement) {
-        level.playSound(null, placement.center().x, placement.center().y, placement.center().z,
-            SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.7F, 1.15F);
-        level.playSound(null, placement.center().x, placement.center().y, placement.center().z,
-            SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.25F, 1.55F);
+    private static void playOpeningSounds(ServerLevel level, PortalPlacement placement,
+                                          PortalSoundSnapshot sounds) {
+        PortalSounds.playOpening(level, placement.center(), sounds);
     }
 
     private static void link(PortalEntity entry, PortalEntity exit) {
@@ -202,6 +204,7 @@ public final class PortalEntity extends Entity {
         portal.exitPortal = exitPortal;
         portal.horizontalTriggerExtend = options.horizontalTriggerExtend();
         portal.aperture = options.aperture();
+        portal.sounds = options.sounds();
         portal.lifecycleStartedAt = startedAt;
         return portal;
     }
@@ -399,6 +402,17 @@ public final class PortalEntity extends Entity {
     }
 
     private @Nullable Entity teleportTree(Entity root, PortalEntity target) {
+        ServerLevel sourceLevel = (ServerLevel) level();
+        Vec3 sourcePosition = root.position();
+        Entity movedRoot = teleportTreeContents(root, target);
+        if (movedRoot != null) {
+            PortalSounds.playTransit(sourceLevel, sourcePosition, sounds);
+            PortalSounds.playTransit((ServerLevel) target.level(), movedRoot.position(), sounds);
+        }
+        return movedRoot;
+    }
+
+    private @Nullable Entity teleportTreeContents(Entity root, PortalEntity target) {
         var passengers = new ArrayList<>(root.getPassengers());
         root.ejectPassengers();
         Entity movedRoot = teleportSingle(root, target);
@@ -413,11 +427,9 @@ public final class PortalEntity extends Entity {
         transitGate.markInside(movedRoot.getUUID(), now, transitCooldownTicks);
         target.transitGate.markInside(movedRoot.getUUID(), now, transitCooldownTicks);
         for (Entity passenger : passengers) {
-            Entity movedPassenger = teleportTree(passenger, target);
+            Entity movedPassenger = teleportTreeContents(passenger, target);
             if (movedPassenger != null) movedPassenger.startRiding(movedRoot, true);
         }
-        target.level().playSound(null, target.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
-            SoundSource.PLAYERS, 0.6F, 1.4F);
         return movedRoot;
     }
 
@@ -481,6 +493,8 @@ public final class PortalEntity extends Entity {
             return;
         }
 
+        ServerLevel sourceLevel = (ServerLevel) level();
+        Vec3 sourcePosition = root.position();
         List<Entity> movedEntities = new ArrayList<>();
         Entity movedRoot = teleportBootstrapTree(root, targetLevel, target, movedEntities);
         if (movedRoot == null) {
@@ -492,8 +506,8 @@ public final class PortalEntity extends Entity {
 
         PortalEntity exit = createDeferredExit(targetLevel, target, movedEntities);
         if (exit == null) warnExitGenerationFailure(targetLevel.getServer(), movedEntities);
-        targetLevel.playSound(null, movedRoot.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
-            SoundSource.PLAYERS, 0.6F, 1.4F);
+        PortalSounds.playTransit(sourceLevel, sourcePosition, sounds);
+        PortalSounds.playTransit(targetLevel, movedRoot.position(), sounds);
         creatingDeferredExit = false;
     }
 
@@ -558,13 +572,13 @@ public final class PortalEntity extends Entity {
             transitGate.markInside(moved.getUUID(), serverTime(), transitCooldownTicks);
             exit.transitGate.markInside(moved.getUUID(), serverTime(), transitCooldownTicks);
         }
-        playOpeningSounds(targetLevel, result.pair().exit());
+        playOpeningSounds(targetLevel, result.pair().exit(), exit.sounds);
         return exit;
     }
 
     private PortalRuntimeOptions runtimeOptions() {
         return new PortalRuntimeOptions(entityAccess, openDurationTicks, aperture,
-            transitCooldownTicks, fallGuard, horizontalTriggerExtend);
+            transitCooldownTicks, fallGuard, horizontalTriggerExtend, sounds);
     }
 
     private void warnExitGenerationFailure(MinecraftServer server, List<Entity> movedEntities) {
@@ -616,6 +630,9 @@ public final class PortalEntity extends Entity {
         closeStartedAt = serverTime();
         entityData.set(PHASE, PortalLifecycle.Phase.CLOSING.ordinal());
         entityData.set(PHASE_TICKS, 0);
+        if (level() instanceof ServerLevel serverLevel) {
+            PortalSounds.playClosing(serverLevel, position(), sounds);
+        }
         if (!closingPair) {
             closingPair = true;
             PortalEntity linked = linkedPortal();
@@ -709,6 +726,9 @@ public final class PortalEntity extends Entity {
         fallGuard = tag.getBoolean("FallGuard");
         aperture = tag.contains("Aperture")
             ? PortalAperture.byOrdinal(tag.getInt("Aperture")) : PortalAperture.STANDARD;
+        sounds = tag.contains("PortalSounds")
+            ? PortalSoundSnapshot.load(tag.getCompound("PortalSounds"))
+            : PortalSoundSnapshot.defaults();
     }
 
     @Override
@@ -738,6 +758,7 @@ public final class PortalEntity extends Entity {
         tag.putInt("TransitCooldownTicks", transitCooldownTicks);
         tag.putBoolean("FallGuard", fallGuard);
         tag.putInt("Aperture", aperture.ordinal());
+        tag.put("PortalSounds", sounds.save());
     }
 
     @Override
