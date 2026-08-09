@@ -3,12 +3,14 @@ package dev.riftgun;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.PortalServices;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID)
@@ -60,6 +62,12 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void serverTick(ServerTickEvent.Post event) {
         PortalServices.MOTION_HISTORY.tick(event.getServer());
+        PortalPrivacyService.tick(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void serverStopped(ServerStoppedEvent event) {
+        PortalPrivacyService.reset();
     }
 
     private static void closeOwned(ServerPlayer player) {

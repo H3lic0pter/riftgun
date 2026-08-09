@@ -35,6 +35,8 @@ public final class ServerConfig {
         public final ModConfigSpec.DoubleValue horizontalTriggerExtend;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultTargetPrivacy;
         public final ModConfigSpec.IntValue privacyRequestTimeoutSeconds;
+        public final ModConfigSpec.IntValue privacyGrantTimeoutSeconds;
+        public final ModConfigSpec.IntValue privacyDenyOnceCooldownSeconds;
         public final ModConfigSpec.DoubleValue frontProjectionFactor;
         public final ModConfigSpec.DoubleValue downshotProjectionFactor;
 
@@ -84,8 +86,15 @@ public final class ServerConfig {
                         + "PUBLIC, REQUEST, or PRIVATE.")
                 .defineEnum("defaultTargetPrivacy", dev.riftgun.data.TargetPrivacy.PUBLIC);
             privacyRequestTimeoutSeconds = builder.comment(
-                    "How long a privacy request stays valid before the requester must ask again, in seconds.")
-                .defineInRange("privacyRequestTimeoutSeconds", 30, 10, 300);
+                    "How long a Player Portal request waits for a response, in seconds.")
+                .defineInRange("privacyRequestTimeoutSeconds", 30, 5, 300);
+            privacyGrantTimeoutSeconds = builder.comment(
+                    "How long an Allow Once grant waits for a successful portal opening, in seconds.")
+                .defineInRange("privacyGrantTimeoutSeconds", 60, 5, 600);
+            privacyDenyOnceCooldownSeconds = builder.comment(
+                    "How long Deny Once blocks the same requester from asking again, in seconds. "
+                        + "Set to zero to disable the cooldown.")
+                .defineInRange("privacyDenyOnceCooldownSeconds", 10, 0, 300);
             builder.pop();
 
             builder.push("prediction");

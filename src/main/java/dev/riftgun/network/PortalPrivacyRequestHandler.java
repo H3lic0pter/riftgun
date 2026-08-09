@@ -4,6 +4,7 @@ import dev.riftgun.data.PlayerPermissionOverride;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.TargetPrivacy;
+import dev.riftgun.service.PortalPrivacyService;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -13,17 +14,20 @@ final class PortalPrivacyRequestHandler {
         PortalPlayerData data = PortalDataStore.load(player);
         switch (action) {
             case SET_PRIVACY -> {
-                data.targetPrivacy(TargetPrivacy.parse(request.getString("Privacy"), TargetPrivacy.PUBLIC));
+                TargetPrivacy targetPrivacy = TargetPrivacy.parse(
+                    request.getString("Privacy"), TargetPrivacy.PUBLIC);
+                boolean privacyChanged = data.targetPrivacy() != targetPrivacy;
+                data.targetPrivacy(targetPrivacy);
                 data.transitPrivacyEnabled(request.getBoolean("TransitPrivacy"));
                 PortalDataStore.save(player, data);
+                if (privacyChanged) PortalPrivacyService.privacyChanged(player);
                 PortalNetworking.sendPrivacyTerminal(player);
             }
             case SET_PRIVACY_OVERRIDE -> {
                 if (!request.hasUUID("Target")) return;
                 PlayerPermissionOverride mode = PlayerPermissionOverride.parse(
                     request.getString("Mode"), PlayerPermissionOverride.DEFAULT);
-                data.privacyOverride(request.getUUID("Target"), mode);
-                PortalDataStore.save(player, data);
+                PortalPrivacyService.applyOverride(player, request.getUUID("Target"), mode);
                 PortalNetworking.sendPrivacyTerminal(player);
             }
             case REQUEST_PRIVACY_PLAYERS -> PortalNetworking.sendPrivacyPlayers(player);

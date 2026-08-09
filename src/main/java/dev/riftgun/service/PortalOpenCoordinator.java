@@ -60,18 +60,21 @@ public final class PortalOpenCoordinator {
         // Privacy gate. Self-targeting bypasses all privacy rules; transit protection also
         // never applies to the player's own exit doors.
         boolean selfTarget = target.getUUID().equals(player.getUUID());
+        boolean consumeOneShotGrant = false;
         if (!selfTarget) {
             PortalPrivacyService.Access access = PortalPrivacyService.checkPortalAccess(server, target, player);
-            if (access == PortalPrivacyService.Access.DENIED) {
-                failMessage(player, "message.riftgun.player_privacy_denied");
-                return;
-            }
-            if (access == PortalPrivacyService.Access.REQUESTED) {
-                boolean fresh = PortalPrivacyService.promptRequest(server, target, player);
-                failMessage(player, fresh
-                    ? "message.riftgun.player_privacy_request_sent"
-                    : "message.riftgun.player_privacy_request_pending");
-                return;
+            switch (access.outcome()) {
+                case DENIED, DENIED_ONCE, ALWAYS_DENIED -> {
+                    PortalPrivacyService.notifyDenied(player, target, access);
+                    return;
+                }
+                case REQUESTED -> {
+                    PortalPrivacyService.promptRequest(server, target, player);
+                    return;
+                }
+                case GRANTED_ONCE -> consumeOneShotGrant = true;
+                case ALLOWED -> {
+                }
             }
         }
 
@@ -88,6 +91,9 @@ public final class PortalOpenCoordinator {
             ? targetPlayerId
             : excludeMode != PlayerExcludeMode.OFF ? targetPlayerId : null;
         if (open(player, data, destination, mode, locatedGun, entryExclude, exitExclude, false, fromGui)) {
+            if (consumeOneShotGrant) {
+                PortalPrivacyService.consumeGrant(server, target.getUUID(), player.getUUID());
+            }
             data.recordPlayerUse(targetPlayerId, time);
             PortalDataStore.save(player, data);
             PortalNetworking.sendSnapshot(player, false, locatedGun);
