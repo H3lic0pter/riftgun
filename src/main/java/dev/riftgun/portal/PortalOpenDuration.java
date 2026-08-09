@@ -14,6 +14,16 @@ public final class PortalOpenDuration {
         return Math.clamp(desiredSeconds, MINIMUM_SECONDS, maximum);
     }
 
+    /** Applies the installed-module policy to an untrusted duration request. */
+    public static int authorizedSeconds(int requestedSeconds, int maximumSeconds,
+                                        boolean eternalInstalled) {
+        if (requestedSeconds > MAXIMUM_CONFIGURABLE_SECONDS) {
+            if (eternalInstalled) return ETERNAL_SECONDS;
+            return effectiveSeconds(MAXIMUM_CONFIGURABLE_SECONDS, maximumSeconds);
+        }
+        return effectiveSeconds(requestedSeconds, maximumSeconds);
+    }
+
     /** Tick count; eternal durations saturate to the int max so the close policy never fires. */
     public static int ticks(int seconds) {
         if (seconds >= ETERNAL_SECONDS) return Integer.MAX_VALUE;

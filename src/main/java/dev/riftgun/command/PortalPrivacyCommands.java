@@ -44,7 +44,10 @@ public final class PortalPrivacyCommands {
             return 0;
         }
         if (mode == null) {
-            PortalPrivacyService.allowOnce(source.getServer(), requesterId);
+            if (!PortalPrivacyService.allowOnce(source.getServer(), target.getUUID(), requesterId)) {
+                source.sendFailure(Component.translatable("message.riftgun.privacy_respond_denied"));
+                return 0;
+            }
             target.displayClientMessage(Component.translatable("message.riftgun.privacy_allow_once_granted"), true);
         } else {
             PortalPrivacyService.applyOverride(target, requesterId, mode);

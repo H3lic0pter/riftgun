@@ -6,6 +6,7 @@ import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.fuel.PortalGunSnapshot;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
+import dev.riftgun.data.DestinationSort;
 import dev.riftgun.module.PortalModuleRules;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -85,9 +86,12 @@ public final class PortalNetworking {
         PortalPlayerData data = PortalDataStore.load(player);
         ListTag entries = new ListTag();
         List<ServerPlayer> online = new ArrayList<>(server.getPlayerList().getPlayers());
-        online.sort(Comparator.comparing(value -> value.getGameProfile().getName()));
+        online.removeIf(candidate -> !dev.riftgun.service.PortalPrivacyService
+            .isVisibleTo(server, player, candidate));
+        online.sort(Comparator.comparing((ServerPlayer candidate) -> data.isPlayerPinned(candidate.getUUID()))
+            .reversed().thenComparing(playerComparator(player, data)));
+        int order = 0;
         for (ServerPlayer candidate : online) {
-            if (!dev.riftgun.service.PortalPrivacyService.isVisibleTo(server, player, candidate)) continue;
             CompoundTag entry = new CompoundTag();
             entry.putUUID("Id", candidate.getUUID());
             entry.putString("Name", candidate.getGameProfile().getName());
@@ -95,14 +99,35 @@ public final class PortalNetworking {
             entry.putBoolean("Pinned", data.isPlayerPinned(candidate.getUUID()));
             entry.putLong("LastUse", data.playerLastUseAt(candidate.getUUID()));
             entry.putBoolean("Self", candidate.getUUID().equals(player.getUUID()));
-            entry.putDouble("X", candidate.getX());
-            entry.putDouble("Z", candidate.getZ());
+            entry.putInt("Order", order++);
             entries.add(entry);
         }
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "PlayerList");
         envelope.put("Players", entries);
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    private static Comparator<ServerPlayer> playerComparator(ServerPlayer viewer, PortalPlayerData data) {
+        Comparator<ServerPlayer> byName = Comparator.comparing(
+            candidate -> candidate.getGameProfile().getName(), String.CASE_INSENSITIVE_ORDER);
+        DestinationSort sort = data.settings().sort();
+        return switch (sort) {
+            case NAME, CREATED -> byName;
+            case RECENT -> Comparator.comparingLong(
+                    (ServerPlayer candidate) -> data.playerLastUseAt(candidate.getUUID()))
+                .reversed().thenComparing(byName);
+            case DISTANCE -> Comparator.comparingDouble(
+                    (ServerPlayer candidate) -> playerDistanceSquared(viewer, candidate))
+                .thenComparing(byName);
+        };
+    }
+
+    private static double playerDistanceSquared(ServerPlayer viewer, ServerPlayer candidate) {
+        if (!viewer.level().dimension().equals(candidate.level().dimension())) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return viewer.distanceToSqr(candidate);
     }
 
     /** Opens or refreshes the Privacy Terminal screen with the viewer's privacy data and full roster. */

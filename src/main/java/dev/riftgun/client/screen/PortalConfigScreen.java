@@ -35,7 +35,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalConfigScreen extends Screen {
@@ -1619,30 +1618,9 @@ public final class PortalConfigScreen extends Screen {
             .filter(entry -> normalizedQuery.isEmpty()
                 || entry.name().toLowerCase(Locale.ROOT).contains(normalizedQuery))
             .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-        DestinationSort sort = data.settings().sort();
         list.sort(Comparator.comparing(PlayerListState.PlayerEntry::pinned).reversed()
-            .thenComparing(playerComparator(sort)));
+            .thenComparingInt(PlayerListState.PlayerEntry::serverOrder));
         return list;
-    }
-
-    private Comparator<PlayerListState.PlayerEntry> playerComparator(DestinationSort sort) {
-        return switch (sort) {
-            case NAME -> Comparator.comparing(entry -> entry.name().toLowerCase(Locale.ROOT));
-            case CREATED -> Comparator.comparing(entry -> entry.name().toLowerCase(Locale.ROOT));
-            case DISTANCE -> Comparator.comparingDouble(this::playerDistanceSquared)
-                .thenComparing(entry -> entry.name().toLowerCase(Locale.ROOT));
-            case RECENT -> Comparator.comparingLong(PlayerListState.PlayerEntry::lastUse).reversed()
-                .thenComparing(entry -> entry.name().toLowerCase(Locale.ROOT));
-        };
-    }
-
-    private double playerDistanceSquared(PlayerListState.PlayerEntry entry) {
-        if (minecraft == null || minecraft.player == null) return Double.POSITIVE_INFINITY;
-        if (entry.x() == null || entry.z() == null) return Double.POSITIVE_INFINITY;
-        if (!entry.dimension().equals(minecraft.player.level().dimension().location().toString())) {
-            return Double.POSITIVE_INFINITY;
-        }
-        return minecraft.player.position().distanceToSqr(new Vec3(entry.x(), minecraft.player.getY(), entry.z()));
     }
 
     private boolean playerSectionVisible() {

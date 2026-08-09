@@ -12,12 +12,14 @@ final class PortalTransitGate {
     private final Map<UUID, Long> lastTransit = new HashMap<>();
 
     boolean enter(UUID entityId, long now, int cooldownTicks) {
+        if (occupants.contains(entityId)) return false;
         if (cooldownTicks > 0) {
             Long last = lastTransit.get(entityId);
             if (last != null && now - last < cooldownTicks) return false;
-            lastTransit.put(entityId, now);
         }
-        return occupants.add(entityId);
+        occupants.add(entityId);
+        if (cooldownTicks > 0) lastTransit.put(entityId, now);
+        return true;
     }
 
     void markInside(UUID entityId, long now, int cooldownTicks) {
@@ -29,11 +31,20 @@ final class PortalTransitGate {
         occupants.remove(entityId);
     }
 
-    void retainInside(Collection<UUID> entityIds) {
+    void retainInside(Collection<UUID> entityIds, long now, int cooldownTicks) {
         occupants.retainAll(entityIds);
+        if (cooldownTicks <= 0) {
+            lastTransit.clear();
+            return;
+        }
+        lastTransit.entrySet().removeIf(entry -> now - entry.getValue() >= cooldownTicks);
     }
 
     boolean contains(UUID entityId) {
         return occupants.contains(entityId);
+    }
+
+    int rememberedTransitCount() {
+        return lastTransit.size();
     }
 }

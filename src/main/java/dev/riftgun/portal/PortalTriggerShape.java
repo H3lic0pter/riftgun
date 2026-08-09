@@ -1,6 +1,5 @@
 package dev.riftgun.portal;
 
-import dev.riftgun.config.ServerConfig;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -10,6 +9,11 @@ public final class PortalTriggerShape {
     public static final double HORIZONTAL_EDGE_INSET = 0.12;
 
     public static boolean intersects(PortalPlacement placement, AABB entityBounds) {
+        return intersects(placement, entityBounds, 0.0);
+    }
+
+    public static boolean intersects(PortalPlacement placement, AABB entityBounds,
+                                     double horizontalTriggerExtend) {
         Vec3 entityCenter = entityBounds.getCenter();
         Vec3 delta = entityCenter.subtract(placement.center());
         Vec3 right = placement.right();
@@ -23,7 +27,7 @@ public final class PortalTriggerShape {
         // their feet touch the ground, so fall damage is resolved at the exit. Server-configurable.
         double normalHalfDepth = placement.orientation() == PortalOrientation.VERTICAL
             ? VERTICAL_DEPTH * 0.5
-            : HORIZONTAL_HEIGHT * 0.5 + ServerConfig.VALUES.horizontalTriggerExtend.get();
+            : HORIZONTAL_HEIGHT * 0.5 + Math.max(0.0, horizontalTriggerExtend);
 
         boolean withinNormal = Math.abs(delta.dot(normal)) <= normalHalfDepth + entityNormalRadius;
         if (placement.orientation() != PortalOrientation.VERTICAL) {

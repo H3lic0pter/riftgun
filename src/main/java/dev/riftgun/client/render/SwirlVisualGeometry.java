@@ -36,8 +36,7 @@ final class SwirlVisualGeometry {
             return HORIZONTAL_VISIBLE_SIZE;
         }
         if (geometry == PortalGeometry.SURFACE_EXPANDED) {
-            // Match the horizontal 2x2 coverage so side and top/bottom portals look identical.
-            return HORIZONTAL_VISIBLE_SIZE;
+            return SURFACE_VISIBLE_SCALE;
         }
         if (geometry == PortalGeometry.SURFACE_VERTICAL) {
             return SURFACE_VISIBLE_SCALE;

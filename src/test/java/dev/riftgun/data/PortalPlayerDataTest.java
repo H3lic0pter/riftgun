@@ -38,9 +38,9 @@ final class PortalPlayerDataTest {
 
     @Test
     void settingsRoundTripAndOldDataKeepsConfirmationDefaults() {
-        assertFalse(PortalPlayerSettings.defaults().motionPredictionEnabled());
+        assertEquals(PortalPredictionMode.OFF, PortalPlayerSettings.defaults().predictionMode());
         PortalPlayerSettings configured = new PortalPlayerSettings(false, false, false, false, true, false,
-            DestinationSort.NAME, PortalPlacementMode.SURFACE, 14, false);
+            DestinationSort.NAME, PortalPlacementMode.SURFACE, 14, PortalPredictionMode.PROJECTION);
         PortalPlayerSettings restored = PortalPlayerSettings.load(configured.save());
         assertFalse(restored.safetyCheckEnabled());
         assertFalse(restored.confirmDeletion());
@@ -50,7 +50,7 @@ final class PortalPlayerDataTest {
         assertEquals(DestinationSort.NAME, restored.sort());
         assertEquals(PortalPlacementMode.SURFACE, restored.placementMode());
         assertEquals(14, restored.smartDistance());
-        assertFalse(restored.motionPredictionEnabled());
+        assertEquals(PortalPredictionMode.PROJECTION, restored.predictionMode());
 
         CompoundTag legacy = new CompoundTag();
         legacy.putBoolean("SafetyCheck", false);
@@ -60,7 +60,17 @@ final class PortalPlayerDataTest {
         assertTrue(migrated.confirmClearFluid());
         assertEquals(PortalPlacementMode.SMART, migrated.placementMode());
         assertEquals(PortalPlayerSettings.DEFAULT_SMART_DISTANCE, migrated.smartDistance());
-        assertFalse(migrated.motionPredictionEnabled());
+        assertEquals(PortalPredictionMode.OFF, migrated.predictionMode());
+    }
+
+    @Test
+    void configuredPrivacyDefaultOnlyAppliesWhenNoValueWasSaved() {
+        PortalPlayerData fresh = PortalPlayerData.load(new CompoundTag(), TargetPrivacy.REQUEST);
+        assertEquals(TargetPrivacy.REQUEST, fresh.targetPrivacy());
+
+        fresh.targetPrivacy(TargetPrivacy.PRIVATE);
+        PortalPlayerData restored = PortalPlayerData.load(fresh.save(), TargetPrivacy.PUBLIC);
+        assertEquals(TargetPrivacy.PRIVATE, restored.targetPrivacy());
     }
 
     @Test

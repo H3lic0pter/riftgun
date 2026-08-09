@@ -4,9 +4,8 @@ import dev.riftgun.data.PlayerPermissionOverride;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.TargetPrivacy;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
+import dev.riftgun.config.ServerConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
@@ -21,10 +20,8 @@ import net.minecraft.server.level.ServerPlayer;
  * expire after a short window.
  */
 public final class PortalPrivacyService {
-    private static final long ONE_ALLOW_TICKS = 30L * 20L;
-    private static final Map<UUID, Long> oneAllowUntil = new HashMap<>();
-    /** Tracks when the target was last prompted for a given requester to avoid spam on repeated clicks. */
-    private static final Map<UUID, Map<UUID, Long>> promptUntilByTarget = new HashMap<>();
+    private static final int TICKS_PER_SECOND = 20;
+    private static final PortalPrivacyLedger LEDGER = new PortalPrivacyLedger();
 
     /** True when {@code requester} may open a Player Target portal next to {@code target} right now. */
     public static Access checkPortalAccess(MinecraftServer server, ServerPlayer target, ServerPlayer requester) {
@@ -35,14 +32,14 @@ public final class PortalPrivacyService {
         return switch (targetData.targetPrivacy()) {
             case PUBLIC -> Access.ALLOWED;
             case PRIVATE -> Access.DENIED;
-            case REQUEST -> consumeOneAllow(server, requester.getUUID()) ? Access.ALLOWED : Access.REQUESTED;
+            case REQUEST -> LEDGER.consume(target.getUUID(), requester.getUUID(), gameTime(server))
+                ? Access.ALLOWED : Access.REQUESTED;
         };
     }
 
-    /** Registers an in-flight one-shot allowance; true means the requester may proceed. */
-    public static boolean allowOnce(MinecraftServer server, UUID requesterId) {
-        oneAllowUntil.put(requesterId, gameTime(server) + ONE_ALLOW_TICKS);
-        return true;
+    /** Grants a matching, still-pending request once. */
+    public static boolean allowOnce(MinecraftServer server, UUID targetId, UUID requesterId) {
+        return LEDGER.allowOnce(targetId, requesterId, gameTime(server), requestTtlTicks());
     }
 
     /**
@@ -51,11 +48,9 @@ public final class PortalPrivacyService {
      */
     public static boolean promptRequest(MinecraftServer server, ServerPlayer target,
                                         ServerPlayer requester) {
-        long now = gameTime(server);
-        Map<UUID, Long> prompted = promptUntilByTarget.computeIfAbsent(target.getUUID(), ignored -> new HashMap<>());
-        Long until = prompted.get(requester.getUUID());
-        if (until != null && now <= until) return false;
-        prompted.put(requester.getUUID(), now + ONE_ALLOW_TICKS);
+        if (!LEDGER.prompt(target.getUUID(), requester.getUUID(), gameTime(server), requestTtlTicks())) {
+            return false;
+        }
         sendRequestPrompt(target, requester);
         return true;
     }
@@ -86,7 +81,7 @@ public final class PortalPrivacyService {
         PlayerPermissionOverride override = targetData.privacyOverride(viewer.getUUID());
         if (override == PlayerPermissionOverride.ALLOW) return true;
         if (override == PlayerPermissionOverride.DENY) return false;
-        return targetData.targetPrivacy() == TargetPrivacy.PUBLIC;
+        return targetData.targetPrivacy() != TargetPrivacy.PRIVATE;
     }
 
     private static void sendRequestPrompt(ServerPlayer target, ServerPlayer requester) {
@@ -112,22 +107,11 @@ public final class PortalPrivacyService {
     }
 
     private static void clearPrompt(ServerPlayer target, UUID requesterId) {
-        Map<UUID, Long> prompted = promptUntilByTarget.get(target.getUUID());
-        if (prompted != null) {
-            prompted.remove(requesterId);
-            if (prompted.isEmpty()) promptUntilByTarget.remove(target.getUUID());
-        }
+        LEDGER.clearPrompt(target.getUUID(), requesterId);
     }
 
-    private static boolean consumeOneAllow(MinecraftServer server, UUID requesterId) {
-        Long until = oneAllowUntil.get(requesterId);
-        if (until == null) return false;
-        if (gameTime(server) > until) {
-            oneAllowUntil.remove(requesterId);
-            return false;
-        }
-        oneAllowUntil.remove(requesterId);
-        return true;
+    private static long requestTtlTicks() {
+        return (long) ServerConfig.VALUES.privacyRequestTimeoutSeconds.get() * TICKS_PER_SECOND;
     }
 
     private static long gameTime(MinecraftServer server) {

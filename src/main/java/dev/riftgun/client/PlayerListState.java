@@ -28,8 +28,7 @@ public final class PlayerListState {
                 tag.getBoolean("Pinned"),
                 tag.getLong("LastUse"),
                 tag.getBoolean("Self"),
-                tag.contains("X") ? tag.getDouble("X") : null,
-                tag.contains("Z") ? tag.getDouble("Z") : null
+                tag.getInt("Order")
             );
             players.add(entry);
             byId.put(entry.id(), entry);
@@ -57,9 +56,9 @@ public final class PlayerListState {
 
     public record PlayerEntry(UUID id, String name, String dimension,
                               boolean pinned, long lastUse, boolean self,
-                              Double x, Double z) {
+                              int serverOrder) {
         public PlayerEntry withPinned(boolean nextPinned) {
-            return new PlayerEntry(id, name, dimension, nextPinned, lastUse, self, x, z);
+            return new PlayerEntry(id, name, dimension, nextPinned, lastUse, self, serverOrder);
         }
     }
 }

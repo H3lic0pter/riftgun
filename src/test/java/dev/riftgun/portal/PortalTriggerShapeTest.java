@@ -38,6 +38,15 @@ final class PortalTriggerShapeTest {
             new AABB(0.90, 0.05, -0.05, 1.00, 1.85, 0.05)));
     }
 
+    @Test
+    void configuredHorizontalReachIsAnExplicitInput() {
+        PortalPlacement placement = placement(PortalOrientation.TOP, PortalGeometry.HORIZONTAL);
+        AABB fallingPlayer = new AABB(-0.2, 0.5, -0.2, 0.2, 2.3, 0.2);
+
+        assertFalse(PortalTriggerShape.intersects(placement, fallingPlayer, 0.0));
+        assertTrue(PortalTriggerShape.intersects(placement, fallingPlayer, 0.45));
+    }
+
     private static PortalPlacement placement(PortalOrientation orientation, PortalGeometry geometry) {
         return new PortalPlacement(Vec3.ZERO, orientation, geometry, 0.0F, null, null);
     }

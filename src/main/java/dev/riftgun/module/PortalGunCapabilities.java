@@ -16,7 +16,7 @@ public record PortalGunCapabilities(
     int openDurationTicks,
     PortalAperture aperture,
     boolean playerTarget,
-    int playerExcludeMode,
+    PlayerExcludeMode playerExcludeMode,
     int transitCooldownTicks,
     boolean fallGuard
 ) {
@@ -27,11 +27,7 @@ public record PortalGunCapabilities(
         int rangeCount = PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules);
         int maximumRange = rules.maximumSurfaceRangeFor(rangeCount);
         int configuredRange = Mth.clamp(settings.desiredSurfaceRange(), rules.baseSurfaceRange(), maximumRange);
-        boolean eternal = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_ETERNAL, rules) > 0;
-        int extensionCount = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_EXTENSION, rules);
-        int durationCap = eternal ? PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS
-            : rules.maximumPortalDurationSeconds(extensionCount);
-        int durationSeconds = PortalOpenDuration.effectiveSeconds(settings.portalDurationSeconds(), durationCap);
+        int durationSeconds = configuredDurationSeconds(gun, settings.portalDurationSeconds(), rules);
         boolean apertureInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
         boolean playerTargetInstalled = PortalGunModules.activeCount(
@@ -59,5 +55,26 @@ public record PortalGunCapabilities(
             PortalGunModules.activeCount(gun, PortalModuleKind.FALL_GUARD, rules) > 0
                 && settings.fallGuardEnabled()
         );
+    }
+
+    public static int configuredDurationSeconds(ItemStack gun, int requestedSeconds) {
+        return configuredDurationSeconds(gun, requestedSeconds, PortalModuleRules.current());
+    }
+
+    public static int maximumDurationSeconds(ItemStack gun, PortalModuleRules rules) {
+        if (hasEternalDuration(gun, rules)) return PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS;
+        int extensionCount = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_EXTENSION, rules);
+        return rules.maximumPortalDurationSeconds(extensionCount);
+    }
+
+    public static boolean hasEternalDuration(ItemStack gun, PortalModuleRules rules) {
+        return PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_ETERNAL, rules) > 0;
+    }
+
+    private static int configuredDurationSeconds(ItemStack gun, int requestedSeconds,
+                                                 PortalModuleRules rules) {
+        boolean eternalInstalled = hasEternalDuration(gun, rules);
+        return PortalOpenDuration.authorizedSeconds(requestedSeconds,
+            maximumDurationSeconds(gun, rules), eternalInstalled);
     }
 }

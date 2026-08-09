@@ -1,6 +1,7 @@
 package dev.riftgun.data;
 
 import dev.riftgun.RiftGun;
+import dev.riftgun.config.ServerConfig;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -10,7 +11,8 @@ public final class PortalDataStore {
 
     public static PortalPlayerData load(Player player) {
         CompoundTag persistent = player.getPersistentData();
-        return PortalPlayerData.load(persistent.getCompound(ROOT_KEY));
+        return PortalPlayerData.load(persistent.getCompound(ROOT_KEY),
+            ServerConfig.VALUES.defaultTargetPrivacy.get());
     }
 
     public static void save(Player player, PortalPlayerData data) {

@@ -31,11 +31,13 @@ final class PortalGunModuleSettingsTest {
     @Test
     void clampsPersistedDistancesToPositiveValues() {
         PortalGunModuleSettings settings = new PortalGunModuleSettings(
-            -4, 0, true, true, true, 0, true);
+            -4, 0, true, true, true, 0, true, true,
+            PlayerExcludeMode.ENTRY_AND_EXIT, -1, true);
 
         assertEquals(1, settings.smartDistance());
         assertEquals(1, settings.desiredSurfaceRange());
         assertEquals(1, settings.portalDurationSeconds());
+        assertEquals(0, settings.transitCooldownTenths());
     }
 
     @Test
@@ -55,5 +57,14 @@ final class PortalGunModuleSettingsTest {
 
         assertEquals(3, settings.portalDurationSeconds());
         assertTrue(settings.expandedApertureEnabled());
+        assertEquals(PlayerExcludeMode.ENTRY_AND_EXIT, settings.playerExcludeMode());
+    }
+
+    @Test
+    void playerExcludeModeCyclesWithoutMagicNumbers() {
+        assertEquals(PlayerExcludeMode.EXIT_ONLY, PlayerExcludeMode.ENTRY_AND_EXIT.step(1));
+        assertEquals(PlayerExcludeMode.OFF, PlayerExcludeMode.EXIT_ONLY.step(1));
+        assertEquals(PlayerExcludeMode.EXIT_ONLY, PlayerExcludeMode.OFF.step(-1));
+        assertEquals(PlayerExcludeMode.ENTRY_AND_EXIT, PlayerExcludeMode.byId(99));
     }
 }

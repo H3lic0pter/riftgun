@@ -1,0 +1,21 @@
+package dev.riftgun.portal;
+
+import dev.riftgun.module.PortalEntityAccessSnapshot;
+
+/** Immutable behavior snapshot shared by both ends of one portal pair. */
+public record PortalRuntimeOptions(
+    PortalEntityAccessSnapshot entityAccess,
+    int openDurationTicks,
+    PortalAperture aperture,
+    int transitCooldownTicks,
+    boolean fallGuard,
+    double horizontalTriggerExtend
+) {
+    public PortalRuntimeOptions {
+        if (entityAccess == null) entityAccess = PortalEntityAccessSnapshot.NONE;
+        openDurationTicks = Math.max(1, openDurationTicks);
+        if (aperture == null) aperture = PortalAperture.STANDARD;
+        transitCooldownTicks = Math.max(0, transitCooldownTicks);
+        horizontalTriggerExtend = Math.max(0.0, horizontalTriggerExtend);
+    }
+}

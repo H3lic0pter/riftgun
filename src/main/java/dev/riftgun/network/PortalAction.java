@@ -30,5 +30,12 @@ public enum PortalAction {
     CLOSE_PORTALS,
     SET_PRIVACY,
     SET_PRIVACY_OVERRIDE,
-    REQUEST_PRIVACY_PLAYERS
+    REQUEST_PRIVACY_PLAYERS;
+
+    public boolean requiresPortalGun() {
+        return switch (this) {
+            case SET_PRIVACY, SET_PRIVACY_OVERRIDE, REQUEST_PRIVACY_PLAYERS -> false;
+            default -> true;
+        };
+    }
 }

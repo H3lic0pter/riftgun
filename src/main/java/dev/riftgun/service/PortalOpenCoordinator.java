@@ -8,8 +8,12 @@ import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalExitTarget;
+import dev.riftgun.portal.PortalExclusions;
+import dev.riftgun.portal.PortalRuntimeOptions;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
+import dev.riftgun.module.PlayerExcludeMode;
+import dev.riftgun.config.ServerConfig;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -76,13 +80,13 @@ public final class PortalOpenCoordinator {
             UUID.randomUUID(), target.getGameProfile().getName(), PortalPlayerData.DEFAULT_GROUP_ID,
             target.level().dimension(), target.getX(), target.getY(), target.getZ(),
             target.getYRot(), time, 0L, false);
-        int excludeMode = capabilities.playerExcludeMode();
-        UUID entryExclude = excludeMode == PortalGunModuleSettings.PLAYER_EXCLUDE_ENTRY_AND_EXIT
+        PlayerExcludeMode excludeMode = capabilities.playerExcludeMode();
+        UUID entryExclude = excludeMode == PlayerExcludeMode.ENTRY_AND_EXIT
             ? targetPlayerId : null;
         boolean transitProtects = !selfTarget && PortalPrivacyService.transitProtectsTarget(target);
         UUID exitExclude = transitProtects
             ? targetPlayerId
-            : excludeMode != PortalGunModuleSettings.PLAYER_EXCLUDE_OFF ? targetPlayerId : null;
+            : excludeMode != PlayerExcludeMode.OFF ? targetPlayerId : null;
         if (open(player, data, destination, mode, locatedGun, entryExclude, exitExclude, false, fromGui)) {
             data.recordPlayerUse(targetPlayerId, time);
             PortalDataStore.save(player, data);
@@ -112,7 +116,9 @@ public final class PortalOpenCoordinator {
             locatedGun.stack(), data.settings().smartDistance());
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
-            data.settings().predictionMode(), gunCapabilities.aperture());
+            data.settings().predictionMode(), gunCapabilities.aperture(),
+            ServerConfig.VALUES.frontProjectionFactor.get(),
+            ServerConfig.VALUES.downshotProjectionFactor.get());
         PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(player, mode, constraints);
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());
@@ -135,13 +141,17 @@ public final class PortalOpenCoordinator {
         boolean crossDimension = !player.level().dimension().equals(destination.dimension());
         BlockPos targetPosition = BlockPos.containing(destination.position());
         boolean targetTicksEntities = targetLevel.isPositionEntityTicking(targetPosition);
+        PortalRuntimeOptions runtimeOptions = new PortalRuntimeOptions(
+            gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(),
+            gunCapabilities.aperture(), gunCapabilities.transitCooldownTicks(),
+            gunCapabilities.fallGuard(), ServerConfig.VALUES.horizontalTriggerExtend.get());
+        PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;
         if (PortalOpenRoute.decide(crossDimension, targetTicksEntities) == PortalOpenRoute.DEFERRED_EXIT) {
             opened = PortalEntity.openDeferredExit(
                 player, entry.placement(), fuelPlan.use().profile(), PortalExitTarget.from(destination),
-                gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(), gunCapabilities.fallGuard(),
+                runtimeOptions, exclusions,
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         } else {
             Destination resolved = destination;
@@ -162,8 +172,7 @@ public final class PortalOpenCoordinator {
                 return false;
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),
-                gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(), gunCapabilities.aperture(),
-                entryExclude, exitExclude, gunCapabilities.transitCooldownTicks(), gunCapabilities.fallGuard(),
+                runtimeOptions, exclusions,
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()));
         }
 

@@ -1,6 +1,5 @@
 package dev.riftgun.service;
 
-import dev.riftgun.config.ServerConfig;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.portal.PortalGeometry;
@@ -51,7 +50,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent,
                                                    PortalPlacementConstraints constraints) {
         EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
-            ? front(player, intent.predictionMode(), constraints.aperture())
+            ? front(player, intent.predictionMode(), constraints)
             : revalidateSurface(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
         return entry.placement == null
             ? PortalEntryPlacementResult.failure(entry.errorKey)
@@ -65,7 +64,9 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return PortalPlacementResult.success(new PortalPairPlacement(target.dimension(), entry, exit));
     }
 
-    private EntryResult front(ServerPlayer player, PortalPredictionMode mode, PortalAperture aperture) {
+    private EntryResult front(ServerPlayer player, PortalPredictionMode mode,
+                              PortalPlacementConstraints constraints) {
+        PortalAperture aperture = constraints.aperture();
         boolean downShot = usesDownshot(player.getXRot(),
             PortalServices.PLACEMENT_CAPABILITIES.downshotMinimumPitch(player));
         PortalMotionPredictor.Purpose purpose = downShot
@@ -79,9 +80,9 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         if (mode == PortalPredictionMode.PROJECTION) {
             double extra = downShot
                 ? projectionExtra(player, downshotProjectionAxis(),
-                    ServerConfig.VALUES.downshotProjectionFactor.get())
+                    constraints.downshotProjectionFactor())
                 : projectionExtra(player, frontProjectionAxis(player),
-                    ServerConfig.VALUES.frontProjectionFactor.get());
+                    constraints.frontProjectionFactor());
             frontDistance += extra;
             downshotDistance += extra;
         }

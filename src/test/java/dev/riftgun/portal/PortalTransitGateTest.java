@@ -1,6 +1,7 @@
 package dev.riftgun.portal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
@@ -13,12 +14,12 @@ final class PortalTransitGateTest {
         PortalTransitGate gate = new PortalTransitGate();
         UUID entityId = UUID.randomUUID();
 
-        assertTrue(gate.enter(entityId));
-        gate.retainInside(Set.of(entityId));
-        assertFalse(gate.enter(entityId));
+        assertTrue(gate.enter(entityId, 0L, 20));
+        gate.retainInside(Set.of(entityId), 1L, 20);
+        assertFalse(gate.enter(entityId, 1L, 20));
 
-        gate.retainInside(Set.of());
-        assertTrue(gate.enter(entityId));
+        gate.retainInside(Set.of(), 20L, 20);
+        assertTrue(gate.enter(entityId, 20L, 20));
     }
 
     @Test
@@ -26,10 +27,10 @@ final class PortalTransitGateTest {
         PortalTransitGate exitGate = new PortalTransitGate();
         UUID entityId = UUID.randomUUID();
 
-        exitGate.markInside(entityId);
+        exitGate.markInside(entityId, 5L, 20);
 
         assertTrue(exitGate.contains(entityId));
-        assertFalse(exitGate.enter(entityId));
+        assertFalse(exitGate.enter(entityId, 6L, 20));
     }
 
     @Test
@@ -37,9 +38,20 @@ final class PortalTransitGateTest {
         PortalTransitGate gate = new PortalTransitGate();
         UUID entityId = UUID.randomUUID();
 
-        assertTrue(gate.enter(entityId));
+        assertTrue(gate.enter(entityId, 0L, 0));
         gate.leave(entityId);
 
-        assertTrue(gate.enter(entityId));
+        assertTrue(gate.enter(entityId, 0L, 0));
+    }
+
+    @Test
+    void expiredCooldownEntriesAreRemoved() {
+        PortalTransitGate gate = new PortalTransitGate();
+        UUID entityId = UUID.randomUUID();
+        assertTrue(gate.enter(entityId, 10L, 20));
+        gate.retainInside(Set.of(), 29L, 20);
+        assertEquals(1, gate.rememberedTransitCount());
+        gate.retainInside(Set.of(), 30L, 20);
+        assertEquals(0, gate.rememberedTransitCount());
     }
 }

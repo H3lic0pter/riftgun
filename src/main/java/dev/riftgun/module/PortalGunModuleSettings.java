@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.item.ItemStack;
 import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.portal.PortalOpenDuration;
+import java.util.function.Consumer;
 
 public record PortalGunModuleSettings(
     int smartDistance,
@@ -15,7 +16,7 @@ public record PortalGunModuleSettings(
     int portalDurationSeconds,
     boolean expandedApertureEnabled,
     boolean playerTargetEnabled,
-    int playerExcludeMode,
+    PlayerExcludeMode playerExcludeMode,
     int transitCooldownTenths,
     boolean fallGuardEnabled
 ) {
@@ -23,10 +24,7 @@ public record PortalGunModuleSettings(
     public static final int MINIMUM_TRANSIT_COOLDOWN_TENTHS = 0;
     public static final int MAXIMUM_TRANSIT_COOLDOWN_TENTHS = 50;
     public static final int DEFAULT_TRANSIT_COOLDOWN_TENTHS = 10;
-    public static final int PLAYER_EXCLUDE_OFF = 0;
-    public static final int PLAYER_EXCLUDE_ENTRY_AND_EXIT = 1;
-    public static final int PLAYER_EXCLUDE_EXIT_ONLY = 2;
-    public static final int DEFAULT_PLAYER_EXCLUDE_MODE = PLAYER_EXCLUDE_ENTRY_AND_EXIT;
+    public static final PlayerExcludeMode DEFAULT_PLAYER_EXCLUDE_MODE = PlayerExcludeMode.ENTRY_AND_EXIT;
     public static final Codec<PortalGunModuleSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Codec.INT.optionalFieldOf("smart_distance", DEFAULT_SMART_DISTANCE)
             .forGetter(PortalGunModuleSettings::smartDistance),
@@ -44,7 +42,8 @@ public record PortalGunModuleSettings(
             .forGetter(PortalGunModuleSettings::expandedApertureEnabled),
         Codec.BOOL.optionalFieldOf("player_target_enabled", true)
             .forGetter(PortalGunModuleSettings::playerTargetEnabled),
-        Codec.INT.optionalFieldOf("player_exclude_mode", DEFAULT_PLAYER_EXCLUDE_MODE)
+        Codec.INT.optionalFieldOf("player_exclude_mode", DEFAULT_PLAYER_EXCLUDE_MODE.id())
+            .xmap(PlayerExcludeMode::byId, PlayerExcludeMode::id)
             .forGetter(PortalGunModuleSettings::playerExcludeMode),
         Codec.INT.optionalFieldOf("transit_cooldown_tenths", DEFAULT_TRANSIT_COOLDOWN_TENTHS)
             .forGetter(PortalGunModuleSettings::transitCooldownTenths),
@@ -58,8 +57,7 @@ public record PortalGunModuleSettings(
         portalDurationSeconds = Math.max(PortalOpenDuration.MINIMUM_SECONDS, portalDurationSeconds);
         transitCooldownTenths = Math.clamp(transitCooldownTenths,
             MINIMUM_TRANSIT_COOLDOWN_TENTHS, MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
-        playerExcludeMode = Math.clamp(playerExcludeMode,
-            PLAYER_EXCLUDE_OFF, PLAYER_EXCLUDE_EXIT_ONLY);
+        if (playerExcludeMode == null) playerExcludeMode = DEFAULT_PLAYER_EXCLUDE_MODE;
     }
 
     public static PortalGunModuleSettings defaults(int legacySmartDistance) {
@@ -86,73 +84,84 @@ public record PortalGunModuleSettings(
     }
 
     public PortalGunModuleSettings withSmartDistance(int value) {
-        return new PortalGunModuleSettings(value, desiredSurfaceRange,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, playerExcludeMode,
-            transitCooldownTenths, fallGuardEnabled);
+        return copy(settings -> settings.smartDistance = value);
     }
 
     public PortalGunModuleSettings withDesiredSurfaceRange(int value) {
-        return new PortalGunModuleSettings(smartDistance, value,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, playerExcludeMode,
-            transitCooldownTenths, fallGuardEnabled);
+        return copy(settings -> settings.desiredSurfaceRange = value);
     }
 
     public PortalGunModuleSettings withTransit(PortalModuleKind kind, boolean enabled) {
         return switch (kind) {
-            case PASSIVE_TRANSIT -> new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-                enabled, hostileTransitEnabled, bossTransitEnabled, portalDurationSeconds,
-                expandedApertureEnabled, playerTargetEnabled, playerExcludeMode, transitCooldownTenths, fallGuardEnabled);
-            case HOSTILE_TRANSIT -> new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-                passiveTransitEnabled, enabled, bossTransitEnabled, portalDurationSeconds,
-                expandedApertureEnabled, playerTargetEnabled, playerExcludeMode, transitCooldownTenths, fallGuardEnabled);
-            case BOSS_TRANSIT -> new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-                passiveTransitEnabled, hostileTransitEnabled, enabled, portalDurationSeconds,
-                expandedApertureEnabled, playerTargetEnabled, playerExcludeMode, transitCooldownTenths, fallGuardEnabled);
+            case PASSIVE_TRANSIT -> copy(settings -> settings.passiveTransitEnabled = enabled);
+            case HOSTILE_TRANSIT -> copy(settings -> settings.hostileTransitEnabled = enabled);
+            case BOSS_TRANSIT -> copy(settings -> settings.bossTransitEnabled = enabled);
             default -> this;
         };
     }
 
     public PortalGunModuleSettings withPlayerTargetEnabled(boolean enabled) {
-        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled, enabled, playerExcludeMode,
-            transitCooldownTenths, fallGuardEnabled);
+        return copy(settings -> settings.playerTargetEnabled = enabled);
     }
 
-    public PortalGunModuleSettings withPlayerExcludeMode(int mode) {
-        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, mode,
-            transitCooldownTenths, fallGuardEnabled);
+    public PortalGunModuleSettings withPlayerExcludeMode(PlayerExcludeMode mode) {
+        return copy(settings -> settings.playerExcludeMode = mode);
     }
 
     public PortalGunModuleSettings withFallGuardEnabled(boolean enabled) {
-        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, playerExcludeMode,
-            transitCooldownTenths, enabled);
+        return copy(settings -> settings.fallGuardEnabled = enabled);
     }
 
     public PortalGunModuleSettings withPortalDurationSeconds(int value) {
-        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            value, expandedApertureEnabled, playerTargetEnabled, playerExcludeMode,
-            transitCooldownTenths, fallGuardEnabled);
+        return copy(settings -> settings.portalDurationSeconds = value);
     }
 
     public PortalGunModuleSettings withTransitCooldownTenths(int value) {
-        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled, playerExcludeMode,
-            value, fallGuardEnabled);
+        return copy(settings -> settings.transitCooldownTenths = value);
     }
 
     public PortalGunModuleSettings withExpandedApertureEnabled(boolean enabled) {
-        return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
-            passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
-            portalDurationSeconds, enabled, playerTargetEnabled, playerExcludeMode,
-            transitCooldownTenths, fallGuardEnabled);
+        return copy(settings -> settings.expandedApertureEnabled = enabled);
+    }
+
+    private PortalGunModuleSettings copy(Consumer<MutableSettings> mutation) {
+        MutableSettings settings = new MutableSettings(this);
+        mutation.accept(settings);
+        return settings.build();
+    }
+
+    private static final class MutableSettings {
+        private int smartDistance;
+        private int desiredSurfaceRange;
+        private boolean passiveTransitEnabled;
+        private boolean hostileTransitEnabled;
+        private boolean bossTransitEnabled;
+        private int portalDurationSeconds;
+        private boolean expandedApertureEnabled;
+        private boolean playerTargetEnabled;
+        private PlayerExcludeMode playerExcludeMode;
+        private int transitCooldownTenths;
+        private boolean fallGuardEnabled;
+
+        private MutableSettings(PortalGunModuleSettings source) {
+            smartDistance = source.smartDistance;
+            desiredSurfaceRange = source.desiredSurfaceRange;
+            passiveTransitEnabled = source.passiveTransitEnabled;
+            hostileTransitEnabled = source.hostileTransitEnabled;
+            bossTransitEnabled = source.bossTransitEnabled;
+            portalDurationSeconds = source.portalDurationSeconds;
+            expandedApertureEnabled = source.expandedApertureEnabled;
+            playerTargetEnabled = source.playerTargetEnabled;
+            playerExcludeMode = source.playerExcludeMode;
+            transitCooldownTenths = source.transitCooldownTenths;
+            fallGuardEnabled = source.fallGuardEnabled;
+        }
+
+        private PortalGunModuleSettings build() {
+            return new PortalGunModuleSettings(smartDistance, desiredSurfaceRange,
+                passiveTransitEnabled, hostileTransitEnabled, bossTransitEnabled,
+                portalDurationSeconds, expandedApertureEnabled, playerTargetEnabled,
+                playerExcludeMode, transitCooldownTenths, fallGuardEnabled);
+        }
     }
 }

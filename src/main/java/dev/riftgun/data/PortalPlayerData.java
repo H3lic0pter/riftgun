@@ -245,13 +245,19 @@ public final class PortalPlayerData {
     }
 
     public static PortalPlayerData load(CompoundTag root) {
+        return load(root, TargetPrivacy.PUBLIC);
+    }
+
+    public static PortalPlayerData load(CompoundTag root, TargetPrivacy defaultTargetPrivacy) {
         PortalPlayerData data = new PortalPlayerData();
         data.nextLocationNumber = Math.max(1L, root.getLong("NextLocationNumber"));
         if (root.hasUUID("Selected")) data.selectedDestinationId = root.getUUID("Selected");
         if (root.hasUUID("LastViewed")) data.lastViewedDestinationId = root.getUUID("LastViewed");
         if (root.hasUUID("SelectedPlayer")) data.selectedPlayerId = root.getUUID("SelectedPlayer");
         data.settings = PortalPlayerSettings.load(root.getCompound("Settings"));
-        data.targetPrivacy = TargetPrivacy.parse(root.getString("TargetPrivacy"), TargetPrivacy.PUBLIC);
+        data.targetPrivacy = root.contains("TargetPrivacy", Tag.TAG_STRING)
+            ? TargetPrivacy.parse(root.getString("TargetPrivacy"), defaultTargetPrivacy)
+            : defaultTargetPrivacy;
         data.transitPrivacyEnabled = root.getBoolean("TransitPrivacy");
         if (root.contains("PrivacyOverrides")) {
             ListTag overrides = root.getList("PrivacyOverrides", Tag.TAG_COMPOUND);

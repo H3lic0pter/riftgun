@@ -9,8 +9,6 @@ import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
-import dev.riftgun.config.ServerConfig;
-import dev.riftgun.portal.PortalOpenDuration;
 
 public final class PortalGunSnapshot {
     public static CompoundTag create(ItemStack gun, int legacySmartDistance) {
@@ -32,20 +30,17 @@ public final class PortalGunSnapshot {
         tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());
         tag.putBoolean("HostileTransitEnabled", settings.hostileTransitEnabled());
         tag.putBoolean("BossTransitEnabled", settings.bossTransitEnabled());
-        boolean eternalInstalled = PortalGunModules.activeCount(
-            gun, PortalModuleKind.DURATION_ETERNAL, rules) > 0;
-        int extensionCount = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_EXTENSION, rules);
-        int maximumDuration = eternalInstalled ? PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS
-            : rules.maximumPortalDurationSeconds(extensionCount);
-        tag.putInt("PortalDurationSeconds", PortalOpenDuration.effectiveSeconds(
-            settings.portalDurationSeconds(), maximumDuration));
+        boolean eternalInstalled = PortalGunCapabilities.hasEternalDuration(gun, rules);
+        int maximumDuration = PortalGunCapabilities.maximumDurationSeconds(gun, rules);
+        tag.putInt("PortalDurationSeconds", PortalGunCapabilities.configuredDurationSeconds(
+            gun, settings.portalDurationSeconds()));
         tag.putInt("MaximumPortalDurationSeconds", maximumDuration);
         tag.putBoolean("EternalDurationInstalled", eternalInstalled);
         tag.putBoolean("ExpandedApertureEnabled", settings.expandedApertureEnabled());
         tag.putInt("TransitCooldownTenths", settings.transitCooldownTenths());
         tag.putInt("MaximumTransitCooldownTenths", PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
         tag.putBoolean("PlayerTargetEnabled", capabilities.playerTarget());
-        tag.putInt("PlayerExcludeMode", capabilities.playerExcludeMode());
+        tag.putInt("PlayerExcludeMode", capabilities.playerExcludeMode().id());
         tag.putBoolean("FallGuardInstalled", capabilities.fallGuard());
         tag.putBoolean("FallGuardEnabled", capabilities.fallGuard());
         tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(

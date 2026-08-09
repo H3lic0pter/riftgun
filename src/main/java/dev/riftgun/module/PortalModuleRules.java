@@ -12,7 +12,8 @@ public record PortalModuleRules(
     int surfaceRangeBonus,
     int maximumSurfaceRangeModules,
     int maximumDurationExtensionModules,
-    int durationExtensionSecondsPerModule
+    int durationExtensionSecondsPerModule,
+    int basePortalDurationSeconds
 ) {
     public static final int DEFAULT_BASE_CAPACITY = 8000;
     public static final int DEFAULT_RESERVOIR_BONUS = 8000;
@@ -22,6 +23,7 @@ public record PortalModuleRules(
     public static final int DEFAULT_MAXIMUM_SURFACE_RANGE_MODULES = 3;
     public static final int DEFAULT_MAXIMUM_DURATION_EXTENSION_MODULES = 1;
     public static final int DEFAULT_DURATION_EXTENSION_SECONDS_PER_MODULE = 45;
+    public static final int DEFAULT_BASE_PORTAL_DURATION_SECONDS = 15;
 
     public PortalModuleRules {
         baseCapacity = Math.max(1, baseCapacity);
@@ -32,6 +34,8 @@ public record PortalModuleRules(
         maximumSurfaceRangeModules = Math.max(0, maximumSurfaceRangeModules);
         maximumDurationExtensionModules = Math.max(0, maximumDurationExtensionModules);
         durationExtensionSecondsPerModule = Math.max(1, durationExtensionSecondsPerModule);
+        basePortalDurationSeconds = Math.clamp(basePortalDurationSeconds,
+            PortalOpenDuration.MINIMUM_SECONDS, PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS);
     }
 
     public static PortalModuleRules current() {
@@ -43,7 +47,8 @@ public record PortalModuleRules(
             ServerConfig.VALUES.surfaceRangePerModule.get(),
             ServerConfig.VALUES.maxSurfaceRangeModules.get(),
             ServerConfig.VALUES.maxDurationExtensionModules.get(),
-            ServerConfig.VALUES.durationExtensionSecondsPerModule.get()
+            ServerConfig.VALUES.durationExtensionSecondsPerModule.get(),
+            ServerConfig.VALUES.maximumPortalDurationSeconds.get()
         );
     }
 
@@ -56,7 +61,8 @@ public record PortalModuleRules(
             DEFAULT_SURFACE_RANGE_BONUS,
             DEFAULT_MAXIMUM_SURFACE_RANGE_MODULES,
             DEFAULT_MAXIMUM_DURATION_EXTENSION_MODULES,
-            DEFAULT_DURATION_EXTENSION_SECONDS_PER_MODULE
+            DEFAULT_DURATION_EXTENSION_SECONDS_PER_MODULE,
+            DEFAULT_BASE_PORTAL_DURATION_SECONDS
         );
     }
 
@@ -71,7 +77,7 @@ public record PortalModuleRules(
     }
 
     public int maximumPortalDurationSeconds(int installedExtensionModules) {
-        long result = (long) ServerConfig.VALUES.maximumPortalDurationSeconds.get()
+        long result = (long) basePortalDurationSeconds
             + (long) Math.max(0, Math.min(maximumDurationExtensionModules, installedExtensionModules))
                 * durationExtensionSecondsPerModule;
         return (int) Math.min(PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS, result);
@@ -87,6 +93,7 @@ public record PortalModuleRules(
         tag.putInt("MaximumSurfaceRangeModules", maximumSurfaceRangeModules);
         tag.putInt("MaximumDurationExtensionModules", maximumDurationExtensionModules);
         tag.putInt("DurationExtensionSecondsPerModule", durationExtensionSecondsPerModule);
+        tag.putInt("BasePortalDurationSeconds", basePortalDurationSeconds);
         return tag;
     }
 
@@ -100,7 +107,9 @@ public record PortalModuleRules(
             tag.getInt("SurfaceRangeBonus"),
             tag.getInt("MaximumSurfaceRangeModules"),
             tag.getInt("MaximumDurationExtensionModules"),
-            tag.getInt("DurationExtensionSecondsPerModule")
+            tag.getInt("DurationExtensionSecondsPerModule"),
+            tag.contains("BasePortalDurationSeconds")
+                ? tag.getInt("BasePortalDurationSeconds") : DEFAULT_BASE_PORTAL_DURATION_SECONDS
         );
     }
 }

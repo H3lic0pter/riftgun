@@ -4,13 +4,11 @@ import dev.riftgun.config.ServerConfig;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.DestinationSort;
-import dev.riftgun.data.PlayerPermissionOverride;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
-import dev.riftgun.data.TargetPrivacy;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.module.PortalModuleMenu;
@@ -20,7 +18,6 @@ import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.portal.PortalEntity;
-import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.service.CoordinateParser;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
@@ -30,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -47,26 +43,31 @@ public final class PortalRequestHandler {
             return;
         }
 
-        Optional<PortalGunLocator.LocatedGun> locatedGun = request.contains("GunReference")
-            ? PortalGunLocator.resolveReference(player, request.getCompound("GunReference"))
-            : PortalGunLocator.first(player);
-        boolean privacyAction = action == PortalAction.SET_PRIVACY
-            || action == PortalAction.SET_PRIVACY_OVERRIDE
-            || action == PortalAction.REQUEST_PRIVACY_PLAYERS;
-        if (player.isSpectator() || (locatedGun.isEmpty() && !privacyAction)) {
-            if (action == PortalAction.CYCLE_PLACEMENT_MODE) return;
-            player.displayClientMessage(Component.translatable(
-                player.isSpectator() ? "message.riftgun.spectator_denied" : "message.riftgun.no_portal_gun"
-            ), true);
+        if (player.isSpectator()) {
+            player.displayClientMessage(Component.translatable("message.riftgun.spectator_denied"), true);
+            return;
+        }
+        if (!action.requiresPortalGun()) {
+            PortalPrivacyRequestHandler.handle(player, action, request);
             return;
         }
 
+        var locatedGun = request.contains("GunReference")
+            ? PortalGunLocator.resolveReference(player, request.getCompound("GunReference"))
+            : PortalGunLocator.first(player);
+        if (locatedGun.isEmpty()) {
+            if (action == PortalAction.CYCLE_PLACEMENT_MODE) return;
+            player.displayClientMessage(Component.translatable("message.riftgun.no_portal_gun"), true);
+            return;
+        }
+        PortalGunLocator.LocatedGun gun = locatedGun.orElseThrow();
+
         if (action == PortalAction.OPEN_GUI) {
-            PortalNetworking.sendSnapshot(player, true, locatedGun.get());
+            PortalNetworking.sendSnapshot(player, true, gun);
             return;
         }
         if (action == PortalAction.OPEN_MODULES) {
-            PortalModuleMenu.open(player, locatedGun.get());
+            PortalModuleMenu.open(player, gun);
             return;
         }
 
@@ -74,8 +75,8 @@ public final class PortalRequestHandler {
         try {
             boolean changed = switch (action) {
                 case CREATE_CURRENT -> createCurrent(player, data, request);
-                case CREATE_COORDINATE -> createCoordinate(player, data, request, locatedGun.get().stack());
-                case EDIT_DESTINATION -> editDestination(player, data, request, locatedGun.get().stack());
+                case CREATE_COORDINATE -> createCoordinate(player, data, request, gun.stack());
+                case EDIT_DESTINATION -> editDestination(player, data, request, gun.stack());
                 case DELETE_DESTINATION -> deleteDestination(data, request);
                 case TOGGLE_PIN -> togglePin(data, request);
                 case VIEW_DESTINATION -> viewDestination(data, request);
@@ -83,11 +84,11 @@ public final class PortalRequestHandler {
                 case SELECT_PLAYER -> selectPlayerTarget(player, data, request);
                 case OPEN_PORTAL -> {
                     PortalOpenCoordinator.request(player, data, id(request, "Destination"), true,
-                        PortalPlacementMode.FRONT, locatedGun.get());
+                        PortalPlacementMode.FRONT, gun);
                     yield false;
                 }
                 case OPEN_SELECTED -> {
-                    openSelected(player, data, requestedPlacement(request), locatedGun.get());
+                    openSelected(player, data, requestedPlacement(request), gun);
                     yield false;
                 }
                 case CYCLE_PLACEMENT_MODE -> cyclePlacementMode(player, data);
@@ -99,15 +100,15 @@ public final class PortalRequestHandler {
                 case SET_GROUP_EXPANDED -> setExpanded(data, request);
                 case SET_SETTINGS -> setSettings(player, data, request);
                 case SET_GUN_MODULE_SETTINGS -> setGunModuleSettings(
-                    data, request, locatedGun.get().stack());
-                case TOGGLE_BUCKET_MODE -> toggleBucketMode(player, locatedGun.get().stack());
-                case CLEAR_GUN_FLUID -> clearGunFluid(player, locatedGun.get().stack());
+                    data, request, gun.stack());
+                case TOGGLE_BUCKET_MODE -> toggleBucketMode(player, gun.stack());
+                case CLEAR_GUN_FLUID -> clearGunFluid(player, gun.stack());
                 case REQUEST_PLAYERS -> {
-                    sendPlayerList(player, locatedGun.get().stack());
+                    sendPlayerList(player, gun.stack());
                     yield false;
                 }
                 case OPEN_PLAYER_PORTAL -> {
-                    openPlayerPortal(player, data, request, locatedGun.get());
+                    openPlayerPortal(player, data, request, gun);
                     yield false;
                 }
                 case TOGGLE_PLAYER_PIN -> togglePlayerPin(data, request);
@@ -115,18 +116,7 @@ public final class PortalRequestHandler {
                     closePortals(player);
                     yield false;
                 }
-                case SET_PRIVACY -> {
-                    setPrivacy(player, data, request);
-                    yield false;
-                }
-                case SET_PRIVACY_OVERRIDE -> {
-                    setPrivacyOverride(player, data, request);
-                    yield false;
-                }
-                case REQUEST_PRIVACY_PLAYERS -> {
-                    sendPrivacyPlayers(player);
-                    yield false;
-                }
+                case SET_PRIVACY, SET_PRIVACY_OVERRIDE, REQUEST_PRIVACY_PLAYERS -> false;
                 case OPEN_GUI, OPEN_MODULES -> false;
             };
             if (changed) {
@@ -134,7 +124,10 @@ public final class PortalRequestHandler {
                 if (action == PortalAction.SELECT_DESTINATION) {
                     PortalNetworking.sendSelectionAccepted(player, data.selectedDestinationId());
                 } else {
-                    PortalNetworking.sendSnapshot(player, false, locatedGun.get());
+                    PortalNetworking.sendSnapshot(player, false, gun);
+                    if (action == PortalAction.SET_SETTINGS) {
+                        sendPlayerList(player, gun.stack());
+                    }
                 }
             }
         } catch (UserInputException exception) {
@@ -405,26 +398,6 @@ public final class PortalRequestHandler {
         player.displayClientMessage(Component.translatable("message.riftgun.portals_closed"), true);
     }
 
-    private static void setPrivacy(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
-        data.targetPrivacy(TargetPrivacy.parse(request.getString("Privacy"), TargetPrivacy.PUBLIC));
-        data.transitPrivacyEnabled(request.getBoolean("TransitPrivacy"));
-        PortalDataStore.save(player, data);
-        PortalNetworking.sendPrivacyTerminal(player);
-    }
-
-    private static void setPrivacyOverride(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
-        UUID target = id(request, "Target");
-        PlayerPermissionOverride mode = PlayerPermissionOverride.parse(
-            request.getString("Mode"), PlayerPermissionOverride.DEFAULT);
-        data.privacyOverride(target, mode);
-        PortalDataStore.save(player, data);
-        PortalNetworking.sendPrivacyTerminal(player);
-    }
-
-    private static void sendPrivacyPlayers(ServerPlayer player) {
-        PortalNetworking.sendPrivacyPlayers(player);
-    }
-
     private static boolean setExpanded(PortalPlayerData data, CompoundTag request) {
         UUID groupId = id(request, "Group");
         if (!groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
@@ -483,10 +456,8 @@ public final class PortalRequestHandler {
             }
             case "PortalDuration" -> {
                 int value = request.getInt("Value");
-                settings = value >= 301
-                    ? settings.withPortalDurationSeconds(PortalOpenDuration.ETERNAL_SECONDS)
-                    : settings.withPortalDurationSeconds(PortalOpenDuration.effectiveSeconds(
-                        value, ServerConfig.VALUES.maximumPortalDurationSeconds.get()));
+                settings = settings.withPortalDurationSeconds(
+                    PortalGunCapabilities.configuredDurationSeconds(gun, value));
             }
             case "TransitCooldown" -> settings = settings.withTransitCooldownTenths(request.getInt("Value"));
             case "ExpandedAperture" -> {
@@ -516,9 +487,8 @@ public final class PortalRequestHandler {
                 if (PortalGunModules.activeCount(gun, PortalModuleKind.PLAYER_TARGET, rules) <= 0) {
                     throw error("message.riftgun.player_target_module_required");
                 }
-                int mode = settings.playerExcludeMode();
                 settings = settings.withPlayerExcludeMode(
-                    Math.floorMod(mode + request.getInt("Step"), 3));
+                    settings.playerExcludeMode().step(request.getInt("Step")));
             }
             case "FallGuard" -> {
                 if (PortalGunModules.activeCount(gun, PortalModuleKind.FALL_GUARD, rules) <= 0) {
