@@ -5,7 +5,6 @@ import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.service.PortalPlacementResult;
 import dev.riftgun.service.PortalServices;
-import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.PortalSupportArea;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import java.util.ArrayList;
@@ -374,7 +373,9 @@ public final class PortalEntity extends Entity {
     private void teleportTouchingEntities() {
         long now = serverTime();
         AABB search = placement().bounds().inflate(0.6, 2.0, 0.6);
-        List<Entity> touching = level().getEntities(this, search, this::canTeleport);
+        PortalTransitEligibility eligibility = new PortalTransitEligibility(
+            placement(), entityAccess, ownerId, excludedPlayerId, exitPortal, horizontalTriggerExtend);
+        List<Entity> touching = level().getEntities(this, search, eligibility::allows);
         Set<UUID> touchingIds = new HashSet<>(touching.size());
         for (Entity entity : touching) touchingIds.add(entity.getUUID());
         transitGate.retainInside(touchingIds, now, transitCooldownTicks);
@@ -395,28 +396,6 @@ public final class PortalEntity extends Entity {
             teleportDeferredTree(entity);
             return;
         }
-    }
-
-    private boolean canTeleport(Entity entity) {
-        if (entity instanceof PortalEntity || entity.isPassenger()
-            || !PortalServices.ENTITY_ELIGIBILITY.allowsTree(entity, entityAccess::allows)) return false;
-        if (!PortalTriggerShape.intersects(
-            placement(), entity.getBoundingBox(), horizontalTriggerExtend)) return false;
-        return !containsExcludedPlayer(entity) && !containsTransitProtectedPlayer(entity);
-    }
-
-    private boolean containsExcludedPlayer(Entity root) {
-        return excludedPlayerId != null && root.getSelfAndPassengers().anyMatch(entity ->
-            entity instanceof Player player && player.getUUID().equals(excludedPlayerId));
-    }
-
-    private boolean containsTransitProtectedPlayer(Entity root) {
-        if (!exitPortal) return false;
-        return root.getSelfAndPassengers().anyMatch(entity -> {
-            if (!(entity instanceof ServerPlayer player)) return false;
-            if (ownerId != null && ownerId.equals(player.getUUID())) return false;
-            return PortalPrivacyService.transitProtectsTarget(player);
-        });
     }
 
     private @Nullable Entity teleportTree(Entity root, PortalEntity target) {

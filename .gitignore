@@ -8,3 +8,14 @@ logs/
 *.iml
 .upstream-tempad/
 .tools/
+
+# Local agent instructions
+AGENTS.md
+**/AGENTS.md
+.agents/
+**/.agents/
+CLAUDE.md
+**/CLAUDE.md
+
+# Repository-local license file (third-party notices remain tracked)
+/LICENSE

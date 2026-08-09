@@ -80,7 +80,7 @@
   "screen.riftgun.placement_mode.smart": "Smart",
   "screen.riftgun.placement_mode.front": "In front",
   "screen.riftgun.placement_mode.surface": "Surface",
-  "screen.riftgun.placement_mode_tooltip": "Portal Gun mode: %s (click to switch)",
+  "screen.riftgun.placement_mode_tooltip": "Portal Gun mode: %s",
   "screen.riftgun.open_front_tooltip": "Opens in front",
   "screen.riftgun.motion_prediction_tooltip": "Motion prediction: %s",
   "screen.riftgun.prediction.off": "Off",

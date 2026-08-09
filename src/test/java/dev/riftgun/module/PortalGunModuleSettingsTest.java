@@ -31,8 +31,10 @@ final class PortalGunModuleSettingsTest {
     @Test
     void clampsPersistedDistancesToPositiveValues() {
         PortalGunModuleSettings settings = new PortalGunModuleSettings(
-            -4, 0, true, true, true, 0, true, true,
-            PlayerExcludeMode.ENTRY_AND_EXIT, -1, true);
+            new PortalGunModuleSettings.Placement(-4, 0),
+            new PortalGunModuleSettings.Transit(true, true, true, -1),
+            new PortalGunModuleSettings.Duration(0), true,
+            new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT), true);
 
         assertEquals(1, settings.smartDistance());
         assertEquals(1, settings.desiredSurfaceRange());
@@ -66,5 +68,20 @@ final class PortalGunModuleSettingsTest {
         assertEquals(PlayerExcludeMode.OFF, PlayerExcludeMode.EXIT_ONLY.step(1));
         assertEquals(PlayerExcludeMode.EXIT_ONLY, PlayerExcludeMode.OFF.step(-1));
         assertEquals(PlayerExcludeMode.ENTRY_AND_EXIT, PlayerExcludeMode.byId(99));
+    }
+
+    @Test
+    void groupedModelKeepsTheOriginalFlatCodecSchema() {
+        PortalGunModuleSettings settings = PortalGunModuleSettings.defaults(11)
+            .withDesiredSurfaceRange(48)
+            .withTransitCooldownTenths(7);
+
+        var encoded = PortalGunModuleSettings.CODEC.encodeStart(JsonOps.INSTANCE, settings)
+            .result().orElseThrow().getAsJsonObject();
+        assertEquals(11, encoded.get("smart_distance").getAsInt());
+        assertEquals(48, encoded.get("desired_surface_range").getAsInt());
+        assertEquals(7, encoded.get("transit_cooldown_tenths").getAsInt());
+        assertFalse(encoded.has("placement"));
+        assertFalse(encoded.has("transit"));
     }
 }

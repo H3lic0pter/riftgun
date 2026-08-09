@@ -77,7 +77,7 @@
   "screen.riftgun.placement_mode.smart": "智能",
   "screen.riftgun.placement_mode.front": "面前",
   "screen.riftgun.placement_mode.surface": "贴面",
-  "screen.riftgun.placement_mode_tooltip": "传送枪模式：%s（点击切换）",
+  "screen.riftgun.placement_mode_tooltip": "传送枪模式：%s",
   "screen.riftgun.open_front_tooltip": "使用面前模式开门",
   "screen.riftgun.motion_prediction_tooltip": "动量预测：%s",
   "screen.riftgun.prediction.off": "关",

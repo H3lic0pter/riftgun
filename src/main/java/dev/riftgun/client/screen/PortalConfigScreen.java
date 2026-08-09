@@ -1,5 +1,7 @@
 package dev.riftgun.client.screen;
 
+import static dev.riftgun.client.screen.PortalGuiIcons.*;
+
 import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.render.PortalVisualPreferences;
@@ -117,9 +119,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton playerExcludeButton;
     private @Nullable ThemedButton playerTargetSettingsButton;
     private final List<EditBox> coordinateEditFields = new ArrayList<>();
-    private @Nullable UUID selectedPlayerId;
-    private boolean playerSectionExpanded = true;
-    private boolean playerListRequested;
+    private final PlayerTargetController playerTargets;
     private @Nullable ThemedButton groupSelector;
     private @Nullable ThemedButton groupDropdownButton;
     private @Nullable ThemedButton motionPredictionButton;
@@ -152,11 +152,10 @@ public final class PortalConfigScreen extends Screen {
     public PortalConfigScreen() {
         super(Component.translatable("screen.riftgun.config"));
         PortalPlayerData data = PortalClientState.data();
-        selectedPlayerId = data.selectedPlayerId();
-        playerSectionExpanded = data.expandedGroups().contains(PortalPlayerData.PLAYER_SECTION_ID);
-        if (selectedPlayerId != null) {
+        playerTargets = new PlayerTargetController(data);
+        if (playerTargets.selectedId() != null) {
             viewedDestination = null;
-            focusedRowId = selectedPlayerId;
+            focusedRowId = playerTargets.selectedId();
             focusedRowKind = RowKind.PLAYER;
         } else {
             viewedDestination = data.selectedDestinationId() != null
@@ -272,10 +271,7 @@ public final class PortalConfigScreen extends Screen {
         openPortalButton = generate;
         updateOpenPortalButton();
 
-        if (playerSectionVisible() && !playerListRequested) {
-            playerListRequested = true;
-            requestPlayerListRefresh();
-        }
+        playerTargets.requestListIfNeeded();
     }
 
     @Override
@@ -678,7 +674,7 @@ public final class PortalConfigScreen extends Screen {
             boolean focused = listFocused && row.id().equals(focusedRowId) && row.kind() == focusedRowKind;
             boolean selected = row.kind() == RowKind.DESTINATION
                 && row.id().equals(PortalClientState.data().selectedDestinationId())
-                || row.kind() == RowKind.PLAYER && row.id().equals(selectedPlayerId);
+                || row.kind() == RowKind.PLAYER && row.id().equals(playerTargets.selectedId());
             hitRows.add(new Row(row.kind(), row.id(), y));
             if (row.kind() == RowKind.GROUP) visibleGroupRows.put(row.id(), y);
             if (selected) graphics.fill(panelX + 4, y, panelX + listWidth - 4, y + ROW_HEIGHT, 0x663F7180);
@@ -736,7 +732,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void renderPlayerSectionRow(GuiGraphics graphics, UUID id, int y, boolean hover, boolean focused) {
-        boolean expanded = playerSectionExpanded;
+        boolean expanded = playerTargets.expanded();
         drawDisclosure(graphics, panelX + 17, y + 6, expanded);
         int right = panelX + listWidth - 6;
         boolean actions = hover || focused;
@@ -747,7 +743,7 @@ public final class PortalConfigScreen extends Screen {
             graphics.drawString(font, trim(title, listWidth - 34 - 36), panelX + 28, y + 5,
                 PortalTheme.ICE, false);
         } else {
-            long count = sortedPlayers("").size();
+            long count = playerTargets.entries("").size();
             String countText = Long.toString(count);
             graphics.drawString(font, trim(title, listWidth - 34 - 20), panelX + 28, y + 5,
                 PortalTheme.ICE, false);
@@ -762,7 +758,7 @@ public final class PortalConfigScreen extends Screen {
         if (entry == null) return;
         int right = panelX + listWidth - 6;
         int starLeft = right - ROW_ACTION_SIZE - 2;
-        boolean selected = id.equals(selectedPlayerId);
+        boolean selected = id.equals(playerTargets.selectedId());
         String name = entry.name();
         if (!entry.self()) {
             String localDimension = minecraft != null && minecraft.player != null
@@ -827,10 +823,10 @@ public final class PortalConfigScreen extends Screen {
             PortalTheme.TEXT_MUTED, false);
         y += 19;
         Destination destination = viewed();
-        if (selectedPlayerId != null) {
-            PlayerListState.PlayerEntry entry = PlayerListState.player(selectedPlayerId);
+        if (playerTargets.selectedId() != null) {
+            PlayerListState.PlayerEntry entry = PlayerListState.player(playerTargets.selectedId());
             if (entry == null) {
-                selectedPlayerId = null;
+                playerTargets.clearSelection();
             } else {
                 int textWidth = panelWidth - listWidth - 20;
                 y = detailField(graphics, "screen.riftgun.name", entry.name(), x, y, textWidth);
@@ -1407,119 +1403,6 @@ public final class PortalConfigScreen extends Screen {
         return String.format(Locale.ROOT, "%.1fk", amount / 1_000.0);
     }
 
-    private static void drawBucketIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.BUCKET_OFF : PortalGuiSprites.BUCKET_ON, x - 3, y - 3);
-    }
-
-    private static void drawDrainIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.DRAIN_OFF : PortalGuiSprites.DRAIN_ON, x - 3, y - 3);
-    }
-
-    private static void drawPlacementModeIcon(GuiGraphics graphics, int x, int y, PortalPlacementMode mode) {
-        ResourceLocation sprite = switch (mode) {
-            case SMART -> PortalGuiSprites.PLACEMENT_SMART;
-            case FRONT -> PortalGuiSprites.PLACEMENT_FRONT;
-            case SURFACE -> PortalGuiSprites.PLACEMENT_SURFACE;
-        };
-        int offsetX = mode == PortalPlacementMode.FRONT ? 4 : 3;
-        PortalGuiSprites.draw(graphics, sprite, x - offsetX, y - 3);
-    }
-
-    private static void drawPredictionIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.PREDICTION_OFF : PortalGuiSprites.PREDICTION_ON, x - 2, y - 4);
-    }
-
-    private static void drawGunSettingsIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.CONFIGURE_GUN, x - 3, y - 2);
-    }
-
-    private static void drawModuleBayIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.MODULE_BAY, x - 2, y - 2);
-    }
-
-    private static void drawPortalCloseIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.PORTAL_CLOSE, x - 2, y - 2);
-    }
-
-    private static void drawSmartDistanceIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.SMART_DISTANCE, x - 2, y - 2);
-    }
-
-    private static void drawPortalDurationIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.PORTAL_DURATION, x - 2, y - 2);
-    }
-
-    private static void drawApertureIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
-        PortalGuiSprites.draw(graphics, enabled
-            ? PortalGuiSprites.APERTURE_ON : PortalGuiSprites.APERTURE_OFF, x - 2, y - 2);
-    }
-
-    private static void drawFallGuardIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
-        PortalGuiSprites.draw(graphics, enabled
-            ? PortalGuiSprites.FALL_GUARD_ON : PortalGuiSprites.FALL_GUARD_OFF, x - 2, y - 2);
-    }
-
-    private static void drawSurfaceRangeIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.SURFACE_RANGE, x - 3, y - 2);
-    }
-
-    private static void drawEntityAccessIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.ENTITY_ACCESS, x - 2, y - 2);
-    }
-
-    private static void drawPigIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.PASSIVE_TRANSIT_OFF : PortalGuiSprites.PASSIVE_TRANSIT_ON, x - 1, y - 2);
-    }
-
-    private static void drawZombieIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.HOSTILE_TRANSIT_OFF : PortalGuiSprites.HOSTILE_TRANSIT_ON, x - 2, y - 2);
-    }
-
-    private static void drawDragonIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.BOSS_TRANSIT_OFF : PortalGuiSprites.BOSS_TRANSIT_ON, x - 1, y - 2);
-    }
-
-    private static void drawPlayerTargetIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.PLAYER_TARGET_OFF : PortalGuiSprites.PLAYER_TARGET_ON, x - 2, y - 2);
-    }
-
-    private static void drawPlayerExcludeIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.PLAYER_EXCLUDE_OFF : PortalGuiSprites.PLAYER_EXCLUDE_ON, x - 2, y - 2);
-    }
-
-    private static void drawPlayerRefreshIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.PLAYER_REFRESH, x - 4, y - 4);
-    }
-
-    private static void drawEyeIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.VISUALS, x - 3, y - 4);
-    }
-
-    private static void drawDownIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.DROPDOWN, x - 4, y - 6);
-    }
-
-    private static void drawBackIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.BACK, x - 3, y - 5);
-    }
-
-    private static void drawResetIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.RESET_OFF : PortalGuiSprites.RESET_ON, x - 4, y - 4);
-    }
-
-    private static void drawSwirlIcon(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.SWIRL, x - 4, y - 4);
-    }
-
     private void renderGroupDropdown(GuiGraphics graphics, int mouseX, int mouseY) {
         List<UUID> groups = orderedGroupIds();
         DropdownBox box = dropdownBox(groups.size());
@@ -1600,31 +1483,16 @@ public final class PortalConfigScreen extends Screen {
 
     private List<Row> playerSectionRows(String normalizedQuery) {
         List<Row> rows = new ArrayList<>();
-        if (!playerSectionVisible()) return rows;
+        if (!playerTargets.visible()) return rows;
         boolean sectionMatch = normalizedQuery.isEmpty() || "player".contains(normalizedQuery);
-        if (!sectionMatch && sortedPlayers(normalizedQuery).isEmpty()) return rows;
+        if (!sectionMatch && playerTargets.entries(normalizedQuery).isEmpty()) return rows;
         rows.add(new Row(RowKind.PLAYER_SECTION, PortalPlayerData.PLAYER_SECTION_ID, 0));
-        if (playerSectionExpanded || !normalizedQuery.isEmpty()) {
-            for (PlayerListState.PlayerEntry entry : sortedPlayers(normalizedQuery)) {
+        if (playerTargets.expanded() || !normalizedQuery.isEmpty()) {
+            for (PlayerListState.PlayerEntry entry : playerTargets.entries(normalizedQuery)) {
                 rows.add(new Row(RowKind.PLAYER, entry.id(), 0));
             }
         }
         return rows;
-    }
-
-    private List<PlayerListState.PlayerEntry> sortedPlayers(String normalizedQuery) {
-        PortalPlayerData data = PortalClientState.data();
-        List<PlayerListState.PlayerEntry> list = PlayerListState.players().stream()
-            .filter(entry -> normalizedQuery.isEmpty()
-                || entry.name().toLowerCase(Locale.ROOT).contains(normalizedQuery))
-            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-        list.sort(Comparator.comparing(PlayerListState.PlayerEntry::pinned).reversed()
-            .thenComparingInt(PlayerListState.PlayerEntry::serverOrder));
-        return list;
-    }
-
-    private boolean playerSectionVisible() {
-        return moduleCount("PLAYER_TARGET") > 0 && PortalClientState.gun().getBoolean("PlayerTargetEnabled");
     }
 
     private List<UUID> orderedGroupIds() {
@@ -1962,7 +1830,7 @@ public final class PortalConfigScreen extends Screen {
         PortalClientState.data().lastViewedDestinationId(id);
         viewedDestination = id;
         selectedGroup = null;
-        selectedPlayerId = null;
+        playerTargets.clearSelection();
         if (!id.equals(previous)) detailScroll = 0;
         if (!id.equals(previous)) {
             pendingSelection = id;
@@ -1972,7 +1840,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void selectPlayer(UUID id) {
-        selectedPlayerId = id;
+        playerTargets.select(id);
         viewedDestination = null;
         selectedGroup = null;
         pendingSelection = null;
@@ -1982,16 +1850,14 @@ public final class PortalConfigScreen extends Screen {
         focusedRowKind = RowKind.PLAYER;
         ensureVisibleId = id;
         updateOpenPortalButton();
-        PortalNetworking.sendRequest(PortalAction.SELECT_PLAYER, tag -> tag.putUUID("Target", id));
     }
 
     private void togglePlayerPin(UUID id, boolean pinned) {
-        PlayerListState.markPinned(id, !pinned);
-        PortalNetworking.sendRequest(PortalAction.TOGGLE_PLAYER_PIN, tag -> tag.putUUID("Target", id));
+        playerTargets.togglePin(id, pinned);
     }
 
     private void requestPlayerListRefresh() {
-        PortalNetworking.sendRequest(PortalAction.REQUEST_PLAYERS);
+        playerTargets.requestList();
     }
 
     private void flushSelection() {
@@ -2003,9 +1869,8 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void generatePortal() {
-        if (selectedPlayerId != null) {
-            PortalNetworking.sendRequest(PortalAction.OPEN_PLAYER_PORTAL,
-                tag -> tag.putUUID("Target", selectedPlayerId));
+        if (playerTargets.selectedId() != null) {
+            playerTargets.openSelected();
             return;
         }
         if (viewedDestination == null) return;
@@ -2057,12 +1922,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void togglePlayerSection() {
-        playerSectionExpanded = !playerSectionExpanded;
-        if (playerSectionExpanded) requestPlayerListRefresh();
-        PortalNetworking.sendRequest(PortalAction.SET_GROUP_EXPANDED, tag -> {
-            tag.putUUID("Group", PortalPlayerData.PLAYER_SECTION_ID);
-            tag.putBoolean("Expanded", playerSectionExpanded);
-        });
+        playerTargets.toggleExpanded();
     }
 
     private void cycleSort() {
@@ -2579,17 +2439,17 @@ public final class PortalConfigScreen extends Screen {
     }
 
     public void refreshFromServer(Set<UUID> ignoredInvalidatedSafety) {
+        UUID previousSelectedPlayer = playerTargets.selectedId();
+        playerTargets.sync(PortalClientState.data());
         UUID serverSelectedPlayer = PortalClientState.data().selectedPlayerId();
         if (serverSelectedPlayer != null) {
-            if (!serverSelectedPlayer.equals(selectedPlayerId)) {
-                selectedPlayerId = serverSelectedPlayer;
+            if (!serverSelectedPlayer.equals(previousSelectedPlayer)) {
                 viewedDestination = null;
                 detailScroll = 0;
                 ensureVisibleId = serverSelectedPlayer;
                 updateOpenPortalButton();
             }
-        } else if (selectedPlayerId != null) {
-            selectedPlayerId = null;
+        } else if (previousSelectedPlayer != null) {
             updateOpenPortalButton();
         }
         if (pendingSelection != null) {
@@ -2597,21 +2457,19 @@ public final class PortalConfigScreen extends Screen {
             PortalClientState.data().lastViewedDestinationId(pendingSelection);
         }
         UUID selected = PortalClientState.data().selectedDestinationId();
-        if (selectedPlayerId == null && selected != null && !selected.equals(viewedDestination)) {
+        if (playerTargets.selectedId() == null && selected != null && !selected.equals(viewedDestination)) {
             viewedDestination = selected;
             focusedRowId = selected;
             focusedRowKind = RowKind.DESTINATION;
             detailScroll = 0;
             ensureVisibleId = selected;
-        } else if (selectedPlayerId == null && viewedDestination != null
+        } else if (playerTargets.selectedId() == null && viewedDestination != null
             && PortalClientState.data().destination(viewedDestination).isEmpty()) {
             viewedDestination = selected;
             detailScroll = 0;
         }
         if (selectedGroup != null && !selectedGroup.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && PortalClientState.data().group(selectedGroup).isEmpty()) selectedGroup = null;
-        playerSectionExpanded = PortalClientState.data().expandedGroups()
-            .contains(PortalPlayerData.PLAYER_SECTION_ID);
         if (modal == Modal.NONE) rebuildWidgets();
     }
 
@@ -2621,14 +2479,13 @@ public final class PortalConfigScreen extends Screen {
 
     private void updateOpenPortalButton() {
         if (openPortalButton == null) return;
-        openPortalButton.active = viewed() != null || selectedPlayerId != null;
+        openPortalButton.active = viewed() != null || playerTargets.selectedId() != null;
         openPortalButton.setMessage(Component.translatable("screen.riftgun.generate"));
     }
 
     /** Called when the server refreshes the online player roster. */
     public void onPlayerListRefresh() {
-        if (selectedPlayerId != null && PlayerListState.player(selectedPlayerId) == null) {
-            selectedPlayerId = null;
+        if (playerTargets.clearUnavailableSelection()) {
             updateOpenPortalButton();
         }
         if (modal == Modal.NONE) rebuildWidgets();
@@ -2812,34 +2669,6 @@ public final class PortalConfigScreen extends Screen {
         int upward = visualSelectorY - height - 2;
         int top = downward <= maxY ? downward : Math.max(minY, upward);
         return new DropdownBox(visualSelectorX, top, visualSelectorWidth, height);
-    }
-
-    private static void drawDisclosure(GuiGraphics graphics, int x, int y, boolean expanded) {
-        PortalGuiSprites.draw(graphics, expanded
-            ? PortalGuiSprites.GROUP_EXPANDED : PortalGuiSprites.GROUP_COLLAPSED,
-            x - (expanded ? 4 : 6), y - (expanded ? 6 : 4));
-    }
-
-    private static void drawDragHandle(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.DRAG_HANDLE, x - 5, y - 4);
-    }
-
-    private static void drawDestinationDragDot(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.DESTINATION_DOT_OFF : PortalGuiSprites.DESTINATION_DOT_ON, x - 7, y - 7);
-    }
-
-    private static void drawStar(GuiGraphics graphics, int x, int y, boolean filled) {
-        PortalGuiSprites.draw(graphics, filled ? PortalGuiSprites.STAR_ON : PortalGuiSprites.STAR_OFF,
-            x - 4, y - 4);
-    }
-
-    private static void drawCross(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.DELETE, x - 4, y - 4);
-    }
-
-    private static void drawPencil(GuiGraphics graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.EDIT, x - 4, y - 3);
     }
 
     private enum RowKind { GROUP, DESTINATION, PLAYER_SECTION, PLAYER }
