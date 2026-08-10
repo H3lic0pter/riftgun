@@ -29,13 +29,17 @@ final class SwirlVisualGeometryTest {
     }
 
     @Test
-    void expandedSurfaceRendersAsTwoPointOneSquare() {
+    void expandedSurfaceMatchesHorizontalVisibleSize() {
         PortalPlacement expanded = placement(PortalOrientation.VERTICAL, PortalGeometry.SURFACE_EXPANDED);
 
-        assertEquals(1.05, SwirlVisualGeometry.visibleWidthScale(expanded), EPSILON);
-        assertEquals(1.05, SwirlVisualGeometry.visibleHeightScale(expanded), EPSILON);
-        assertEquals(2.1, PortalGeometry.SURFACE_EXPANDED.width() * SwirlVisualGeometry.visibleWidthScale(expanded), EPSILON);
-        assertEquals(2.1, PortalGeometry.SURFACE_EXPANDED.height() * SwirlVisualGeometry.visibleHeightScale(expanded), EPSILON);
+        assertEquals(SwirlVisualGeometry.HORIZONTAL_VISIBLE_SIZE,
+            SwirlVisualGeometry.visibleWidthScale(expanded), EPSILON);
+        assertEquals(SwirlVisualGeometry.HORIZONTAL_VISIBLE_SIZE,
+            SwirlVisualGeometry.visibleHeightScale(expanded), EPSILON);
+        assertEquals(1.995,
+            PortalGeometry.SURFACE_EXPANDED.width() * SwirlVisualGeometry.visibleWidthScale(expanded), EPSILON);
+        assertEquals(1.995,
+            PortalGeometry.SURFACE_EXPANDED.height() * SwirlVisualGeometry.visibleHeightScale(expanded), EPSILON);
     }
 
     @Test

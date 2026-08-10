@@ -26,7 +26,7 @@ import net.minecraft.util.Mth;
 public final class VanillaPortalPlacementResolver implements PortalPlacementResolver {
     private static final double SURFACE_OFFSET = PortalPlacement.DEPTH * 0.5 + 0.002;
     /** Blocks of extra door distance per block/second of velocity projected on the door axis. */
-    private static final double MAXIMUM_PROJECTION_EXTRA = 16.0;
+    private static final double MAXIMUM_PROJECTION_EXTRA = 55.0;
     private static final double TICKS_PER_SECOND = 20.0;
 
     @Override

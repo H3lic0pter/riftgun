@@ -128,7 +128,7 @@ public final class ServerConfig {
             downshotProjectionFactor = builder.comment(
                     "Blocks of extra door distance per block/second of velocity projected onto the "
                         + "downward axis, for downshot doors opened in Projection mode.")
-                .defineInRange("downshotProjectionFactor", 1.0, 0.0, 8.0);
+                .defineInRange("downshotProjectionFactor", 2.5, 0.0, 8.0);
             builder.pop();
 
             builder.push("crises");

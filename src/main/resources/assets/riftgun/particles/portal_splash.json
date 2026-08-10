@@ -1,8 +1,12 @@
 {
   "textures": [
-    "riftgun:portal_splash_0",
-    "riftgun:portal_splash_1",
-    "riftgun:portal_splash_2",
-    "riftgun:portal_splash_3"
+    "riftgun:portal_splash/original_0",
+    "riftgun:portal_splash/original_1",
+    "riftgun:portal_splash/original_2",
+    "riftgun:portal_splash/original_3",
+    "riftgun:portal_splash/grayscale_0",
+    "riftgun:portal_splash/grayscale_1",
+    "riftgun:portal_splash/grayscale_2",
+    "riftgun:portal_splash/grayscale_3"
   ]
 }
