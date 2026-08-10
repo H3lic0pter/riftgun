@@ -13,6 +13,8 @@ public final class PortalRenderTypes extends RenderType {
     private static final long SWIRL_TIME_ORIGIN = System.nanoTime();
     private static final ResourceLocation SWIRL_TEXTURE =
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
+    private static final ResourceLocation WHITE_TEXTURE =
+        ResourceLocation.withDefaultNamespace("textures/misc/white.png");
     private static ShaderInstance portalShader;
     private static ShaderInstance swirlShader;
 
@@ -81,6 +83,22 @@ public final class PortalRenderTypes extends RenderType {
             .createCompositeState(true)
     );
 
+    private static final RenderType SWIRL_FALLBACK_GLOW = create(
+        "rift_portal_swirl_fallback_glow",
+        DefaultVertexFormat.NEW_ENTITY,
+        VertexFormat.Mode.QUADS,
+        4096,
+        false,
+        true,
+        CompositeState.builder()
+            .setShaderState(RENDERTYPE_EYES_SHADER)
+            .setTextureState(new TextureStateShard(SWIRL_TEXTURE, false, false))
+            .setTransparencyState(ADDITIVE_TRANSPARENCY)
+            .setCullState(NO_CULL)
+            .setWriteMaskState(COLOR_WRITE)
+            .createCompositeState(false)
+    );
+
     private PortalRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
                               boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState,
                               Runnable clearState) {
@@ -101,6 +119,18 @@ public final class PortalRenderTypes extends RenderType {
 
     public static RenderType swirlEdge() {
         return SWIRL_EDGE;
+    }
+
+    public static RenderType classicFallback() {
+        return RenderType.entityTranslucent(WHITE_TEXTURE);
+    }
+
+    public static RenderType swirlFallback() {
+        return RenderType.entityCutoutNoCull(SWIRL_TEXTURE);
+    }
+
+    public static RenderType swirlFallbackGlow() {
+        return SWIRL_FALLBACK_GLOW;
     }
 
     public static void setPortalShader(ShaderInstance shader) {

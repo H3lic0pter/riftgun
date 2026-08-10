@@ -5,6 +5,7 @@ import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalRenderTypes;
 import dev.riftgun.client.render.PortalRenderer;
 import dev.riftgun.client.render.TintableSplashParticle;
+import dev.riftgun.client.light.PortalDynamicLights;
 import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.network.PortalNetworking;
@@ -55,6 +56,7 @@ public final class ClientModEvents {
     public static void onClientSetup(FMLClientSetupEvent event) {
         EntityRenderers.register(RiftGun.PORTAL.get(), PortalRenderer::new);
         PortalNetworking.setClientContextWriter(PortalClientState::writeGunReference);
+        event.enqueueWork(PortalDynamicLights::initialize);
     }
 
     @SubscribeEvent

@@ -19,6 +19,7 @@ public final class ClientConfig {
         public final ModConfigSpec.DoubleValue swirlInnerPeriod;
         public final ModConfigSpec.DoubleValue swirlInwardPeriod;
         public final ModConfigSpec.BooleanValue swirlInwardDirection;
+        public final ModConfigSpec.IntValue portalDynamicLightLevel;
 
         private Values(ModConfigSpec.Builder builder) {
             portalVisualType = builder.comment("Client-local portal visual type ID")
@@ -35,6 +36,12 @@ public final class ClientConfig {
                 .defineInRange("inwardPeriod", 2.5, 0.8, 10.0);
             swirlInwardDirection = builder.comment("Inward flow direction of the swirl animation; true flows toward the center")
                 .define("inwardDirection", true);
+            builder.pop(2);
+
+            builder.push("visuals").push("dynamicLighting");
+            portalDynamicLightLevel = builder.comment(
+                    "Maximum portal luminance used by optional dynamic-light integrations")
+                .defineInRange("level", 9, 0, 15);
             builder.pop(2);
         }
     }
