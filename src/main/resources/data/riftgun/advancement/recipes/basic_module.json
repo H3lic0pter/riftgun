@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_lapis": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "minecraft:lapis_lazuli" }
+        ]
+      }
+    }
+  },
+  "requirements": [["has_lapis"]],
+  "rewards": {
+    "recipes": ["riftgun:basic_module"]
+  }
+}

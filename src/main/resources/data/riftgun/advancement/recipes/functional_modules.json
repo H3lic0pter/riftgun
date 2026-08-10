@@ -1,0 +1,29 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_basic_module": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "riftgun:basic_module" }
+        ]
+      }
+    }
+  },
+  "requirements": [["has_basic_module"]],
+  "rewards": {
+    "recipes": [
+      "riftgun:boss_transit_module",
+      "riftgun:coordinate_override_module",
+      "riftgun:duration_extension_module",
+      "riftgun:fall_guard_module",
+      "riftgun:hostile_transit_module",
+      "riftgun:module_bay_expansion",
+      "riftgun:passive_transit_module",
+      "riftgun:player_target_module",
+      "riftgun:portal_aperture_module",
+      "riftgun:reservoir_expansion_module",
+      "riftgun:surface_range_amplifier"
+    ]
+  }
+}

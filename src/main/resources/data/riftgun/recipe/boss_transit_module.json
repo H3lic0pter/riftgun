@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["DCD", "NMN", "DSD"],
+  "key": {
+    "D": { "item": "minecraft:dragon_breath" },
+    "C": { "item": "minecraft:end_crystal" },
+    "N": { "tag": "c:ingots/netherite" },
+    "M": { "item": "riftgun:basic_module" },
+    "S": { "item": "minecraft:nether_star" }
+  },
+  "result": { "id": "riftgun:boss_transit_module", "count": 1 }
+}

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["GBG", "GMG", "GBG"],
+  "key": {
+    "G": { "tag": "c:glass_blocks/colorless" },
+    "B": { "tag": "c:buckets/empty" },
+    "M": { "item": "riftgun:basic_module" }
+  },
+  "result": { "id": "riftgun:reservoir_expansion_module", "count": 1 }
+}

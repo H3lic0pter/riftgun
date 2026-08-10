@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [" L ", "LCL", " L "],
+  "key": {
+    "L": { "tag": "c:gems/lapis" },
+    "C": { "tag": "c:ingots/copper" }
+  },
+  "result": { "id": "riftgun:basic_module", "count": 1 }
+}

@@ -12,6 +12,7 @@ import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.crisis.PortalFluidInstability;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRegistry;
+import dev.riftgun.module.PortalModules;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -61,6 +62,13 @@ public final class ClientGameEvents {
 
     @SubscribeEvent
     public static void itemTooltip(ItemTooltipEvent event) {
+        if (event.getItemStack().is(PortalModules.BASIC_MODULE.get())) {
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.basic_module.description")
+                .withStyle(style -> style.withColor(0xA9D6A2)));
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.basic_module.not_installable")
+                .withStyle(ChatFormatting.GRAY));
+            return;
+        }
         var module = PortalModuleRegistry.find(event.getItemStack());
         if (module.isPresent()) {
             if (!Screen.hasShiftDown()) {

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CGC", "RIR", "CCC"],
+  "key": {
+    "C": { "tag": "c:ingots/copper" },
+    "G": { "tag": "c:glass_panes/colorless" },
+    "R": { "tag": "c:dusts/redstone" },
+    "I": { "tag": "c:ingots/iron" }
+  },
+  "result": { "id": "riftgun:privacy_terminal", "count": 1 }
+}

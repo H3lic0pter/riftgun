@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ISI", "DMD", "IHI"],
+  "key": {
+    "I": { "tag": "c:ingots/iron" },
+    "S": { "item": "minecraft:shulker_shell" },
+    "D": { "tag": "c:gems/diamond" },
+    "M": { "item": "riftgun:basic_module" },
+    "H": { "item": "minecraft:hopper" }
+  },
+  "result": { "id": "riftgun:module_bay_expansion", "count": 1 }
+}

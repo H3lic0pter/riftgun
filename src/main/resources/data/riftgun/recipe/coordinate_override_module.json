@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CNC", "BMB", "CBC"],
+  "key": {
+    "C": { "item": "minecraft:compass" },
+    "N": { "item": "minecraft:netherite_scrap" },
+    "B": { "tag": "c:storage_blocks/diamond" },
+    "M": { "item": "riftgun:basic_module" }
+  },
+  "result": { "id": "riftgun:coordinate_override_module", "count": 1 }
+}

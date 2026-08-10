@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["FEF", "BMB", "DDD"],
+  "key": {
+    "F": { "item": "minecraft:fermented_spider_eye" },
+    "E": { "tag": "c:ender_pearls" },
+    "B": { "tag": "c:rods/blaze" },
+    "M": { "item": "riftgun:basic_module" },
+    "D": { "tag": "c:gems/diamond" }
+  },
+  "result": { "id": "riftgun:hostile_transit_module", "count": 1 }
+}

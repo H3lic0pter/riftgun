@@ -308,5 +308,10 @@
   "subtitles.riftgun.rift_shot": "传送枪发射",
   "subtitles.riftgun.portal_open": "传送门开启",
   "subtitles.riftgun.portal_close": "传送门关闭",
-  "subtitles.riftgun.portal_transit": "实体穿过传送门"
+  "subtitles.riftgun.portal_transit": "实体穿过传送门",
+  "item.riftgun.basic_module": "基础模块",
+  "tooltip.riftgun.basic_module.description": "传送枪模块的通用合成基底",
+  "tooltip.riftgun.basic_module.not_installable": "不可安装",
+  "jei.riftgun.fluid_transmutation": "流体转化",
+  "jei.riftgun.fluid_transmutation.water_source": "将材料投入独立的水源方块中"
 }

@@ -308,5 +308,10 @@
   "subtitles.riftgun.rift_shot": "Portal gun fires",
   "subtitles.riftgun.portal_open": "Portal opens",
   "subtitles.riftgun.portal_close": "Portal closes",
-  "subtitles.riftgun.portal_transit": "Entity travels through a portal"
+  "subtitles.riftgun.portal_transit": "Entity travels through a portal",
+  "item.riftgun.basic_module": "Basic Module",
+  "tooltip.riftgun.basic_module.description": "Common crafting base for portal gun modules",
+  "tooltip.riftgun.basic_module.not_installable": "Not installable",
+  "jei.riftgun.fluid_transmutation": "Fluid Transmutation",
+  "jei.riftgun.fluid_transmutation.water_source": "Throw the ingredients into a standalone water source block"
 }

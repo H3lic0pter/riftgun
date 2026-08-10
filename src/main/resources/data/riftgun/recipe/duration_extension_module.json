@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["QDQ", "PMP", "GCG"],
+  "key": {
+    "Q": { "tag": "c:gems/quartz" },
+    "D": { "tag": "c:storage_blocks/diamond" },
+    "P": { "item": "minecraft:repeater" },
+    "M": { "item": "riftgun:basic_module" },
+    "G": { "tag": "c:storage_blocks/gold" },
+    "C": { "item": "minecraft:clock" }
+  },
+  "result": { "id": "riftgun:duration_extension_module", "count": 1 }
+}

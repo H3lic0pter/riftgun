@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ASA", "QMQ", " R "],
+  "key": {
+    "A": { "tag": "c:gems/amethyst" },
+    "S": { "item": "minecraft:spyglass" },
+    "Q": { "tag": "c:gems/quartz" },
+    "M": { "item": "riftgun:basic_module" },
+    "R": { "tag": "c:dusts/redstone" }
+  },
+  "result": { "id": "riftgun:surface_range_amplifier", "count": 1 }
+}

@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_duration_extension": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "riftgun:duration_extension_module" }
+        ]
+      }
+    }
+  },
+  "requirements": [["has_duration_extension"]],
+  "rewards": {
+    "recipes": ["riftgun:duration_eternal_module"]
+  }
+}

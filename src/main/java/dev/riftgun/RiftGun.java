@@ -11,6 +11,7 @@ import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModuleMenus;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
+import dev.riftgun.recipe.RiftGunRecipes;
 import dev.riftgun.service.PortalServices;
 import dev.riftgun.sound.PortalSounds;
 import net.minecraft.core.registries.Registries;
@@ -92,6 +93,7 @@ public final class RiftGun {
         PortalModules.register(modBus);
         PortalModuleMenus.register(modBus);
         PortalFluids.register(modBus);
+        RiftGunRecipes.register(modBus);
         PortalSounds.register(modBus);
         modBus.addListener(this::addCreativeTabContents);
         modBus.addListener(this::registerCapabilities);
@@ -113,6 +115,7 @@ public final class RiftGun {
 
     private void acceptModItems(BuildCreativeModeTabContentsEvent event) {
         event.accept(PORTAL_GUN.get());
+        event.accept(PortalModules.BASIC_MODULE.get());
         PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
         event.accept(PortalFluids.UNSTABLE_BUCKET.get());
         event.accept(PortalFluids.PORTAL_BUCKET.get());
@@ -123,6 +126,7 @@ public final class RiftGun {
     /** Items kept in the vanilla Tools & Utilities tab (Privacy Terminal stays out of it). */
     private void acceptLegacyItems(BuildCreativeModeTabContentsEvent event) {
         event.accept(PORTAL_GUN.get());
+        event.accept(PortalModules.BASIC_MODULE.get());
         PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
         event.accept(PortalFluids.UNSTABLE_BUCKET.get());
         event.accept(PortalFluids.PORTAL_BUCKET.get());

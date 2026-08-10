@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["WLW", "CMC", "PLP"],
+  "key": {
+    "W": { "tag": "c:crops/wheat" },
+    "L": { "tag": "c:leathers" },
+    "C": { "tag": "c:crops/carrot" },
+    "M": { "item": "riftgun:basic_module" },
+    "P": { "tag": "c:crops/potato" }
+  },
+  "result": { "id": "riftgun:passive_transit_module", "count": 1 }
+}

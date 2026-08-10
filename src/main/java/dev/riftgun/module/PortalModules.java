@@ -12,6 +12,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class PortalModules {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, RiftGun.MOD_ID);
 
+    public static final DeferredHolder<Item, Item> BASIC_MODULE = ITEMS.register(
+        "basic_module", () -> new Item(new Item.Properties().stacksTo(64)));
+
     public static final ModuleEntry COORDINATE_OVERRIDE = register(
         "coordinate_override_module", PortalModuleKind.COORDINATE_OVERRIDE, ignored -> 1, 0x74D9E8);
     public static final ModuleEntry RESERVOIR_EXPANSION = register(
