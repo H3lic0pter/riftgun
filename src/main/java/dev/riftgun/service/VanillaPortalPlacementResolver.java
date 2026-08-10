@@ -322,50 +322,26 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     private PortalPlacement resolveExit(ServerLevel level, PortalExitTarget destination,
                                         PortalPlacement entry, PortalAperture aperture) {
         return switch (entry.orientation().oppositeSurface()) {
-            case TOP -> horizontalTopExit(level, destination, aperture);
-            case BOTTOM -> horizontalBottomExit(level, destination, aperture);
+            case TOP -> PortalExitPlacementPolicy.resolveHorizontal(
+                destination, PortalOrientation.TOP, aperture, exitSpace(level));
+            case BOTTOM -> PortalExitPlacementPolicy.resolveHorizontal(
+                destination, PortalOrientation.BOTTOM, aperture, exitSpace(level));
             case VERTICAL -> verticalExit(level, destination, entry, aperture);
         };
     }
 
-    private PortalPlacement horizontalTopExit(ServerLevel level, PortalExitTarget destination,
-                                              PortalAperture aperture) {
-        BlockPos support = BlockPos.containing(destination.position().x, destination.position().y - 0.01,
-            destination.position().z);
-        if (PortalAperturePolicy.expanded(aperture)) {
-            List<PortalPlacement> expanded = expandedHorizontalCandidates(level, support, Direction.UP,
-                destination.yaw());
-            if (!expanded.isEmpty()) {
-                return ExpandedPortalCandidateSelector.choose(
-                    expanded, destination.position(), destination.position());
+    private PortalExitPlacementPolicy.SpaceProbe exitSpace(ServerLevel level) {
+        return new PortalExitPlacementPolicy.SpaceProbe() {
+            @Override
+            public boolean available(PortalPlacement placement) {
+                return !outsideWorld(level, placement.bounds()) && !blocked(level, placement.bounds());
             }
-        }
-        if (!level.getBlockState(support).isFaceSturdy(level, support, Direction.UP)) {
-            return verticalExit(destination, PortalGeometry.SURFACE_VERTICAL);
-        }
-        Vec3 center = new Vec3(support.getX() + 0.5, support.getY() + 1.0 + SURFACE_OFFSET,
-            support.getZ() + 0.5);
-        PortalPlacement placement = new PortalPlacement(center, PortalOrientation.TOP, PortalGeometry.HORIZONTAL,
-            destination.yaw(), null, null);
-        return blocked(level, placement.bounds())
-            ? verticalExit(destination, PortalGeometry.SURFACE_VERTICAL) : placement;
-    }
 
-    private PortalPlacement horizontalBottomExit(ServerLevel level, PortalExitTarget destination,
-                                                 PortalAperture aperture) {
-        Vec3 center = destination.position().add(0.0, 3.0, 0.0);
-        if (PortalAperturePolicy.expanded(aperture)) {
-            BlockPos support = BlockPos.containing(center.x, center.y + 0.01, center.z);
-            List<PortalPlacement> expanded = expandedHorizontalCandidates(level, support, Direction.DOWN,
-                destination.yaw());
-            if (!expanded.isEmpty()) {
-                return ExpandedPortalCandidateSelector.choose(expanded, center, destination.position());
+            @Override
+            public boolean hasTopSupport(BlockPos support) {
+                return level.getBlockState(support).isFaceSturdy(level, support, Direction.UP);
             }
-        }
-        PortalPlacement placement = new PortalPlacement(center, PortalOrientation.BOTTOM, PortalGeometry.HORIZONTAL,
-            destination.yaw(), null, null);
-        return blocked(level, placement.bounds())
-            ? verticalExit(destination, PortalGeometry.SURFACE_VERTICAL) : placement;
+        };
     }
 
     private PortalPlacement verticalExit(PortalExitTarget destination, PortalGeometry geometry) {

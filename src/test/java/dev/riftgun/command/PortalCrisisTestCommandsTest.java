@@ -21,10 +21,11 @@ class PortalCrisisTestCommandsTest {
     }
 
     @Test
-    void resolverAcceptsFullAndRiftgunShorthandIds() {
+    void resolverAcceptsFullNamespacedIdOnly() {
         assertEquals(Optional.of(HIGH_FALL),
             PortalCrisisTestCommands.resolveCrisisId(HIGH_FALL));
-        assertEquals(Optional.of(HIGH_FALL), PortalCrisisTestCommands.resolveCrisisId(
+        // Shorthand without the riftgun namespace is no longer accepted.
+        assertEquals(Optional.empty(), PortalCrisisTestCommands.resolveCrisisId(
             ResourceLocation.withDefaultNamespace("high_altitude_fall")));
     }
 }

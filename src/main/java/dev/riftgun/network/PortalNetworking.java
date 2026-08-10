@@ -79,6 +79,12 @@ public final class PortalNetworking {
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
+    public static void sendGunReferenceInvalid(ServerPlayer player) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "GunReferenceInvalid");
+        PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
     /** Pushes the online player roster plus persisted player-target data for the GUI list. */
     public static void sendPlayerList(ServerPlayer player) {
         MinecraftServer server = player.getServer();

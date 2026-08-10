@@ -125,18 +125,13 @@ public final class PortalCrisisTestCommands {
         for (PortalCrisis crisis : PortalCrisisRegistry.definitions()) {
             String id = crisis.id().toString();
             if (id.toLowerCase(java.util.Locale.ROOT).startsWith(remaining)) builder.suggest(id);
-            String path = crisis.id().getPath();
-            if (path.toLowerCase(java.util.Locale.ROOT).startsWith(remaining)) builder.suggest(path);
         }
         return builder.buildFuture();
     }
 
     static Optional<ResourceLocation> resolveCrisisId(ResourceLocation parsedId) {
-        if (PortalCrisisRegistry.find(parsedId) != null) return Optional.of(parsedId);
-        if (!ResourceLocation.DEFAULT_NAMESPACE.equals(parsedId.getNamespace())) return Optional.empty();
-        ResourceLocation modId = ResourceLocation.fromNamespaceAndPath(
-            RiftGun.MOD_ID, parsedId.getPath());
-        return PortalCrisisRegistry.find(modId) == null ? Optional.empty() : Optional.of(modId);
+        return PortalCrisisRegistry.find(parsedId) == null
+            ? Optional.empty() : Optional.of(parsedId);
     }
 
     private PortalCrisisTestCommands() {}

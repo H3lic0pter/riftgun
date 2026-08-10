@@ -29,12 +29,13 @@ public interface PortalGunLocator {
     }
 
     static Optional<LocatedGun> resolveReference(ServerPlayer player, CompoundTag reference) {
-        String locatorId = reference.getString("Locator");
-        CompoundTag token = reference.getCompound("Token");
+        String locatorId = PortalGunReference.locatorId(reference);
+        CompoundTag token = PortalGunReference.token(reference);
         for (PortalGunLocator locator : LOCATORS) {
             if (!locator.id().equals(locatorId)) continue;
             return locator.resolve(player, token)
                 .filter(stack -> !stack.isEmpty())
+                .filter(stack -> PortalGunIdentity.matches(stack, reference))
                 .map(stack -> new LocatedGun(locatorId, token.copy(), stack));
         }
         return Optional.empty();
@@ -46,10 +47,7 @@ public interface PortalGunLocator {
 
     record LocatedGun(String locatorId, CompoundTag token, ItemStack stack) {
         public CompoundTag saveReference() {
-            CompoundTag tag = new CompoundTag();
-            tag.putString("Locator", locatorId);
-            tag.put("Token", token.copy());
-            return tag;
+            return PortalGunReference.capture(locatorId, token, PortalGunIdentity.ensure(stack));
         }
     }
 }

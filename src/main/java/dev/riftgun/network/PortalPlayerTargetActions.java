@@ -8,6 +8,7 @@ import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
+import dev.riftgun.service.PortalOpenOrigin;
 import dev.riftgun.service.ServerPlayerRoster;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
@@ -41,7 +42,7 @@ final class PortalPlayerTargetActions {
                                 CompoundTag request, PortalGunLocator.LocatedGun gun) {
         PortalOpenCoordinator.requestPlayerTarget(player, data,
             PortalRequestFields.id(request, "Target"), true,
-            data.settings().placementMode(), gun);
+            PortalOpenOrigin.GUI.resolvePlacement(data.settings().placementMode()), gun);
     }
 
     static boolean togglePin(PortalPlayerData data, CompoundTag request) {
@@ -61,7 +62,9 @@ final class PortalPlayerTargetActions {
             player.displayClientMessage(Component.translatable("message.riftgun.player_target_offline"), true);
             return true;
         }
-        PortalOpenCoordinator.requestPlayerTarget(player, data, targetId, fromGui, mode, gun);
+        PortalOpenOrigin origin = fromGui ? PortalOpenOrigin.GUI : PortalOpenOrigin.ITEM;
+        PortalOpenCoordinator.requestPlayerTarget(player, data, targetId, fromGui,
+            origin.resolvePlacement(mode), gun);
         return true;
     }
 

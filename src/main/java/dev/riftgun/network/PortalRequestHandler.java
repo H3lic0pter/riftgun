@@ -7,6 +7,7 @@ import dev.riftgun.module.PortalModuleMenu;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
+import dev.riftgun.service.PortalOpenOrigin;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -29,6 +30,9 @@ public final class PortalRequestHandler {
 
         PortalGunLocator.LocatedGun gun = locateGun(player, request);
         if (gun == null) {
+            if (request.contains("GunReference")) {
+                PortalNetworking.sendGunReferenceInvalid(player);
+            }
             if (action != PortalAction.CYCLE_PLACEMENT_MODE) {
                 player.displayClientMessage(Component.translatable("message.riftgun.no_portal_gun"), true);
             }
@@ -71,7 +75,7 @@ public final class PortalRequestHandler {
             return;
         }
         PortalOpenCoordinator.request(player, data, selected, false,
-            data.settings().placementMode(), gun);
+            PortalOpenOrigin.ITEM.resolvePlacement(data.settings().placementMode()), gun);
     }
 
     private static boolean dispatch(ServerPlayer player, PortalPlayerData data,
@@ -90,7 +94,7 @@ public final class PortalRequestHandler {
             case OPEN_PORTAL -> {
                 PortalOpenCoordinator.request(player, data,
                     PortalRequestFields.id(request, "Destination"), true,
-                    PortalPlacementMode.FRONT, gun);
+                    PortalOpenOrigin.GUI.resolvePlacement(data.settings().placementMode()), gun);
                 yield false;
             }
             case OPEN_SELECTED -> {
@@ -133,7 +137,8 @@ public final class PortalRequestHandler {
         if (selected == null) {
             throw PortalRequestFields.error("message.riftgun.no_destination_selected");
         }
-        PortalOpenCoordinator.request(player, data, selected, false, mode, gun);
+        PortalOpenCoordinator.request(player, data, selected, false,
+            PortalOpenOrigin.ITEM.resolvePlacement(mode), gun);
     }
 
     private static void sendChangedState(ServerPlayer player, PortalPlayerData data,

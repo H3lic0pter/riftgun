@@ -1,0 +1,29 @@
+package dev.riftgun.service;
+
+import dev.riftgun.fuel.PortalGunComponents;
+import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
+
+/** Owns the persistent identity used to bind an open GUI to its exact gun stack. */
+public final class PortalGunIdentity {
+    public static UUID ensure(ItemStack gun) {
+        UUID existing = get(gun);
+        if (existing != null) return existing;
+        UUID created = UUID.randomUUID();
+        gun.set(PortalGunComponents.INSTANCE_ID, created);
+        return created;
+    }
+
+    public static boolean matches(ItemStack gun, CompoundTag reference) {
+        UUID actual = get(gun);
+        return actual != null && PortalGunReference.matches(reference, actual);
+    }
+
+    private static @Nullable UUID get(ItemStack gun) {
+        return gun.get(PortalGunComponents.INSTANCE_ID);
+    }
+
+    private PortalGunIdentity() {}
+}

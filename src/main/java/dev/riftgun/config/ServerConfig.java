@@ -44,6 +44,7 @@ public final class ServerConfig {
         public final ModConfigSpec.ConfigValue<List<? extends String>> forceStableFluids;
         public final ModConfigSpec.ConfigValue<List<? extends String>> crisisWeights;
         public final ModConfigSpec.IntValue maximumCrisisExits;
+        public final ModConfigSpec.IntValue maximumTrackedCrisisPlayers;
         public final ModConfigSpec.IntValue highFallHeight;
         public final ModConfigSpec.IntValue minimumHighFallDrop;
         public final ModConfigSpec.IntValue highFallCooldownTicks;
@@ -148,6 +149,10 @@ public final class ServerConfig {
                     "riftgun:nausea=55"
                 ), ServerConfig::validWeightEntry);
             maximumCrisisExits = builder.defineInRange("maximumCrisisExitsPerPortal", 4, 0, 32);
+            maximumTrackedCrisisPlayers = builder.comment(
+                    "Maximum players remembered by an unstable portal pair. The least recently used "
+                        + "entry is evicted when full, so an evicted player may be evaluated again.")
+                .defineInRange("maximumTrackedPlayersPerPortalPair", 1024, 1, 65536);
             highFallHeight = builder.defineInRange("highFallHeight", 192, 48, 256);
             minimumHighFallDrop = builder.defineInRange("minimumHighFallDrop", 128, 16, 256);
             highFallCooldownTicks = builder.defineInRange("highFallCooldownTicks", 30, 0, 1200);
@@ -160,9 +165,9 @@ public final class ServerConfig {
             spatialTearMinimumHealthRatio = builder.defineInRange("spatialTearMinimumHealthRatio", 0.8, 0.0, 1.0);
             spatialTearProtectionTicks = builder.defineInRange("spatialTearProtectionTicks", 30, 0, 1200);
             spatialTearCooldownTicks = builder.defineInRange("spatialTearCooldownTicks", 40, 0, 1200);
-            weaknessDurationTicks = builder.defineInRange("weaknessDurationTicks", 300, 1, 72000);
+            weaknessDurationTicks = builder.defineInRange("weaknessDurationTicks", 1000, 1, 72000);
             weaknessAmplifier = builder.defineInRange("weaknessAmplifier", 0, 0, 255);
-            nauseaDurationTicks = builder.defineInRange("nauseaDurationTicks", 40, 1, 72000);
+            nauseaDurationTicks = builder.defineInRange("nauseaDurationTicks", 160, 1, 72000);
             nauseaAmplifier = builder.defineInRange("nauseaAmplifier", 0, 0, 255);
             nauseaSoundVolume = builder.defineInRange("nauseaSoundVolume", 0.45, 0.0, 4.0);
             nauseaSoundPitch = builder.defineInRange("nauseaSoundPitch", 1.35, 0.01, 4.0);

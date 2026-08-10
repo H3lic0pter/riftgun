@@ -34,6 +34,12 @@ public final class PortalClientState {
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.onPortalOpened();
             }
+        } else if (kind.equals("GunReferenceInvalid")) {
+            gunReference = new CompoundTag();
+            gun = new CompoundTag();
+            if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen) {
+                Minecraft.getInstance().setScreen(null);
+            }
         } else if (kind.equals("PlayerList")) {
             PlayerListState.handle(envelope);
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {

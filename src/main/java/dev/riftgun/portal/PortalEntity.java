@@ -6,6 +6,7 @@ import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.crisis.ForcedCrisisPreparation;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.crisis.PortalCrisisCoordinator;
+import dev.riftgun.crisis.PortalCrisisEvaluationLedger;
 import dev.riftgun.crisis.PortalCrisisPlan;
 import dev.riftgun.crisis.PortalCrisisTestOverrides;
 import dev.riftgun.config.ServerConfig;
@@ -18,6 +19,7 @@ import dev.riftgun.module.PortalEntityAccessSnapshot;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
@@ -27,7 +29,6 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -69,6 +70,10 @@ public final class PortalEntity extends Entity {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<String> FUEL_ID =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    private static final EntityDataAccessor<Integer> ANCHOR_FACE =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final TicketType<BlockPos> PORTAL_TICKET =
         TicketType.create("riftgun_portal", Vec3i::compareTo);
 
@@ -78,8 +83,6 @@ public final class PortalEntity extends Entity {
     private @Nullable UUID excludedPlayerId;
     private @Nullable UUID deferredExitExclude;
     private boolean exitPortal;
-    private @Nullable BlockPos anchor;
-    private @Nullable Direction anchorFace;
     private @Nullable PortalExitTarget deferredTarget;
     private final PortalTransitGate transitGate = new PortalTransitGate();
     private boolean creatingDeferredExit;
@@ -96,7 +99,7 @@ public final class PortalEntity extends Entity {
     private PortalAperture aperture = PortalAperture.STANDARD;
     private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
     private PortalCrisisConfigurationSnapshot crises = PortalCrisisConfigurationSnapshot.stable();
-    private final Set<UUID> crisisEvaluatedPlayers = new HashSet<>();
+    private final PortalCrisisEvaluationLedger crisisEvaluations = new PortalCrisisEvaluationLedger();
     private int crisisExitCount;
     private @Nullable UUID crisisPlayerId;
     private @Nullable PortalExitTarget crisisReturnTarget;
@@ -209,8 +212,7 @@ public final class PortalEntity extends Entity {
         portal.setYHeadRot(placement.yaw());
         portal.entityData.set(ORIENTATION, placement.orientation().ordinal());
         portal.entityData.set(GEOMETRY, placement.geometry().ordinal());
-        portal.anchor = placement.anchor();
-        portal.anchorFace = placement.anchorFace();
+        portal.setAttachment(PortalAttachment.of(placement.anchor(), placement.anchorFace()));
         portal.entityData.set(FUEL_RGB, fuelRgb);
         portal.entityData.set(FUEL_ID, fuelId);
         portal.entityAccess = options.entityAccess();
@@ -247,6 +249,8 @@ public final class PortalEntity extends Entity {
         builder.define(GEOMETRY, PortalGeometry.FLOATING_VERTICAL.ordinal());
         builder.define(FUEL_RGB, PortalFuelProfiles.DIMENSIONAL_RGB);
         builder.define(FUEL_ID, "riftgun:dimensional_portal_fluid");
+        builder.define(ANCHOR, Optional.empty());
+        builder.define(ANCHOR_FACE, -1);
     }
 
     public PortalLifecycle.Phase phase() {
@@ -298,7 +302,18 @@ public final class PortalEntity extends Entity {
     }
 
     public PortalPlacement placement() {
-        return new PortalPlacement(position(), orientation(), geometry(), getYRot(), anchor, anchorFace);
+        PortalAttachment attachment = attachment();
+        return new PortalPlacement(position(), orientation(), geometry(), getYRot(),
+            attachment.anchor(), attachment.face());
+    }
+
+    private PortalAttachment attachment() {
+        return PortalAttachment.fromSynced(entityData.get(ANCHOR), entityData.get(ANCHOR_FACE));
+    }
+
+    private void setAttachment(PortalAttachment attachment) {
+        entityData.set(ANCHOR, attachment.syncedAnchor());
+        entityData.set(ANCHOR_FACE, attachment.syncedFace());
     }
 
     @Override
@@ -396,10 +411,12 @@ public final class PortalEntity extends Entity {
     }
 
     private boolean anchorStillValid() {
-        if (anchor == null || anchorFace == null || !(level() instanceof ServerLevel serverLevel)) return true;
+        PortalAttachment attachment = attachment();
+        if (!attachment.anchored() || !(level() instanceof ServerLevel serverLevel)) return true;
         if (geometry().expanded() && !PortalSupportArea.hasFullExpandedSupport(serverLevel, placement())) {
             return false;
         }
+        BlockPos anchor = attachment.anchor();
         if (serverLevel.getBlockState(anchor).getCollisionShape(serverLevel, anchor).isEmpty()) return false;
         return !serverLevel.getBlockCollisions(null, placement().bounds().deflate(0.002)).iterator().hasNext();
     }
@@ -636,7 +653,7 @@ public final class PortalEntity extends Entity {
         long now = serverTime();
         PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
             fuelRgb(), fuelId(), runtimeOptions(), now, deferredExitExclude, true);
-        exit.crisisEvaluatedPlayers.addAll(crisisEvaluatedPlayers);
+        exit.crisisEvaluations.copyFrom(crisisEvaluations, maximumTrackedCrisisPlayers());
         exit.crisisExitCount = crisisExitCount;
         exit.acquireChunkTicket();
         if (!targetLevel.addFreshEntity(exit)) {
@@ -724,13 +741,13 @@ public final class PortalEntity extends Entity {
 
     private boolean reserveCrisisRoll(ServerPlayer player) {
         if (!crises.unstable() || player.isSpectator()) return false;
-        UUID id = player.getUUID();
         PortalEntity linked = linkedPortal();
-        if (crisisEvaluatedPlayers.contains(id)
-            || linked != null && linked.crisisEvaluatedPlayers.contains(id)) return false;
-        crisisEvaluatedPlayers.add(id);
-        if (linked != null) linked.crisisEvaluatedPlayers.add(id);
-        return true;
+        return crisisEvaluations.reserve(player.getUUID(),
+            linked == null ? null : linked.crisisEvaluations, maximumTrackedCrisisPlayers());
+    }
+
+    private static int maximumTrackedCrisisPlayers() {
+        return ServerConfig.VALUES.maximumTrackedCrisisPlayers.get();
     }
 
     private boolean canCreateCrisisExit() {
@@ -958,13 +975,13 @@ public final class PortalEntity extends Entity {
         exitPortal = tag.getBoolean("ExitPortal");
         horizontalTriggerExtend = tag.contains("HorizontalTriggerExtend")
             ? Math.max(0.0, tag.getDouble("HorizontalTriggerExtend")) : 0.0;
-        if (tag.contains("Anchor")) anchor = BlockPos.of(tag.getLong("Anchor"));
-        if (tag.contains("AnchorFace")) {
-            try {
-                anchorFace = Direction.valueOf(tag.getString("AnchorFace"));
-            } catch (IllegalArgumentException ignored) {
-                anchorFace = null;
-            }
+        if (tag.contains("Attachment", Tag.TAG_COMPOUND)) {
+            setAttachment(PortalAttachment.load(tag.getCompound("Attachment")));
+        } else {
+            CompoundTag legacyAttachment = new CompoundTag();
+            if (tag.contains("Anchor")) legacyAttachment.putLong("Anchor", tag.getLong("Anchor"));
+            if (tag.contains("AnchorFace")) legacyAttachment.putString("Face", tag.getString("AnchorFace"));
+            setAttachment(PortalAttachment.load(legacyAttachment));
         }
         if (tag.contains("DeferredTarget")) {
             deferredTarget = PortalExitTarget.load(tag.getCompound("DeferredTarget"));
@@ -1009,10 +1026,12 @@ public final class PortalEntity extends Entity {
         crises = tag.contains("PortalCrises")
             ? PortalCrisisConfigurationSnapshot.load(tag.getCompound("PortalCrises"))
             : PortalCrisisConfigurationSnapshot.stable();
-        crisisEvaluatedPlayers.clear();
-        for (Tag raw : tag.getList("CrisisEvaluatedPlayers", Tag.TAG_COMPOUND)) {
-            CompoundTag entry = (CompoundTag) raw;
-            if (entry.hasUUID("Id")) crisisEvaluatedPlayers.add(entry.getUUID("Id"));
+        if (tag.contains("CrisisEvaluations", Tag.TAG_COMPOUND)) {
+            crisisEvaluations.load(tag.getCompound("CrisisEvaluations"), maximumTrackedCrisisPlayers());
+        } else {
+            CompoundTag legacy = new CompoundTag();
+            legacy.put("Players", tag.getList("CrisisEvaluatedPlayers", Tag.TAG_COMPOUND));
+            crisisEvaluations.load(legacy, maximumTrackedCrisisPlayers());
         }
         crisisExitCount = Math.max(0, tag.getInt("CrisisExitCount"));
         if (tag.hasUUID("CrisisPlayer")) crisisPlayerId = tag.getUUID("CrisisPlayer");
@@ -1035,8 +1054,7 @@ public final class PortalEntity extends Entity {
         if (deferredExitExclude != null) tag.putUUID("DeferredExitExclude", deferredExitExclude);
         tag.putBoolean("ExitPortal", exitPortal);
         tag.putDouble("HorizontalTriggerExtend", horizontalTriggerExtend);
-        if (anchor != null) tag.putLong("Anchor", anchor.asLong());
-        if (anchorFace != null) tag.putString("AnchorFace", anchorFace.name());
+        tag.put("Attachment", attachment().save());
         if (deferredTarget != null) tag.put("DeferredTarget", deferredTarget.save());
         tag.putInt("Phase", entityData.get(PHASE));
         tag.putInt("PhaseTicks", entityData.get(PHASE_TICKS));
@@ -1055,13 +1073,7 @@ public final class PortalEntity extends Entity {
         tag.putInt("Aperture", aperture.ordinal());
         tag.put("PortalSounds", sounds.save());
         tag.put("PortalCrises", crises.save());
-        ListTag evaluated = new ListTag();
-        for (UUID id : crisisEvaluatedPlayers) {
-            CompoundTag entry = new CompoundTag();
-            entry.putUUID("Id", id);
-            evaluated.add(entry);
-        }
-        tag.put("CrisisEvaluatedPlayers", evaluated);
+        tag.put("CrisisEvaluations", crisisEvaluations.save());
         tag.putInt("CrisisExitCount", crisisExitCount);
         if (crisisPlayerId != null) tag.putUUID("CrisisPlayer", crisisPlayerId);
         if (crisisReturnTarget != null) tag.put("CrisisReturnTarget", crisisReturnTarget.save());

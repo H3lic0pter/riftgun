@@ -39,6 +39,14 @@ tasks.named('test', Test).configure {
     useJUnitPlatform()
 }
 
+// Ship the project license inside the JAR so it is discoverable from the distribution.
+tasks.named('jar', Jar).configure {
+    from(rootProject.file('LICENSE')) {
+        into 'META-INF'
+        rename { 'LICENSE' }
+    }
+}
+
 runs {
     configureEach {
         systemProperty 'forge.logging.console.level', 'debug'
