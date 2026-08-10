@@ -4,6 +4,7 @@ import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalGunComponents;
+import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.module.PortalModules;
@@ -22,7 +23,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -104,13 +104,7 @@ public final class RiftGun {
     }
 
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            acceptLegacyItems(event);
-        } else if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
-            event.accept(PRIVACY_TERMINAL_ITEM.get());
-        } else if (event.getTab() == RIFT_GUN_TAB.get()) {
-            acceptModItems(event);
-        }
+        if (event.getTab() == RIFT_GUN_TAB.get()) acceptModItems(event);
     }
 
     private void acceptModItems(BuildCreativeModeTabContentsEvent event) {
@@ -123,18 +117,9 @@ public final class RiftGun {
         event.accept(PRIVACY_TERMINAL_ITEM.get());
     }
 
-    /** Items kept in the vanilla Tools & Utilities tab (Privacy Terminal stays out of it). */
-    private void acceptLegacyItems(BuildCreativeModeTabContentsEvent event) {
-        event.accept(PORTAL_GUN.get());
-        event.accept(PortalModules.BASIC_MODULE.get());
-        PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
-        event.accept(PortalFluids.UNSTABLE_BUCKET.get());
-        event.accept(PortalFluids.PORTAL_BUCKET.get());
-        event.accept(PortalFluids.DIMENSIONAL_BUCKET.get());
-    }
-
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerItem(Capabilities.FluidHandler.ITEM,
-            (stack, ignored) -> new PortalGunTank(stack), PORTAL_GUN.get());
+            (stack, ignored) -> PortalGunMode.bucketMode(stack) ? new PortalGunTank(stack) : null,
+            PORTAL_GUN.get());
     }
 }

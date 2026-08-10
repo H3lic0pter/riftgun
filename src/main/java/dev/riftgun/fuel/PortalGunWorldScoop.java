@@ -18,8 +18,6 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public final class PortalGunWorldScoop {
-    public static WorldFluidOverflowPolicy OVERFLOW_POLICY = new WholeSourceOverflowPolicy();
-
     public static boolean tryScoop(ServerPlayer player, InteractionHand hand) {
         ItemStack gun = player.getItemInHand(hand);
         BlockHitResult hit = sourceHit(player);
@@ -40,13 +38,14 @@ public final class PortalGunWorldScoop {
         Optional<PortalFuelProfile> profile = PortalFuelProfiles.resolve(source);
         PortalGunTank tank = new PortalGunTank(gun);
         if (profile.isEmpty()) return fail(player, "message.riftgun.scoop_invalid_fluid");
-        if (!tank.canFillWorldSource(source, OVERFLOW_POLICY)) {
+        if (!tank.canFillWorldSource(source, PortalGunBucketTransferPolicy.OVERFLOW_POLICY)) {
             return fail(player, tank.getFluid().getAmount() >= tank.nominalCapacity()
                 ? "message.riftgun.scoop_full" : "message.riftgun.scoop_mixed");
         }
 
         ItemStack pickedUp = pickup.pickupBlock(player, player.level(), pos, state);
-        if (pickedUp.isEmpty() || !tank.tryFillWorldSource(source, OVERFLOW_POLICY)) {
+        if (pickedUp.isEmpty() || !tank.tryFillWorldSource(
+            source, PortalGunBucketTransferPolicy.OVERFLOW_POLICY)) {
             return fail(player, "message.riftgun.scoop_failed");
         }
 

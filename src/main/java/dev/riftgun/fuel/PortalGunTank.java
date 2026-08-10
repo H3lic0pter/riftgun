@@ -31,6 +31,27 @@ public final class PortalGunTank extends FluidHandlerItemStack {
         return PortalFuelProfiles.accepts(fluid);
     }
 
+    @Override
+    public int fill(FluidStack resource, FluidAction action) {
+        if (container.getCount() != 1 || resource.isEmpty() || !canFillFluidType(resource)) return 0;
+        FluidStack stored = getFluid();
+        if (!stored.isEmpty() && !FluidStack.isSameFluidSameComponents(stored, resource)) return 0;
+
+        int accepted = PortalGunBucketTransferPolicy.acceptedExternalFill(
+            stored.getAmount(), nominalCapacity(), resource.getAmount());
+        if (accepted > 0 && action.execute()) {
+            FluidStack result = stored.isEmpty() ? resource.copyWithAmount(accepted) : stored.copy();
+            if (!stored.isEmpty()) result.grow(accepted);
+            setFluid(result);
+        }
+        return accepted;
+    }
+
+    @Override
+    public FluidStack drain(int maxDrain, FluidAction action) {
+        return super.drain(Math.min(maxDrain, PortalGunBucketTransferPolicy.MAX_TRANSFER), action);
+    }
+
     public boolean tryFillWorldSource(FluidStack source, WorldFluidOverflowPolicy overflowPolicy) {
         if (!canFillWorldSource(source, overflowPolicy)) return false;
         FluidStack stored = getFluid();
