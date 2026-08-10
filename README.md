@@ -60,7 +60,7 @@ Each Portal Gun stores one fluid type at a time and has a base nominal capacity 
 
 Consumption ranges and random consumption are server-configurable. When randomness is disabled, every use consumes the configured minimum.
 
-Bucket mode makes the gun behave as a fluid container and prioritizes extraction. A direct world scoop may accept one complete `1000 mB` source while the gun is still below nominal capacity, allowing at most `capacity + 999 mB`. Once over capacity, further filling is rejected. Standard fluid capabilities used by pipes, tanks, and other mods always stop at nominal capacity.
+The gun always exposes its standard item fluid capability to pipes, tanks, and machine GUIs. Bucket mode controls only direct player interaction and prioritizes extraction from a clicked tank before insertion. A direct world scoop may accept one complete `1000 mB` source while the gun is still below nominal capacity, allowing at most `capacity + 999 mB`. Once over capacity, further filling is rejected. Standard fluid capabilities used by pipes, tanks, and other mods always stop at nominal capacity.
 
 Portal fluids are created by dropping all recipe ingredients into one independent water source block. Once the complete ingredient set is present, the water converts immediately into a `1000 mB` portal-fluid source. JEI provides an in-game view of these recipes.
 

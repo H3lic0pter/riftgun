@@ -4,6 +4,7 @@ import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalGunComponents;
+import dev.riftgun.fuel.PortalGunCapabilityPolicy;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.network.PortalNetworking;
@@ -119,7 +120,9 @@ public final class RiftGun {
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerItem(Capabilities.FluidHandler.ITEM,
-            (stack, ignored) -> PortalGunMode.bucketMode(stack) ? new PortalGunTank(stack) : null,
+            (stack, ignored) -> PortalGunCapabilityPolicy.allows(
+                PortalGunCapabilityPolicy.Access.CAPABILITY, PortalGunMode.bucketMode(stack))
+                ? new PortalGunTank(stack) : null,
             PORTAL_GUN.get());
     }
 }

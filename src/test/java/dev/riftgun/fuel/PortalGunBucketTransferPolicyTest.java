@@ -52,12 +52,36 @@ final class PortalGunBucketTransferPolicyTest {
     }
 
     @Test
-    void preservesWholeBucketOverflowAndCapsExternalCalls() {
-        assertEquals(1000, PortalGunBucketTransferPolicy.acceptedExternalFill(7500, 8000, 4000));
-        assertEquals(0, PortalGunBucketTransferPolicy.acceptedExternalFill(8500, 8000, 1000));
+    void triesAllExtractionViewsBeforeAnyInsertion() {
+        List<String> calls = new ArrayList<>();
 
-        PortalGunBucketTransferPolicy.OVERFLOW_POLICY = new StrictWorldFluidPolicy();
-        assertEquals(0, PortalGunBucketTransferPolicy.acceptedExternalFill(7500, 8000, 1000));
+        boolean transferred = PortalGunBucketTransferPolicy.extractFirst(
+            amount -> {
+                calls.add("sided-extract");
+                return false;
+            },
+            amount -> {
+                calls.add("unsided-extract");
+                return true;
+            },
+            amount -> {
+                calls.add("sided-insert");
+                return true;
+            },
+            amount -> {
+                calls.add("unsided-insert");
+                return true;
+            });
+
+        assertTrue(transferred);
+        assertEquals(List.of("sided-extract", "unsided-extract"), calls);
+    }
+
+    @Test
+    void externalFillStopsAtNominalCapacityWithoutWorldScoopOverflow() {
+        assertEquals(500, PortalGunBucketTransferPolicy.acceptedExternalFill(7500, 8000, 4000));
+        assertEquals(0, PortalGunBucketTransferPolicy.acceptedExternalFill(8500, 8000, 1000));
+        assertEquals(1000, PortalGunBucketTransferPolicy.acceptedExternalFill(6000, 8000, 1000));
         assertFalse(PortalGunBucketTransferPolicy.extractFirst(amount -> false, amount -> false));
     }
 }

@@ -11,11 +11,19 @@ public final class PortalGunBucketTransferPolicy {
         return extract.test(MAX_TRANSFER) || insert.test(MAX_TRANSFER);
     }
 
+    public static boolean extractFirst(IntPredicate sidedExtract, IntPredicate unsidedExtract,
+                                       IntPredicate sidedInsert, IntPredicate unsidedInsert) {
+        return sidedExtract.test(MAX_TRANSFER)
+            || unsidedExtract.test(MAX_TRANSFER)
+            || sidedInsert.test(MAX_TRANSFER)
+            || unsidedInsert.test(MAX_TRANSFER);
+    }
+
     public static int acceptedExternalFill(int stored, int nominalCapacity, int requested) {
         if (requested <= 0) return 0;
         int offered = Math.min(requested, MAX_TRANSFER);
-        int accepted = OVERFLOW_POLICY.acceptedAmount(stored, nominalCapacity, offered);
-        return Math.max(0, Math.min(offered, accepted));
+        int remaining = Math.max(0, nominalCapacity - stored);
+        return Math.min(offered, remaining);
     }
 
     private PortalGunBucketTransferPolicy() {}

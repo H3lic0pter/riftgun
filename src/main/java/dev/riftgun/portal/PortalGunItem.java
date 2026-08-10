@@ -2,6 +2,7 @@ package dev.riftgun.portal;
 
 import dev.riftgun.network.PortalRequestHandler;
 import dev.riftgun.fuel.PortalGunMode;
+import dev.riftgun.fuel.PortalGunCapabilityPolicy;
 import dev.riftgun.fuel.PortalGunFluidInteractions;
 import dev.riftgun.fuel.PortalGunWorldScoop;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,11 +35,16 @@ public final class PortalGunItem extends Item {
     public InteractionResult useOn(UseOnContext context) {
         ItemStack stack = context.getItemInHand();
         Player player = context.getPlayer();
-        if (player == null || !PortalGunMode.bucketMode(stack)) return InteractionResult.PASS;
-        boolean transferred = FluidUtil.getFluidHandler(context.getLevel(), context.getClickedPos(),
-                context.getClickedFace())
-            .map(handler -> PortalGunFluidInteractions.interact(player, context.getHand(), handler))
-            .orElse(false);
+        if (player == null || !PortalGunCapabilityPolicy.allows(
+            PortalGunCapabilityPolicy.Access.DIRECT_INTERACTION, PortalGunMode.bucketMode(stack))) {
+            return InteractionResult.PASS;
+        }
+        var sided = FluidUtil.getFluidHandler(context.getLevel(), context.getClickedPos(),
+            context.getClickedFace());
+        var unsided = FluidUtil.getFluidHandler(context.getLevel(), context.getClickedPos(), null);
+        var primary = sided.orElseGet(() -> unsided.orElse(null));
+        boolean transferred = primary != null && PortalGunFluidInteractions.interact(
+            player, context.getHand(), primary, unsided.orElse(null));
         return transferred
             ? InteractionResult.sidedSuccess(context.getLevel().isClientSide())
             : InteractionResult.PASS;
