@@ -1,5 +1,6 @@
 package dev.riftgun.config;
 
+import java.util.List;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import dev.riftgun.portal.PortalOpenDuration;
 
@@ -39,6 +40,28 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue privacyDenyOnceCooldownSeconds;
         public final ModConfigSpec.DoubleValue frontProjectionFactor;
         public final ModConfigSpec.DoubleValue downshotProjectionFactor;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> forceUnstableFluids;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> forceStableFluids;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> crisisWeights;
+        public final ModConfigSpec.IntValue maximumCrisisExits;
+        public final ModConfigSpec.IntValue highFallHeight;
+        public final ModConfigSpec.IntValue minimumHighFallDrop;
+        public final ModConfigSpec.IntValue highFallCooldownTicks;
+        public final ModConfigSpec.IntValue guardedHighFallCooldownTicks;
+        public final ModConfigSpec.IntValue lavaSearchRadius;
+        public final ModConfigSpec.IntValue lavaCandidateChecks;
+        public final ModConfigSpec.IntValue lavaMinimumArmor;
+        public final ModConfigSpec.IntValue lavaMinimumFireProtection;
+        public final ModConfigSpec.IntValue spatialTearMinimumHealth;
+        public final ModConfigSpec.DoubleValue spatialTearMinimumHealthRatio;
+        public final ModConfigSpec.IntValue spatialTearProtectionTicks;
+        public final ModConfigSpec.IntValue spatialTearCooldownTicks;
+        public final ModConfigSpec.IntValue weaknessDurationTicks;
+        public final ModConfigSpec.IntValue weaknessAmplifier;
+        public final ModConfigSpec.IntValue nauseaDurationTicks;
+        public final ModConfigSpec.IntValue nauseaAmplifier;
+        public final ModConfigSpec.DoubleValue nauseaSoundVolume;
+        public final ModConfigSpec.DoubleValue nauseaSoundPitch;
 
         private Values(ModConfigSpec.Builder builder) {
             builder.push("destinations");
@@ -107,6 +130,61 @@ public final class ServerConfig {
                         + "downward axis, for downshot doors opened in Projection mode.")
                 .defineInRange("downshotProjectionFactor", 1.0, 0.0, 8.0);
             builder.pop();
+
+            builder.push("crises");
+            forceUnstableFluids = builder.comment(
+                    "Fluid IDs forced to behave as unstable, in addition to #riftgun:unstable_portal_fluids.")
+                .defineListAllowEmpty("forceUnstableFluids", List.of(), ServerConfig::validId);
+            forceStableFluids = builder.comment(
+                    "Fluid IDs forced stable. This list overrides both the tag and forceUnstableFluids.")
+                .defineListAllowEmpty("forceStableFluids", List.of(), ServerConfig::validId);
+            crisisWeights = builder.comment(
+                    "Absolute weights out of 1000, formatted as namespace:id=weight. The full set must total at most 1000.")
+                .defineListAllowEmpty("weights", List.of(
+                    "riftgun:high_altitude_fall=8",
+                    "riftgun:lava_hazard=5",
+                    "riftgun:spatial_tear=2",
+                    "riftgun:weakness=30",
+                    "riftgun:nausea=55"
+                ), ServerConfig::validWeightEntry);
+            maximumCrisisExits = builder.defineInRange("maximumCrisisExitsPerPortal", 4, 0, 32);
+            highFallHeight = builder.defineInRange("highFallHeight", 192, 48, 256);
+            minimumHighFallDrop = builder.defineInRange("minimumHighFallDrop", 128, 16, 256);
+            highFallCooldownTicks = builder.defineInRange("highFallCooldownTicks", 30, 0, 1200);
+            guardedHighFallCooldownTicks = builder.defineInRange("guardedHighFallCooldownTicks", 15, 0, 1200);
+            lavaSearchRadius = builder.defineInRange("lavaSearchRadius", 24, 1, 64);
+            lavaCandidateChecks = builder.defineInRange("lavaCandidateChecks", 96, 1, 1024);
+            lavaMinimumArmor = builder.defineInRange("lavaMinimumArmor", 16, 0, 100);
+            lavaMinimumFireProtection = builder.defineInRange("lavaMinimumFireProtection", 4, 0, 100);
+            spatialTearMinimumHealth = builder.defineInRange("spatialTearMinimumHealth", 16, 1, 2048);
+            spatialTearMinimumHealthRatio = builder.defineInRange("spatialTearMinimumHealthRatio", 0.8, 0.0, 1.0);
+            spatialTearProtectionTicks = builder.defineInRange("spatialTearProtectionTicks", 30, 0, 1200);
+            spatialTearCooldownTicks = builder.defineInRange("spatialTearCooldownTicks", 40, 0, 1200);
+            weaknessDurationTicks = builder.defineInRange("weaknessDurationTicks", 300, 1, 72000);
+            weaknessAmplifier = builder.defineInRange("weaknessAmplifier", 0, 0, 255);
+            nauseaDurationTicks = builder.defineInRange("nauseaDurationTicks", 40, 1, 72000);
+            nauseaAmplifier = builder.defineInRange("nauseaAmplifier", 0, 0, 255);
+            nauseaSoundVolume = builder.defineInRange("nauseaSoundVolume", 0.45, 0.0, 4.0);
+            nauseaSoundPitch = builder.defineInRange("nauseaSoundPitch", 1.35, 0.01, 4.0);
+            builder.pop();
+        }
+    }
+
+    private static boolean validId(Object value) {
+        return value instanceof String text && net.minecraft.resources.ResourceLocation.tryParse(text) != null;
+    }
+
+    private static boolean validWeightEntry(Object value) {
+        if (!(value instanceof String text)) return false;
+        int separator = text.lastIndexOf('=');
+        if (separator <= 0 || net.minecraft.resources.ResourceLocation.tryParse(text.substring(0, separator)) == null) {
+            return false;
+        }
+        try {
+            int weight = Integer.parseInt(text.substring(separator + 1));
+            return weight >= 0 && weight <= 1000;
+        } catch (NumberFormatException ignored) {
+            return false;
         }
     }
 

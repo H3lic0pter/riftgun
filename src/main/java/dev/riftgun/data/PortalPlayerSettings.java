@@ -25,7 +25,7 @@ public record PortalPlayerSettings(
 
     public static PortalPlayerSettings defaults() {
         return new PortalPlayerSettings(true, true, true, true, true, true, DestinationSort.RECENT,
-            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, PortalPredictionMode.OFF,
+            PortalPlacementMode.SMART, DEFAULT_SMART_DISTANCE, PortalPredictionMode.PROJECTION,
             PortalSoundSettings.defaults());
     }
 
@@ -62,12 +62,12 @@ public record PortalPlayerSettings(
         PortalPredictionMode predictionMode;
         if (tag.contains("MotionPrediction", Tag.TAG_STRING)) {
             predictionMode = PortalPredictionMode.parse(tag.getString("MotionPrediction"),
-                PortalPredictionMode.OFF);
+                PortalPredictionMode.PROJECTION);
         } else if (tag.contains("MotionPrediction")) {
             predictionMode = tag.getBoolean("MotionPrediction")
                 ? PortalPredictionMode.TRAJECTORY : PortalPredictionMode.OFF;
         } else {
-            predictionMode = PortalPredictionMode.OFF;
+            predictionMode = PortalPredictionMode.PROJECTION;
         }
         return new PortalPlayerSettings(
             !tag.contains("SafetyCheck") || tag.getBoolean("SafetyCheck"),

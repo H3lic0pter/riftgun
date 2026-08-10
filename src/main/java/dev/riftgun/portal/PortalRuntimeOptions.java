@@ -1,5 +1,6 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import dev.riftgun.sound.PortalSoundSnapshot;
 
@@ -11,7 +12,8 @@ public record PortalRuntimeOptions(
     int transitCooldownTicks,
     boolean fallGuard,
     double horizontalTriggerExtend,
-    PortalSoundSnapshot sounds
+    PortalSoundSnapshot sounds,
+    PortalCrisisConfigurationSnapshot crises
 ) {
     public PortalRuntimeOptions {
         if (entityAccess == null) entityAccess = PortalEntityAccessSnapshot.NONE;
@@ -20,5 +22,6 @@ public record PortalRuntimeOptions(
         transitCooldownTicks = Math.max(0, transitCooldownTicks);
         horizontalTriggerExtend = Math.max(0.0, horizontalTriggerExtend);
         if (sounds == null) sounds = PortalSoundSnapshot.defaults();
+        if (crises == null) crises = PortalCrisisConfigurationSnapshot.stable();
     }
 }

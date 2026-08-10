@@ -9,6 +9,7 @@ import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.crisis.PortalFluidInstability;
 
 public final class PortalGunSnapshot {
     public static CompoundTag create(ItemStack gun, int legacySmartDistance) {
@@ -22,6 +23,7 @@ public final class PortalGunSnapshot {
         tag.putInt("Amount", fluid.getAmount());
         tag.putInt("Capacity", tank.nominalCapacity());
         tag.putBoolean("Overfilled", fluid.getAmount() > tank.nominalCapacity());
+        tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid));
         tag.putBoolean("CoordinateOverride", capabilities.coordinateOverride());
         tag.putInt("MaximumSurfaceRange", capabilities.maximumSurfaceRange());
         tag.putInt("SurfaceRange", capabilities.configuredSurfaceRange());

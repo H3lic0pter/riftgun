@@ -141,8 +141,8 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             .add(0.0, geometry.height() * 0.5, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.VERTICAL, geometry,
             yawFromNormal(normal), null, null);
-        return outsideWorld(player.serverLevel(), placement.bounds())
-            ? EntryResult.failure("message.riftgun.front_outside_world")
+        return !FloatingPortalBounds.allows(placement.bounds(), player.serverLevel().getMinBuildHeight())
+            ? EntryResult.failure("message.riftgun.void_portal_too_late")
             : floatingObstructed(player.serverLevel(), placement, minimumExposure)
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
@@ -153,8 +153,8 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             .add(0.0, -downshotDistance, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.TOP,
             geometry, player.getYRot(), null, null);
-        return outsideWorld(player.serverLevel(), placement.bounds())
-            ? EntryResult.failure("message.riftgun.front_outside_world")
+        return !FloatingPortalBounds.allows(placement.bounds(), player.serverLevel().getMinBuildHeight())
+            ? EntryResult.failure("message.riftgun.void_portal_too_late")
             : floatingObstructed(player.serverLevel(), placement, minimumExposure)
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }

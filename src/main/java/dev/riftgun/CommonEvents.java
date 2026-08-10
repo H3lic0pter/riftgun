@@ -6,6 +6,8 @@ import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.PortalServices;
 import dev.riftgun.sound.PortalSounds;
+import dev.riftgun.crisis.PortalCrisisRegistry;
+import dev.riftgun.crisis.PortalCrisisTestOverrides;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -13,10 +15,16 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID)
 public final class CommonEvents {
+    @SubscribeEvent
+    public static void serverAboutToStart(ServerAboutToStartEvent event) {
+        PortalCrisisRegistry.freeze();
+    }
+
     @SubscribeEvent
     public static void clonePlayer(PlayerEvent.Clone event) {
         if (event.getOriginal() instanceof ServerPlayer original && event.getEntity() instanceof ServerPlayer replacement) {
@@ -42,6 +50,7 @@ public final class CommonEvents {
     public static void playerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PortalServices.MOTION_HISTORY.remove(player.getUUID());
+            PortalCrisisTestOverrides.clear(player.getUUID());
             closeOwned(player);
         }
     }
@@ -70,6 +79,7 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void serverStopped(ServerStoppedEvent event) {
         PortalPrivacyService.reset();
+        PortalCrisisTestOverrides.reset();
         PortalSounds.endServerShutdown();
     }
 

@@ -32,9 +32,13 @@ Opening is coordinated by one latest-request-wins transaction per player. A prov
 
 Both endpoints derive `CHARGING`/`OPENING`/`OPEN`/`CLOSING` from the same absolute overworld game time, so lifecycle progress does not depend on which endpoint ticked first. Cross-dimension non-player travel uses the entity returned by `changeDimension`, then rebuilds the eligible vehicle/passenger tree around the replacement references.
 
+## Known limitations
+
+- `lava_hazard` forces crisis selection but does not guarantee scenario creation. Its current bounded random search samples only loaded chunks near the destination, so it can miss valid nearby lava and retain the forced test override. Replace this with a deterministic, bounded candidate search before treating the crisis as stable.
+
 ## Deferred progression
 
 - Recipes and world generation for all three portal fluids.
-- Unstable-fluid malfunction behavior; the current unstable profile only increases consumption.
+- Additional unstable-fluid crises and richer malfunction presentation.
 - Tank upgrades and a future multi-fluid module. The base gun deliberately remains single-fluid.
 - Fluid production cost remains the intended distinction between blue and green fuel even though their current consumption ranges match.

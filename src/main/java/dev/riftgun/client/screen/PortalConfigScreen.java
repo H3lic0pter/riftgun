@@ -1453,7 +1453,13 @@ public final class PortalConfigScreen extends Screen {
         if (mouseX >= fuelGaugeX && mouseX < fuelGaugeX + FUEL_GAUGE_WIDTH
             && mouseY >= fuelGaugeY && mouseY < fuelGaugeY + 19) {
             List<Component> tooltip = new ArrayList<>();
-            tooltip.add(gunFluidName());
+            Component fluidName = gunFluidName();
+            if (PortalClientState.gun().getBoolean("Unstable")) {
+                fluidName = fluidName.copy().append(" ").append(
+                    Component.translatable("tooltip.riftgun.unstable")
+                        .withStyle(net.minecraft.ChatFormatting.DARK_RED));
+            }
+            tooltip.add(fluidName);
             tooltip.add(Component.literal(amount + "/" + capacity + " mB"));
             if (overfilled) tooltip.add(Component.translatable("screen.riftgun.overfilled")
                 .withStyle(net.minecraft.ChatFormatting.GOLD));

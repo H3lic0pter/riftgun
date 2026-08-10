@@ -9,6 +9,7 @@ import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
+import dev.riftgun.crisis.PortalFluidInstability;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRegistry;
 import java.util.UUID;
@@ -103,8 +104,13 @@ public final class ClientGameEvents {
         if (!fluid.isEmpty()) {
             int fluidRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid)
                 .map(dev.riftgun.fuel.PortalFuelProfile::rgb).orElse(0xA7A39C);
+            Component fluidName = fluid.getHoverName();
+            if (PortalFluidInstability.isUnstable(fluid)) {
+                fluidName = fluidName.copy().append(" ").append(
+                    Component.translatable("tooltip.riftgun.unstable").withStyle(ChatFormatting.DARK_RED));
+            }
             event.getToolTip().add(Component.translatable("tooltip.riftgun.fluid",
-                fluid.getHoverName(), fluid.getAmount(), tank.nominalCapacity())
+                fluidName, fluid.getAmount(), tank.nominalCapacity())
                 .withStyle(style -> style.withColor(fluidRgb)));
             if (fluid.getAmount() > tank.nominalCapacity()) {
                 event.getToolTip().add(Component.translatable("screen.riftgun.overfilled")

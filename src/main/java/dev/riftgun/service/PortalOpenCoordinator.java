@@ -5,6 +5,8 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.fuel.PortalFuelManager;
+import dev.riftgun.fuel.PortalGunTank;
+import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalExitTarget;
@@ -152,7 +154,8 @@ public final class PortalOpenCoordinator {
             gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(),
             gunCapabilities.aperture(), gunCapabilities.transitCooldownTicks(),
             gunCapabilities.fallGuard(), ServerConfig.VALUES.horizontalTriggerExtend.get(),
-            PortalSoundSnapshot.from(data.settings().portalSounds()));
+            PortalSoundSnapshot.from(data.settings().portalSounds()),
+            PortalCrisisConfigurationSnapshot.capture(new PortalGunTank(locatedGun.stack()).getFluid()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;

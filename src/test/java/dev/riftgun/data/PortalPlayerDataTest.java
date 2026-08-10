@@ -40,7 +40,7 @@ final class PortalPlayerDataTest {
 
     @Test
     void settingsRoundTripAndOldDataKeepsConfirmationDefaults() {
-        assertEquals(PortalPredictionMode.OFF, PortalPlayerSettings.defaults().predictionMode());
+        assertEquals(PortalPredictionMode.PROJECTION, PortalPlayerSettings.defaults().predictionMode());
         PortalSoundSettings sounds = new PortalSoundSettings(
             PortalSoundRegistry.NONE_ID, PortalSoundRegistry.RIFT_ID, PortalSoundRegistry.ENDER_ID, true);
         PortalPlayerSettings configured = new PortalPlayerSettings(false, false, false, false, true, false,
@@ -65,8 +65,13 @@ final class PortalPlayerDataTest {
         assertTrue(migrated.confirmClearFluid());
         assertEquals(PortalPlacementMode.SMART, migrated.placementMode());
         assertEquals(PortalPlayerSettings.DEFAULT_SMART_DISTANCE, migrated.smartDistance());
-        assertEquals(PortalPredictionMode.OFF, migrated.predictionMode());
+        assertEquals(PortalPredictionMode.PROJECTION, migrated.predictionMode());
         assertEquals(PortalSoundSettings.defaults(), migrated.portalSounds());
+
+        CompoundTag explicitlyDisabled = PortalPlayerSettings.defaults().save();
+        explicitlyDisabled.putString("MotionPrediction", PortalPredictionMode.OFF.name());
+        assertEquals(PortalPredictionMode.OFF,
+            PortalPlayerSettings.load(explicitlyDisabled).predictionMode());
     }
 
     @Test
