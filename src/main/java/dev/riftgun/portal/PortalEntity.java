@@ -39,7 +39,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-public final class PortalEntity extends Entity {
+public final class PortalEntity extends Entity implements PortalVisualSource {
     public static final float DEPTH = (float) PortalPlacement.DEPTH;
 
     private static final EntityDataAccessor<Integer> PHASE =
@@ -262,6 +262,21 @@ public final class PortalEntity extends Entity {
 
     public float portalHeight() {
         return geometry().height();
+    }
+
+    @Override
+    public UUID visualId() {
+        return getUUID();
+    }
+
+    @Override
+    public float visualProgress(float partialTick) {
+        return PortalLifecycle.visibleProgress(phase(), phaseTicks(), partialTick);
+    }
+
+    @Override
+    public float visualAge(float partialTick) {
+        return tickCount + partialTick;
     }
 
     public Vec3 normal() {

@@ -8,6 +8,7 @@ import dev.riftgun.service.PortalServices;
 import dev.riftgun.sound.PortalSounds;
 import dev.riftgun.crisis.PortalCrisisRegistry;
 import dev.riftgun.crisis.PortalCrisisTestOverrides;
+import dev.riftgun.relocation.EntityRelocationManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -74,6 +75,8 @@ public final class CommonEvents {
     public static void serverTick(ServerTickEvent.Post event) {
         PortalServices.MOTION_HISTORY.tick(event.getServer());
         PortalPrivacyService.tick(event.getServer());
+        EntityRelocationManager.tick(event.getServer());
+        dev.riftgun.relocation.EntityRelocationArrivalLatch.tick(event.getServer());
     }
 
     @SubscribeEvent
@@ -81,6 +84,8 @@ public final class CommonEvents {
         PortalPrivacyService.reset();
         PortalCrisisTestOverrides.reset();
         PortalSounds.endServerShutdown();
+        EntityRelocationManager.reset();
+        dev.riftgun.relocation.EntityRelocationArrivalLatch.reset();
     }
 
     @SubscribeEvent

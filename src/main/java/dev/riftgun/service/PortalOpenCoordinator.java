@@ -89,7 +89,8 @@ public final class PortalOpenCoordinator {
         PlayerExcludeMode excludeMode = capabilities.playerExcludeMode();
         UUID entryExclude = excludeMode == PlayerExcludeMode.ENTRY_AND_EXIT
             ? targetPlayerId : null;
-        boolean transitProtects = !selfTarget && PortalPrivacyService.transitProtectsTarget(target);
+        boolean transitProtects = !selfTarget
+            && !PortalPrivacyService.allowsForeignExitTransit(target, player.getUUID());
         UUID exitExclude = transitProtects
             ? targetPlayerId
             : excludeMode != PlayerExcludeMode.OFF ? targetPlayerId : null;

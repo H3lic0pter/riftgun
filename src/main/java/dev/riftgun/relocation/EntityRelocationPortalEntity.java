@@ -1,0 +1,321 @@
+package dev.riftgun.relocation;
+
+import dev.riftgun.RiftGun;
+import dev.riftgun.fuel.PortalFuelProfiles;
+import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalGeometry;
+import dev.riftgun.portal.PortalLifecycle;
+import dev.riftgun.portal.PortalOrientation;
+import dev.riftgun.portal.PortalPlacement;
+import dev.riftgun.portal.PortalVisualSource;
+import dev.riftgun.sound.PortalSoundSnapshot;
+import dev.riftgun.sound.PortalSounds;
+import java.util.Optional;
+import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+/** Visual-only TOP gate used by Entity Relocation entrances and reusable saved-destination exits. */
+public final class EntityRelocationPortalEntity extends Entity implements PortalVisualSource {
+    private static final EntityDataAccessor<Float> SIDE = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> TARGET_SIDE = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> FUEL_RGB = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> PHASE_TICKS = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> EXIT = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> ORIENTATION = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> YAW = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Optional<UUID>> FOLLOW_TARGET = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<Boolean> FOLLOW_PLAYER_HEAD = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.BOOLEAN);
+
+    private int openDurationTicks = 60;
+    private int reservations;
+    private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
+
+    public EntityRelocationPortalEntity(EntityType<?> type, Level level) {
+        super(type, level);
+        noPhysics = true;
+    }
+
+    public static EntityRelocationPortalEntity createEntrance(
+            Level level, Vec3 center, float side, int rgb, UUID followTarget,
+            PortalSoundSnapshot sounds) {
+        return create(level, center, side, rgb, false, followTarget, 1, sounds);
+    }
+
+    public static EntityRelocationPortalEntity createExit(
+            Level level, Vec3 center, float side, int rgb, int openDurationTicks,
+            PortalSoundSnapshot sounds) {
+        return createExit(level, center, side, rgb, openDurationTicks, sounds, false);
+    }
+
+    public static EntityRelocationPortalEntity createExit(
+            Level level, Vec3 center, float side, int rgb, int openDurationTicks,
+            PortalSoundSnapshot sounds, boolean bottom) {
+        EntityRelocationPortalEntity portal = create(
+            level, center, side, rgb, true, null, openDurationTicks, sounds);
+        portal.entityData.set(ORIENTATION,
+            (bottom ? PortalOrientation.BOTTOM : PortalOrientation.TOP).ordinal());
+        return portal;
+    }
+
+    public static EntityRelocationPortalEntity createPlayerDestinationExit(
+            ServerLevel level, net.minecraft.server.level.ServerPlayer player, float side, int rgb,
+            int openDurationTicks, PortalSoundSnapshot sounds) {
+        Vec3 center = EntityRelocationGeometry.playerDestinationExitCenter(
+            player.position(), player.getBoundingBox().maxY);
+        EntityRelocationPortalEntity portal = create(
+            level, center, side, rgb, true, player.getUUID(), openDurationTicks, sounds);
+        portal.entityData.set(ORIENTATION, PortalOrientation.BOTTOM.ordinal());
+        portal.entityData.set(YAW, player.getYRot());
+        portal.entityData.set(FOLLOW_PLAYER_HEAD, true);
+        return portal;
+    }
+
+    public static EntityRelocationPortalEntity createExit(
+            Level level, Vec3 center, float side, int rgb, int openDurationTicks,
+            PortalSoundSnapshot sounds, PortalOrientation orientation, float yaw) {
+        EntityRelocationPortalEntity portal = create(
+            level, center, side, rgb, true, null, openDurationTicks, sounds);
+        portal.entityData.set(ORIENTATION,
+            (orientation == null ? PortalOrientation.TOP : orientation).ordinal());
+        portal.entityData.set(YAW, yaw);
+        return portal;
+    }
+
+    private static EntityRelocationPortalEntity create(
+            Level level, Vec3 center, float side, int rgb, boolean exit, UUID followTarget,
+            int openDurationTicks, PortalSoundSnapshot sounds) {
+        EntityRelocationPortalEntity portal = new EntityRelocationPortalEntity(
+            RiftGun.ENTITY_RELOCATION_PORTAL.get(), level);
+        portal.setPos(center);
+        float normalizedSide = EntityRelocationGeometry.normalizeSide(side);
+        portal.entityData.set(SIDE, normalizedSide);
+        portal.entityData.set(TARGET_SIDE, normalizedSide);
+        portal.entityData.set(FUEL_RGB, rgb);
+        portal.entityData.set(EXIT, exit);
+        portal.entityData.set(FOLLOW_TARGET, Optional.ofNullable(followTarget));
+        portal.openDurationTicks = Math.max(1, openDurationTicks);
+        portal.sounds = sounds == null ? PortalSoundSnapshot.defaults() : sounds;
+        return portal;
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(SIDE, 1.0F);
+        builder.define(TARGET_SIDE, 1.0F);
+        builder.define(FUEL_RGB, PortalFuelProfiles.DIMENSIONAL_RGB);
+        builder.define(PHASE, PortalLifecycle.Phase.OPENING.ordinal());
+        builder.define(PHASE_TICKS, 0);
+        builder.define(EXIT, false);
+        builder.define(ORIENTATION, PortalOrientation.TOP.ordinal());
+        builder.define(YAW, 0.0F);
+        builder.define(FOLLOW_TARGET, Optional.empty());
+        builder.define(FOLLOW_PLAYER_HEAD, false);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (level().isClientSide()) return;
+        followTarget();
+        growTowardRequestedSide();
+
+        PortalLifecycle.Phase current = phase();
+        if (current == PortalLifecycle.Phase.CLOSED) {
+            discardPortal();
+            return;
+        }
+        if (EntityRelocationLifecycle.shouldBeginClosing(
+                current, phaseTicks(), openDurationTicks, reservations)) {
+            beginClosing();
+            return;
+        }
+
+        PortalLifecycle.Step next = PortalLifecycle.tick(current, phaseTicks());
+        setPhase(next.phase(), next.phaseTicks());
+        if (next.phase() == PortalLifecycle.Phase.CLOSED) discardPortal();
+    }
+
+    private void followTarget() {
+        if (entityData.get(FOLLOW_PLAYER_HEAD) && phase() != PortalLifecycle.Phase.OPENING) {
+            entityData.set(FOLLOW_TARGET, Optional.empty());
+            entityData.set(FOLLOW_PLAYER_HEAD, false);
+            return;
+        }
+        entityData.get(FOLLOW_TARGET).ifPresent(id -> {
+            if (level() instanceof ServerLevel serverLevel) {
+                Entity target = serverLevel.getEntity(id);
+                if (target != null) {
+                    double centerY = entityData.get(FOLLOW_PLAYER_HEAD)
+                        ? target.getBoundingBox().maxY + 1.0
+                        : EntityRelocationGeometry.centerY(target.getY(), PortalEntity.DEPTH);
+                    setPos(target.getX(), centerY, target.getZ());
+                    if (entityData.get(FOLLOW_PLAYER_HEAD)) entityData.set(YAW, target.getYRot());
+                }
+            }
+        });
+    }
+
+    private void growTowardRequestedSide() {
+        float current = entityData.get(SIDE);
+        float target = entityData.get(TARGET_SIDE);
+        if (current >= target) return;
+        float step = Math.max(0.05F, (target - current) * 0.35F);
+        entityData.set(SIDE, Math.min(target, current + step));
+    }
+
+    public boolean tryReserve(float requiredSide) {
+        if (!isExit() || phase() != PortalLifecycle.Phase.OPEN) return false;
+        reservations++;
+        requestSide(requiredSide);
+        return true;
+    }
+
+    public void releaseReservation(boolean successful) {
+        if (reservations > 0) reservations--;
+        if (successful && phase() == PortalLifecycle.Phase.OPEN) {
+            entityData.set(PHASE_TICKS, 0);
+        }
+    }
+
+    public void freezeAndClose() {
+        entityData.set(FOLLOW_TARGET, Optional.empty());
+        entityData.set(FOLLOW_PLAYER_HEAD, false);
+        beginClosing();
+    }
+
+    public void beginClosing() {
+        PortalLifecycle.Phase current = phase();
+        if (current == PortalLifecycle.Phase.CLOSING || current == PortalLifecycle.Phase.CLOSED) return;
+        entityData.set(FOLLOW_TARGET, Optional.empty());
+        entityData.set(FOLLOW_PLAYER_HEAD, false);
+        reservations = 0;
+        setPhase(PortalLifecycle.Phase.CLOSING, 0);
+        if (level() instanceof ServerLevel serverLevel) {
+            PortalSounds.playClosing(serverLevel, position(), sounds);
+        }
+    }
+
+    public void requestSide(float requiredSide) {
+        float target = Math.max(entityData.get(TARGET_SIDE),
+            EntityRelocationGeometry.normalizeSide(requiredSide));
+        entityData.set(TARGET_SIDE, target);
+    }
+
+    public PortalLifecycle.Phase phase() {
+        return PortalLifecycle.Phase.byOrdinal(entityData.get(PHASE));
+    }
+
+    public int phaseTicks() {
+        return entityData.get(PHASE_TICKS);
+    }
+
+    public int remainingOpenTicks() {
+        return EntityRelocationLifecycle.remainingOpenTicks(
+            phase(), phaseTicks(), openDurationTicks);
+    }
+
+    public boolean isExit() {
+        return entityData.get(EXIT);
+    }
+
+    private void setPhase(PortalLifecycle.Phase phase, int phaseTicks) {
+        entityData.set(PHASE, phase.ordinal());
+        entityData.set(PHASE_TICKS, Math.max(0, phaseTicks));
+    }
+
+    private void discardPortal() {
+        if (isExit()) EntityRelocationManager.unregisterExit(getUUID());
+        discard();
+    }
+
+    @Override
+    protected void readAdditionalSaveData(CompoundTag tag) {
+        entityData.set(SIDE, EntityRelocationGeometry.normalizeSide(tag.getFloat("Side")));
+        entityData.set(TARGET_SIDE, Math.max(entityData.get(SIDE), tag.getFloat("TargetSide")));
+        entityData.set(FUEL_RGB, tag.getInt("FuelRgb"));
+        entityData.set(EXIT, tag.getBoolean("Exit"));
+        entityData.set(ORIENTATION, tag.contains("Orientation")
+            ? tag.getInt("Orientation")
+            : tag.getBoolean("Bottom") ? PortalOrientation.BOTTOM.ordinal()
+            : PortalOrientation.TOP.ordinal());
+        entityData.set(YAW, tag.getFloat("Yaw"));
+        openDurationTicks = Math.max(1, tag.getInt("OpenDurationTicks"));
+        sounds = tag.contains("Sounds")
+            ? PortalSoundSnapshot.load(tag.getCompound("Sounds")) : PortalSoundSnapshot.defaults();
+        PortalLifecycle.Phase saved = PortalLifecycle.Phase.byOrdinal(tag.getInt("Phase"));
+        if (!isExit() && saved != PortalLifecycle.Phase.CLOSED) saved = PortalLifecycle.Phase.CLOSING;
+        setPhase(saved, tag.getInt("PhaseTicks"));
+        entityData.set(FOLLOW_TARGET, Optional.empty());
+        reservations = 0;
+    }
+
+    @Override
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        tag.putFloat("Side", entityData.get(SIDE));
+        tag.putFloat("TargetSide", entityData.get(TARGET_SIDE));
+        tag.putInt("FuelRgb", fuelRgb());
+        tag.putBoolean("Exit", isExit());
+        tag.putInt("Orientation", orientation().ordinal());
+        tag.putFloat("Yaw", entityData.get(YAW));
+        tag.putInt("OpenDurationTicks", openDurationTicks);
+        tag.putInt("Phase", phase().ordinal());
+        tag.putInt("PhaseTicks", phaseTicks());
+        tag.put("Sounds", sounds.save());
+    }
+
+    @Override public UUID visualId() { return getUUID(); }
+    @Override public PortalOrientation orientation() {
+        return PortalOrientation.byOrdinal(entityData.get(ORIENTATION));
+    }
+    @Override public PortalGeometry geometry() { return PortalGeometry.HORIZONTAL; }
+    @Override public float portalWidth() { return entityData.get(SIDE); }
+    @Override public float portalHeight() { return entityData.get(SIDE); }
+    @Override public Vec3 normal() { return orientation().normal(entityData.get(YAW)); }
+    @Override public Vec3 up() { return orientation().up(entityData.get(YAW)); }
+    @Override public Vec3 right() { return orientation().right(entityData.get(YAW)); }
+    @Override public int fuelRgb() { return entityData.get(FUEL_RGB); }
+
+    @Override
+    public PortalPlacement placement() {
+        return new PortalPlacement(position(), orientation(), PortalGeometry.HORIZONTAL,
+            entityData.get(YAW), null, null);
+    }
+
+    @Override
+    public float visualProgress(float partialTick) {
+        return EntityRelocationLifecycle.visibleProgress(phase(), phaseTicks(), partialTick);
+    }
+
+    @Override public float visualAge(float partialTick) { return tickCount + partialTick; }
+    public int visualAgeTicks() { return tickCount; }
+
+    @Override public boolean isPickable() { return false; }
+    @Override public boolean isPushable() { return false; }
+    @Override public AABB getBoundingBoxForCulling() {
+        float half = portalWidth() * 0.5F;
+        return new AABB(getX() - half, getY() - 0.25, getZ() - half,
+            getX() + half, getY() + 0.25, getZ() + half).inflate(0.5);
+    }
+    @Override public boolean isAlwaysTicking() { return true; }
+    @Override public boolean fireImmune() { return true; }
+}

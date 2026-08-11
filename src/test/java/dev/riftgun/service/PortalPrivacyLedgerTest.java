@@ -137,6 +137,25 @@ final class PortalPrivacyLedgerTest {
             ledger.resolve(retainedPrompt.token(), retained.targetId(), 11L).status());
     }
 
+    @Test
+    void oneShotGrantsAreIsolatedByRequestPurpose() {
+        PortalPrivacyLedger ledger = new PortalPrivacyLedger();
+        UUID target = UUID.randomUUID();
+        UUID requester = UUID.randomUUID();
+        PortalPrivacyLedger.Parties portal = new PortalPrivacyLedger.Parties(
+            target, "Target", requester, "Requester", PortalRequestPurpose.PORTAL);
+        PortalPrivacyLedger.Parties relocation = new PortalPrivacyLedger.Parties(
+            target, "Target", requester, "Requester",
+            PortalRequestPurpose.ENTITY_RELOCATION_SUBJECT);
+
+        ledger.grantOnce(relocation, 10L, 60L);
+
+        assertFalse(ledger.hasGrant(portal.key(), 11L));
+        assertTrue(ledger.hasGrant(relocation.key(), 11L));
+        assertFalse(ledger.consumeGrant(portal.key(), 11L));
+        assertTrue(ledger.consumeGrant(relocation.key(), 11L));
+    }
+
     private static PortalPrivacyLedger.Parties parties() {
         return new PortalPrivacyLedger.Parties(
             UUID.randomUUID(), "Target", UUID.randomUUID(), "Requester");

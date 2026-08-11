@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.riftgun.sound.PortalSoundRegistry;
 import dev.riftgun.sound.PortalSoundSettings;
 import java.util.UUID;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
@@ -82,6 +83,76 @@ final class PortalPlayerDataTest {
         fresh.targetPrivacy(TargetPrivacy.PRIVATE);
         PortalPlayerData restored = PortalPlayerData.load(fresh.save(), TargetPrivacy.PUBLIC);
         assertEquals(TargetPrivacy.PRIVATE, restored.targetPrivacy());
+    }
+
+    @Test
+    void structuredPermissionsRoundTripAndPreserveUnknownIds() {
+        PortalPlayerData data = new PortalPlayerData();
+        UUID requester = UUID.randomUUID();
+        ResourceLocation unknown = ResourceLocation.fromNamespaceAndPath("addon", "temporary_permission");
+        data.globalPermission(PortalPermissions.ENTITY_RELOCATION_DESTINATION,
+            PortalPermissionPolicy.DENY);
+        data.globalPermissions().put(unknown, PortalPermissionPolicy.ALLOW);
+        data.permissionProfile(requester).customize(
+            PortalPermissions.PLAYER_PORTAL, PortalPermissionPolicy.ASK);
+        data.permissionProfile(requester).values().put(unknown, PortalPermissionPolicy.DENY);
+
+        PortalPlayerData restored = PortalPlayerData.load(data.save());
+
+        assertEquals(PortalPermissionPolicy.DENY,
+            restored.globalPermission(PortalPermissions.ENTITY_RELOCATION_DESTINATION));
+        assertEquals(PortalPermissionPolicy.ALLOW, restored.globalPermissions().get(unknown));
+        assertEquals(PlayerPermissionProfileMode.CUSTOM,
+            restored.permissionProfile(requester).mode());
+        assertEquals(PortalPermissionPolicy.ASK,
+            restored.permissionProfile(requester).configured(PortalPermissions.PLAYER_PORTAL));
+        assertEquals(PortalPermissionPolicy.DENY,
+            restored.permissionProfile(requester).values().get(unknown));
+    }
+
+    @Test
+    void legacyRequesterOverrideMigratesOnlyTheHistoricallyCoveredPermissions() {
+        UUID requester = UUID.randomUUID();
+        CompoundTag legacy = new CompoundTag();
+        legacy.putString("TargetPrivacy", TargetPrivacy.REQUEST.name());
+        legacy.putBoolean("TransitPrivacy", true);
+        net.minecraft.nbt.ListTag overrides = new net.minecraft.nbt.ListTag();
+        CompoundTag override = new CompoundTag();
+        override.putUUID("Id", requester);
+        override.putString("Mode", PlayerPermissionOverride.ALLOW.name());
+        overrides.add(override);
+        legacy.put("PrivacyOverrides", overrides);
+
+        PortalPlayerData migrated = PortalPlayerData.load(legacy);
+        PlayerPermissionProfile profile = migrated.permissionProfile(requester);
+
+        assertEquals(PortalPermissionPolicy.ASK,
+            migrated.globalPermission(PortalPermissions.PLAYER_PORTAL));
+        assertEquals(PortalPermissionPolicy.DENY,
+            migrated.globalPermission(PortalPermissions.FOREIGN_EXIT_TRANSIT));
+        assertEquals(PortalPermissionPolicy.ALLOW,
+            profile.configured(PortalPermissions.PLAYER_PORTAL));
+        assertEquals(PortalPermissionPolicy.ALLOW,
+            profile.configured(PortalPermissions.ENTITY_RELOCATION_SUBJECT));
+        assertEquals(PortalPermissionPolicy.FOLLOW_GLOBAL,
+            profile.configured(PortalPermissions.ENTITY_RELOCATION_DESTINATION));
+    }
+
+    @Test
+    void editingAnAllowAllProfileMaterializesCurrentPermissionsAsCustom() {
+        UUID requester = UUID.randomUUID();
+        PortalPlayerData data = new PortalPlayerData();
+        data.permissionProfileMode(requester, PlayerPermissionProfileMode.ALLOW_ALL);
+
+        data.permissionProfile(requester).customize(
+            PortalPermissions.ENTITY_RELOCATION_SUBJECT, PortalPermissionPolicy.DENY);
+
+        PlayerPermissionProfile profile = data.permissionProfile(requester);
+        assertEquals(PlayerPermissionProfileMode.CUSTOM, profile.mode());
+        assertEquals(PortalPermissionPolicy.ALLOW,
+            profile.configured(PortalPermissions.PLAYER_PORTAL));
+        assertEquals(PortalPermissionPolicy.DENY,
+            profile.configured(PortalPermissions.ENTITY_RELOCATION_SUBJECT));
     }
 
     @Test

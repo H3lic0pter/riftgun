@@ -18,6 +18,7 @@ final class PortalGuiSprites {
     static final ResourceLocation PLACEMENT_SMART = icon("placement_smart");
     static final ResourceLocation PLACEMENT_FRONT = icon("placement_front");
     static final ResourceLocation PLACEMENT_SURFACE = icon("placement_surface");
+    static final ResourceLocation PLACEMENT_ENTITY_RELOCATION = icon("placement_entity_relocation");
     static final ResourceLocation PREDICTION_ON = icon("prediction_on");
     static final ResourceLocation PREDICTION_OFF = icon("prediction_off");
     static final ResourceLocation CONFIGURE_GUN = icon("configure_gun");
@@ -42,6 +43,10 @@ final class PortalGuiSprites {
     static final ResourceLocation PLAYER_EXCLUDE_ON = icon("player_exclude_on");
     static final ResourceLocation PLAYER_EXCLUDE_OFF = icon("player_exclude_off");
     static final ResourceLocation PLAYER_REFRESH = icon("player_refresh");
+    static final ResourceLocation ENTITY_RELOCATION_ON = icon("entity_relocation_on");
+    static final ResourceLocation ENTITY_RELOCATION_OFF = icon("entity_relocation_off");
+    static final ResourceLocation ENTITY_RELOCATION_SMART_ON = icon("entity_relocation_smart_on");
+    static final ResourceLocation ENTITY_RELOCATION_SMART_OFF = icon("entity_relocation_smart_off");
     static final ResourceLocation VISUALS = icon("visuals");
     static final ResourceLocation SOUNDS = icon("sounds");
     static final ResourceLocation DROPDOWN = icon("dropdown");

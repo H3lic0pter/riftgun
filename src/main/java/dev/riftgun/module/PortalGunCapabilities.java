@@ -18,6 +18,8 @@ public record PortalGunCapabilities(
     boolean playerTarget,
     PlayerExcludeMode playerExcludeMode,
     int transitCooldownTicks,
+    boolean entityRelocation,
+    boolean entityRelocationSmartRouting,
     boolean fallGuard
 ) {
     public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance) {
@@ -32,6 +34,8 @@ public record PortalGunCapabilities(
             gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
         boolean playerTargetInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.PLAYER_TARGET, rules) > 0;
+        boolean relocationInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0;
         return new PortalGunCapabilities(
             PortalGunModules.activeCount(gun, PortalModuleKind.COORDINATE_OVERRIDE, rules) > 0,
             rules.capacityFor(reservoirCount),
@@ -52,6 +56,9 @@ public record PortalGunCapabilities(
             playerTargetInstalled && settings.playerTargetEnabled(),
             settings.playerExcludeMode(),
             settings.transitCooldownTenths() * 2,
+            relocationInstalled && settings.entityRelocation().enabled(),
+            relocationInstalled && settings.entityRelocation().enabled()
+                && settings.entityRelocation().smartRouting(),
             PortalGunModules.activeCount(gun, PortalModuleKind.FALL_GUARD, rules) > 0
                 && settings.fallGuardEnabled()
         );

@@ -1,6 +1,9 @@
 package dev.riftgun.module;
 
 import dev.riftgun.fuel.PortalGunTank;
+import dev.riftgun.data.PortalDataStore;
+import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.service.PortalGunLocator;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerPlayer;
@@ -64,6 +67,8 @@ public final class PortalGunModuleContainer extends SimpleContainer {
         int newReservoirCount = PortalGunModules.installedCount(getItems(), PortalModuleKind.RESERVOIR_EXPANSION);
         int oldActiveRange = activeCount(previous, PortalModuleKind.SURFACE_RANGE, rules);
         int newActiveRange = activeCount(getItems(), PortalModuleKind.SURFACE_RANGE, rules);
+        int oldActiveRelocation = activeCount(previous, PortalModuleKind.ENTITY_RELOCATION, rules);
+        int newActiveRelocation = activeCount(getItems(), PortalModuleKind.ENTITY_RELOCATION, rules);
 
         PortalGunModules.save(gun(), getItems());
         if (newActiveRange > oldActiveRange) {
@@ -74,6 +79,16 @@ public final class PortalGunModuleContainer extends SimpleContainer {
             }
         }
         if (newReservoirCount < oldReservoirCount) new PortalGunTank(gun()).truncateToNominalCapacity();
+        if (oldActiveRelocation > 0 && newActiveRelocation == 0) {
+            var data = PortalDataStore.load(owner);
+            var normalized = EntityRelocationRouting.normalizePlacementMode(
+                data.settings().placementMode(), false);
+            if (normalized != data.settings().placementMode()) {
+                data.settings(data.settings().withPlacementMode(normalized));
+                PortalDataStore.save(owner, data);
+                PortalNetworking.sendSnapshot(owner, false, locatedGun);
+            }
+        }
         previous = copyItems();
     }
 

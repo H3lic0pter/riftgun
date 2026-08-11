@@ -47,6 +47,10 @@ public final class PortalGunSnapshot {
         tag.putBoolean("FallGuardEnabled", capabilities.fallGuard());
         tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(
             gun, PortalModuleKind.PLAYER_TARGET, rules) > 0);
+        tag.putBoolean("EntityRelocationInstalled", PortalGunModules.activeCount(
+            gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0);
+        tag.putBoolean("EntityRelocationEnabled", capabilities.entityRelocation());
+        tag.putBoolean("EntityRelocationSmartRouting", capabilities.entityRelocationSmartRouting());
         CompoundTag modules = new CompoundTag();
         for (PortalModuleKind kind : PortalModuleKind.values()) {
             modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));

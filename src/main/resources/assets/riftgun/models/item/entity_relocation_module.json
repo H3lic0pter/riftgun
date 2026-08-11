@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "riftgun:item/modules/entity_relocation_module"
+  }
+}

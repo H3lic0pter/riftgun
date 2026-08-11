@@ -116,6 +116,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton entityTransitSettingsButton;
     private @Nullable ThemedButton apertureSettingsButton;
     private @Nullable ThemedButton fallGuardSettingsButton;
+    private @Nullable ThemedButton entityRelocationSettingsButton;
     private @Nullable ThemedButton moduleSettingBackButton;
     private @Nullable ThemedButton passiveTransitButton;
     private @Nullable ThemedButton hostileTransitButton;
@@ -125,6 +126,8 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton playerTargetButton;
     private @Nullable ThemedButton playerExcludeButton;
     private @Nullable ThemedButton playerTargetSettingsButton;
+    private @Nullable ThemedButton entityRelocationEnabledButton;
+    private @Nullable ThemedButton entityRelocationSmartButton;
     private final List<EditBox> coordinateEditFields = new ArrayList<>();
     private final PlayerTargetController playerTargets;
     private @Nullable ThemedButton groupSelector;
@@ -193,6 +196,7 @@ public final class PortalConfigScreen extends Screen {
         entityTransitSettingsButton = null;
         apertureSettingsButton = null;
         fallGuardSettingsButton = null;
+        entityRelocationSettingsButton = null;
         moduleSettingBackButton = null;
         passiveTransitButton = null;
         hostileTransitButton = null;
@@ -202,6 +206,8 @@ public final class PortalConfigScreen extends Screen {
         playerTargetButton = null;
         playerExcludeButton = null;
         playerTargetSettingsButton = null;
+        entityRelocationEnabledButton = null;
+        entityRelocationSmartButton = null;
         coordinateEditFields.clear();
         groupDropdownButton = null;
         motionPredictionButton = null;
@@ -393,6 +399,11 @@ public final class PortalConfigScreen extends Screen {
             if (moduleCount("FALL_GUARD") > 0) {
                 fallGuardSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                     ignored -> openGunSetting(Modal.FALL_GUARD_SETTINGS));
+                buttonX += 31;
+            }
+            if (moduleCount("ENTITY_RELOCATION") > 0) {
+                entityRelocationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                    ignored -> openGunSetting(Modal.ENTITY_RELOCATION_SETTINGS));
             }
         } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
             boolean eternal = PortalClientState.gun().getBoolean("EternalDurationInstalled");
@@ -431,6 +442,12 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.FALL_GUARD_SETTINGS) {
             fallGuardToggleButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("FallGuard", "FallGuardEnabled"));
+        } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
+            entityRelocationEnabledButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
+                ignored -> toggleGunBoolean("EntityRelocation", "EntityRelocationEnabled"));
+            entityRelocationSmartButton = button(x + 49, y + 45, 26, 26, Component.empty(), false,
+                ignored -> toggleGunBoolean(
+                    "EntityRelocationSmartRouting", "EntityRelocationSmartRouting"));
         } else if (modal == Modal.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
@@ -1006,6 +1023,9 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.FALL_GUARD_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.fall_guard_hint"),
                 x, y + 30, PortalTheme.TEXT_MUTED, false);
+        } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
+            graphics.drawString(font, Component.translatable("screen.riftgun.entity_relocation_hint"),
+                x, y + 30, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.VISUAL_SETTINGS) {
             label(graphics, "screen.riftgun.portal_visual", x, y + 34);
         } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
@@ -1093,6 +1113,17 @@ public final class PortalConfigScreen extends Screen {
                 boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled");
                 drawFallGuardIcon(graphics, fallGuardToggleButton.getX() + 7,
                     fallGuardToggleButton.getY() + 7, enabled);
+            } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
+                if (entityRelocationEnabledButton != null) {
+                    boolean enabled = PortalClientState.gun().getBoolean("EntityRelocationEnabled");
+                    drawEntityRelocationIcon(graphics, entityRelocationEnabledButton.getX() + 7,
+                        entityRelocationEnabledButton.getY() + 7, enabled);
+                }
+                if (entityRelocationSmartButton != null) {
+                    boolean enabled = PortalClientState.gun().getBoolean("EntityRelocationSmartRouting");
+                    drawEntityRelocationSmartIcon(graphics, entityRelocationSmartButton.getX() + 7,
+                        entityRelocationSmartButton.getY() + 7, enabled);
+                }
             }
         }
         if (modal == Modal.VISUAL_SETTINGS) {
@@ -1200,6 +1231,17 @@ public final class PortalConfigScreen extends Screen {
                 boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled");
                 entityTooltip(graphics, fallGuardToggleButton,
                     "screen.riftgun.fall_guard", enabled, mouseX, mouseY);
+            } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
+                if (entityRelocationEnabledButton != null) {
+                    entityTooltip(graphics, entityRelocationEnabledButton,
+                        "screen.riftgun.entity_relocation_enabled",
+                        PortalClientState.gun().getBoolean("EntityRelocationEnabled"), mouseX, mouseY);
+                }
+                if (entityRelocationSmartButton != null) {
+                    entityTooltip(graphics, entityRelocationSmartButton,
+                        "screen.riftgun.entity_relocation_smart",
+                        PortalClientState.gun().getBoolean("EntityRelocationSmartRouting"), mouseX, mouseY);
+                }
             }
         }
         if (modal == Modal.VISUAL_SETTINGS) {
@@ -1288,6 +1330,10 @@ public final class PortalConfigScreen extends Screen {
             drawFallGuardIcon(graphics, fallGuardSettingsButton.getX() + 7,
                 fallGuardSettingsButton.getY() + 7, enabled);
         }
+        if (entityRelocationSettingsButton != null) {
+            drawEntityRelocationConfigIcon(graphics, entityRelocationSettingsButton.getX() + 6,
+                entityRelocationSettingsButton.getY() + 6);
+        }
     }
 
     private void renderGunSettingTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -1305,6 +1351,8 @@ public final class PortalConfigScreen extends Screen {
             "screen.riftgun.aperture", mouseX, mouseY);
         settingTooltip(graphics, fallGuardSettingsButton,
             "screen.riftgun.fall_guard", mouseX, mouseY);
+        settingTooltip(graphics, entityRelocationSettingsButton,
+            "screen.riftgun.entity_relocation", mouseX, mouseY);
     }
 
     private void renderEntityTransitButtons(GuiGraphics graphics) {
@@ -2065,9 +2113,12 @@ public final class PortalConfigScreen extends Screen {
 
     private void cyclePlacementMode() {
         PortalPlayerSettings old = PortalClientState.data().settings();
+        PortalPlacementMode mode = old.placementMode().next();
+        if (mode == PortalPlacementMode.ENTITY_RELOCATION
+            && !PortalClientState.gun().getBoolean("EntityRelocationEnabled")) mode = mode.next();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-            old.placementMode().next(), old.smartDistance(), old.predictionMode(), old.portalSounds());
+            mode, old.smartDistance(), old.predictionMode(), old.portalSounds());
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
@@ -2841,7 +2892,7 @@ public final class PortalConfigScreen extends Screen {
             case SETTINGS -> 182;
             case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
                  SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS, ENTITY_TRANSIT_SETTINGS,
-                 PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS -> 132;
+                 PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS -> 132;
             case VISUAL_SETTINGS -> 132;
             case SWIRL_ANIMATION_SETTINGS -> 210;
             case SOUND_SETTINGS -> 178;
@@ -2928,6 +2979,7 @@ public final class PortalConfigScreen extends Screen {
         ENTITY_TRANSIT_SETTINGS("screen.riftgun.entity_transit", "", false, false),
         APERTURE_SETTINGS("screen.riftgun.aperture", "", false, false),
         FALL_GUARD_SETTINGS("screen.riftgun.fall_guard", "", false, false),
+        ENTITY_RELOCATION_SETTINGS("screen.riftgun.entity_relocation", "", false, false),
         PLAYER_TARGET_SETTINGS("screen.riftgun.player_target", "", false, false),
         VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
         SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
@@ -2954,7 +3006,7 @@ public final class PortalConfigScreen extends Screen {
             return this == PORTAL_DURATION_SETTINGS || this == SMART_DISTANCE_SETTINGS
                 || this == SURFACE_RANGE_SETTINGS || this == ENTITY_TRANSIT_SETTINGS
                 || this == APERTURE_SETTINGS || this == PLAYER_TARGET_SETTINGS
-                || this == FALL_GUARD_SETTINGS;
+                || this == FALL_GUARD_SETTINGS || this == ENTITY_RELOCATION_SETTINGS;
         }
         boolean hasInputs() { return hasName || hasCoordinates; }
         boolean isDestinationForm() {

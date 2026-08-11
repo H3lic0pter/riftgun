@@ -34,8 +34,14 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxDurationExtensionModules;
         public final ModConfigSpec.IntValue durationExtensionSecondsPerModule;
         public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
+        public final ModConfigSpec.IntValue maximumConcurrentEntityRelocations;
+        public final ModConfigSpec.IntValue entityRelocationTargetCooldownTicks;
+        public final ModConfigSpec.IntValue entityRelocationExitDurationSeconds;
         public final ModConfigSpec.DoubleValue horizontalTriggerExtend;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultTargetPrivacy;
+        public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultEntityRelocationDestinationPrivacy;
+        public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultEntityRelocationSubjectPrivacy;
+        public final ModConfigSpec.BooleanValue defaultForeignExitTransitAllowed;
         public final ModConfigSpec.IntValue privacyRequestTimeoutSeconds;
         public final ModConfigSpec.IntValue privacyGrantTimeoutSeconds;
         public final ModConfigSpec.IntValue privacyDenyOnceCooldownSeconds;
@@ -114,16 +120,40 @@ public final class ServerConfig {
                 .defineInRange("horizontalTriggerExtend", 0.35, 0.0, 2.0);
             builder.pop();
 
+            builder.push("entityRelocation");
+            maximumConcurrentEntityRelocations = builder.comment(
+                    "Maximum simultaneous Entity Relocation transactions owned by one Portal Gun.")
+                .defineInRange("maximumConcurrentPerGun", 8, 1, 16);
+            entityRelocationTargetCooldownTicks = builder.comment(
+                    "Cooldown after a successful relocation before the same entity can be targeted again.")
+                .defineInRange("targetCooldownTicks", 10, 0, 1200);
+            entityRelocationExitDurationSeconds = builder.comment(
+                    "Fully-open hold time for visual Entity Relocation exits, in seconds. "
+                        + "Opening and closing animations are not included.")
+                .defineInRange("exitDurationSeconds", 3, 1, 30);
+            builder.pop();
+
             builder.push("privacy");
             defaultTargetPrivacy = builder.comment(
                     "Default Target privacy for players who have not configured the Privacy Terminal: "
                         + "PUBLIC, REQUEST, or PRIVATE.")
                 .defineEnum("defaultTargetPrivacy", dev.riftgun.data.TargetPrivacy.PUBLIC);
+            defaultEntityRelocationDestinationPrivacy = builder.comment(
+                    "Default policy for opening an Entity Relocation exit above another player.")
+                .defineEnum("defaultEntityRelocationDestinationPrivacy",
+                    dev.riftgun.data.TargetPrivacy.REQUEST);
+            defaultEntityRelocationSubjectPrivacy = builder.comment(
+                    "Default policy for including another player as an Entity Relocation subject.")
+                .defineEnum("defaultEntityRelocationSubjectPrivacy",
+                    dev.riftgun.data.TargetPrivacy.REQUEST);
+            defaultForeignExitTransitAllowed = builder.comment(
+                    "Whether another player's exit portal may carry a new player's entity tree by default.")
+                .define("defaultForeignExitTransitAllowed", true);
             privacyRequestTimeoutSeconds = builder.comment(
-                    "How long a Player Portal request waits for a response, in seconds.")
-                .defineInRange("privacyRequestTimeoutSeconds", 30, 5, 300);
+                    "How long a privacy request waits for a response, in seconds.")
+                .defineInRange("privacyRequestTimeoutSeconds", 10, 5, 300);
             privacyGrantTimeoutSeconds = builder.comment(
-                    "How long an Allow Once grant waits for a successful portal opening, in seconds.")
+                    "How long an Allow Once grant waits for a successful authorized action, in seconds.")
                 .defineInRange("privacyGrantTimeoutSeconds", 60, 5, 600);
             privacyDenyOnceCooldownSeconds = builder.comment(
                     "How long Deny Once blocks the same requester from asking again, in seconds. "

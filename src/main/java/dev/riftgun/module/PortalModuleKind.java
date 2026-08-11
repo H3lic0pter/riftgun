@@ -12,5 +12,6 @@ public enum PortalModuleKind {
     PLAYER_TARGET,
     DURATION_EXTENSION,
     DURATION_ETERNAL,
-    FALL_GUARD
+    FALL_GUARD,
+    ENTITY_RELOCATION
 }

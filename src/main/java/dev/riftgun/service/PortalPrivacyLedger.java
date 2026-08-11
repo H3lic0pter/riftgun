@@ -165,15 +165,33 @@ final class PortalPrivacyLedger {
         MISSING
     }
 
-    record Parties(UUID targetId, String targetName, UUID requesterId, String requesterName) {
+    record Parties(UUID targetId, String targetName, UUID requesterId, String requesterName,
+                   PortalRequestPurpose purpose) {
+        Parties(UUID targetId, String targetName, UUID requesterId, String requesterName) {
+            this(targetId, targetName, requesterId, requesterName, PortalRequestPurpose.PORTAL);
+        }
+
         RequestKey key() {
-            return new RequestKey(targetId, requesterId);
+            return new RequestKey(targetId, requesterId, purpose);
         }
     }
 
-    record RequestKey(UUID targetId, UUID requesterId) {}
+    TimedParties reserveGrant(RequestKey key, long now) {
+        if (!hasGrant(key, now)) return null;
+        return grants.remove(key);
+    }
+
+    void restoreGrant(RequestKey key, TimedParties grant, long now) {
+        if (grant != null && now < grant.expiresAt()) grants.putIfAbsent(key, grant);
+    }
+
+    record RequestKey(UUID targetId, UUID requesterId, PortalRequestPurpose purpose) {
+        RequestKey(UUID targetId, UUID requesterId) {
+            this(targetId, requesterId, PortalRequestPurpose.PORTAL);
+        }
+    }
 
     private record PendingRequest(UUID token, Parties parties, long expiresAt) {}
 
-    private record TimedParties(Parties parties, long expiresAt) {}
+    record TimedParties(Parties parties, long expiresAt) {}
 }

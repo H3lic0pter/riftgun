@@ -1,12 +1,11 @@
 package dev.riftgun.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import dev.riftgun.portal.PortalEntity;
-import dev.riftgun.portal.PortalLifecycle;
+import dev.riftgun.portal.PortalVisualSource;
 import net.minecraft.client.renderer.MultiBufferSource;
 
 public record PortalVisualRenderContext(
-    PortalEntity portal,
+    PortalVisualSource portal,
     float partialTick,
     PoseStack poseStack,
     MultiBufferSource buffers,
@@ -14,10 +13,10 @@ public record PortalVisualRenderContext(
     PortalVisualStyle style
 ) {
     public float visibleProgress() {
-        return PortalLifecycle.visibleProgress(portal.phase(), portal.phaseTicks(), partialTick);
+        return portal.visualProgress(partialTick);
     }
 
     public float age() {
-        return portal.tickCount + partialTick;
+        return portal.visualAge(partialTick);
     }
 }

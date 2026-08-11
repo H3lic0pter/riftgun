@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [" E ", "RMR", " I "],
+  "key": {
+    "E": { "item": "minecraft:ender_pearl" },
+    "R": { "tag": "c:dusts/redstone" },
+    "M": { "item": "riftgun:basic_module" },
+    "I": { "tag": "c:ingots/iron" }
+  },
+  "result": { "id": "riftgun:entity_relocation_module", "count": 1 }
+}

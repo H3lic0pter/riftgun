@@ -3,6 +3,7 @@ package dev.riftgun.module;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.relocation.EntityRelocationSettings;
 
 /** Compatibility adapter between the grouped domain model and the original flat data schema. */
 final class PortalGunModuleSettingsCodec {
@@ -20,6 +21,8 @@ final class PortalGunModuleSettingsCodec {
         boolean playerTargetEnabled,
         PlayerExcludeMode playerExcludeMode,
         int transitCooldownTenths,
+        boolean entityRelocationEnabled,
+        boolean entityRelocationSmartRouting,
         boolean fallGuardEnabled
     ) {
         private static final Codec<Stored> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -41,6 +44,10 @@ final class PortalGunModuleSettingsCodec {
             Codec.INT.optionalFieldOf("transit_cooldown_tenths",
                     PortalGunModuleSettings.DEFAULT_TRANSIT_COOLDOWN_TENTHS)
                 .forGetter(Stored::transitCooldownTenths),
+            Codec.BOOL.optionalFieldOf("entity_relocation_enabled", true)
+                .forGetter(Stored::entityRelocationEnabled),
+            Codec.BOOL.optionalFieldOf("entity_relocation_smart_routing", false)
+                .forGetter(Stored::entityRelocationSmartRouting),
             Codec.BOOL.optionalFieldOf("fall_guard_enabled", true).forGetter(Stored::fallGuardEnabled)
         ).apply(instance, Stored::new));
 
@@ -51,6 +58,7 @@ final class PortalGunModuleSettingsCodec {
                     bossTransitEnabled, transitCooldownTenths),
                 new PortalGunModuleSettings.Duration(portalDurationSeconds), expandedApertureEnabled,
                 new PortalGunModuleSettings.PlayerTarget(playerTargetEnabled, playerExcludeMode),
+                new EntityRelocationSettings(entityRelocationEnabled, entityRelocationSmartRouting),
                 fallGuardEnabled);
         }
 
@@ -60,6 +68,7 @@ final class PortalGunModuleSettingsCodec {
                 settings.bossTransitEnabled(), settings.portalDurationSeconds(),
                 settings.expandedApertureEnabled(), settings.playerTargetEnabled(),
                 settings.playerExcludeMode(), settings.transitCooldownTenths(),
+                settings.entityRelocation().enabled(), settings.entityRelocation().smartRouting(),
                 settings.fallGuardEnabled());
         }
     }

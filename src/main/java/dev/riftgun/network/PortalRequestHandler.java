@@ -10,6 +10,8 @@ import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalOpenOrigin;
 import dev.riftgun.service.PortalShortcutGunMode;
 import dev.riftgun.service.PortalShortcutGunSelection;
+import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.relocation.EntityRelocationManager;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -82,8 +84,17 @@ public final class PortalRequestHandler {
         PortalGunLocator.LocatedGun gun = PortalGunLocator.first(player).orElse(null);
         if (gun == null || gun.stack() != player.getItemInHand(hand)) return;
         PortalPlayerData data = PortalDataStore.load(player);
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun.stack(), data.settings().smartDistance());
+        PortalPlacementMode mode = data.settings().placementMode();
+        if (mode == PortalPlacementMode.ENTITY_RELOCATION) {
+            EntityRelocationManager.tryStart(player, data, gun, true);
+            return;
+        }
+        if (mode == PortalPlacementMode.SMART && capabilities.entityRelocationSmartRouting()
+            && EntityRelocationManager.tryStart(player, data, gun, false)) return;
         if (PortalPlayerTargetActions.openSelected(
-            player, data, data.settings().placementMode(), gun, false)) return;
+            player, data, mode, gun, false)) return;
         UUID selected = data.selectedDestinationId();
         if (selected == null) {
             player.displayClientMessage(Component.translatable("message.riftgun.no_destination_selected"), true);
@@ -116,7 +127,11 @@ public final class PortalRequestHandler {
                 openSelected(player, data, requestedPlacement(request), gun);
                 yield false;
             }
-            case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(player, data);
+            case RELOCATE_ENTITY -> {
+                EntityRelocationManager.tryStart(player, data, gun, true);
+                yield false;
+            }
+            case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(player, data, gun.stack());
             case CREATE_GROUP -> PortalDestinationActions.createGroup(data, request);
             case RENAME_GROUP -> PortalDestinationActions.renameGroup(data, request);
             case DELETE_GROUP -> PortalDestinationActions.deleteGroup(data, request);

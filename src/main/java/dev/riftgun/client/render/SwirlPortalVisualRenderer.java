@@ -1,7 +1,7 @@
 package dev.riftgun.client.render;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalVisualSource;
 import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacement;
@@ -21,7 +21,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         float progress = context.visibleProgress();
         if (progress <= 0.0F) return;
 
-        PortalEntity portal = context.portal();
+        PortalVisualSource portal = context.portal();
         PortalPlacement placement = portal.placement();
         PortalRenderBasis basis = PortalRenderBasis.from(portal);
         Matrix4f matrix = context.poseStack().last().pose();
@@ -43,7 +43,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         if (placement.anchored()) {
             Vec3 wallFace = Vec3.atCenterOf(placement.anchor())
                 .add(placement.normal().scale(0.5));
-            double centerDistance = portal.position().subtract(wallFace).dot(placement.normal());
+            double centerDistance = placement.center().subtract(wallFace).dot(placement.normal());
             normalOffset = SwirlVisualGeometry.anchoredCenterOffset(centerDistance);
         }
         float phase = phase(portal);
@@ -215,8 +215,8 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
             .setColor(red, green, blue, 1.0F);
     }
 
-    private static float phase(PortalEntity portal) {
-        return ((portal.getUUID().hashCode() & 255) + 0.5F) / 256.0F;
+    private static float phase(PortalVisualSource portal) {
+        return ((portal.visualId().hashCode() & 255) + 0.5F) / 256.0F;
     }
 
     private static float red(int color) { return ((color >> 16) & 255) / 255.0F; }

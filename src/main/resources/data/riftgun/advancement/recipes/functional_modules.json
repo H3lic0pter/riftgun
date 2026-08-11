@@ -16,6 +16,7 @@
       "riftgun:boss_transit_module",
       "riftgun:coordinate_override_module",
       "riftgun:duration_extension_module",
+      "riftgun:entity_relocation_module",
       "riftgun:fall_guard_module",
       "riftgun:hostile_transit_module",
       "riftgun:module_bay_expansion",

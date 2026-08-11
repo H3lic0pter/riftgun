@@ -13,6 +13,7 @@ import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.service.PortalServices;
+import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.sound.PortalSoundSettings;
 import java.util.Locale;
 import net.minecraft.nbt.CompoundTag;
@@ -23,9 +24,13 @@ import net.minecraft.world.item.ItemStack;
 
 /** Player preferences and settings stored directly on a Portal Gun. */
 final class PortalGunActions {
-    static boolean cyclePlacementMode(ServerPlayer player, PortalPlayerData data) {
+    static boolean cyclePlacementMode(ServerPlayer player, PortalPlayerData data, ItemStack gun) {
         PortalPlayerSettings old = data.settings();
         PortalPlacementMode next = old.placementMode().next();
+        if (next == PortalPlacementMode.ENTITY_RELOCATION
+            && !PortalGunCapabilities.resolve(gun, old.smartDistance()).entityRelocation()) {
+            next = next.next();
+        }
         data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(),
             old.soundsEnabled(), old.sort(), next, old.smartDistance(), old.predictionMode(),
@@ -114,6 +119,22 @@ final class PortalGunActions {
                 requireModule(gun, PortalModuleKind.FALL_GUARD, rules,
                     "message.riftgun.fall_guard_module_required");
                 settings = settings.withFallGuardEnabled(request.getBoolean("Enabled"));
+            }
+            case "EntityRelocation" -> {
+                requireModule(gun, PortalModuleKind.ENTITY_RELOCATION, rules,
+                    "message.riftgun.entity_relocation_module_required");
+                boolean enabled = request.getBoolean("Enabled");
+                settings = settings.withEntityRelocationEnabled(enabled);
+                PortalPlacementMode normalized = EntityRelocationRouting.normalizePlacementMode(
+                    data.settings().placementMode(), enabled);
+                if (normalized != data.settings().placementMode()) {
+                    data.settings(data.settings().withPlacementMode(normalized));
+                }
+            }
+            case "EntityRelocationSmartRouting" -> {
+                requireModule(gun, PortalModuleKind.ENTITY_RELOCATION, rules,
+                    "message.riftgun.entity_relocation_module_required");
+                settings = settings.withEntityRelocationSmartRouting(request.getBoolean("Enabled"));
             }
             default -> throw PortalRequestFields.error("message.riftgun.invalid_request");
         }

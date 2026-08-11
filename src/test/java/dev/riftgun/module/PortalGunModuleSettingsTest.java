@@ -34,7 +34,8 @@ final class PortalGunModuleSettingsTest {
             new PortalGunModuleSettings.Placement(-4, 0),
             new PortalGunModuleSettings.Transit(true, true, true, -1),
             new PortalGunModuleSettings.Duration(0), true,
-            new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT), true);
+            new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT),
+            dev.riftgun.relocation.EntityRelocationSettings.defaults(), true);
 
         assertEquals(1, settings.smartDistance());
         assertEquals(1, settings.desiredSurfaceRange());

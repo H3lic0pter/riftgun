@@ -51,6 +51,11 @@ public final class ClientGameEvents {
                 PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS);
             }
         }
+        while (ClientModEvents.ENTITY_RELOCATION.consumeClick()) {
+            if (minecraft.player != null && minecraft.getConnection() != null) {
+                PortalNetworking.sendShortcutRequest(PortalAction.RELOCATE_ENTITY);
+            }
+        }
     }
 
     private static void sendForcedOpen(Minecraft minecraft, PortalPlacementMode mode) {

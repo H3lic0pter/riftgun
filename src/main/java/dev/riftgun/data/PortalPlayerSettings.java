@@ -35,6 +35,12 @@ public record PortalPlayerSettings(
             predictionMode, value);
     }
 
+    public PortalPlayerSettings withPlacementMode(PortalPlacementMode value) {
+        return new PortalPlayerSettings(safetyCheckEnabled, confirmDeletion, confirmDiscardedChanges,
+            confirmClearFluid, animationsEnabled, soundsEnabled, sort, value, smartDistance,
+            predictionMode, portalSounds);
+    }
+
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         tag.putBoolean("SafetyCheck", safetyCheckEnabled);
