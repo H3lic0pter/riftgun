@@ -114,7 +114,7 @@ public final class RiftGunJeiPlugin implements IModPlugin {
                 .addIngredient(NeoForgeTypes.FLUID_STACK,
                     new net.neoforged.neoforge.fluids.FluidStack(Fluids.WATER, 1000))
                 .setFluidRenderer(1000, true, 16, 40)
-                .addTooltipCallback((slot, tooltip) -> tooltip.add(
+                .addRichTooltipCallback((slot, tooltip) -> tooltip.add(
                     Component.translatable("jei.riftgun.fluid_transmutation.water_source")));
 
             var ingredients = holder.value().ingredients();

@@ -18,7 +18,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -63,7 +62,7 @@ public record PortalCrisisCapabilitySnapshot(
             .getOrThrow(Enchantments.FIRE_PROTECTION);
         int fireProtectionLevel = 0;
         for (ItemStack armor : player.getArmorSlots()) {
-            fireProtectionLevel += EnchantmentHelper.getItemEnchantmentLevel(fireProtection, armor);
+            fireProtectionLevel += armor.getEnchantmentLevel(fireProtection);
         }
         boolean lava = player.hasEffect(MobEffects.FIRE_RESISTANCE)
             || firePotion
@@ -87,7 +86,7 @@ public record PortalCrisisCapabilitySnapshot(
         if (!stack.is(Items.POTION) && !stack.is(Items.SPLASH_POTION)) return false;
         PotionContents contents = stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
         for (var effect : contents.getAllEffects()) {
-            if (effect.getEffect().is(MobEffects.FIRE_RESISTANCE)) return true;
+            if (effect.getEffect().equals(MobEffects.FIRE_RESISTANCE)) return true;
         }
         return false;
     }

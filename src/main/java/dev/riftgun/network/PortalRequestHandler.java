@@ -8,6 +8,8 @@ import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalOpenOrigin;
+import dev.riftgun.service.PortalShortcutGunMode;
+import dev.riftgun.service.PortalShortcutGunSelection;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -23,17 +25,30 @@ public final class PortalRequestHandler {
             player.displayClientMessage(Component.translatable("message.riftgun.spectator_denied"), true);
             return;
         }
+        if (action == PortalAction.CLOSE_PORTALS) {
+            closePortals(player);
+            return;
+        }
         if (!action.requiresPortalGun()) {
             PortalPrivacyRequestHandler.handle(player, action, request);
             return;
         }
 
-        PortalGunLocator.LocatedGun gun = locateGun(player, request);
+        boolean keyboardShortcut = isKeyboardShortcut(action, request);
+        PortalGunLocator.LocatedGun gun = keyboardShortcut
+            ? PortalShortcutGunSelection.locate(player).orElse(null)
+            : locateGun(player, request);
         if (gun == null) {
-            if (request.contains("GunReference")) {
+            if (!keyboardShortcut && request.contains("GunReference")) {
                 PortalNetworking.sendGunReferenceInvalid(player);
             }
-            if (action != PortalAction.CYCLE_PLACEMENT_MODE) {
+            if (action == PortalAction.OPEN_GUI) {
+                String message = keyboardShortcut
+                    && PortalShortcutGunSelection.mode() == PortalShortcutGunMode.HELD_HANDS
+                    ? "message.riftgun.portal_gun_must_be_held"
+                    : "message.riftgun.no_portal_gun";
+                player.displayClientMessage(Component.translatable(message), true);
+            } else if (!keyboardShortcut && action != PortalAction.CYCLE_PLACEMENT_MODE) {
                 player.displayClientMessage(Component.translatable("message.riftgun.no_portal_gun"), true);
             }
             return;
@@ -178,6 +193,11 @@ public final class PortalRequestHandler {
         return (request.contains("GunReference")
             ? PortalGunLocator.resolveReference(player, request.getCompound("GunReference"))
             : PortalGunLocator.first(player)).orElse(null);
+    }
+
+    private static boolean isKeyboardShortcut(PortalAction action, CompoundTag request) {
+        return action.isExclusiveKeyboardShortcut()
+            || action == PortalAction.OPEN_GUI && request.getBoolean("KeyboardShortcut");
     }
 
     private PortalRequestHandler() {}

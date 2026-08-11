@@ -117,6 +117,7 @@
   "tooltip.riftgun.fluid": "%s: %s/%s mB",
   "message.riftgun.spectator_denied": "Spectators cannot use the Portal Gun",
   "message.riftgun.no_portal_gun": "No Portal Gun in your inventory",
+  "message.riftgun.portal_gun_must_be_held": "Hold a Portal Gun to configure",
   "message.riftgun.no_destination_selected": "No portal destination selected",
   "message.riftgun.destination_selected": "Selected: %s",
   "message.riftgun.destination_unsafe": "Warning: the destination may be unsafe",
@@ -310,7 +311,7 @@
   "subtitles.riftgun.portal_close": "Portal closes",
   "subtitles.riftgun.portal_transit": "Entity travels through a portal",
   "item.riftgun.basic_module": "Basic Module",
-  "tooltip.riftgun.basic_module.description": "Common crafting base for portal gun modules",
+  "tooltip.riftgun.basic_module.description": "Crafting base for portal gun modules",
   "tooltip.riftgun.basic_module.not_installable": "Not installable",
   "jei.riftgun.fluid_transmutation": "Fluid Transmutation",
   "jei.riftgun.fluid_transmutation.water_source": "Throw the ingredients into a standalone water source block"

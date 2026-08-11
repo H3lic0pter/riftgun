@@ -32,12 +32,12 @@ public final class ClientGameEvents {
         PortalSplashEmitter.tick(minecraft);
         while (ClientModEvents.OPEN_CONFIG.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
-                PortalNetworking.sendRequest(PortalAction.OPEN_GUI);
+                PortalNetworking.sendShortcutRequest(PortalAction.OPEN_GUI);
             }
         }
         while (ClientModEvents.CYCLE_PLACEMENT.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
-                PortalNetworking.sendRequest(PortalAction.CYCLE_PLACEMENT_MODE);
+                PortalNetworking.sendShortcutRequest(PortalAction.CYCLE_PLACEMENT_MODE);
             }
         }
         while (ClientModEvents.FORCE_FRONT.consumeClick()) {
@@ -55,7 +55,7 @@ public final class ClientGameEvents {
 
     private static void sendForcedOpen(Minecraft minecraft, PortalPlacementMode mode) {
         if (minecraft.player == null || minecraft.getConnection() == null) return;
-        PortalNetworking.sendRequest(PortalAction.OPEN_SELECTED,
+        PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED,
             tag -> tag.putString("PlacementMode", mode.name()));
     }
 

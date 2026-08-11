@@ -3,6 +3,7 @@ package dev.riftgun.config;
 import java.util.List;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.service.PortalShortcutGunMode;
 
 public final class ServerConfig {
     public static final ModConfigSpec SPEC;
@@ -63,8 +64,17 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue nauseaAmplifier;
         public final ModConfigSpec.DoubleValue nauseaSoundVolume;
         public final ModConfigSpec.DoubleValue nauseaSoundPitch;
+        public final ModConfigSpec.EnumValue<PortalShortcutGunMode> shortcutGunMode;
 
         private Values(ModConfigSpec.Builder builder) {
+            builder.push("shortcuts");
+            shortcutGunMode = builder.comment(
+                    "Where keyboard shortcuts look for a Portal Gun. HELD_HANDS checks the main hand "
+                        + "first and then the offhand. REGISTERED_LOCATORS also searches inventory and "
+                        + "third-party locator extensions.")
+                .defineEnum("gunLookupMode", PortalShortcutGunMode.HELD_HANDS);
+            builder.pop();
+
             builder.push("destinations");
             maxDestinations = builder.defineInRange("maxDestinationsPerPlayer", 256, 1, 4096);
             maxGroups = builder.defineInRange("maxGroupsPerPlayer", 32, 0, 512);
@@ -135,10 +145,12 @@ public final class ServerConfig {
             builder.push("crises");
             forceUnstableFluids = builder.comment(
                     "Fluid IDs forced to behave as unstable, in addition to #riftgun:unstable_portal_fluids.")
-                .defineListAllowEmpty("forceUnstableFluids", List.of(), ServerConfig::validId);
+                .defineListAllowEmpty("forceUnstableFluids", List.of(),
+                    () -> "minecraft:water", ServerConfig::validId);
             forceStableFluids = builder.comment(
                     "Fluid IDs forced stable. This list overrides both the tag and forceUnstableFluids.")
-                .defineListAllowEmpty("forceStableFluids", List.of(), ServerConfig::validId);
+                .defineListAllowEmpty("forceStableFluids", List.of(),
+                    () -> "minecraft:water", ServerConfig::validId);
             crisisWeights = builder.comment(
                     "Absolute weights out of 1000, formatted as namespace:id=weight. The full set must total at most 1000.")
                 .defineListAllowEmpty("weights", List.of(
@@ -147,7 +159,7 @@ public final class ServerConfig {
                     "riftgun:spatial_tear=2",
                     "riftgun:weakness=30",
                     "riftgun:nausea=55"
-                ), ServerConfig::validWeightEntry);
+                ), () -> "riftgun:nausea=0", ServerConfig::validWeightEntry);
             maximumCrisisExits = builder.defineInRange("maximumCrisisExitsPerPortal", 4, 0, 32);
             maximumTrackedCrisisPlayers = builder.comment(
                     "Maximum players remembered by an unstable portal pair. The least recently used "

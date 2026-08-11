@@ -34,8 +34,12 @@ public enum PortalAction {
 
     public boolean requiresPortalGun() {
         return switch (this) {
-            case SET_PRIVACY, SET_PRIVACY_OVERRIDE, REQUEST_PRIVACY_PLAYERS -> false;
+            case CLOSE_PORTALS, SET_PRIVACY, SET_PRIVACY_OVERRIDE, REQUEST_PRIVACY_PLAYERS -> false;
             default -> true;
         };
+    }
+
+    public boolean isExclusiveKeyboardShortcut() {
+        return this == OPEN_SELECTED || this == CYCLE_PLACEMENT_MODE;
     }
 }

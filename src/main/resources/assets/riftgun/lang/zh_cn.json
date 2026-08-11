@@ -114,6 +114,7 @@
   "tooltip.riftgun.fluid": "%s：%s/%s mB",
   "message.riftgun.spectator_denied": "旁观者无法使用传送枪",
   "message.riftgun.no_portal_gun": "背包中没有传送枪",
+  "message.riftgun.portal_gun_must_be_held": "需要持有传送枪",
   "message.riftgun.no_destination_selected": "尚未选择传送目的地",
   "message.riftgun.destination_selected": "已选择：%s",
   "message.riftgun.destination_unsafe": "警告：目的地可能不安全",

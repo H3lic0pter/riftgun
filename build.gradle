@@ -26,13 +26,22 @@ repositories {
     }
 }
 
+configurations {
+    optionalClientCompileOnly
+    optionalClientRuntimeOnly
+    compileOnly.extendsFrom(optionalClientCompileOnly)
+    runtimeOnly.extendsFrom(optionalClientRuntimeOnly)
+}
+
 dependencies {
     implementation "net.neoforged:neoforge:${neoforge_version}"
-    compileOnly "maven.modrinth:reCfnRvJ:tApwsw9C"
-    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
-    runtimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
+    optionalClientCompileOnly "maven.modrinth:${ryoamiclights_modrinth_project_id}:${ryoamiclights_modrinth_version_id}"
+    optionalClientCompileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
+    // Present only in development runs; optional client integrations are never bundled.
+    optionalClientRuntimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.2'
 }
 
 tasks.named('test', Test).configure {
@@ -78,4 +87,33 @@ tasks.named('processResources', ProcessResources).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs.addAll(['-Xlint:deprecation', '-Xlint:removal'])
+}
+
+tasks.register('verifyReleaseJar') {
+    dependsOn tasks.named('jar')
+    group = 'verification'
+    description = 'Verifies optional client dependencies are not bundled into the release JAR.'
+    doLast {
+        def archive = tasks.named('jar', Jar).get().archiveFile.get().asFile
+        def forbiddenPrefixes = [
+            'mezz/jei/',
+            'org/thinkingstudio/ryoamiclights/',
+            'org/thinkingstudio/obsidianui/',
+            'assets/jei/',
+            'assets/ryoamiclights/',
+            'assets/obsidianui/',
+            'META-INF/jarjar/'
+        ]
+        def bundled = zipTree(archive).matching {
+            forbiddenPrefixes.each { prefix -> include "${prefix}**" }
+        }.files
+        if (!bundled.empty) {
+            throw new GradleException("Optional client dependencies were bundled: ${bundled}")
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('verifyReleaseJar')
 }

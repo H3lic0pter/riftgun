@@ -43,6 +43,17 @@ public final class PortalNetworking {
         PacketDistributor.sendToServer(new PortalRequestPayload(tag));
     }
 
+    public static void sendShortcutRequest(PortalAction action) {
+        sendShortcutRequest(action, ignored -> {});
+    }
+
+    public static void sendShortcutRequest(PortalAction action, Consumer<CompoundTag> writer) {
+        sendRequest(action, tag -> {
+            tag.putBoolean("KeyboardShortcut", true);
+            writer.accept(tag);
+        });
+    }
+
     public static void setClientContextWriter(Consumer<CompoundTag> writer) {
         clientContextWriter = writer;
     }
