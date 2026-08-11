@@ -105,6 +105,8 @@ public final class ClientModEvents {
         event.register(new DynamicFluidContainerModel.Colors(),
             PortalFluids.UNSTABLE_BUCKET.get(), PortalFluids.PORTAL_BUCKET.get(),
             PortalFluids.DIMENSIONAL_BUCKET.get());
+        event.register(new dev.riftgun.client.model.PortalGunItemColors(),
+            RiftGun.PORTAL_GUN.get());
     }
 
     @SubscribeEvent
