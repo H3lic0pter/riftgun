@@ -51,7 +51,9 @@ public record PortalGunCapabilities(
                 PortalGunModules.activeCount(gun, PortalModuleKind.HOSTILE_TRANSIT, rules) > 0
                     && settings.hostileTransitEnabled(),
                 PortalGunModules.activeCount(gun, PortalModuleKind.BOSS_TRANSIT, rules) > 0
-                    && settings.bossTransitEnabled()
+                    && settings.bossTransitEnabled(),
+                PortalGunModules.activeCount(gun, PortalModuleKind.PROJECTILE_TRANSIT, rules) > 0
+                    && settings.projectileTransitEnabled()
             ),
             PortalOpenDuration.ticks(durationSeconds),
             apertureInstalled && settings.expandedApertureEnabled()

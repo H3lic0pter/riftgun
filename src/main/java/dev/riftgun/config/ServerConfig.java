@@ -37,6 +37,10 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maximumConcurrentEntityRelocations;
         public final ModConfigSpec.IntValue entityRelocationTargetCooldownTicks;
         public final ModConfigSpec.IntValue entityRelocationExitDurationSeconds;
+        public final ModConfigSpec.IntValue projectileRelocationOpeningTicks;
+        public final ModConfigSpec.IntValue maximumProjectileTransits;
+        public final ModConfigSpec.BooleanValue enableProjectileSweptCollision;
+        public final ModConfigSpec.IntValue projectileEffectCooldownTicks;
         public final ModConfigSpec.DoubleValue horizontalTriggerExtend;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultTargetPrivacy;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultEntityRelocationDestinationPrivacy;
@@ -131,6 +135,24 @@ public final class ServerConfig {
                     "Fully-open hold time for visual Entity Relocation exits, in seconds. "
                         + "Opening and closing animations are not included.")
                 .defineInRange("exitDurationSeconds", 3, 1, 30);
+            projectileRelocationOpeningTicks = builder.comment(
+                    "Opening animation duration for newly created Projectile Entity Relocation "
+                        + "entrances and exits. Existing shared exits keep their current duration.")
+                .defineInRange("projectileOpeningTicks", 2, 1, 5);
+            builder.pop();
+
+            builder.push("projectileTransit");
+            maximumProjectileTransits = builder.comment(
+                    "Maximum successful RiftGun portal transits during one projectile's lifetime.")
+                .defineInRange("maximumTransits", 32, 1, 1024);
+            enableProjectileSweptCollision = builder.comment(
+                    "Detect fast projectiles by intersecting their swept path with indexed portal faces. "
+                        + "Disable to reduce overhead; ordinary trigger-box transit remains available.")
+                .define("enableSweptCollision", true);
+            projectileEffectCooldownTicks = builder.comment(
+                    "Minimum ticks between projectile transit effects on one portal side. "
+                        + "Zero disables effect coalescing.")
+                .defineInRange("effectCooldownTicks", 2, 0, 20);
             builder.pop();
 
             builder.push("privacy");

@@ -104,11 +104,12 @@ final class PortalGunActions {
                     "message.riftgun.aperture_module_required");
                 settings = settings.withExpandedApertureEnabled(request.getBoolean("Enabled"));
             }
-            case "PassiveTransit", "HostileTransit", "BossTransit" -> {
+            case "PassiveTransit", "HostileTransit", "BossTransit", "ProjectileTransit" -> {
                 PortalModuleKind kind = switch (setting) {
                     case "PassiveTransit" -> PortalModuleKind.PASSIVE_TRANSIT;
                     case "HostileTransit" -> PortalModuleKind.HOSTILE_TRANSIT;
-                    default -> PortalModuleKind.BOSS_TRANSIT;
+                    case "BossTransit" -> PortalModuleKind.BOSS_TRANSIT;
+                    default -> PortalModuleKind.PROJECTILE_TRANSIT;
                 };
                 requireModule(gun, kind, rules, "message.riftgun.entity_module_required");
                 settings = settings.withTransit(kind, request.getBoolean("Enabled"));

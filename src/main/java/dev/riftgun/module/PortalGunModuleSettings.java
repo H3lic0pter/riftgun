@@ -76,6 +76,10 @@ public record PortalGunModuleSettings(
         return transit.bossEnabled();
     }
 
+    public boolean projectileTransitEnabled() {
+        return transit.projectileEnabled();
+    }
+
     public int transitCooldownTenths() {
         return transit.cooldownTenths();
     }
@@ -179,27 +183,37 @@ public record PortalGunModuleSettings(
     }
 
     public record Transit(boolean passiveEnabled, boolean hostileEnabled,
-                          boolean bossEnabled, int cooldownTenths) {
+                          boolean bossEnabled, boolean projectileEnabled, int cooldownTenths) {
+        public Transit(boolean passiveEnabled, boolean hostileEnabled,
+                       boolean bossEnabled, int cooldownTenths) {
+            this(passiveEnabled, hostileEnabled, bossEnabled, true, cooldownTenths);
+        }
+
         public Transit {
             cooldownTenths = Math.clamp(cooldownTenths,
                 MINIMUM_TRANSIT_COOLDOWN_TENTHS, MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
         }
 
         static Transit defaults() {
-            return new Transit(true, true, true, DEFAULT_TRANSIT_COOLDOWN_TENTHS);
+            return new Transit(true, true, true, true, DEFAULT_TRANSIT_COOLDOWN_TENTHS);
         }
 
         Transit withEnabled(PortalModuleKind kind, boolean enabled) {
             return switch (kind) {
-                case PASSIVE_TRANSIT -> new Transit(enabled, hostileEnabled, bossEnabled, cooldownTenths);
-                case HOSTILE_TRANSIT -> new Transit(passiveEnabled, enabled, bossEnabled, cooldownTenths);
-                case BOSS_TRANSIT -> new Transit(passiveEnabled, hostileEnabled, enabled, cooldownTenths);
+                case PASSIVE_TRANSIT -> new Transit(
+                    enabled, hostileEnabled, bossEnabled, projectileEnabled, cooldownTenths);
+                case HOSTILE_TRANSIT -> new Transit(
+                    passiveEnabled, enabled, bossEnabled, projectileEnabled, cooldownTenths);
+                case BOSS_TRANSIT -> new Transit(
+                    passiveEnabled, hostileEnabled, enabled, projectileEnabled, cooldownTenths);
+                case PROJECTILE_TRANSIT -> new Transit(
+                    passiveEnabled, hostileEnabled, bossEnabled, enabled, cooldownTenths);
                 default -> this;
             };
         }
 
         Transit withCooldown(int value) {
-            return new Transit(passiveEnabled, hostileEnabled, bossEnabled, value);
+            return new Transit(passiveEnabled, hostileEnabled, bossEnabled, projectileEnabled, value);
         }
     }
 

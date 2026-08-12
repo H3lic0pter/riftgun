@@ -32,6 +32,7 @@ public final class PortalGunSnapshot {
         tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());
         tag.putBoolean("HostileTransitEnabled", settings.hostileTransitEnabled());
         tag.putBoolean("BossTransitEnabled", settings.bossTransitEnabled());
+        tag.putBoolean("ProjectileTransitEnabled", settings.projectileTransitEnabled());
         boolean eternalInstalled = PortalGunCapabilities.hasEternalDuration(gun, rules);
         int maximumDuration = PortalGunCapabilities.maximumDurationSeconds(gun, rules);
         tag.putInt("PortalDurationSeconds", PortalGunCapabilities.configuredDurationSeconds(

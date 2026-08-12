@@ -33,6 +33,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -84,6 +85,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     private final PortalCrisisController crisis = new PortalCrisisController(this);
     private long lifecycleStartedAt;
     private long closeStartedAt = -1L;
+    private long lastProjectileEffectAt = Long.MIN_VALUE;
 
     public PortalEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -320,6 +322,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         entityData.set(PHASE, nextPhase.ordinal());
         entityData.set(PHASE_TICKS, nextPhaseTicks);
 
+        ProjectilePortalIndex.refresh(this);
+
         if (nextPhase == PortalLifecycle.Phase.CLOSED) {
             releaseChunkTicket();
             discard();
@@ -383,6 +387,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     @Override
     public void remove(RemovalReason reason) {
+        ProjectilePortalIndex.unregister(this);
         releaseChunkTicket();
         super.remove(reason);
     }
@@ -511,6 +516,27 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     boolean fallGuard() {
         return fallGuard;
+    }
+
+    boolean claimProjectileEffect(long now) {
+        int cooldown = ServerConfig.VALUES.projectileEffectCooldownTicks.get();
+        if (cooldown > 0 && lastProjectileEffectAt != Long.MIN_VALUE
+            && now - lastProjectileEffectAt < cooldown) return false;
+        lastProjectileEffectAt = now;
+        return true;
+    }
+
+    boolean allowsProjectile(Projectile projectile) {
+        return phase() == PortalLifecycle.Phase.OPEN && entityAccess.allows(projectile)
+            && !projectile.isPassenger() && PortalProjectileState.canTransit(projectile);
+    }
+
+    boolean entityAccessAllowsProjectiles() {
+        return entityAccess.projectile();
+    }
+
+    boolean trySweptProjectile(Projectile projectile) {
+        return transit.trySweptProjectile(projectile);
     }
 
     boolean entityFallGuard() {

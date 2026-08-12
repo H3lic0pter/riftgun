@@ -177,6 +177,7 @@ final class GuiCaptureHarness {
         gun.putBoolean("PassiveTransitEnabled", true);
         gun.putBoolean("HostileTransitEnabled", false);
         gun.putBoolean("BossTransitEnabled", true);
+        gun.putBoolean("ProjectileTransitEnabled", true);
         gun.putBoolean("PlayerTargetEnabled", true);
         gun.putInt("PlayerExcludeMode", 1);
         gun.putBoolean("PlayerTargetInstalled", true);
@@ -189,6 +190,7 @@ final class GuiCaptureHarness {
         modules.putInt("PASSIVE_TRANSIT", 1);
         modules.putInt("HOSTILE_TRANSIT", 1);
         modules.putInt("BOSS_TRANSIT", 1);
+        modules.putInt("PROJECTILE_TRANSIT", 1);
         modules.putInt("SURFACE_RANGE", 3);
         modules.putInt("APERTURE_EXPANSION", 1);
         modules.putInt("PLAYER_TARGET", 1);

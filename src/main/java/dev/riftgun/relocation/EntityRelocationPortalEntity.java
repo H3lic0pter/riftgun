@@ -2,6 +2,7 @@ package dev.riftgun.relocation;
 
 import dev.riftgun.RiftGun;
 import dev.riftgun.fuel.PortalFuelProfiles;
+import dev.riftgun.config.ServerConfig;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalLifecycle;
@@ -35,6 +36,8 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
         EntityRelocationPortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE_TICKS = SynchedEntityData.defineId(
         EntityRelocationPortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> OPENING_TICKS = SynchedEntityData.defineId(
+        EntityRelocationPortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> EXIT = SynchedEntityData.defineId(
         EntityRelocationPortalEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> ORIENTATION = SynchedEntityData.defineId(
@@ -49,6 +52,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
     private int openDurationTicks = 60;
     private int reservations;
     private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
+    private long lastProjectileEffectAt = Long.MIN_VALUE;
 
     public EntityRelocationPortalEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -57,21 +61,21 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
 
     public static EntityRelocationPortalEntity createEntrance(
             Level level, Vec3 center, float side, int rgb, UUID followTarget,
-            PortalSoundSnapshot sounds) {
-        return create(level, center, side, rgb, false, followTarget, 1, sounds);
+            PortalSoundSnapshot sounds, int openingTicks) {
+        return create(level, center, side, rgb, false, followTarget, 1, sounds, openingTicks);
     }
 
     public static EntityRelocationPortalEntity createExit(
             Level level, Vec3 center, float side, int rgb, int openDurationTicks,
-            PortalSoundSnapshot sounds) {
-        return createExit(level, center, side, rgb, openDurationTicks, sounds, false);
+            PortalSoundSnapshot sounds, int openingTicks) {
+        return createExit(level, center, side, rgb, openDurationTicks, sounds, false, openingTicks);
     }
 
     public static EntityRelocationPortalEntity createExit(
             Level level, Vec3 center, float side, int rgb, int openDurationTicks,
-            PortalSoundSnapshot sounds, boolean bottom) {
+            PortalSoundSnapshot sounds, boolean bottom, int openingTicks) {
         EntityRelocationPortalEntity portal = create(
-            level, center, side, rgb, true, null, openDurationTicks, sounds);
+            level, center, side, rgb, true, null, openDurationTicks, sounds, openingTicks);
         portal.entityData.set(ORIENTATION,
             (bottom ? PortalOrientation.BOTTOM : PortalOrientation.TOP).ordinal());
         return portal;
@@ -79,11 +83,12 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
 
     public static EntityRelocationPortalEntity createPlayerDestinationExit(
             ServerLevel level, net.minecraft.server.level.ServerPlayer player, float side, int rgb,
-            int openDurationTicks, PortalSoundSnapshot sounds) {
+            int openDurationTicks, PortalSoundSnapshot sounds, int openingTicks) {
         Vec3 center = EntityRelocationGeometry.playerDestinationExitCenter(
             player.position(), player.getBoundingBox().maxY);
         EntityRelocationPortalEntity portal = create(
-            level, center, side, rgb, true, player.getUUID(), openDurationTicks, sounds);
+            level, center, side, rgb, true, player.getUUID(), openDurationTicks, sounds,
+            openingTicks);
         portal.entityData.set(ORIENTATION, PortalOrientation.BOTTOM.ordinal());
         portal.entityData.set(YAW, player.getYRot());
         portal.entityData.set(FOLLOW_PLAYER_HEAD, true);
@@ -92,9 +97,10 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
 
     public static EntityRelocationPortalEntity createExit(
             Level level, Vec3 center, float side, int rgb, int openDurationTicks,
-            PortalSoundSnapshot sounds, PortalOrientation orientation, float yaw) {
+            PortalSoundSnapshot sounds, PortalOrientation orientation, float yaw,
+            int openingTicks) {
         EntityRelocationPortalEntity portal = create(
-            level, center, side, rgb, true, null, openDurationTicks, sounds);
+            level, center, side, rgb, true, null, openDurationTicks, sounds, openingTicks);
         portal.entityData.set(ORIENTATION,
             (orientation == null ? PortalOrientation.TOP : orientation).ordinal());
         portal.entityData.set(YAW, yaw);
@@ -103,7 +109,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
 
     private static EntityRelocationPortalEntity create(
             Level level, Vec3 center, float side, int rgb, boolean exit, UUID followTarget,
-            int openDurationTicks, PortalSoundSnapshot sounds) {
+            int openDurationTicks, PortalSoundSnapshot sounds, int openingTicks) {
         EntityRelocationPortalEntity portal = new EntityRelocationPortalEntity(
             RiftGun.ENTITY_RELOCATION_PORTAL.get(), level);
         portal.setPos(center);
@@ -113,6 +119,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
         portal.entityData.set(FUEL_RGB, rgb);
         portal.entityData.set(EXIT, exit);
         portal.entityData.set(FOLLOW_TARGET, Optional.ofNullable(followTarget));
+        portal.entityData.set(OPENING_TICKS, Math.max(1, openingTicks));
         portal.openDurationTicks = Math.max(1, openDurationTicks);
         portal.sounds = sounds == null ? PortalSoundSnapshot.defaults() : sounds;
         return portal;
@@ -125,6 +132,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
         builder.define(FUEL_RGB, PortalFuelProfiles.DIMENSIONAL_RGB);
         builder.define(PHASE, PortalLifecycle.Phase.OPENING.ordinal());
         builder.define(PHASE_TICKS, 0);
+        builder.define(OPENING_TICKS, EntityRelocationLifecycle.OPENING_TICKS);
         builder.define(EXIT, false);
         builder.define(ORIENTATION, PortalOrientation.TOP.ordinal());
         builder.define(YAW, 0.0F);
@@ -150,7 +158,8 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
             return;
         }
 
-        PortalLifecycle.Step next = PortalLifecycle.tick(current, phaseTicks());
+        PortalLifecycle.Step next = PortalLifecycle.tick(current, phaseTicks(),
+            openingTicks(), EntityRelocationLifecycle.CLOSING_TICKS);
         setPhase(next.phase(), next.phaseTicks());
         if (next.phase() == PortalLifecycle.Phase.CLOSED) discardPortal();
     }
@@ -187,6 +196,14 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
         if (!isExit() || phase() != PortalLifecycle.Phase.OPEN) return false;
         reservations++;
         requestSide(requiredSide);
+        return true;
+    }
+
+    boolean claimProjectileEffect(long now) {
+        int cooldown = ServerConfig.VALUES.projectileEffectCooldownTicks.get();
+        if (cooldown > 0 && lastProjectileEffectAt != Long.MIN_VALUE
+            && now - lastProjectileEffectAt < cooldown) return false;
+        lastProjectileEffectAt = now;
         return true;
     }
 
@@ -260,6 +277,9 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
             : PortalOrientation.TOP.ordinal());
         entityData.set(YAW, tag.getFloat("Yaw"));
         openDurationTicks = Math.max(1, tag.getInt("OpenDurationTicks"));
+        entityData.set(OPENING_TICKS, tag.contains("OpeningTicks")
+            ? Math.max(1, tag.getInt("OpeningTicks"))
+            : EntityRelocationLifecycle.OPENING_TICKS);
         sounds = tag.contains("Sounds")
             ? PortalSoundSnapshot.load(tag.getCompound("Sounds")) : PortalSoundSnapshot.defaults();
         PortalLifecycle.Phase saved = PortalLifecycle.Phase.byOrdinal(tag.getInt("Phase"));
@@ -278,6 +298,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
         tag.putInt("Orientation", orientation().ordinal());
         tag.putFloat("Yaw", entityData.get(YAW));
         tag.putInt("OpenDurationTicks", openDurationTicks);
+        tag.putInt("OpeningTicks", openingTicks());
         tag.putInt("Phase", phase().ordinal());
         tag.putInt("PhaseTicks", phaseTicks());
         tag.put("Sounds", sounds.save());
@@ -303,7 +324,12 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
 
     @Override
     public float visualProgress(float partialTick) {
-        return EntityRelocationLifecycle.visibleProgress(phase(), phaseTicks(), partialTick);
+        return EntityRelocationLifecycle.visibleProgress(
+            phase(), phaseTicks(), partialTick, openingTicks());
+    }
+
+    public int openingTicks() {
+        return Math.max(1, entityData.get(OPENING_TICKS));
     }
 
     @Override public float visualAge(float partialTick) { return tickCount + partialTick; }

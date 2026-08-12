@@ -121,6 +121,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton passiveTransitButton;
     private @Nullable ThemedButton hostileTransitButton;
     private @Nullable ThemedButton bossTransitButton;
+    private @Nullable ThemedButton projectileTransitButton;
     private @Nullable ThemedButton apertureToggleButton;
     private @Nullable ThemedButton fallGuardToggleButton;
     private @Nullable ThemedButton entityFallGuardToggleButton;
@@ -202,6 +203,7 @@ public final class PortalConfigScreen extends Screen {
         passiveTransitButton = null;
         hostileTransitButton = null;
         bossTransitButton = null;
+        projectileTransitButton = null;
         apertureToggleButton = null;
         fallGuardToggleButton = null;
         entityFallGuardToggleButton = null;
@@ -529,6 +531,10 @@ public final class PortalConfigScreen extends Screen {
         if (moduleCount("BOSS_TRANSIT") > 0) {
             bossTransitButton = button(buttonX, y, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("BossTransit", "BossTransitEnabled"));
+        }
+        if (moduleCount("PROJECTILE_TRANSIT") > 0) {
+            projectileTransitButton = button(x, y + 31, 26, 26, Component.empty(), false,
+                ignored -> toggleGunBoolean("ProjectileTransit", "ProjectileTransitEnabled"));
         }
     }
 
@@ -1392,6 +1398,11 @@ public final class PortalConfigScreen extends Screen {
             drawDragonIcon(graphics, bossTransitButton.getX() + 6, bossTransitButton.getY() + 7,
                 enabled ? 0xFFB38AD8 : PortalTheme.TEXT_MUTED);
         }
+        if (projectileTransitButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("ProjectileTransitEnabled");
+            drawProjectileTransitIcon(graphics,
+                projectileTransitButton.getX() + 5, projectileTransitButton.getY() + 5, enabled);
+        }
     }
 
     private void renderEntityTransitTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -1406,6 +1417,11 @@ public final class PortalConfigScreen extends Screen {
         if (bossTransitButton != null) {
             boolean enabled = PortalClientState.gun().getBoolean("BossTransitEnabled");
             entityTooltip(graphics, bossTransitButton, "screen.riftgun.boss_transit", enabled, mouseX, mouseY);
+        }
+        if (projectileTransitButton != null) {
+            boolean enabled = PortalClientState.gun().getBoolean("ProjectileTransitEnabled");
+            entityTooltip(graphics, projectileTransitButton,
+                "screen.riftgun.projectile_transit", enabled, mouseX, mouseY);
         }
     }
 
@@ -2912,8 +2928,9 @@ public final class PortalConfigScreen extends Screen {
             case CREATE_CURRENT -> 164;
             case SETTINGS -> 182;
             case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
-                 SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS, ENTITY_TRANSIT_SETTINGS,
+                 SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS,
                  PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS -> 132;
+            case ENTITY_TRANSIT_SETTINGS -> 163;
             case VISUAL_SETTINGS -> 132;
             case SWIRL_ANIMATION_SETTINGS -> 210;
             case SOUND_SETTINGS -> 178;

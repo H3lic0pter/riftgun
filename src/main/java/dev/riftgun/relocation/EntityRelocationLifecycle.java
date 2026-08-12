@@ -11,6 +11,10 @@ public final class EntityRelocationLifecycle {
         return ageTicks == OPENING_TICKS;
     }
 
+    public static boolean shouldTransit(int ageTicks, int openingTicks) {
+        return ageTicks == Math.max(1, openingTicks);
+    }
+
     public static boolean shouldDeferExit(boolean playerDestination, boolean destinationTicking) {
         return !playerDestination && !destinationTicking;
     }
@@ -30,6 +34,12 @@ public final class EntityRelocationLifecycle {
     public static float visibleProgress(PortalLifecycle.Phase phase, int phaseTicks,
                                         float partialTick) {
         return PortalLifecycle.visibleProgress(phase, phaseTicks, partialTick);
+    }
+
+    public static float visibleProgress(PortalLifecycle.Phase phase, int phaseTicks,
+                                        float partialTick, int openingTicks) {
+        return PortalLifecycle.visibleProgress(phase, phaseTicks, partialTick,
+            openingTicks, CLOSING_TICKS);
     }
 
     private EntityRelocationLifecycle() {}

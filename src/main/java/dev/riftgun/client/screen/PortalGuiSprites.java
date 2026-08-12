@@ -32,12 +32,16 @@ final class PortalGuiSprites {
     static final ResourceLocation APERTURE_OFF = icon("aperture_off");
     static final ResourceLocation FALL_GUARD_ON = icon("fall_guard_on");
     static final ResourceLocation FALL_GUARD_OFF = icon("fall_guard_off");
+    static final ResourceLocation ENTITY_FALL_GUARD_ON = icon("entity_fall_guard_on");
+    static final ResourceLocation ENTITY_FALL_GUARD_OFF = icon("entity_fall_guard_off");
     static final ResourceLocation PASSIVE_TRANSIT_ON = icon("passive_transit_on");
     static final ResourceLocation PASSIVE_TRANSIT_OFF = icon("passive_transit_off");
     static final ResourceLocation HOSTILE_TRANSIT_ON = icon("hostile_transit_on");
     static final ResourceLocation HOSTILE_TRANSIT_OFF = icon("hostile_transit_off");
     static final ResourceLocation BOSS_TRANSIT_ON = icon("boss_transit_on");
     static final ResourceLocation BOSS_TRANSIT_OFF = icon("boss_transit_off");
+    static final ResourceLocation PROJECTILE_TRANSIT_ON = icon("projectile_transit_on");
+    static final ResourceLocation PROJECTILE_TRANSIT_OFF = icon("projectile_transit_off");
     static final ResourceLocation PLAYER_TARGET_ON = icon("player_target_on");
     static final ResourceLocation PLAYER_TARGET_OFF = icon("player_target_off");
     static final ResourceLocation PLAYER_EXCLUDE_ON = icon("player_exclude_on");

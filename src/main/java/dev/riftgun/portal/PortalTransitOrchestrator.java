@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -34,7 +35,8 @@ final class PortalTransitOrchestrator {
             crisisExit ? null : portal.excludedPlayerId(),
             crisisExit ? false : portal.isExitPortal(), portal.horizontalTriggerExtend());
         List<Entity> touching = portal.level().getEntities(portal, search, entity ->
-            eligibility.allows(entity) && (!crisisExit || entity instanceof ServerPlayer
+            eligibility.allows(entity) && projectileBudgetAllows(entity)
+                && (!crisisExit || entity instanceof ServerPlayer
                 && portal.crisis().allowsReturn(entity)));
         Set<UUID> touchingIds = new HashSet<>(touching.size());
         for (Entity entity : touching) touchingIds.add(entity.getUUID());
@@ -82,6 +84,16 @@ final class PortalTransitOrchestrator {
         gate.leave(entityId);
     }
 
+    boolean trySweptProjectile(Projectile projectile) {
+        if (!portal.allowsProjectile(projectile)) return false;
+        PortalEntity target = portal.linkedPortal();
+        if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return false;
+        if (!PortalProjectileIntersection.crosses(portal.placement(), projectile)) return false;
+        long now = portal.serverTime();
+        if (!gate.enter(projectile.getUUID(), now, portal.transitCooldownTicks())) return false;
+        return transitNormalTree(projectile, target) != null;
+    }
+
     private @Nullable Entity transitNormalTree(Entity root, PortalEntity target) {
         ServerLevel sourceLevel = (ServerLevel) portal.level();
         Vec3 sourcePosition = root.position();
@@ -93,18 +105,42 @@ final class PortalTransitOrchestrator {
                 target.transit().markInside(moved.getUUID(), now);
             }, failed -> leave(failed.getUUID()));
         if (movedRoot != null) {
+            if (movedRoot instanceof Projectile projectile) {
+                PortalProjectileState.recordSuccessfulTransit(projectile);
+                playProjectileTransitEffects(sourceLevel, sourcePosition, target, movedRoot);
+            } else {
+                PortalSounds.playTransit(sourceLevel, sourcePosition, portal.soundSnapshot());
+                PortalSounds.playTransit(
+                    (ServerLevel) target.level(), movedRoot.position(), portal.soundSnapshot());
+            }
+        }
+        return movedRoot;
+    }
+
+    private boolean projectileBudgetAllows(Entity entity) {
+        return !(entity instanceof Projectile projectile) || PortalProjectileState.canTransit(projectile);
+    }
+
+    private void playProjectileTransitEffects(ServerLevel sourceLevel, Vec3 sourcePosition,
+                                               PortalEntity target, Entity movedRoot) {
+        long now = portal.serverTime();
+        if (portal.claimProjectileEffect(now)) {
             PortalSounds.playTransit(sourceLevel, sourcePosition, portal.soundSnapshot());
+        }
+        if (target.claimProjectileEffect(now)) {
             PortalSounds.playTransit(
                 (ServerLevel) target.level(), movedRoot.position(), portal.soundSnapshot());
         }
-        return movedRoot;
     }
 
     private @Nullable Entity transitNormalSingle(Entity entity, PortalEntity target,
                                                   boolean mountedTransit) {
         Vec3 momentum = portal.transformVector(entity.getDeltaMovement(), target);
-        double outwardSpeed = momentum.dot(target.normal());
-        if (outwardSpeed < 0.12) momentum = momentum.add(target.normal().scale(0.12 - outwardSpeed));
+        if (!(entity instanceof Projectile)) {
+            double outwardSpeed = momentum.dot(target.normal());
+            if (outwardSpeed < 0.12) momentum = momentum.add(
+                target.normal().scale(0.12 - outwardSpeed));
+        }
 
         Vec3 look = portal.transformVector(entity.getLookAngle(), target).normalize();
         if (entity instanceof Player) {
@@ -128,7 +164,8 @@ final class PortalTransitOrchestrator {
 
     private @Nullable Entity transitBootstrapSingle(Entity entity, ServerLevel targetLevel,
                                                      PortalExitTarget target, boolean mountedTransit) {
-        return transitSingle(entity, targetLevel, target.position(), Vec3.ZERO,
+        Vec3 bootstrapMomentum = entity instanceof Projectile ? entity.getDeltaMovement() : Vec3.ZERO;
+        return transitSingle(entity, targetLevel, target.position(), bootstrapMomentum,
             target.yaw(), entity.getXRot(), mountedTransit);
     }
 

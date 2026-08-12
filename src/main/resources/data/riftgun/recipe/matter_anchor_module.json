@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ONO", "DMD", "ODO"],
+  "key": {
+    "O": { "item": "minecraft:obsidian" },
+    "N": { "tag": "c:ingots/netherite" },
+    "D": { "tag": "c:gems/diamond" },
+    "M": { "item": "riftgun:basic_module" }
+  },
+  "result": { "id": "riftgun:matter_anchor_module", "count": 1 }
+}

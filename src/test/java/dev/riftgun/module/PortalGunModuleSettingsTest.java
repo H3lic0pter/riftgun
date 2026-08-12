@@ -16,6 +16,7 @@ final class PortalGunModuleSettingsTest {
             .withSmartDistance(12)
             .withDesiredSurfaceRange(64)
             .withTransit(PortalModuleKind.HOSTILE_TRANSIT, false)
+            .withTransit(PortalModuleKind.PROJECTILE_TRANSIT, false)
             .withPortalDurationSeconds(12)
             .withExpandedApertureEnabled(false);
 
@@ -24,6 +25,7 @@ final class PortalGunModuleSettingsTest {
         assertTrue(changed.passiveTransitEnabled());
         assertFalse(changed.hostileTransitEnabled());
         assertTrue(changed.bossTransitEnabled());
+        assertFalse(changed.projectileTransitEnabled());
         assertEquals(12, changed.portalDurationSeconds());
         assertFalse(changed.expandedApertureEnabled());
     }
@@ -53,6 +55,7 @@ final class PortalGunModuleSettingsTest {
         assertEquals(1, settings.portalDurationSeconds());
         assertEquals(0, settings.transitCooldownTenths());
         assertFalse(settings.fallGuardEntitiesEnabled());
+        assertTrue(settings.projectileTransitEnabled());
     }
 
     @Test
@@ -95,6 +98,7 @@ final class PortalGunModuleSettingsTest {
         assertEquals(11, encoded.get("smart_distance").getAsInt());
         assertEquals(48, encoded.get("desired_surface_range").getAsInt());
         assertEquals(7, encoded.get("transit_cooldown_tenths").getAsInt());
+        assertFalse(encoded.has("projectile_transit_enabled"));
         assertFalse(encoded.has("placement"));
         assertFalse(encoded.has("transit"));
     }

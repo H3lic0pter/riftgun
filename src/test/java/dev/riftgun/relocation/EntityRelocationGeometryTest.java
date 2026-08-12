@@ -67,4 +67,17 @@ final class EntityRelocationGeometryTest {
         assertEquals(0.0F, EntityRelocationLifecycle.visibleProgress(
             PortalLifecycle.Phase.CLOSED, 0, 0.0F));
     }
+
+    @Test
+    void projectileOpeningCanUseTwoTickAnimation() {
+        PortalLifecycle.Step first = PortalLifecycle.tick(
+            PortalLifecycle.Phase.OPENING, 0, 2, EntityRelocationLifecycle.CLOSING_TICKS);
+        PortalLifecycle.Step second = PortalLifecycle.tick(
+            first.phase(), first.phaseTicks(), 2, EntityRelocationLifecycle.CLOSING_TICKS);
+
+        assertEquals(PortalLifecycle.Phase.OPENING, first.phase());
+        assertEquals(PortalLifecycle.Phase.OPEN, second.phase());
+        assertEquals(0.5F, EntityRelocationLifecycle.visibleProgress(
+            PortalLifecycle.Phase.OPENING, 1, 0.0F, 2));
+    }
 }

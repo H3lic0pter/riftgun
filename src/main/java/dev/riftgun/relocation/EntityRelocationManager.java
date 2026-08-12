@@ -17,6 +17,8 @@ import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalLifecycle;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.portal.PortalOrientation;
+import dev.riftgun.portal.PortalProjectileState;
+import dev.riftgun.portal.ProjectileMotion;
 import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalPrivacyService;
@@ -40,6 +42,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.DimensionTransition;
@@ -64,7 +67,7 @@ public final class EntityRelocationManager {
             if (explicit) message(owner, "message.riftgun.entity_relocation_module_required");
             return explicit;
         }
-        LivingEntity target = findTarget(owner, capabilities).orElse(null);
+        Entity target = findTarget(owner, capabilities).orElse(null);
         if (target == null) {
             if (explicit) message(owner, "message.riftgun.entity_relocation_target_required");
             return explicit;
@@ -79,7 +82,7 @@ public final class EntityRelocationManager {
 
     private static boolean start(ServerPlayer owner, PortalPlayerData data,
                                  PortalGunLocator.LocatedGun locatedGun,
-                                 PortalGunCapabilities capabilities, LivingEntity target) {
+                                 PortalGunCapabilities capabilities, Entity target) {
         MinecraftServer server = owner.getServer();
         if (server == null) return true;
         ResolvedDestination destination = resolveDestination(server, data);
@@ -144,11 +147,14 @@ public final class EntityRelocationManager {
         boolean deferred = EntityRelocationLifecycle.shouldDeferExit(
             destination.playerId() != null,
             destinationLevel.isPositionEntityTicking(BlockPos.containing(destination.position())));
+        int openingTicks = target instanceof Projectile
+            ? ServerConfig.VALUES.projectileRelocationOpeningTicks.get()
+            : EntityRelocationLifecycle.OPENING_TICKS;
         PreparedRoute preparedRoute = deferred ? null
             : prepareRoute(target, destination, destinationLevel, crises);
         ExitSetup exitSetup = deferred ? null
             : prepareExit(server, destinationLevel, destination, preparedRoute,
-                side, profile.rgb(), sounds);
+                side, profile.rgb(), sounds, openingTicks);
         if (!deferred && exitSetup == null) {
             state.fail(begin.reservation());
             releasePrivacyGrants(server, privacyReservations);
@@ -156,7 +162,7 @@ public final class EntityRelocationManager {
             return true;
         }
         EntityRelocationPortalEntity visual = EntityRelocationPortalEntity.createEntrance(
-            owner.level(), center, side, profile.rgb(), target.getUUID(), sounds);
+            owner.level(), center, side, profile.rgb(), target.getUUID(), sounds, openingTicks);
         if (!owner.serverLevel().addFreshEntity(visual)) {
             state.fail(begin.reservation());
             releasePrivacyGrants(server, privacyReservations);
@@ -171,12 +177,12 @@ public final class EntityRelocationManager {
             capabilities.fallGuard(), capabilities.entityFallGuard(),
             capabilities.transitCooldownTicks(), crises,
             privacyReservations, visual.getUUID(),
-            exitSetup, preparedRoute, deferred, now));
+            exitSetup, preparedRoute, deferred, openingTicks, now));
         return true;
     }
 
     private static @Nullable List<PermissionRequirement> permissionRequirements(
-            MinecraftServer server, ServerPlayer owner, LivingEntity subject,
+            MinecraftServer server, ServerPlayer owner, Entity subject,
             ResolvedDestination destination) {
         List<PermissionRequirement> requirements = new ArrayList<>(2);
         if (subject instanceof ServerPlayer playerSubject
@@ -248,7 +254,7 @@ public final class EntityRelocationManager {
         Iterator<Transaction> iterator = ACTIVE.iterator();
         while (iterator.hasNext()) {
             Transaction tx = iterator.next();
-            if (now - tx.startedAt() < EntityRelocationLifecycle.OPENING_TICKS) continue;
+            if (now - tx.startedAt() < tx.openingTicks()) continue;
             if (!tx.deferred()) {
                 ExitReadiness readiness = exitReadiness(server, tx.exitSetup());
                 if (readiness == ExitReadiness.WAITING) continue;
@@ -266,7 +272,7 @@ public final class EntityRelocationManager {
 
     private static void completeLoaded(MinecraftServer server, Transaction tx, long now) {
         ServerLevel sourceLevel = server.getLevel(tx.sourceDimension());
-        LivingEntity target = liveTarget(sourceLevel, tx.targetId());
+        Entity target = liveTarget(sourceLevel, tx.targetId());
         if (target == null) {
             fail(server, tx);
             return;
@@ -305,7 +311,7 @@ public final class EntityRelocationManager {
 
     private static void completeDeferred(MinecraftServer server, Transaction tx, long now) {
         ServerLevel sourceLevel = server.getLevel(tx.sourceDimension());
-        LivingEntity target = liveTarget(sourceLevel, tx.targetId());
+        Entity target = liveTarget(sourceLevel, tx.targetId());
         if (target == null) {
             fail(server, tx);
             return;
@@ -323,7 +329,8 @@ public final class EntityRelocationManager {
         }
 
         Vec3 sourcePosition = target.position();
-        Vec3 bootstrapMomentum = upwardMomentum(target.getDeltaMovement());
+        Vec3 bootstrapMomentum = relocationMomentum(target, target.getDeltaMovement(),
+            PortalOrientation.BOTTOM, destination.yaw());
         freezeSource(sourceLevel, tx.visualId());
         Entity moved = teleport(target, targetLevel,
             destination.position().add(0.0, 0.15, 0.0), bootstrapMomentum);
@@ -344,7 +351,7 @@ public final class EntityRelocationManager {
         }
 
         ExitSetup exit = prepareExit(server, targetLevel, destination, route,
-            tx.side(), tx.profile().rgb(), tx.sounds());
+            tx.side(), tx.profile().rgb(), tx.sounds(), tx.openingTicks());
         Vec3 actualExitCenter = exitCenter(server, exit, route.exitCenter());
         closeExit(server, exit, true);
         finishSuccessful(server, sourceLevel, targetLevel, sourcePosition, moved, tx, use,
@@ -362,6 +369,9 @@ public final class EntityRelocationManager {
         }
         moved.setDeltaMovement(momentum);
         moved.hasImpulse = true;
+        if (moved instanceof Projectile projectile) {
+            ProjectileMotion.alignToVelocity(projectile, momentum);
+        }
         if (dev.riftgun.portal.PortalFallGuardPolicy.applies(
             moved, tx.fallGuard(), tx.entityFallGuard())) moved.fallDistance = 0.0F;
         if (moved instanceof ServerPlayer player && crisis != null) {
@@ -369,8 +379,23 @@ public final class EntityRelocationManager {
         }
         EntityRelocationArrivalLatch.register(moved, landingPosition, exitCenter, tx.side(), now,
             tx.transitCooldownTicks());
-        PortalSounds.playTransit(sourceLevel, sourcePosition, tx.sounds());
-        PortalSounds.playTransit(targetLevel, moved.position(), tx.sounds());
+        if (moved instanceof Projectile projectile) {
+            PortalProjectileState.recordSuccessfulTransit(projectile);
+        }
+        if (moved instanceof Projectile) {
+            Entity sourceVisual = sourceLevel.getEntity(tx.visualId());
+            if (sourceVisual instanceof EntityRelocationPortalEntity sourcePortal
+                && sourcePortal.claimProjectileEffect(now)) {
+                PortalSounds.playTransit(sourceLevel, sourcePosition, tx.sounds());
+            }
+            EntityRelocationPortalEntity exitPortal = resolveExit(server, tx.exitSetup());
+            if (exitPortal == null || exitPortal.claimProjectileEffect(now)) {
+                PortalSounds.playTransit(targetLevel, moved.position(), tx.sounds());
+            }
+        } else {
+            PortalSounds.playTransit(sourceLevel, sourcePosition, tx.sounds());
+            PortalSounds.playTransit(targetLevel, moved.position(), tx.sounds());
+        }
         registry().complete(tx.reservation(), now);
     }
 
@@ -394,7 +419,8 @@ public final class EntityRelocationManager {
 
     private static @Nullable ExitSetup prepareExit(
             MinecraftServer server, ServerLevel targetLevel, ResolvedDestination destination,
-            PreparedRoute route, float side, int rgb, PortalSoundSnapshot sounds) {
+            PreparedRoute route, float side, int rgb, PortalSoundSnapshot sounds,
+            int openingTicks) {
         EntityRelocationExitIndex.Lease shared = route.shareable()
             ? reserveSharedExit(server, destination, side) : null;
         if (shared != null) return new ExitSetup(shared, null, targetLevel.dimension());
@@ -406,10 +432,10 @@ public final class EntityRelocationManager {
             ServerPlayer player = destination.resolvePlayer(server);
             if (player == null || player.serverLevel() != targetLevel) return null;
             exit = EntityRelocationPortalEntity.createPlayerDestinationExit(
-                targetLevel, player, side, rgb, durationTicks, sounds);
+                targetLevel, player, side, rgb, durationTicks, sounds, openingTicks);
         } else {
             exit = EntityRelocationPortalEntity.createExit(targetLevel, route.exitCenter(), side,
-                rgb, durationTicks, sounds, route.exitOrientation(), route.exitYaw());
+                rgb, durationTicks, sounds, route.exitOrientation(), route.exitYaw(), openingTicks);
         }
         if (!targetLevel.addFreshEntity(exit)) return null;
         PortalSounds.playOpening(targetLevel, exit.position(), sounds);
@@ -459,20 +485,23 @@ public final class EntityRelocationManager {
             return new PreparedRoute(destination.dimension(), destination.playerExitCenter(),
                 PortalOrientation.BOTTOM, destination.yaw(),
                 destination.position().add(0.0, 0.15, 0.0),
-                upwardMomentum(target.getDeltaMovement()), destination.position(), crisis, false);
+                relocationMomentum(target, target.getDeltaMovement(),
+                    PortalOrientation.BOTTOM, destination.yaw()),
+                destination.position(), crisis, false);
         }
         Vec3 exitCenter = EntityRelocationGeometry.savedDestinationBottomExitCenter(
             destination.position(), target.getBbHeight());
         return new PreparedRoute(destination.dimension(), exitCenter, PortalOrientation.BOTTOM,
             destination.yaw(), EntityRelocationGeometry.bottomOutputPosition(
-                exitCenter, target.getBbHeight()), downwardMomentum(target.getDeltaMovement()),
+                exitCenter, target.getBbHeight()), relocationMomentum(
+                    target, target.getDeltaMovement(), PortalOrientation.BOTTOM, destination.yaw()),
             destination.position(), crisis, true);
     }
 
-    private static @Nullable LivingEntity liveTarget(@Nullable ServerLevel sourceLevel, UUID targetId) {
+    private static @Nullable Entity liveTarget(@Nullable ServerLevel sourceLevel, UUID targetId) {
         Entity raw = sourceLevel == null ? null : sourceLevel.getEntity(targetId);
-        return raw instanceof LivingEntity target && target.isAlive()
-            && !target.isPassenger() && target.getPassengers().isEmpty() ? target : null;
+        return raw != null && raw.isAlive() && isRelocatableType(raw)
+            && !raw.isPassenger() && raw.getPassengers().isEmpty() ? raw : null;
     }
 
     private static boolean dimensionAllowed(Transaction tx, ResolvedDestination destination) {
@@ -505,6 +534,16 @@ public final class EntityRelocationManager {
 
     private static Vec3 downwardMomentum(Vec3 momentum) {
         return momentum.y > -0.12 ? new Vec3(momentum.x, -0.12, momentum.z) : momentum;
+    }
+
+    private static Vec3 relocationMomentum(Entity target, Vec3 momentum,
+                                           PortalOrientation exitOrientation, float exitYaw) {
+        if (target instanceof Projectile) {
+            return EntityRelocationProjectileMotion.exitVelocity(
+                momentum, exitOrientation, exitYaw);
+        }
+        return exitOrientation == PortalOrientation.BOTTOM
+            ? downwardMomentum(momentum) : upwardMomentum(momentum);
     }
 
     private static ExitReadiness exitReadiness(MinecraftServer server,
@@ -607,7 +646,7 @@ public final class EntityRelocationManager {
         EXIT_INDEX.unregister(portalId);
     }
 
-    private static Optional<LivingEntity> findTarget(ServerPlayer owner, PortalGunCapabilities capabilities) {
+    private static Optional<Entity> findTarget(ServerPlayer owner, PortalGunCapabilities capabilities) {
         double range = capabilities.configuredSurfaceRange();
         Vec3 start = owner.getEyePosition();
         Vec3 end = start.add(owner.getLookAngle().scale(range));
@@ -615,14 +654,21 @@ public final class EntityRelocationManager {
         if (block.getType() != HitResult.Type.MISS) end = block.getLocation();
         AABB search = owner.getBoundingBox().expandTowards(end.subtract(start)).inflate(1.0);
         Vec3 finalEnd = end;
-        return owner.level().getEntitiesOfClass(LivingEntity.class, search, entity ->
+        return owner.level().getEntities(owner, search, entity ->
                 entity != owner && entity.isAlive() && !entity.isSpectator()
                     && !entity.isPassenger() && entity.getPassengers().isEmpty()
+                    && isRelocatableType(entity)
+                    && (!(entity instanceof Projectile projectile)
+                        || PortalProjectileState.canTransit(projectile))
                     && (entity instanceof Player ? capabilities.playerTarget()
                         : capabilities.entityAccess().allows(entity))
                     && entity.getBoundingBox().inflate(0.3).clip(start, finalEnd).isPresent())
             .stream().min(java.util.Comparator.comparingDouble(entity ->
                 entity.getBoundingBox().clip(start, finalEnd).orElse(entity.position()).distanceToSqr(start)));
+    }
+
+    private static boolean isRelocatableType(Entity entity) {
+        return entity instanceof LivingEntity || entity instanceof Projectile;
     }
 
     private static @Nullable ResolvedDestination resolveDestination(MinecraftServer server,
@@ -682,6 +728,7 @@ public final class EntityRelocationManager {
                                List<PortalPrivacyService.GrantReservation> privacyReservations,
                                UUID visualId, @Nullable ExitSetup exitSetup,
                                @Nullable PreparedRoute preparedRoute, boolean deferred,
+                               int openingTicks,
                                long startedAt) {}
 
     private record PreparedRoute(ResourceKey<Level> dimension, Vec3 exitCenter,

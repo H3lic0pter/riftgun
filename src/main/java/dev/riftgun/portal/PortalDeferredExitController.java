@@ -73,8 +73,29 @@ final class PortalDeferredExitController {
             PortalEntity exit = portal.createDeferredExit(
                 destinationLevel, currentTarget, movedEntities, excludedPlayer);
             if (exit == null) portal.warnDeferredExitFailure(destinationLevel.getServer(), movedEntities);
-            PortalSounds.playTransit(sourceLevel, sourcePosition, portal.soundSnapshot());
-            PortalSounds.playTransit(destinationLevel, movedRoot.position(), portal.soundSnapshot());
+            if (exit != null) {
+                for (Entity moved : movedEntities) {
+                    if (moved instanceof net.minecraft.world.entity.projectile.Projectile projectile) {
+                        projectile.setDeltaMovement(portal.transformVector(
+                            projectile.getDeltaMovement(), exit));
+                        projectile.hasImpulse = true;
+                        ProjectileMotion.alignToVelocity(projectile, projectile.getDeltaMovement());
+                        PortalProjectileState.recordSuccessfulTransit(projectile);
+                    }
+                }
+            }
+            if (movedRoot instanceof net.minecraft.world.entity.projectile.Projectile) {
+                long now = portal.serverTime();
+                if (portal.claimProjectileEffect(now)) {
+                    PortalSounds.playTransit(sourceLevel, sourcePosition, portal.soundSnapshot());
+                }
+                if (exit != null && exit.claimProjectileEffect(now)) {
+                    PortalSounds.playTransit(destinationLevel, movedRoot.position(), portal.soundSnapshot());
+                }
+            } else {
+                PortalSounds.playTransit(sourceLevel, sourcePosition, portal.soundSnapshot());
+                PortalSounds.playTransit(destinationLevel, movedRoot.position(), portal.soundSnapshot());
+            }
         } finally {
             creatingExit = false;
         }

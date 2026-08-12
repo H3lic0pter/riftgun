@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +38,9 @@ final class PortalTransitService {
 
         moved.setDeltaMovement(plan.momentum());
         moved.hasImpulse = true;
+        if (moved instanceof Projectile projectile) {
+            ProjectileMotion.alignToVelocity(projectile, plan.momentum());
+        }
         if (PortalFallGuardPolicy.applies(moved, playerFallGuard, entityFallGuard)) {
             moved.fallDistance = 0.0F;
         }

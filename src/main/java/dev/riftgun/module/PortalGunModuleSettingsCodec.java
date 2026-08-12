@@ -16,6 +16,7 @@ final class PortalGunModuleSettingsCodec {
         boolean passiveTransitEnabled,
         boolean hostileTransitEnabled,
         boolean bossTransitEnabled,
+        boolean projectileTransitEnabled,
         int portalDurationSeconds,
         boolean expandedApertureEnabled,
         boolean playerTargetEnabled,
@@ -34,6 +35,8 @@ final class PortalGunModuleSettingsCodec {
             Codec.BOOL.optionalFieldOf("passive_transit_enabled", true).forGetter(Stored::passiveTransitEnabled),
             Codec.BOOL.optionalFieldOf("hostile_transit_enabled", true).forGetter(Stored::hostileTransitEnabled),
             Codec.BOOL.optionalFieldOf("boss_transit_enabled", true).forGetter(Stored::bossTransitEnabled),
+            Codec.BOOL.optionalFieldOf("projectile_transit_enabled", true)
+                .forGetter(Stored::projectileTransitEnabled),
             Codec.INT.optionalFieldOf("portal_duration_seconds", PortalOpenDuration.DEFAULT_SECONDS)
                 .forGetter(Stored::portalDurationSeconds),
             Codec.BOOL.optionalFieldOf("expanded_aperture_enabled", true)
@@ -58,7 +61,7 @@ final class PortalGunModuleSettingsCodec {
             return new PortalGunModuleSettings(
                 new PortalGunModuleSettings.Placement(smartDistance, desiredSurfaceRange),
                 new PortalGunModuleSettings.Transit(passiveTransitEnabled, hostileTransitEnabled,
-                    bossTransitEnabled, transitCooldownTenths),
+                    bossTransitEnabled, projectileTransitEnabled, transitCooldownTenths),
                 new PortalGunModuleSettings.Duration(portalDurationSeconds), expandedApertureEnabled,
                 new PortalGunModuleSettings.PlayerTarget(playerTargetEnabled, playerExcludeMode),
                 new EntityRelocationSettings(entityRelocationEnabled, entityRelocationSmartRouting),
@@ -68,7 +71,8 @@ final class PortalGunModuleSettingsCodec {
         static Stored fromSettings(PortalGunModuleSettings settings) {
             return new Stored(settings.smartDistance(), settings.desiredSurfaceRange(),
                 settings.passiveTransitEnabled(), settings.hostileTransitEnabled(),
-                settings.bossTransitEnabled(), settings.portalDurationSeconds(),
+                settings.bossTransitEnabled(), settings.projectileTransitEnabled(),
+                settings.portalDurationSeconds(),
                 settings.expandedApertureEnabled(), settings.playerTargetEnabled(),
                 settings.playerExcludeMode(), settings.transitCooldownTenths(),
                 settings.entityRelocation().enabled(), settings.entityRelocation().smartRouting(),
