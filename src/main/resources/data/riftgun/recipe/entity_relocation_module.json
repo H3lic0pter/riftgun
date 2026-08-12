@@ -1,12 +1,20 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "pattern": [" E ", "RMR", " I "],
+  "pattern": ["E B E", "D M D", "E O E"],
   "key": {
     "E": { "item": "minecraft:ender_pearl" },
-    "R": { "tag": "c:dusts/redstone" },
+    "B": {
+      "item": "minecraft:enchanted_book",
+      "components": {
+        "minecraft:stored_enchantments": {
+          "levels": { "minecraft:binding_curse": 1 }
+        }
+      }
+    },
+    "D": { "item": "minecraft:diamond" },
     "M": { "item": "riftgun:basic_module" },
-    "I": { "tag": "c:ingots/iron" }
+    "O": { "item": "minecraft:ender_eye" }
   },
   "result": { "id": "riftgun:entity_relocation_module", "count": 1 }
 }

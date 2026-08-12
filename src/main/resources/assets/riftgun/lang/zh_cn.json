@@ -222,7 +222,7 @@
   "tooltip.riftgun.module.hostile_transit_module.description": "启用时允许敌对生物穿过传送门。",
   "tooltip.riftgun.module.boss_transit_module.description": "启用时允许 Boss 标签生物穿过传送门。",
   "tooltip.riftgun.module.matter_anchor_module.description": "使掉落的传送枪不会自然消失，并免疫火焰、熔岩和爆炸。",
-  "tooltip.riftgun.module.projectile_transit_module.description": "允许符合条件的弹射物穿过传送门或被实体转移模式捕获。",
+  "tooltip.riftgun.module.projectile_transit_module.description": "允许符合条件的弹射物穿过传送门。",
   "tooltip.riftgun.module.surface_range_amplifier.description": "提升贴面开门的最大射程。",
   "tooltip.riftgun.module.module_bay_expansion.description": "为传送枪模块仓增加三个槽位。",
   "tooltip.riftgun.module.portal_aperture_module.description": "在放置条件允许时开启更大的传送门。",
