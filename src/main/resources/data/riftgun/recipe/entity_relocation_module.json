@@ -1,16 +1,18 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "pattern": ["E B E", "D M D", "E O E"],
+  "pattern": ["EBE", "DMD", "EOE"],
   "key": {
     "E": { "item": "minecraft:ender_pearl" },
     "B": {
-      "item": "minecraft:enchanted_book",
+      "type": "neoforge:components",
+      "items": "minecraft:enchanted_book",
       "components": {
         "minecraft:stored_enchantments": {
           "levels": { "minecraft:binding_curse": 1 }
         }
-      }
+      },
+      "strict": false
     },
     "D": { "item": "minecraft:diamond" },
     "M": { "item": "riftgun:basic_module" },
