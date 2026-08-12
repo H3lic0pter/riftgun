@@ -146,7 +146,7 @@ final class PortalTransitOrchestrator {
         }
         Entity moved = PortalTransitService.complete(entity, targetLevel,
             new PortalTransitService.TransitPlan(destination, momentum, yaw, pitch),
-            portal.fallGuard());
+            portal.fallGuard(), portal.entityFallGuard());
         if (moved instanceof ServerPlayer player && prepared != null) prepared.commit(player);
         else if (moved == null && prepared != null) prepared.abort();
         return moved;

@@ -13,6 +13,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.Util;
 import org.jetbrains.annotations.Nullable;
 
 /** Privacy overview: requester profiles on the left and the owner's global defaults on the right. */
@@ -116,6 +117,9 @@ public final class PrivacyTerminalScreen extends Screen {
         int x = panelX + listWidth + 8;
         int top = listTop + 20;
         int width = panelX + panelWidth - 8 - x;
+        int selectorX = x + width - 104;
+        int textLeft = x + 5;
+        int textRight = x + width - 5;
         List<PrivacyTerminalState.PermissionRef> permissions = PrivacyTerminalState.permissions();
         int maxScroll = Math.max(0, permissions.size() * GLOBAL_ROW_HEIGHT - (listBottom - top));
         globalScroll = Mth.clamp(globalScroll, 0, maxScroll);
@@ -126,9 +130,14 @@ public final class PrivacyTerminalScreen extends Screen {
             int y = top - globalScroll + index * GLOBAL_ROW_HEIGHT;
             if (y + GLOBAL_ROW_HEIGHT < top || y > listBottom) continue;
             graphics.fill(x, y, x + width, y + GLOBAL_ROW_HEIGHT - 2, 0xFF25272D);
-            graphics.drawString(font, Component.translatable(permission.translationKey()),
-                x + 5, y + 4, PortalTheme.TEXT, false);
-            drawPolicySelector(graphics, x + width - 104, y + 15, 100,
+            Component title = Component.translatable(permission.translationKey());
+            int titleOffset = GuiTextMarquee.offset(font.width(title), textRight - textLeft,
+                Util.getMillis());
+            graphics.enableScissor(textLeft, y + 2, textRight, y + 14);
+            graphics.drawString(font, title, textLeft - titleOffset, y + 4,
+                PortalTheme.TEXT, false);
+            graphics.disableScissor();
+            drawPolicySelector(graphics, selectorX, y + 15, 100,
                 data.globalPermission(permission.id()), false,
                 expandedPermission != null && expandedPermission.equals(permission.id()));
         }

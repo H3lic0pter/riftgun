@@ -23,7 +23,8 @@ final class PortalGunModuleSettingsCodec {
         int transitCooldownTenths,
         boolean entityRelocationEnabled,
         boolean entityRelocationSmartRouting,
-        boolean fallGuardEnabled
+        boolean fallGuardEnabled,
+        boolean fallGuardEntitiesEnabled
     ) {
         private static final Codec<Stored> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.INT.optionalFieldOf("smart_distance", PortalGunModuleSettings.DEFAULT_SMART_DISTANCE)
@@ -48,7 +49,9 @@ final class PortalGunModuleSettingsCodec {
                 .forGetter(Stored::entityRelocationEnabled),
             Codec.BOOL.optionalFieldOf("entity_relocation_smart_routing", false)
                 .forGetter(Stored::entityRelocationSmartRouting),
-            Codec.BOOL.optionalFieldOf("fall_guard_enabled", true).forGetter(Stored::fallGuardEnabled)
+            Codec.BOOL.optionalFieldOf("fall_guard_enabled", true).forGetter(Stored::fallGuardEnabled),
+            Codec.BOOL.optionalFieldOf("fall_guard_entities_enabled", false)
+                .forGetter(Stored::fallGuardEntitiesEnabled)
         ).apply(instance, Stored::new));
 
         PortalGunModuleSettings toSettings() {
@@ -59,7 +62,7 @@ final class PortalGunModuleSettingsCodec {
                 new PortalGunModuleSettings.Duration(portalDurationSeconds), expandedApertureEnabled,
                 new PortalGunModuleSettings.PlayerTarget(playerTargetEnabled, playerExcludeMode),
                 new EntityRelocationSettings(entityRelocationEnabled, entityRelocationSmartRouting),
-                fallGuardEnabled);
+                fallGuardEnabled, fallGuardEntitiesEnabled);
         }
 
         static Stored fromSettings(PortalGunModuleSettings settings) {
@@ -69,7 +72,7 @@ final class PortalGunModuleSettingsCodec {
                 settings.expandedApertureEnabled(), settings.playerTargetEnabled(),
                 settings.playerExcludeMode(), settings.transitCooldownTenths(),
                 settings.entityRelocation().enabled(), settings.entityRelocation().smartRouting(),
-                settings.fallGuardEnabled());
+                settings.fallGuardEnabled(), settings.fallGuardEntitiesEnabled());
         }
     }
 

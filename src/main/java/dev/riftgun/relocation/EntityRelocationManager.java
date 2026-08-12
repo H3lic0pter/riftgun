@@ -168,7 +168,8 @@ public final class EntityRelocationManager {
         PortalSounds.playOpening(owner.serverLevel(), center, sounds);
         ACTIVE.add(new Transaction(begin.reservation(), owner.getUUID(), target.getUUID(),
             target.level().dimension(), gun, destination, profile, side, sounds,
-            capabilities.fallGuard(), capabilities.transitCooldownTicks(), crises,
+            capabilities.fallGuard(), capabilities.entityFallGuard(),
+            capabilities.transitCooldownTicks(), crises,
             privacyReservations, visual.getUUID(),
             exitSetup, preparedRoute, deferred, now));
         return true;
@@ -361,7 +362,8 @@ public final class EntityRelocationManager {
         }
         moved.setDeltaMovement(momentum);
         moved.hasImpulse = true;
-        if (tx.fallGuard()) moved.fallDistance = 0.0F;
+        if (dev.riftgun.portal.PortalFallGuardPolicy.applies(
+            moved, tx.fallGuard(), tx.entityFallGuard())) moved.fallDistance = 0.0F;
         if (moved instanceof ServerPlayer player && crisis != null) {
             PortalCrisisCoordinator.apply(crisis, player);
         }
@@ -674,6 +676,7 @@ public final class EntityRelocationManager {
                                UUID targetId, net.minecraft.resources.ResourceKey<Level> sourceDimension,
                                ItemStack gun, ResolvedDestination destination, PortalFuelProfile profile,
                                float side, PortalSoundSnapshot sounds, boolean fallGuard,
+                               boolean entityFallGuard,
                                int transitCooldownTicks,
                                PortalCrisisConfigurationSnapshot crises,
                                List<PortalPrivacyService.GrantReservation> privacyReservations,

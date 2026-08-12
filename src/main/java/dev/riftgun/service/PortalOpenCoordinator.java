@@ -154,7 +154,8 @@ public final class PortalOpenCoordinator {
         PortalRuntimeOptions runtimeOptions = new PortalRuntimeOptions(
             gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(),
             gunCapabilities.aperture(), gunCapabilities.transitCooldownTicks(),
-            gunCapabilities.fallGuard(), ServerConfig.VALUES.horizontalTriggerExtend.get(),
+            gunCapabilities.fallGuard(), gunCapabilities.entityFallGuard(),
+            ServerConfig.VALUES.horizontalTriggerExtend.get(),
             PortalSoundSnapshot.from(data.settings().portalSounds()),
             PortalCrisisConfigurationSnapshot.capture(new PortalGunTank(locatedGun.stack()).getFluid()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);

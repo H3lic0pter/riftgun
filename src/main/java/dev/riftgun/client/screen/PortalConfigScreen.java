@@ -123,6 +123,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton bossTransitButton;
     private @Nullable ThemedButton apertureToggleButton;
     private @Nullable ThemedButton fallGuardToggleButton;
+    private @Nullable ThemedButton entityFallGuardToggleButton;
     private @Nullable ThemedButton playerTargetButton;
     private @Nullable ThemedButton playerExcludeButton;
     private @Nullable ThemedButton playerTargetSettingsButton;
@@ -203,6 +204,7 @@ public final class PortalConfigScreen extends Screen {
         bossTransitButton = null;
         apertureToggleButton = null;
         fallGuardToggleButton = null;
+        entityFallGuardToggleButton = null;
         playerTargetButton = null;
         playerExcludeButton = null;
         playerTargetSettingsButton = null;
@@ -442,6 +444,8 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.FALL_GUARD_SETTINGS) {
             fallGuardToggleButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("FallGuard", "FallGuardEnabled"));
+            entityFallGuardToggleButton = button(x + 49, y + 45, 26, 26, Component.empty(), false,
+                ignored -> toggleGunBoolean("FallGuardEntities", "FallGuardEntitiesEnabled"));
         } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
             entityRelocationEnabledButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("EntityRelocation", "EntityRelocationEnabled"));
@@ -1109,10 +1113,17 @@ public final class PortalConfigScreen extends Screen {
                 boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
                 drawApertureIcon(graphics, apertureToggleButton.getX() + 7,
                     apertureToggleButton.getY() + 7, enabled);
-            } else if (modal == Modal.FALL_GUARD_SETTINGS && fallGuardToggleButton != null) {
-                boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled");
-                drawFallGuardIcon(graphics, fallGuardToggleButton.getX() + 7,
-                    fallGuardToggleButton.getY() + 7, enabled);
+            } else if (modal == Modal.FALL_GUARD_SETTINGS) {
+                if (fallGuardToggleButton != null) {
+                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled");
+                    drawFallGuardIcon(graphics, fallGuardToggleButton.getX() + 7,
+                        fallGuardToggleButton.getY() + 7, enabled);
+                }
+                if (entityFallGuardToggleButton != null) {
+                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEntitiesEnabled");
+                    drawEntityFallGuardIcon(graphics, entityFallGuardToggleButton.getX() + 5,
+                        entityFallGuardToggleButton.getY() + 5, enabled);
+                }
             } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
                 if (entityRelocationEnabledButton != null) {
                     boolean enabled = PortalClientState.gun().getBoolean("EntityRelocationEnabled");
@@ -1227,10 +1238,17 @@ public final class PortalConfigScreen extends Screen {
                 boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
                 entityTooltip(graphics, apertureToggleButton,
                     "screen.riftgun.aperture", enabled, mouseX, mouseY);
-            } else if (modal == Modal.FALL_GUARD_SETTINGS && fallGuardToggleButton != null) {
-                boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled");
-                entityTooltip(graphics, fallGuardToggleButton,
-                    "screen.riftgun.fall_guard", enabled, mouseX, mouseY);
+            } else if (modal == Modal.FALL_GUARD_SETTINGS) {
+                if (fallGuardToggleButton != null) {
+                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled");
+                    entityTooltip(graphics, fallGuardToggleButton,
+                        "screen.riftgun.fall_guard", enabled, mouseX, mouseY);
+                }
+                if (entityFallGuardToggleButton != null) {
+                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEntitiesEnabled");
+                    entityTooltip(graphics, entityFallGuardToggleButton,
+                        "screen.riftgun.fall_guard_entities", enabled, mouseX, mouseY);
+                }
             } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
                 if (entityRelocationEnabledButton != null) {
                     entityTooltip(graphics, entityRelocationEnabledButton,

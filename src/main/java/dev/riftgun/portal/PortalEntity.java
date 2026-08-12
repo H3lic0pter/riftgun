@@ -77,6 +77,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     private int openDurationTicks = PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
     private int transitCooldownTicks = 20;
     private boolean fallGuard;
+    private boolean entityFallGuard;
     private double horizontalTriggerExtend;
     private PortalAperture aperture = PortalAperture.STANDARD;
     private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
@@ -194,6 +195,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         portal.openDurationTicks = options.openDurationTicks();
         portal.transitCooldownTicks = options.transitCooldownTicks();
         portal.fallGuard = options.fallGuard();
+        portal.entityFallGuard = options.entityFallGuard();
         portal.exitPortal = exitPortal;
         portal.horizontalTriggerExtend = options.horizontalTriggerExtend();
         portal.aperture = options.aperture();
@@ -427,7 +429,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     PortalRuntimeOptions runtimeOptions() {
         return new PortalRuntimeOptions(entityAccess, openDurationTicks, aperture,
-            transitCooldownTicks, fallGuard, horizontalTriggerExtend, sounds, crisis.configuration());
+            transitCooldownTicks, fallGuard, entityFallGuard, horizontalTriggerExtend,
+            sounds, crisis.configuration());
     }
 
     void warnDeferredExitFailure(MinecraftServer server, List<Entity> movedEntities) {
@@ -508,6 +511,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     boolean fallGuard() {
         return fallGuard;
+    }
+
+    boolean entityFallGuard() {
+        return entityFallGuard;
     }
 
     long lifecycleStartedAt() {
@@ -626,6 +633,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         transitCooldownTicks = tag.contains("TransitCooldownTicks")
             ? Math.max(0, tag.getInt("TransitCooldownTicks")) : 20;
         fallGuard = tag.getBoolean("FallGuard");
+        entityFallGuard = tag.getBoolean("EntityFallGuard");
         aperture = tag.contains("Aperture")
             ? PortalAperture.byOrdinal(tag.getInt("Aperture")) : PortalAperture.STANDARD;
         sounds = tag.contains("PortalSounds")
@@ -658,6 +666,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         tag.putInt("OpenDurationTicks", openDurationTicks);
         tag.putInt("TransitCooldownTicks", transitCooldownTicks);
         tag.putBoolean("FallGuard", fallGuard);
+        tag.putBoolean("EntityFallGuard", entityFallGuard);
         tag.putInt("Aperture", aperture.ordinal());
         tag.put("PortalSounds", sounds.save());
         crisis.save(tag);

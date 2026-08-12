@@ -11,6 +11,7 @@ public record PortalRuntimeOptions(
     PortalAperture aperture,
     int transitCooldownTicks,
     boolean fallGuard,
+    boolean entityFallGuard,
     double horizontalTriggerExtend,
     PortalSoundSnapshot sounds,
     PortalCrisisConfigurationSnapshot crises

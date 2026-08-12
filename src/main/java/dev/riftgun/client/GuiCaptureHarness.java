@@ -182,6 +182,7 @@ final class GuiCaptureHarness {
         gun.putBoolean("PlayerTargetInstalled", true);
         gun.putBoolean("FallGuardInstalled", true);
         gun.putBoolean("FallGuardEnabled", true);
+        gun.putBoolean("FallGuardEntitiesEnabled", false);
         CompoundTag modules = new CompoundTag();
         modules.putInt("COORDINATE_OVERRIDE", 1);
         modules.putInt("RESERVOIR_EXPANSION", 2);

@@ -252,6 +252,7 @@
   "tooltip.riftgun.module.fall_guard_module.description": "穿过传送门时清除坠落距离，避免进门前的下落造成坠落伤害。",
   "screen.riftgun.fall_guard": "坠落防护",
   "screen.riftgun.fall_guard_hint": "穿过传送门时清除坠落距离",
+  "screen.riftgun.fall_guard_entities": "实体坠落防护",
   "message.riftgun.fall_guard_module_required": "需要安装坠落防护模块",
   "key.riftgun.close_portals": "关闭已开启的传送门",
   "screen.riftgun.close_portals": "关闭已开启的传送门",

@@ -120,6 +120,11 @@ final class PortalGunActions {
                     "message.riftgun.fall_guard_module_required");
                 settings = settings.withFallGuardEnabled(request.getBoolean("Enabled"));
             }
+            case "FallGuardEntities" -> {
+                requireModule(gun, PortalModuleKind.FALL_GUARD, rules,
+                    "message.riftgun.fall_guard_module_required");
+                settings = settings.withFallGuardEntitiesEnabled(request.getBoolean("Enabled"));
+            }
             case "EntityRelocation" -> {
                 requireModule(gun, PortalModuleKind.ENTITY_RELOCATION, rules,
                     "message.riftgun.entity_relocation_module_required");

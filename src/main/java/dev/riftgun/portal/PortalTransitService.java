@@ -21,7 +21,8 @@ final class PortalTransitService {
     }
 
     static @Nullable Entity complete(Entity entity, ServerLevel targetLevel,
-                                     TransitPlan plan, boolean fallGuard) {
+                                     TransitPlan plan, boolean playerFallGuard,
+                                     boolean entityFallGuard) {
         Entity moved;
         if (entity.level() == targetLevel) {
             boolean successful = entity.teleportTo(targetLevel,
@@ -36,7 +37,9 @@ final class PortalTransitService {
 
         moved.setDeltaMovement(plan.momentum());
         moved.hasImpulse = true;
-        if (fallGuard) moved.fallDistance = 0.0F;
+        if (PortalFallGuardPolicy.applies(moved, playerFallGuard, entityFallGuard)) {
+            moved.fallDistance = 0.0F;
+        }
         if (moved instanceof ServerPlayer player) PortalServices.MOTION_HISTORY.reset(player);
         return moved;
     }

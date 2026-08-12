@@ -98,6 +98,19 @@ final class PortalGuiIcons {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.PLAYER_REFRESH, x - 4, y - 4);
     }
 
+    static void drawEntityFallGuardIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        int color = enabled ? 0xFF9CD7A4 : PortalTheme.TEXT_MUTED;
+        int dark = enabled ? 0xFF4E8E63 : 0xFF55585F;
+        graphics.fill(x + 6, y + 2, x + 10, y + 6, color);
+        graphics.fill(x + 5, y + 6, x + 11, y + 12, color);
+        graphics.fill(x + 3, y + 7, x + 5, y + 10, color);
+        graphics.fill(x + 11, y + 7, x + 13, y + 10, color);
+        graphics.fill(x + 5, y + 12, x + 7, y + 15, color);
+        graphics.fill(x + 9, y + 12, x + 11, y + 15, color);
+        graphics.fill(x + 2, y + 16, x + 14, y + 17, dark);
+        graphics.fill(x + 4, y + 18, x + 12, y + 19, dark);
+    }
+
     static void drawEntityRelocationIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
         PortalGuiSprites.draw(graphics, enabled
             ? PortalGuiSprites.ENTITY_RELOCATION_ON : PortalGuiSprites.ENTITY_RELOCATION_OFF,

@@ -43,8 +43,11 @@ public final class PortalGunSnapshot {
         tag.putInt("MaximumTransitCooldownTenths", PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
         tag.putBoolean("PlayerTargetEnabled", capabilities.playerTarget());
         tag.putInt("PlayerExcludeMode", capabilities.playerExcludeMode().id());
-        tag.putBoolean("FallGuardInstalled", capabilities.fallGuard());
+        boolean fallGuardInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.FALL_GUARD, rules) > 0;
+        tag.putBoolean("FallGuardInstalled", fallGuardInstalled);
         tag.putBoolean("FallGuardEnabled", capabilities.fallGuard());
+        tag.putBoolean("FallGuardEntitiesEnabled", capabilities.entityFallGuard());
         tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(
             gun, PortalModuleKind.PLAYER_TARGET, rules) > 0);
         tag.putBoolean("EntityRelocationInstalled", PortalGunModules.activeCount(
