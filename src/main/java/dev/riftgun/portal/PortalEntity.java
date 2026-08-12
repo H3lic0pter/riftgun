@@ -33,13 +33,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-public final class PortalEntity extends Entity {
+public final class PortalEntity extends Entity implements PortalVisualSource {
     public static final float DEPTH = (float) PortalPlacement.DEPTH;
 
     private static final EntityDataAccessor<Integer> PHASE =
@@ -77,12 +78,14 @@ public final class PortalEntity extends Entity {
     private int openDurationTicks = PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
     private int transitCooldownTicks = 20;
     private boolean fallGuard;
+    private boolean entityFallGuard;
     private double horizontalTriggerExtend;
     private PortalAperture aperture = PortalAperture.STANDARD;
     private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
     private final PortalCrisisController crisis = new PortalCrisisController(this);
     private long lifecycleStartedAt;
     private long closeStartedAt = -1L;
+    private long lastProjectileEffectAt = Long.MIN_VALUE;
 
     public PortalEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -194,6 +197,7 @@ public final class PortalEntity extends Entity {
         portal.openDurationTicks = options.openDurationTicks();
         portal.transitCooldownTicks = options.transitCooldownTicks();
         portal.fallGuard = options.fallGuard();
+        portal.entityFallGuard = options.entityFallGuard();
         portal.exitPortal = exitPortal;
         portal.horizontalTriggerExtend = options.horizontalTriggerExtend();
         portal.aperture = options.aperture();
@@ -264,6 +268,21 @@ public final class PortalEntity extends Entity {
         return geometry().height();
     }
 
+    @Override
+    public UUID visualId() {
+        return getUUID();
+    }
+
+    @Override
+    public float visualProgress(float partialTick) {
+        return PortalLifecycle.visibleProgress(phase(), phaseTicks(), partialTick);
+    }
+
+    @Override
+    public float visualAge(float partialTick) {
+        return tickCount + partialTick;
+    }
+
     public Vec3 normal() {
         return orientation().normal(getYRot());
     }
@@ -302,6 +321,8 @@ public final class PortalEntity extends Entity {
         int nextPhaseTicks = PortalPairClock.phaseTicks(lifecycleStartedAt, closeStartedAt, now);
         entityData.set(PHASE, nextPhase.ordinal());
         entityData.set(PHASE_TICKS, nextPhaseTicks);
+
+        ProjectilePortalIndex.refresh(this);
 
         if (nextPhase == PortalLifecycle.Phase.CLOSED) {
             releaseChunkTicket();
@@ -366,6 +387,7 @@ public final class PortalEntity extends Entity {
 
     @Override
     public void remove(RemovalReason reason) {
+        ProjectilePortalIndex.unregister(this);
         releaseChunkTicket();
         super.remove(reason);
     }
@@ -412,7 +434,8 @@ public final class PortalEntity extends Entity {
 
     PortalRuntimeOptions runtimeOptions() {
         return new PortalRuntimeOptions(entityAccess, openDurationTicks, aperture,
-            transitCooldownTicks, fallGuard, horizontalTriggerExtend, sounds, crisis.configuration());
+            transitCooldownTicks, fallGuard, entityFallGuard, horizontalTriggerExtend,
+            sounds, crisis.configuration());
     }
 
     void warnDeferredExitFailure(MinecraftServer server, List<Entity> movedEntities) {
@@ -493,6 +516,31 @@ public final class PortalEntity extends Entity {
 
     boolean fallGuard() {
         return fallGuard;
+    }
+
+    boolean claimProjectileEffect(long now) {
+        int cooldown = ServerConfig.VALUES.projectileEffectCooldownTicks.get();
+        if (cooldown > 0 && lastProjectileEffectAt != Long.MIN_VALUE
+            && now - lastProjectileEffectAt < cooldown) return false;
+        lastProjectileEffectAt = now;
+        return true;
+    }
+
+    boolean allowsProjectile(Projectile projectile) {
+        return phase() == PortalLifecycle.Phase.OPEN && entityAccess.allows(projectile)
+            && !projectile.isPassenger() && PortalProjectileState.canTransit(projectile);
+    }
+
+    boolean entityAccessAllowsProjectiles() {
+        return entityAccess.projectile();
+    }
+
+    boolean trySweptProjectile(Projectile projectile) {
+        return transit.trySweptProjectile(projectile);
+    }
+
+    boolean entityFallGuard() {
+        return entityFallGuard;
     }
 
     long lifecycleStartedAt() {
@@ -611,6 +659,7 @@ public final class PortalEntity extends Entity {
         transitCooldownTicks = tag.contains("TransitCooldownTicks")
             ? Math.max(0, tag.getInt("TransitCooldownTicks")) : 20;
         fallGuard = tag.getBoolean("FallGuard");
+        entityFallGuard = tag.getBoolean("EntityFallGuard");
         aperture = tag.contains("Aperture")
             ? PortalAperture.byOrdinal(tag.getInt("Aperture")) : PortalAperture.STANDARD;
         sounds = tag.contains("PortalSounds")
@@ -643,6 +692,7 @@ public final class PortalEntity extends Entity {
         tag.putInt("OpenDurationTicks", openDurationTicks);
         tag.putInt("TransitCooldownTicks", transitCooldownTicks);
         tag.putBoolean("FallGuard", fallGuard);
+        tag.putBoolean("EntityFallGuard", entityFallGuard);
         tag.putInt("Aperture", aperture.ordinal());
         tag.put("PortalSounds", sounds.save());
         crisis.save(tag);

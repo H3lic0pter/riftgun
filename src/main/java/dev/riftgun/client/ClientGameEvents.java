@@ -37,7 +37,9 @@ public final class ClientGameEvents {
         }
         while (ClientModEvents.CYCLE_PLACEMENT.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
-                PortalNetworking.sendShortcutRequest(PortalAction.CYCLE_PLACEMENT_MODE);
+                boolean reverse = minecraft.options.keyShift.isDown();
+                PortalNetworking.sendShortcutRequest(PortalAction.CYCLE_PLACEMENT_MODE,
+                    tag -> tag.putBoolean("Reverse", reverse));
             }
         }
         while (ClientModEvents.FORCE_FRONT.consumeClick()) {
@@ -49,6 +51,11 @@ public final class ClientGameEvents {
         while (ClientModEvents.CLOSE_PORTALS.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS);
+            }
+        }
+        while (ClientModEvents.ENTITY_RELOCATION.consumeClick()) {
+            if (minecraft.player != null && minecraft.getConnection() != null) {
+                PortalNetworking.sendShortcutRequest(PortalAction.RELOCATE_ENTITY);
             }
         }
     }
@@ -88,6 +95,11 @@ public final class ClientGameEvents {
             if (definition.kind() == PortalModuleKind.MODULE_BAY_EXPANSION) {
                 event.getToolTip().add(Component.translatable("tooltip.riftgun.module.module_bay_warning")
                     .withStyle(ChatFormatting.GOLD));
+            }
+            if (definition.kind() == PortalModuleKind.ENTITY_RELOCATION) {
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.entity_relocation_fuel_warning")
+                    .withStyle(ChatFormatting.DARK_RED));
             }
             return;
         }

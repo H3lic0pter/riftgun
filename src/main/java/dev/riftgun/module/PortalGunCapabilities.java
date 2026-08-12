@@ -18,7 +18,10 @@ public record PortalGunCapabilities(
     boolean playerTarget,
     PlayerExcludeMode playerExcludeMode,
     int transitCooldownTicks,
-    boolean fallGuard
+    boolean entityRelocation,
+    boolean entityRelocationSmartRouting,
+    boolean fallGuard,
+    boolean entityFallGuard
 ) {
     public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance) {
         PortalModuleRules rules = PortalModuleRules.current();
@@ -32,6 +35,10 @@ public record PortalGunCapabilities(
             gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
         boolean playerTargetInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.PLAYER_TARGET, rules) > 0;
+        boolean relocationInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0;
+        boolean fallGuardInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.FALL_GUARD, rules) > 0;
         return new PortalGunCapabilities(
             PortalGunModules.activeCount(gun, PortalModuleKind.COORDINATE_OVERRIDE, rules) > 0,
             rules.capacityFor(reservoirCount),
@@ -44,7 +51,9 @@ public record PortalGunCapabilities(
                 PortalGunModules.activeCount(gun, PortalModuleKind.HOSTILE_TRANSIT, rules) > 0
                     && settings.hostileTransitEnabled(),
                 PortalGunModules.activeCount(gun, PortalModuleKind.BOSS_TRANSIT, rules) > 0
-                    && settings.bossTransitEnabled()
+                    && settings.bossTransitEnabled(),
+                PortalGunModules.activeCount(gun, PortalModuleKind.PROJECTILE_TRANSIT, rules) > 0
+                    && settings.projectileTransitEnabled()
             ),
             PortalOpenDuration.ticks(durationSeconds),
             apertureInstalled && settings.expandedApertureEnabled()
@@ -52,8 +61,11 @@ public record PortalGunCapabilities(
             playerTargetInstalled && settings.playerTargetEnabled(),
             settings.playerExcludeMode(),
             settings.transitCooldownTenths() * 2,
-            PortalGunModules.activeCount(gun, PortalModuleKind.FALL_GUARD, rules) > 0
-                && settings.fallGuardEnabled()
+            relocationInstalled && settings.entityRelocation().enabled(),
+            relocationInstalled && settings.entityRelocation().enabled()
+                && settings.entityRelocation().smartRouting(),
+            fallGuardInstalled && settings.fallGuardEnabled(),
+            fallGuardInstalled && settings.fallGuardEntitiesEnabled()
         );
     }
 

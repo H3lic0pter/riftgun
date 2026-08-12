@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -21,7 +22,8 @@ final class PortalTransitService {
     }
 
     static @Nullable Entity complete(Entity entity, ServerLevel targetLevel,
-                                     TransitPlan plan, boolean fallGuard) {
+                                     TransitPlan plan, boolean playerFallGuard,
+                                     boolean entityFallGuard) {
         Entity moved;
         if (entity.level() == targetLevel) {
             boolean successful = entity.teleportTo(targetLevel,
@@ -36,7 +38,12 @@ final class PortalTransitService {
 
         moved.setDeltaMovement(plan.momentum());
         moved.hasImpulse = true;
-        if (fallGuard) moved.fallDistance = 0.0F;
+        if (moved instanceof Projectile projectile) {
+            ProjectileMotion.alignToVelocity(projectile, plan.momentum());
+        }
+        if (PortalFallGuardPolicy.applies(moved, playerFallGuard, entityFallGuard)) {
+            moved.fallDistance = 0.0F;
+        }
         if (moved instanceof ServerPlayer player) PortalServices.MOTION_HISTORY.reset(player);
         return moved;
     }

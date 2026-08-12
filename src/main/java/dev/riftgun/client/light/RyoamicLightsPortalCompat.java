@@ -8,6 +8,8 @@ final class RyoamicLightsPortalCompat {
     static void register() {
         DynamicLightHandlers.registerDynamicLightHandler(
             RiftGun.PORTAL.get(), PortalDynamicLightLevel::forPortal);
+        DynamicLightHandlers.registerDynamicLightHandler(
+            RiftGun.ENTITY_RELOCATION_PORTAL.get(), PortalDynamicLightLevel::forRelocationPortal);
     }
 
     private RyoamicLightsPortalCompat() {}

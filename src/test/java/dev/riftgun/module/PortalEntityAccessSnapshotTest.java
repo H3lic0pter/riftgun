@@ -12,5 +12,6 @@ final class PortalEntityAccessSnapshotTest {
         assertEquals(2, new PortalEntityAccessSnapshot(false, true, false).mask());
         assertEquals(4, new PortalEntityAccessSnapshot(false, false, true).mask());
         assertEquals(7, new PortalEntityAccessSnapshot(true, true, true).mask());
+        assertEquals(8, new PortalEntityAccessSnapshot(false, false, false, true).mask());
     }
 }

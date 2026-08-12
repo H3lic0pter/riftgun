@@ -16,6 +16,7 @@ final class PortalGunModuleSettingsTest {
             .withSmartDistance(12)
             .withDesiredSurfaceRange(64)
             .withTransit(PortalModuleKind.HOSTILE_TRANSIT, false)
+            .withTransit(PortalModuleKind.PROJECTILE_TRANSIT, false)
             .withPortalDurationSeconds(12)
             .withExpandedApertureEnabled(false);
 
@@ -24,8 +25,20 @@ final class PortalGunModuleSettingsTest {
         assertTrue(changed.passiveTransitEnabled());
         assertFalse(changed.hostileTransitEnabled());
         assertTrue(changed.bossTransitEnabled());
+        assertFalse(changed.projectileTransitEnabled());
         assertEquals(12, changed.portalDurationSeconds());
         assertFalse(changed.expandedApertureEnabled());
+    }
+
+    @Test
+    void disablingEntityRelocationPreservesSmartRoutingPreference() {
+        PortalGunModuleSettings settings = PortalGunModuleSettings.defaults(8)
+            .withEntityRelocationSmartRouting(true)
+            .withEntityRelocationEnabled(false);
+
+        assertFalse(settings.entityRelocation().enabled());
+        assertTrue(settings.entityRelocation().smartRouting());
+        assertTrue(settings.withEntityRelocationEnabled(true).entityRelocation().smartRouting());
     }
 
     @Test
@@ -34,12 +47,15 @@ final class PortalGunModuleSettingsTest {
             new PortalGunModuleSettings.Placement(-4, 0),
             new PortalGunModuleSettings.Transit(true, true, true, -1),
             new PortalGunModuleSettings.Duration(0), true,
-            new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT), true);
+            new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT),
+            dev.riftgun.relocation.EntityRelocationSettings.defaults(), true, false);
 
         assertEquals(1, settings.smartDistance());
         assertEquals(1, settings.desiredSurfaceRange());
         assertEquals(1, settings.portalDurationSeconds());
         assertEquals(0, settings.transitCooldownTenths());
+        assertFalse(settings.fallGuardEntitiesEnabled());
+        assertTrue(settings.projectileTransitEnabled());
     }
 
     @Test
@@ -60,6 +76,7 @@ final class PortalGunModuleSettingsTest {
         assertEquals(3, settings.portalDurationSeconds());
         assertTrue(settings.expandedApertureEnabled());
         assertEquals(PlayerExcludeMode.ENTRY_AND_EXIT, settings.playerExcludeMode());
+        assertFalse(settings.fallGuardEntitiesEnabled());
     }
 
     @Test
@@ -81,6 +98,7 @@ final class PortalGunModuleSettingsTest {
         assertEquals(11, encoded.get("smart_distance").getAsInt());
         assertEquals(48, encoded.get("desired_surface_range").getAsInt());
         assertEquals(7, encoded.get("transit_cooldown_tenths").getAsInt());
+        assertFalse(encoded.has("projectile_transit_enabled"));
         assertFalse(encoded.has("placement"));
         assertFalse(encoded.has("transit"));
     }

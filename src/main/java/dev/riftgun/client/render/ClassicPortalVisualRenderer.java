@@ -3,6 +3,7 @@ package dev.riftgun.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalVisualSource;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
@@ -15,7 +16,7 @@ final class ClassicPortalVisualRenderer implements PortalVisualRenderer {
         float progress = context.visibleProgress();
         if (progress <= 0.0F) return;
 
-        PortalEntity portal = context.portal();
+        PortalVisualSource portal = context.portal();
         PortalRenderBasis basis = PortalRenderBasis.from(portal);
         Matrix4f matrix = context.poseStack().last().pose();
         float eased = Mth.sin(progress * Mth.HALF_PI);

@@ -21,6 +21,7 @@ final class PortalGuiIcons {
             case SMART -> PortalGuiSprites.PLACEMENT_SMART;
             case FRONT -> PortalGuiSprites.PLACEMENT_FRONT;
             case SURFACE -> PortalGuiSprites.PLACEMENT_SURFACE;
+            case ENTITY_RELOCATION -> PortalGuiSprites.PLACEMENT_ENTITY_RELOCATION;
         };
         PortalGuiSprites.draw(graphics, sprite, x - (mode == PortalPlacementMode.FRONT ? 4 : 3), y - 3);
     }
@@ -95,6 +96,34 @@ final class PortalGuiIcons {
 
     static void drawPlayerRefreshIcon(GuiGraphics graphics, int x, int y) {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.PLAYER_REFRESH, x - 4, y - 4);
+    }
+
+    static void drawEntityFallGuardIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        PortalGuiSprites.draw(graphics, enabled
+            ? PortalGuiSprites.ENTITY_FALL_GUARD_ON : PortalGuiSprites.ENTITY_FALL_GUARD_OFF, x, y);
+    }
+
+    static void drawProjectileTransitIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        PortalGuiSprites.draw(graphics, enabled
+            ? PortalGuiSprites.PROJECTILE_TRANSIT_ON : PortalGuiSprites.PROJECTILE_TRANSIT_OFF, x, y);
+    }
+
+    static void drawEntityRelocationIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        PortalGuiSprites.draw(graphics, enabled
+            ? PortalGuiSprites.ENTITY_RELOCATION_ON : PortalGuiSprites.ENTITY_RELOCATION_OFF,
+            x - 2, y - 2);
+    }
+
+    static void drawEntityRelocationSmartIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        PortalGuiSprites.draw(graphics, enabled
+            ? PortalGuiSprites.ENTITY_RELOCATION_SMART_ON : PortalGuiSprites.ENTITY_RELOCATION_SMART_OFF,
+            x - 2, y - 2);
+    }
+
+    static void drawEntityRelocationConfigIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        PortalGuiSprites.draw(graphics, enabled
+            ? PortalGuiSprites.ENTITY_RELOCATION_ON : PortalGuiSprites.ENTITY_RELOCATION_OFF,
+            x - 2, y - 2);
     }
 
     static void drawEyeIcon(GuiGraphics graphics, int x, int y) {

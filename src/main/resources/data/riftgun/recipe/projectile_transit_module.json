@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["AEA", "RMR", "ADA"],
+  "key": {
+    "A": { "item": "minecraft:spectral_arrow" },
+    "E": { "item": "minecraft:ender_pearl" },
+    "R": { "tag": "c:dusts/redstone" },
+    "M": { "item": "riftgun:basic_module" },
+    "D": { "item": "minecraft:dispenser" }
+  },
+  "result": { "id": "riftgun:projectile_transit_module", "count": 1 }
+}

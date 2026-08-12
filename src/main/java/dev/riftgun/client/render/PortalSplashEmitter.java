@@ -3,6 +3,8 @@ package dev.riftgun.client.render;
 import dev.riftgun.RiftGun;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalLifecycle;
+import dev.riftgun.portal.PortalVisualSource;
+import dev.riftgun.relocation.EntityRelocationPortalEntity;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,27 +32,35 @@ public final class PortalSplashEmitter {
 
         Set<UUID> seen = new HashSet<>();
         for (Entity entity : level.entitiesForRendering()) {
-            if (!(entity instanceof PortalEntity portal)) continue;
-            UUID portalId = portal.getUUID();
+            if (!(entity instanceof PortalVisualSource portal)) continue;
+            UUID portalId = portal.visualId();
             seen.add(portalId);
             emitTick(minecraft, level, portal);
         }
         LAST_EMISSIONS.keySet().retainAll(seen);
     }
 
-    private static void emitTick(Minecraft minecraft, ClientLevel level, PortalEntity portal) {
-        PortalLifecycle.Phase phase = portal.phase();
+    private static void emitTick(Minecraft minecraft, ClientLevel level, PortalVisualSource portal) {
+        PortalLifecycle.Phase phase;
+        int phaseTicks;
+        if (portal instanceof PortalEntity interactive) {
+            phase = interactive.phase();
+            phaseTicks = interactive.phaseTicks();
+        } else if (portal instanceof EntityRelocationPortalEntity relocation) {
+            phase = relocation.phase();
+            phaseTicks = relocation.phaseTicks();
+        } else return;
         int count = PortalSplashPattern.particleCount(phase);
         if (count == 0) {
-            LAST_EMISSIONS.remove(portal.getUUID());
+            LAST_EMISSIONS.remove(portal.visualId());
             return;
         }
 
-        EmissionStamp stamp = new EmissionStamp(phase, portal.phaseTicks());
-        if (stamp.equals(LAST_EMISSIONS.put(portal.getUUID(), stamp))) return;
+        EmissionStamp stamp = new EmissionStamp(phase, phaseTicks);
+        if (stamp.equals(LAST_EMISSIONS.put(portal.visualId(), stamp))) return;
 
         PortalVisualStyle style = PortalVisualStyles.resolve(portal);
-        float scale = PortalSplashPattern.edgeScale(phase, portal.phaseTicks());
+        float scale = PortalSplashPattern.edgeScale(phase, phaseTicks);
         RandomSource random = level.random;
         double offset = random.nextDouble();
         for (int index = 0; index < count; index++) {
@@ -60,11 +70,11 @@ public final class PortalSplashEmitter {
         }
     }
 
-    private static void emitParticle(Minecraft minecraft, PortalEntity portal,
+    private static void emitParticle(Minecraft minecraft, PortalVisualSource portal,
                                      PortalSplashPattern.EdgePoint point, int color,
                                      RandomSource random) {
         Vec3 edge = portal.right().scale(point.right()).add(portal.up().scale(point.up()));
-        Vec3 position = portal.position().add(edge)
+        Vec3 position = portal.placement().center().add(edge)
             .add(portal.normal().scale(PortalEntity.DEPTH * (0.6 + random.nextDouble() * 0.25)));
 
         Vec3 horizontal = new Vec3(edge.x, 0.0, edge.z);

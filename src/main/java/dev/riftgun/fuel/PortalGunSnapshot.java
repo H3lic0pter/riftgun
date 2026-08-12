@@ -32,6 +32,7 @@ public final class PortalGunSnapshot {
         tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());
         tag.putBoolean("HostileTransitEnabled", settings.hostileTransitEnabled());
         tag.putBoolean("BossTransitEnabled", settings.bossTransitEnabled());
+        tag.putBoolean("ProjectileTransitEnabled", settings.projectileTransitEnabled());
         boolean eternalInstalled = PortalGunCapabilities.hasEternalDuration(gun, rules);
         int maximumDuration = PortalGunCapabilities.maximumDurationSeconds(gun, rules);
         tag.putInt("PortalDurationSeconds", PortalGunCapabilities.configuredDurationSeconds(
@@ -43,10 +44,17 @@ public final class PortalGunSnapshot {
         tag.putInt("MaximumTransitCooldownTenths", PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
         tag.putBoolean("PlayerTargetEnabled", capabilities.playerTarget());
         tag.putInt("PlayerExcludeMode", capabilities.playerExcludeMode().id());
-        tag.putBoolean("FallGuardInstalled", capabilities.fallGuard());
+        boolean fallGuardInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.FALL_GUARD, rules) > 0;
+        tag.putBoolean("FallGuardInstalled", fallGuardInstalled);
         tag.putBoolean("FallGuardEnabled", capabilities.fallGuard());
+        tag.putBoolean("FallGuardEntitiesEnabled", capabilities.entityFallGuard());
         tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(
             gun, PortalModuleKind.PLAYER_TARGET, rules) > 0);
+        tag.putBoolean("EntityRelocationInstalled", PortalGunModules.activeCount(
+            gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0);
+        tag.putBoolean("EntityRelocationEnabled", capabilities.entityRelocation());
+        tag.putBoolean("EntityRelocationSmartRouting", settings.entityRelocation().smartRouting());
         CompoundTag modules = new CompoundTag();
         for (PortalModuleKind kind : PortalModuleKind.values()) {
             modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));

@@ -12,10 +12,11 @@ import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 7;
+    public static final int CURRENT_VERSION = 8;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
     /** Sentinel id for the Player section's collapsed/expanded state in {@link #expandedGroups()}. */
     public static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
@@ -26,18 +27,19 @@ public final class PortalPlayerData {
     private final Map<UUID, DestinationSafetyResult> safetyResults = new HashMap<>();
     private final Set<UUID> pinnedPlayers = new HashSet<>();
     private final Map<UUID, Long> playerLastUseAt = new HashMap<>();
-    private final Map<UUID, PlayerPermissionOverride> privacyOverrides = new HashMap<>();
+    private final Map<ResourceLocation, PortalPermissionPolicy> globalPermissions = new HashMap<>();
+    private final Map<UUID, PlayerPermissionProfile> permissionProfiles = new HashMap<>();
     private @Nullable UUID selectedDestinationId;
     private @Nullable UUID lastViewedDestinationId;
     private @Nullable UUID selectedPlayerId;
     private long nextLocationNumber = 1L;
     private PortalPlayerSettings settings = PortalPlayerSettings.defaults();
-    private TargetPrivacy targetPrivacy = TargetPrivacy.PUBLIC;
-    private boolean transitPrivacyEnabled;
 
     public PortalPlayerData() {
         expandedGroups.add(DEFAULT_GROUP_ID);
         expandedGroups.add(PLAYER_SECTION_ID);
+        PortalPermissions.definitions().forEach(definition ->
+            globalPermissions.put(definition.id(), definition.fallbackGlobalPolicy()));
     }
 
     public List<DestinationGroup> groups() {
@@ -85,32 +87,62 @@ public final class PortalPlayerData {
     }
 
     public TargetPrivacy targetPrivacy() {
-        return targetPrivacy;
+        return switch (globalPermission(PortalPermissions.PLAYER_PORTAL)) {
+            case ASK -> TargetPrivacy.REQUEST;
+            case DENY -> TargetPrivacy.PRIVATE;
+            default -> TargetPrivacy.PUBLIC;
+        };
     }
 
     public void targetPrivacy(TargetPrivacy value) {
-        targetPrivacy = value;
+        globalPermission(PortalPermissions.PLAYER_PORTAL, switch (value) {
+            case PUBLIC -> PortalPermissionPolicy.ALLOW;
+            case REQUEST -> PortalPermissionPolicy.ASK;
+            case PRIVATE -> PortalPermissionPolicy.DENY;
+        });
     }
 
     public boolean transitPrivacyEnabled() {
-        return transitPrivacyEnabled;
+        return globalPermission(PortalPermissions.FOREIGN_EXIT_TRANSIT) == PortalPermissionPolicy.DENY;
     }
 
     public void transitPrivacyEnabled(boolean value) {
-        transitPrivacyEnabled = value;
+        globalPermission(PortalPermissions.FOREIGN_EXIT_TRANSIT,
+            value ? PortalPermissionPolicy.DENY : PortalPermissionPolicy.ALLOW);
     }
 
-    public PlayerPermissionOverride privacyOverride(UUID playerId) {
-        return privacyOverrides.getOrDefault(playerId, PlayerPermissionOverride.DEFAULT);
+    public PortalPermissionPolicy globalPermission(ResourceLocation permissionId) {
+        PortalPermissionDefinition definition = PortalPermissions.definition(permissionId);
+        PortalPermissionPolicy fallback = definition == null
+            ? PortalPermissionPolicy.DENY : definition.fallbackGlobalPolicy();
+        return globalPermissions.getOrDefault(permissionId, fallback);
     }
 
-    public void privacyOverride(UUID playerId, PlayerPermissionOverride mode) {
-        if (mode == PlayerPermissionOverride.DEFAULT) privacyOverrides.remove(playerId);
-        else privacyOverrides.put(playerId, mode);
+    public void globalPermission(ResourceLocation permissionId, PortalPermissionPolicy policy) {
+        PortalPermissionDefinition definition = PortalPermissions.definition(permissionId);
+        if (policy == null || policy == PortalPermissionPolicy.FOLLOW_GLOBAL
+            || definition != null && !definition.supportsAsk() && policy == PortalPermissionPolicy.ASK) return;
+        globalPermissions.put(permissionId, policy);
     }
 
-    public Map<UUID, PlayerPermissionOverride> privacyOverrides() {
-        return privacyOverrides;
+    public Map<ResourceLocation, PortalPermissionPolicy> globalPermissions() {
+        return globalPermissions;
+    }
+
+    public PlayerPermissionProfile permissionProfile(UUID playerId) {
+        return permissionProfiles.computeIfAbsent(playerId, ignored -> new PlayerPermissionProfile());
+    }
+
+    public void permissionProfileMode(UUID playerId, PlayerPermissionProfileMode mode) {
+        if (mode == PlayerPermissionProfileMode.FOLLOW_GLOBAL) {
+            permissionProfiles.remove(playerId);
+            return;
+        }
+        permissionProfile(playerId).mode(mode);
+    }
+
+    public Map<UUID, PlayerPermissionProfile> permissionProfiles() {
+        return permissionProfiles;
     }
 
     public Optional<Destination> destination(UUID id) {
@@ -188,17 +220,31 @@ public final class PortalPlayerData {
         if (lastViewedDestinationId != null) root.putUUID("LastViewed", lastViewedDestinationId);
         if (selectedPlayerId != null) root.putUUID("SelectedPlayer", selectedPlayerId);
         root.put("Settings", settings.save());
-        root.putString("TargetPrivacy", targetPrivacy.name());
-        root.putBoolean("TransitPrivacy", transitPrivacyEnabled);
-
-        ListTag overrideTags = new ListTag();
-        privacyOverrides.forEach((id, mode) -> {
+        ListTag globalPermissionTags = new ListTag();
+        globalPermissions.forEach((id, policy) -> {
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("Id", id);
-            tag.putString("Mode", mode.name());
-            overrideTags.add(tag);
+            tag.putString("Id", id.toString());
+            tag.putString("Policy", policy.name());
+            globalPermissionTags.add(tag);
         });
-        root.put("PrivacyOverrides", overrideTags);
+        root.put("GlobalPermissions", globalPermissionTags);
+
+        ListTag profileTags = new ListTag();
+        permissionProfiles.forEach((playerId, profile) -> {
+            CompoundTag profileTag = new CompoundTag();
+            profileTag.putUUID("Player", playerId);
+            profileTag.putString("Mode", profile.mode().name());
+            ListTag values = new ListTag();
+            profile.values().forEach((permissionId, policy) -> {
+                CompoundTag value = new CompoundTag();
+                value.putString("Id", permissionId.toString());
+                value.putString("Policy", policy.name());
+                values.add(value);
+            });
+            profileTag.put("Values", values);
+            profileTags.add(profileTag);
+        });
+        root.put("PermissionProfiles", profileTags);
 
         ListTag groupTags = new ListTag();
         groups.stream().sorted(Comparator.comparingInt(DestinationGroup::order)).forEach(group -> groupTags.add(group.save()));
@@ -245,21 +291,70 @@ public final class PortalPlayerData {
     }
 
     public static PortalPlayerData load(CompoundTag root) {
-        return load(root, TargetPrivacy.PUBLIC);
+        return load(root, Map.of());
     }
 
     public static PortalPlayerData load(CompoundTag root, TargetPrivacy defaultTargetPrivacy) {
+        return load(root, Map.of(PortalPermissions.PLAYER_PORTAL, switch (defaultTargetPrivacy) {
+            case PUBLIC -> PortalPermissionPolicy.ALLOW;
+            case REQUEST -> PortalPermissionPolicy.ASK;
+            case PRIVATE -> PortalPermissionPolicy.DENY;
+        }));
+    }
+
+    public static PortalPlayerData load(
+            CompoundTag root, Map<ResourceLocation, PortalPermissionPolicy> permissionDefaults) {
         PortalPlayerData data = new PortalPlayerData();
+        permissionDefaults.forEach(data::globalPermission);
         data.nextLocationNumber = Math.max(1L, root.getLong("NextLocationNumber"));
         if (root.hasUUID("Selected")) data.selectedDestinationId = root.getUUID("Selected");
         if (root.hasUUID("LastViewed")) data.lastViewedDestinationId = root.getUUID("LastViewed");
         if (root.hasUUID("SelectedPlayer")) data.selectedPlayerId = root.getUUID("SelectedPlayer");
         data.settings = PortalPlayerSettings.load(root.getCompound("Settings"));
-        data.targetPrivacy = root.contains("TargetPrivacy", Tag.TAG_STRING)
-            ? TargetPrivacy.parse(root.getString("TargetPrivacy"), defaultTargetPrivacy)
-            : defaultTargetPrivacy;
-        data.transitPrivacyEnabled = root.getBoolean("TransitPrivacy");
-        if (root.contains("PrivacyOverrides")) {
+        boolean structuredPermissions = root.contains("GlobalPermissions", Tag.TAG_LIST);
+        if (structuredPermissions) {
+            ListTag globals = root.getList("GlobalPermissions", Tag.TAG_COMPOUND);
+            globals.forEach(raw -> {
+                CompoundTag tag = (CompoundTag) raw;
+                ResourceLocation id = ResourceLocation.tryParse(tag.getString("Id"));
+                PortalPermissionPolicy policy = PortalPermissionPolicy.parse(
+                    tag.getString("Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
+                if (id != null && policy != PortalPermissionPolicy.FOLLOW_GLOBAL) {
+                    PortalPermissionDefinition definition = PortalPermissions.definition(id);
+                    if (definition == null) data.globalPermissions.put(id, policy);
+                    else data.globalPermission(id, policy);
+                }
+            });
+        } else {
+            if (root.contains("TargetPrivacy", Tag.TAG_STRING)) {
+                data.targetPrivacy(TargetPrivacy.parse(root.getString("TargetPrivacy"), data.targetPrivacy()));
+            }
+            data.transitPrivacyEnabled(root.getBoolean("TransitPrivacy"));
+        }
+        if (root.contains("PermissionProfiles", Tag.TAG_LIST)) {
+            ListTag profiles = root.getList("PermissionProfiles", Tag.TAG_COMPOUND);
+            profiles.forEach(raw -> {
+                CompoundTag tag = (CompoundTag) raw;
+                if (!tag.hasUUID("Player")) return;
+                PlayerPermissionProfile profile = new PlayerPermissionProfile();
+                PlayerPermissionProfileMode mode = PlayerPermissionProfileMode.parse(
+                    tag.getString("Mode"), PlayerPermissionProfileMode.FOLLOW_GLOBAL);
+                profile.mode(mode);
+                ListTag values = tag.getList("Values", Tag.TAG_COMPOUND);
+                values.forEach(valueRaw -> {
+                    CompoundTag value = (CompoundTag) valueRaw;
+                    ResourceLocation id = ResourceLocation.tryParse(value.getString("Id"));
+                    PortalPermissionPolicy policy = PortalPermissionPolicy.parse(
+                        value.getString("Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
+                    if (id != null && policy != PortalPermissionPolicy.FOLLOW_GLOBAL) {
+                        profile.values().put(id, policy);
+                    }
+                });
+                if (mode != PlayerPermissionProfileMode.FOLLOW_GLOBAL) {
+                    data.permissionProfiles.put(tag.getUUID("Player"), profile);
+                }
+            });
+        } else if (root.contains("PrivacyOverrides")) {
             ListTag overrides = root.getList("PrivacyOverrides", Tag.TAG_COMPOUND);
             overrides.forEach(tag -> {
                 CompoundTag compound = (CompoundTag) tag;
@@ -267,7 +362,11 @@ public final class PortalPlayerData {
                 PlayerPermissionOverride mode = PlayerPermissionOverride.parse(
                     compound.getString("Mode"), PlayerPermissionOverride.DEFAULT);
                 if (mode != PlayerPermissionOverride.DEFAULT) {
-                    data.privacyOverrides.put(compound.getUUID("Id"), mode);
+                    PlayerPermissionProfile profile = data.permissionProfile(compound.getUUID("Id"));
+                    PortalPermissionPolicy policy = mode == PlayerPermissionOverride.ALLOW
+                        ? PortalPermissionPolicy.ALLOW : PortalPermissionPolicy.DENY;
+                    profile.customize(PortalPermissions.PLAYER_PORTAL, policy);
+                    profile.customize(PortalPermissions.ENTITY_RELOCATION_SUBJECT, policy);
                 }
             });
         }

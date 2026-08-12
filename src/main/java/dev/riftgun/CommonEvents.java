@@ -8,11 +8,17 @@ import dev.riftgun.service.PortalServices;
 import dev.riftgun.sound.PortalSounds;
 import dev.riftgun.crisis.PortalCrisisRegistry;
 import dev.riftgun.crisis.PortalCrisisTestOverrides;
+import dev.riftgun.relocation.EntityRelocationManager;
+import dev.riftgun.portal.ProjectilePortalIndex;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
@@ -74,6 +80,29 @@ public final class CommonEvents {
     public static void serverTick(ServerTickEvent.Post event) {
         PortalServices.MOTION_HISTORY.tick(event.getServer());
         PortalPrivacyService.tick(event.getServer());
+        EntityRelocationManager.tick(event.getServer());
+        dev.riftgun.relocation.EntityRelocationArrivalLatch.tick(event.getServer());
+        ProjectilePortalIndex.tick(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void entityJoined(EntityJoinLevelEvent event) {
+        if (event.getEntity() instanceof Projectile projectile && !event.getLevel().isClientSide()) {
+            ProjectilePortalIndex.track(projectile);
+        }
+    }
+
+    @SubscribeEvent
+    public static void entityLeft(EntityLeaveLevelEvent event) {
+        if (event.getEntity() instanceof Projectile projectile && !event.getLevel().isClientSide()) {
+            ProjectilePortalIndex.untrack(projectile);
+        }
+    }
+
+    @SubscribeEvent
+    public static void projectileImpact(ProjectileImpactEvent event) {
+        if (!event.getProjectile().level().isClientSide()
+            && ProjectilePortalIndex.tryTransit(event.getProjectile())) event.setCanceled(true);
     }
 
     @SubscribeEvent
@@ -81,6 +110,9 @@ public final class CommonEvents {
         PortalPrivacyService.reset();
         PortalCrisisTestOverrides.reset();
         PortalSounds.endServerShutdown();
+        EntityRelocationManager.reset();
+        dev.riftgun.relocation.EntityRelocationArrivalLatch.reset();
+        ProjectilePortalIndex.reset();
     }
 
     @SubscribeEvent

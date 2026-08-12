@@ -13,6 +13,7 @@ import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModuleMenus;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
+import dev.riftgun.relocation.EntityRelocationPortalEntity;
 import dev.riftgun.recipe.RiftGunRecipes;
 import dev.riftgun.service.PortalServices;
 import dev.riftgun.sound.PortalSounds;
@@ -78,6 +79,17 @@ public final class RiftGun {
             .updateInterval(1)
             .build("portal")
     );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<EntityRelocationPortalEntity>>
+        ENTITY_RELOCATION_PORTAL = ENTITY_TYPES.register(
+            "entity_relocation_portal",
+            () -> EntityType.Builder.<EntityRelocationPortalEntity>of(
+                    EntityRelocationPortalEntity::new, MobCategory.MISC)
+                .sized(1.0F, 0.05F)
+                .clientTrackingRange(10)
+                .updateInterval(1)
+                .build("entity_relocation_portal")
+        );
 
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> PORTAL_SPLASH = PARTICLE_TYPES.register(
         "portal_splash",

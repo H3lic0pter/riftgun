@@ -1,10 +1,10 @@
 package dev.riftgun.client.render;
 
-import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalVisualSource;
 import net.minecraft.world.phys.Vec3;
 
 record PortalRenderBasis(Vec3 right, Vec3 up, Vec3 normal) {
-    static PortalRenderBasis from(PortalEntity portal) {
+    static PortalRenderBasis from(PortalVisualSource portal) {
         return new PortalRenderBasis(portal.right(), portal.up(), portal.normal());
     }
 

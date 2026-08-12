@@ -5,6 +5,12 @@ import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunCapabilityPolicy;
 import dev.riftgun.fuel.PortalGunFluidInteractions;
 import dev.riftgun.fuel.PortalGunWorldScoop;
+import dev.riftgun.module.PortalGunModules;
+import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.module.PortalModuleRules;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -19,6 +25,25 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 public final class PortalGunItem extends Item {
     public PortalGunItem(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
+        if (hasMatterAnchor(stack) && entity.getAge() != Short.MIN_VALUE) {
+            entity.setUnlimitedLifetime();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean canBeHurtBy(ItemStack stack, DamageSource source) {
+        return !hasMatterAnchor(stack)
+            || !source.is(DamageTypeTags.IS_FIRE) && !source.is(DamageTypeTags.IS_EXPLOSION);
+    }
+
+    private static boolean hasMatterAnchor(ItemStack stack) {
+        return PortalGunModules.activeCount(
+            stack, PortalModuleKind.MATTER_ANCHOR, PortalModuleRules.current()) > 0;
     }
 
     @Override

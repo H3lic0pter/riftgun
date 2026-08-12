@@ -13,6 +13,7 @@ public enum PortalAction {
     SELECT_PLAYER,
     OPEN_PORTAL,
     OPEN_SELECTED,
+    RELOCATE_ENTITY,
     CYCLE_PLACEMENT_MODE,
     CREATE_GROUP,
     RENAME_GROUP,
@@ -40,6 +41,6 @@ public enum PortalAction {
     }
 
     public boolean isExclusiveKeyboardShortcut() {
-        return this == OPEN_SELECTED || this == CYCLE_PLACEMENT_MODE;
+        return this == OPEN_SELECTED || this == RELOCATE_ENTITY || this == CYCLE_PLACEMENT_MODE;
     }
 }

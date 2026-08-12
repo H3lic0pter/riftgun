@@ -1,6 +1,12 @@
 # Rift Gun
 
-Rift Gun is a portal-gun mod for Minecraft that creates linked, walk-through portals for local and cross-dimensional travel. It combines a destination manager, configurable portal placement, three tiers of portal fuel, per-gun modules, player-to-player portals, and client-side visual and sound themes.
+Rift Gun is a NeoForge portal-gun mod for Minecraft 1.21.1. It creates linked,
+walk-through portals for local and cross-dimensional travel, with saved
+destinations, modular gun upgrades, configurable placement, player privacy,
+three portal-fluid tiers, and client-local visual and sound themes.
+
+The project is currently in beta. Back up worlds before updating and expect
+configuration or save-data migration requirements before `1.0.0`.
 
 
 ## Requirements
@@ -26,7 +32,7 @@ Back up the world before changing mod versions. Rift Gun stores destinations and
 ## Getting started
 
 - Craft a Portal Gun and produce a supported portal fluid. Recipes are available in the vanilla recipe book; JEI also documents fluid transmutation.
-- Carry a Portal Gun and press `G` to open its destination and configuration screen.
+- Hold a Portal Gun in either hand and press `G` to open its destination and configuration screen under the default server shortcut policy.
 - Save the current position or select an existing destination. The GUI's **Open Portal** action always creates the entrance in front of the player.
 - Right-click the gun to open a portal using its current `SMART`, `FRONT`, or `SURFACE` placement mode.
 - Press `V` to cycle placement modes. Direct front placement, direct surface placement, and close-portals key mappings are unbound by default.
@@ -81,18 +87,32 @@ The gun starts with nine module slots. Each Module Bay Expansion adds three slot
 | Player Target | Adds online players as portal destinations | 1 |
 | Duration | Adds 45 seconds to the selectable duration limit | 1 |
 | Eternal Duration | Keeps opened portals active until closed or replaced; incompatible with Duration | 1 |
-| Fall Guard | Clears accumulated pre-portal fall distance after transit | 1 |
+| Fall Guard | Clears accumulated pre-portal fall distance after transit; can also protect eligible entities | 1 |
+| Matter Anchor | Prevents a dropped Portal Gun from despawning or being destroyed by fire, lava, or explosions | 1 |
+| Projectile Transit | Allows eligible projectiles to cross portals while preserving transformed velocity and orientation | 1 |
+| Entity Relocation | Opens a short-lived visual gate around a targeted entity and sends it to the selected destination | 1 |
 
 Module limits and numerical bonuses marked as defaults may be changed by the server configuration. Removing a Reservoir Expansion discards fluid above the reduced capacity. A Module Bay Expansion cannot be removed while slots that depend on it are occupied.
 
+Entity Relocation has independent enable and SMART-routing controls. Its fuel
+cost is calculated once when the transfer starts: projectiles use the base
+cost, passive entities default to `1.5×`, hostile entities and players to
+`3×`, and boss-tagged entities to `10×`, rounded down. Server administrators
+may change all multipliers, including setting them to zero.
+
 ### Player targets and privacy
 
-The Player Target Module can open an exit near an online player. The Privacy Terminal controls two independent policies:
+The Player Target Module can open an exit near an online player. The Privacy
+Terminal provides global defaults plus per-player overrides for ordinary
+player-target exits, Entity Relocation destinations and subjects, and whether
+foreign exit portals may carry the player.
 
 - **Target privacy:** `PUBLIC`, `REQUEST`, or `PRIVATE` controls whether others may open a player-target portal beside you.
 - **Transit privacy:** optionally prevents other players from arriving through portals whose destination belongs to you.
 
-`REQUEST` mode provides chat actions for Allow Once, Deny Once, and Always Deny. Requests, one-time grants, and denial cooldowns expire independently. Their default timeouts are server-configurable.
+`REQUEST` mode provides chat actions for Allow Once, Deny Once, and Always
+Deny. Requests, one-time grants, and denial cooldowns expire independently.
+Their default timeouts are server-configurable.
 
 ### Unstable-fluid crises
 
@@ -141,4 +161,12 @@ The project targets Java 21. Source code and issue tracking are hosted at [githu
 
 ## License and attribution
 
-Rift Gun is distributed under the [MIT License](LICENSE). Third-party notices and bundled-resource attribution are recorded in [`META-INF/NOTICE.md`](src/main/resources/META-INF/NOTICE.md) and [`META-INF/THIRD_PARTY_LICENSES`](src/main/resources/META-INF/THIRD_PARTY_LICENSES).
+Rift Gun is distributed under the [MIT License](LICENSE). The Portal Gun model
+and the mod's other original models, textures, audio, code, and data are
+self-authored project assets. The portal surface vertex and fragment shaders
+are adapted from Tempad's MIT-licensed `rendertype_timedoor` shaders in the
+[Terrarium Earth Tempad repository](https://github.com/terrarium-earth/Tempad).
+
+The complete attribution and upstream license text are included in
+[NOTICE.md](NOTICE.md), [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES), and the
+distributed JAR under `META-INF`.

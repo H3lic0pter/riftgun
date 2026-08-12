@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalRenderTypes;
 import dev.riftgun.client.render.PortalRenderer;
+import dev.riftgun.client.render.EntityRelocationPortalRenderer;
 import dev.riftgun.client.render.TintableSplashParticle;
 import dev.riftgun.client.light.PortalDynamicLights;
 import dev.riftgun.fuel.PortalFluids;
@@ -51,10 +52,15 @@ public final class ClientModEvents {
         "key.riftgun.close_portals", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
         "key.categories.riftgun"
     );
+    public static final KeyMapping ENTITY_RELOCATION = new KeyMapping(
+        "key.riftgun.entity_relocation", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        "key.categories.riftgun"
+    );
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         EntityRenderers.register(RiftGun.PORTAL.get(), PortalRenderer::new);
+        EntityRenderers.register(RiftGun.ENTITY_RELOCATION_PORTAL.get(), EntityRelocationPortalRenderer::new);
         PortalNetworking.setClientContextWriter(PortalClientState::writeGunReference);
         event.enqueueWork(PortalDynamicLights::initialize);
     }
@@ -86,6 +92,7 @@ public final class ClientModEvents {
         event.register(FORCE_FRONT);
         event.register(FORCE_SURFACE);
         event.register(CLOSE_PORTALS);
+        event.register(ENTITY_RELOCATION);
     }
 
     @SubscribeEvent

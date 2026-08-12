@@ -3,6 +3,7 @@ package dev.riftgun.module;
 import com.mojang.serialization.Codec;
 import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.relocation.EntityRelocationSettings;
 import net.minecraft.world.item.ItemStack;
 
 /** Persisted per-gun preferences grouped by the capability that owns each value. */
@@ -12,7 +13,9 @@ public record PortalGunModuleSettings(
     Duration duration,
     boolean expandedApertureEnabled,
     PlayerTarget playerTarget,
-    boolean fallGuardEnabled
+    EntityRelocationSettings entityRelocation,
+    boolean fallGuardEnabled,
+    boolean fallGuardEntitiesEnabled
 ) {
     public static final int DEFAULT_SMART_DISTANCE = 8;
     public static final int MINIMUM_TRANSIT_COOLDOWN_TENTHS = 0;
@@ -28,12 +31,13 @@ public record PortalGunModuleSettings(
         if (transit == null) transit = Transit.defaults();
         if (duration == null) duration = Duration.defaults();
         if (playerTarget == null) playerTarget = PlayerTarget.defaults();
+        if (entityRelocation == null) entityRelocation = EntityRelocationSettings.defaults();
     }
 
     public static PortalGunModuleSettings defaults(int legacySmartDistance) {
         return new PortalGunModuleSettings(
             Placement.defaults(legacySmartDistance), Transit.defaults(), Duration.defaults(),
-            true, PlayerTarget.defaults(), true);
+            true, PlayerTarget.defaults(), EntityRelocationSettings.defaults(), true, false);
     }
 
     public static PortalGunModuleSettings get(ItemStack gun, int legacySmartDistance) {
@@ -72,6 +76,10 @@ public record PortalGunModuleSettings(
         return transit.bossEnabled();
     }
 
+    public boolean projectileTransitEnabled() {
+        return transit.projectileEnabled();
+    }
+
     public int transitCooldownTenths() {
         return transit.cooldownTenths();
     }
@@ -90,48 +98,68 @@ public record PortalGunModuleSettings(
 
     public PortalGunModuleSettings withSmartDistance(int value) {
         return new PortalGunModuleSettings(placement.withSmartDistance(value), transit, duration,
-            expandedApertureEnabled, playerTarget, fallGuardEnabled);
+            expandedApertureEnabled, playerTarget, entityRelocation, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withDesiredSurfaceRange(int value) {
         return new PortalGunModuleSettings(placement.withDesiredSurfaceRange(value), transit, duration,
-            expandedApertureEnabled, playerTarget, fallGuardEnabled);
+            expandedApertureEnabled, playerTarget, entityRelocation, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withTransit(PortalModuleKind kind, boolean enabled) {
         Transit updated = transit.withEnabled(kind, enabled);
         return updated == transit ? this : new PortalGunModuleSettings(
-            placement, updated, duration, expandedApertureEnabled, playerTarget, fallGuardEnabled);
+            placement, updated, duration, expandedApertureEnabled, playerTarget, entityRelocation,
+            fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withTransitCooldownTenths(int value) {
         return new PortalGunModuleSettings(placement, transit.withCooldown(value), duration,
-            expandedApertureEnabled, playerTarget, fallGuardEnabled);
+            expandedApertureEnabled, playerTarget, entityRelocation, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withPortalDurationSeconds(int value) {
         return new PortalGunModuleSettings(placement, transit, new Duration(value),
-            expandedApertureEnabled, playerTarget, fallGuardEnabled);
+            expandedApertureEnabled, playerTarget, entityRelocation, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withExpandedApertureEnabled(boolean enabled) {
         return new PortalGunModuleSettings(
-            placement, transit, duration, enabled, playerTarget, fallGuardEnabled);
+            placement, transit, duration, enabled, playerTarget, entityRelocation,
+            fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withPlayerTargetEnabled(boolean enabled) {
         return new PortalGunModuleSettings(placement, transit, duration,
-            expandedApertureEnabled, playerTarget.withEnabled(enabled), fallGuardEnabled);
+            expandedApertureEnabled, playerTarget.withEnabled(enabled), entityRelocation,
+            fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withPlayerExcludeMode(PlayerExcludeMode mode) {
         return new PortalGunModuleSettings(placement, transit, duration,
-            expandedApertureEnabled, playerTarget.withExcludeMode(mode), fallGuardEnabled);
+            expandedApertureEnabled, playerTarget.withExcludeMode(mode), entityRelocation,
+            fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
+    public PortalGunModuleSettings withEntityRelocationEnabled(boolean enabled) {
+        return new PortalGunModuleSettings(placement, transit, duration, expandedApertureEnabled,
+            playerTarget, entityRelocation.withEnabled(enabled), fallGuardEnabled, fallGuardEntitiesEnabled);
+    }
+
+    public PortalGunModuleSettings withEntityRelocationSmartRouting(boolean enabled) {
+        return new PortalGunModuleSettings(placement, transit, duration, expandedApertureEnabled,
+            playerTarget, entityRelocation.withSmartRouting(enabled), fallGuardEnabled, fallGuardEntitiesEnabled);
+    }
     public PortalGunModuleSettings withFallGuardEnabled(boolean enabled) {
         return new PortalGunModuleSettings(
-            placement, transit, duration, expandedApertureEnabled, playerTarget, enabled);
+            placement, transit, duration, expandedApertureEnabled, playerTarget, entityRelocation,
+            enabled, fallGuardEntitiesEnabled);
+    }
+
+    public PortalGunModuleSettings withFallGuardEntitiesEnabled(boolean enabled) {
+        return new PortalGunModuleSettings(
+            placement, transit, duration, expandedApertureEnabled, playerTarget, entityRelocation,
+            fallGuardEnabled, enabled);
     }
 
     public record Placement(int smartDistance, int desiredSurfaceRange) {
@@ -155,27 +183,37 @@ public record PortalGunModuleSettings(
     }
 
     public record Transit(boolean passiveEnabled, boolean hostileEnabled,
-                          boolean bossEnabled, int cooldownTenths) {
+                          boolean bossEnabled, boolean projectileEnabled, int cooldownTenths) {
+        public Transit(boolean passiveEnabled, boolean hostileEnabled,
+                       boolean bossEnabled, int cooldownTenths) {
+            this(passiveEnabled, hostileEnabled, bossEnabled, true, cooldownTenths);
+        }
+
         public Transit {
             cooldownTenths = Math.clamp(cooldownTenths,
                 MINIMUM_TRANSIT_COOLDOWN_TENTHS, MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
         }
 
         static Transit defaults() {
-            return new Transit(true, true, true, DEFAULT_TRANSIT_COOLDOWN_TENTHS);
+            return new Transit(true, true, true, true, DEFAULT_TRANSIT_COOLDOWN_TENTHS);
         }
 
         Transit withEnabled(PortalModuleKind kind, boolean enabled) {
             return switch (kind) {
-                case PASSIVE_TRANSIT -> new Transit(enabled, hostileEnabled, bossEnabled, cooldownTenths);
-                case HOSTILE_TRANSIT -> new Transit(passiveEnabled, enabled, bossEnabled, cooldownTenths);
-                case BOSS_TRANSIT -> new Transit(passiveEnabled, hostileEnabled, enabled, cooldownTenths);
+                case PASSIVE_TRANSIT -> new Transit(
+                    enabled, hostileEnabled, bossEnabled, projectileEnabled, cooldownTenths);
+                case HOSTILE_TRANSIT -> new Transit(
+                    passiveEnabled, enabled, bossEnabled, projectileEnabled, cooldownTenths);
+                case BOSS_TRANSIT -> new Transit(
+                    passiveEnabled, hostileEnabled, enabled, projectileEnabled, cooldownTenths);
+                case PROJECTILE_TRANSIT -> new Transit(
+                    passiveEnabled, hostileEnabled, bossEnabled, enabled, cooldownTenths);
                 default -> this;
             };
         }
 
         Transit withCooldown(int value) {
-            return new Transit(passiveEnabled, hostileEnabled, bossEnabled, value);
+            return new Transit(passiveEnabled, hostileEnabled, bossEnabled, projectileEnabled, value);
         }
     }
 

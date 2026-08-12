@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["EBE", "DMD", "EOE"],
+  "key": {
+    "E": { "item": "minecraft:ender_pearl" },
+    "B": {
+      "type": "neoforge:components",
+      "items": "minecraft:enchanted_book",
+      "components": {
+        "minecraft:stored_enchantments": {
+          "levels": { "minecraft:binding_curse": 1 }
+        }
+      },
+      "strict": false
+    },
+    "D": { "item": "minecraft:diamond" },
+    "M": { "item": "riftgun:basic_module" },
+    "O": { "item": "minecraft:ender_eye" }
+  },
+  "result": { "id": "riftgun:entity_relocation_module", "count": 1 }
+}

@@ -43,6 +43,12 @@ public final class PortalModules {
         "duration_eternal_module", PortalModuleKind.DURATION_ETERNAL, ignored -> 1, 0xD8C77F);
     public static final ModuleEntry FALL_GUARD = register(
         "fall_guard_module", PortalModuleKind.FALL_GUARD, ignored -> 1, 0x6FBF73);
+    public static final ModuleEntry ENTITY_RELOCATION = register(
+        "entity_relocation_module", PortalModuleKind.ENTITY_RELOCATION, ignored -> 1, 0x75D7C8);
+    public static final ModuleEntry MATTER_ANCHOR = register(
+        "matter_anchor_module", PortalModuleKind.MATTER_ANCHOR, ignored -> 1, 0x8A86A8);
+    public static final ModuleEntry PROJECTILE_TRANSIT = register(
+        "projectile_transit_module", PortalModuleKind.PROJECTILE_TRANSIT, ignored -> 1, 0xD7C65C);
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {

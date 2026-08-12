@@ -38,6 +38,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                 constraints.maximumSurfaceRange(), constraints.aperture());
             case SMART -> surface(player, true, constraints.smartDistance(),
                 constraints.maximumSurfaceRange(), constraints.aperture());
+            case ENTITY_RELOCATION -> EntryResult.failure("message.riftgun.entity_relocation_target_required");
         };
         if (entry.front) return PortalPlacementCapture.success(
             PortalPlacementIntent.front(constraints.predictionMode()));

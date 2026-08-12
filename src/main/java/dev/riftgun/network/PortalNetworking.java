@@ -103,8 +103,6 @@ public final class PortalNetworking {
         PortalPlayerData data = PortalDataStore.load(player);
         ListTag entries = new ListTag();
         List<ServerPlayer> online = new ArrayList<>(server.getPlayerList().getPlayers());
-        online.removeIf(candidate -> !dev.riftgun.service.PortalPrivacyService
-            .isVisibleTo(server, player, candidate));
         online.sort(Comparator.comparing((ServerPlayer candidate) -> data.isPlayerPinned(candidate.getUUID()))
             .reversed().thenComparing(playerComparator(player, data)));
         int order = 0;
@@ -153,7 +151,21 @@ public final class PortalNetworking {
         envelope.putString("Kind", "PrivacyTerminal");
         envelope.put("Data", PortalDataStore.load(player).save());
         envelope.put("Players", privacyRoster(player));
+        envelope.put("Permissions", privacyPermissions());
         PacketDistributor.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    private static ListTag privacyPermissions() {
+        ListTag entries = new ListTag();
+        for (dev.riftgun.data.PortalPermissionDefinition definition
+                : dev.riftgun.data.PortalPermissions.definitions()) {
+            CompoundTag entry = new CompoundTag();
+            entry.putString("Id", definition.id().toString());
+            entry.putBoolean("SupportsAsk", definition.supportsAsk());
+            entry.putString("TranslationKey", definition.translationKey());
+            entries.add(entry);
+        }
+        return entries;
     }
 
     /** Refreshes only the online roster of the Privacy Terminal screen. */

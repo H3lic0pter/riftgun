@@ -1,6 +1,7 @@
 package dev.riftgun.portal;
 
 import dev.riftgun.module.PortalEntityAccessSnapshot;
+import dev.riftgun.relocation.EntityRelocationArrivalLatch;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.PortalServices;
 import java.util.UUID;
@@ -29,6 +30,7 @@ record PortalTransitEligibility(
         if (!PortalTriggerShape.intersects(
             placement, root.getBoundingBox(), horizontalTriggerExtend)) return false;
         if (containsExcludedPlayer(root)) return false;
+        if (exitPortal && EntityRelocationArrivalLatch.blocksExit(root)) return false;
         return !exitPortal || !containsTransitProtectedPlayer(root);
     }
 
@@ -41,7 +43,7 @@ record PortalTransitEligibility(
         return root.getSelfAndPassengers().anyMatch(entity -> {
             if (!(entity instanceof ServerPlayer player)) return false;
             if (ownerId != null && ownerId.equals(player.getUUID())) return false;
-            return PortalPrivacyService.transitProtectsTarget(player);
+            return !PortalPrivacyService.allowsForeignExitTransit(player, ownerId);
         });
     }
 }
