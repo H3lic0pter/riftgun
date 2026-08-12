@@ -1,6 +1,6 @@
 {
 	"format_version": "1.21.11",
-	"credit": "Derived from JustDireThings portalgun_v2_100 (MIT); original white-and-glass variant. Refined with 90% body width, 90% handle scale, and a hollow 90% translucent top tube. User-edited version polished: removed muzzle z-fighting, rebuilt front depth layers, and added restrained fastener/grip details.",
+	"credit": "Self-authored by H3lic0pter for Rift Gun.",
 	"texture_size": [32, 32],
 	"textures": {
 		"particle": "riftgun:item/portal_gun/base_white",

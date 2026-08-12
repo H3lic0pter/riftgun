@@ -1,6 +1,7 @@
 # Third-party notices
 
-Portal rendering and shader structure are adapted from Tempad by Terrarium Earth:
+The portal surface vertex and fragment shaders are adapted from Tempad's
+`rendertype_timedoor` shaders by Terrarium Earth:
 
 - Repository: https://github.com/terrarium-earth/Tempad
 - Reviewed commit: `e3816ad55f69d159b3e04b47bae4971f5f0a09ca`
@@ -9,10 +10,5 @@ Portal rendering and shader structure are adapted from Tempad by Terrarium Earth
 
 The complete upstream license text is stored in `THIRD_PARTY_LICENSES/Tempad-LICENSE.md`.
 
-The Portal Gun item model is derived from `portalgun_v2_100` in Just Dire Things by Direwolf20-MC:
-
-- Repository: https://github.com/Direwolf20-MC/JustDireThings
-- The derived geometry is redistributed and modified under the MIT License.
-- Original copyright: Copyright (c) 2023 Direwolf20-MC.
-
-The complete upstream license text is stored in `THIRD_PARTY_LICENSES/JustDireThings-LICENSE.txt`.
+The Portal Gun item model is self-authored by H3lic0pter and is covered by
+Rift Gun's MIT License.
