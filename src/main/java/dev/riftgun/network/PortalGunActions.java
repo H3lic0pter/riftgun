@@ -24,13 +24,13 @@ import net.minecraft.world.item.ItemStack;
 
 /** Player preferences and settings stored directly on a Portal Gun. */
 final class PortalGunActions {
-    static boolean cyclePlacementMode(ServerPlayer player, PortalPlayerData data, ItemStack gun) {
+    static boolean cyclePlacementMode(ServerPlayer player, PortalPlayerData data, ItemStack gun,
+                                      boolean reverse) {
         PortalPlayerSettings old = data.settings();
-        PortalPlacementMode next = old.placementMode().next();
-        if (next == PortalPlacementMode.ENTITY_RELOCATION
-            && !PortalGunCapabilities.resolve(gun, old.smartDistance()).entityRelocation()) {
-            next = next.next();
-        }
+        boolean relocationAvailable = PortalGunCapabilities.resolve(
+            gun, old.smartDistance()).entityRelocation();
+        PortalPlacementMode next = adjacentAvailableMode(
+            old.placementMode(), reverse, relocationAvailable);
         data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(),
             old.soundsEnabled(), old.sort(), next, old.smartDistance(), old.predictionMode(),
@@ -39,6 +39,15 @@ final class PortalGunActions {
             "message.riftgun.placement_mode", Component.translatable("screen.riftgun.placement_mode."
                 + next.name().toLowerCase(Locale.ROOT))), true);
         return true;
+    }
+
+    static PortalPlacementMode adjacentAvailableMode(PortalPlacementMode current, boolean reverse,
+                                                       boolean relocationAvailable) {
+        PortalPlacementMode candidate = reverse ? current.previous() : current.next();
+        if (candidate == PortalPlacementMode.ENTITY_RELOCATION && !relocationAvailable) {
+            candidate = reverse ? candidate.previous() : candidate.next();
+        }
+        return candidate;
     }
 
     static boolean updatePlayerSettings(ServerPlayer player, PortalPlayerData data, CompoundTag request) {

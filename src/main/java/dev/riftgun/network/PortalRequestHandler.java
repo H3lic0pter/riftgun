@@ -131,7 +131,8 @@ public final class PortalRequestHandler {
                 EntityRelocationManager.tryStart(player, data, gun, true);
                 yield false;
             }
-            case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(player, data, gun.stack());
+            case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(
+                player, data, gun.stack(), request.getBoolean("Reverse"));
             case CREATE_GROUP -> PortalDestinationActions.createGroup(data, request);
             case RENAME_GROUP -> PortalDestinationActions.renameGroup(data, request);
             case DELETE_GROUP -> PortalDestinationActions.deleteGroup(data, request);

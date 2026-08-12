@@ -37,7 +37,9 @@ public final class ClientGameEvents {
         }
         while (ClientModEvents.CYCLE_PLACEMENT.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
-                PortalNetworking.sendShortcutRequest(PortalAction.CYCLE_PLACEMENT_MODE);
+                boolean reverse = minecraft.options.keyShift.isDown();
+                PortalNetworking.sendShortcutRequest(PortalAction.CYCLE_PLACEMENT_MODE,
+                    tag -> tag.putBoolean("Reverse", reverse));
             }
         }
         while (ClientModEvents.FORCE_FRONT.consumeClick()) {
