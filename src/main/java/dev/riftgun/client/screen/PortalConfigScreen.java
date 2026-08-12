@@ -1317,8 +1317,10 @@ public final class PortalConfigScreen extends Screen {
                 entityTransitSettingsButton.getY() + 7, PortalTheme.PORTAL);
         }
         if (playerTargetSettingsButton != null) {
-            drawPlayerTargetIcon(graphics, playerTargetSettingsButton.getX() + 6,
-                playerTargetSettingsButton.getY() + 6, PortalTheme.ICE);
+            boolean enabled = PortalClientState.gun().getBoolean("PlayerTargetEnabled");
+            drawPlayerTargetIcon(graphics, playerTargetSettingsButton.getX() + 7,
+                playerTargetSettingsButton.getY() + 7,
+                enabled ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
         }
         if (apertureSettingsButton != null) {
             boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled");
@@ -1331,8 +1333,9 @@ public final class PortalConfigScreen extends Screen {
                 fallGuardSettingsButton.getY() + 7, enabled);
         }
         if (entityRelocationSettingsButton != null) {
-            drawEntityRelocationConfigIcon(graphics, entityRelocationSettingsButton.getX() + 6,
-                entityRelocationSettingsButton.getY() + 6);
+            boolean enabled = PortalClientState.gun().getBoolean("EntityRelocationEnabled");
+            drawEntityRelocationConfigIcon(graphics, entityRelocationSettingsButton.getX() + 7,
+                entityRelocationSettingsButton.getY() + 7, enabled);
         }
     }
 

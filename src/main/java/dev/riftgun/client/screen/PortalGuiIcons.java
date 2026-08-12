@@ -110,8 +110,10 @@ final class PortalGuiIcons {
             x - 2, y - 2);
     }
 
-    static void drawEntityRelocationConfigIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.ENTITY_RELOCATION_ON, x - 2, y - 2);
+    static void drawEntityRelocationConfigIcon(GuiGraphics graphics, int x, int y, boolean enabled) {
+        PortalGuiSprites.draw(graphics, enabled
+            ? PortalGuiSprites.ENTITY_RELOCATION_ON : PortalGuiSprites.ENTITY_RELOCATION_OFF,
+            x - 2, y - 2);
     }
 
     static void drawEyeIcon(GuiGraphics graphics, int x, int y) {

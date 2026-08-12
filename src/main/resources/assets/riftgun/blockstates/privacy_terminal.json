@@ -1,5 +1,19 @@
 {
   "variants": {
-    "": { "model": "riftgun:block/privacy_terminal" }
+    "facing=north": {
+      "model": "riftgun:block/privacy_terminal"
+    },
+    "facing=south": {
+      "model": "riftgun:block/privacy_terminal",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "riftgun:block/privacy_terminal",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "riftgun:block/privacy_terminal",
+      "y": 90
+    }
   }
 }

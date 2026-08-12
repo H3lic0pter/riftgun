@@ -29,6 +29,17 @@ final class PortalGunModuleSettingsTest {
     }
 
     @Test
+    void disablingEntityRelocationPreservesSmartRoutingPreference() {
+        PortalGunModuleSettings settings = PortalGunModuleSettings.defaults(8)
+            .withEntityRelocationSmartRouting(true)
+            .withEntityRelocationEnabled(false);
+
+        assertFalse(settings.entityRelocation().enabled());
+        assertTrue(settings.entityRelocation().smartRouting());
+        assertTrue(settings.withEntityRelocationEnabled(true).entityRelocation().smartRouting());
+    }
+
+    @Test
     void clampsPersistedDistancesToPositiveValues() {
         PortalGunModuleSettings settings = new PortalGunModuleSettings(
             new PortalGunModuleSettings.Placement(-4, 0),
