@@ -96,6 +96,11 @@ public final class ClientGameEvents {
                 event.getToolTip().add(Component.translatable("tooltip.riftgun.module.module_bay_warning")
                     .withStyle(ChatFormatting.GOLD));
             }
+            if (definition.kind() == PortalModuleKind.ENTITY_RELOCATION) {
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.entity_relocation_fuel_warning")
+                    .withStyle(ChatFormatting.DARK_RED));
+            }
             return;
         }
         if (event.getItemStack().is(RiftGun.PRIVACY_TERMINAL_ITEM.get())) {

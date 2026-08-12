@@ -38,6 +38,11 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue entityRelocationTargetCooldownTicks;
         public final ModConfigSpec.IntValue entityRelocationExitDurationSeconds;
         public final ModConfigSpec.IntValue projectileRelocationOpeningTicks;
+        public final ModConfigSpec.DoubleValue passiveRelocationFuelMultiplier;
+        public final ModConfigSpec.DoubleValue hostileRelocationFuelMultiplier;
+        public final ModConfigSpec.DoubleValue playerRelocationFuelMultiplier;
+        public final ModConfigSpec.DoubleValue bossRelocationFuelMultiplier;
+        public final ModConfigSpec.DoubleValue projectileRelocationFuelMultiplier;
         public final ModConfigSpec.IntValue maximumProjectileTransits;
         public final ModConfigSpec.BooleanValue enableProjectileSweptCollision;
         public final ModConfigSpec.IntValue projectileEffectCooldownTicks;
@@ -139,6 +144,18 @@ public final class ServerConfig {
                     "Opening animation duration for newly created Projectile Entity Relocation "
                         + "entrances and exits. Existing shared exits keep their current duration.")
                 .defineInRange("projectileOpeningTicks", 2, 1, 5);
+            builder.push("fuelMultipliers");
+            passiveRelocationFuelMultiplier = relocationFuelMultiplier(builder,
+                "passive", 1.5, "passive, friendly, and neutral living entities");
+            hostileRelocationFuelMultiplier = relocationFuelMultiplier(builder,
+                "hostile", 3.0, "hostile living entities");
+            playerRelocationFuelMultiplier = relocationFuelMultiplier(builder,
+                "player", 3.0, "players");
+            bossRelocationFuelMultiplier = relocationFuelMultiplier(builder,
+                "boss", 10.0, "entities in NeoForge's boss tag");
+            projectileRelocationFuelMultiplier = relocationFuelMultiplier(builder,
+                "projectile", 1.0, "projectiles");
+            builder.pop();
             builder.pop();
 
             builder.push("projectileTransit");
@@ -236,6 +253,14 @@ public final class ServerConfig {
             nauseaSoundVolume = builder.defineInRange("nauseaSoundVolume", 0.45, 0.0, 4.0);
             nauseaSoundPitch = builder.defineInRange("nauseaSoundPitch", 1.35, 0.01, 4.0);
             builder.pop();
+        }
+
+        private static ModConfigSpec.DoubleValue relocationFuelMultiplier(
+                ModConfigSpec.Builder builder, String key, double defaultValue, String targets) {
+            return builder.comment(
+                    "Entity Relocation fuel multiplier for " + targets
+                        + ". Zero makes this target category free, but valid portal fluid is still required.")
+                .defineInRange(key, defaultValue, 0.0, 100.0);
         }
     }
 

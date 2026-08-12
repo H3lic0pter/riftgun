@@ -108,7 +108,9 @@ public final class EntityRelocationManager {
 
         EntityRelocationRegistry state = registry();
         UUID gunId = PortalGunIdentity.ensure(gun);
-        int reserve = profile.maximumConsumption();
+        EntityRelocationFuelPolicy.Quote fuelQuote = EntityRelocationFuelPolicy.quote(
+            target, profile.maximumConsumption(), relocationFuelMultipliers());
+        int reserve = fuelQuote.maximumReservation();
         if (tank.getFluid().getAmount() - state.reservedFuel(gunId) < reserve) {
             message(owner, "message.riftgun.fuel_insufficient");
             return true;
@@ -177,7 +179,7 @@ public final class EntityRelocationManager {
             capabilities.fallGuard(), capabilities.entityFallGuard(),
             capabilities.transitCooldownTicks(), crises,
             privacyReservations, visual.getUUID(),
-            exitSetup, preparedRoute, deferred, openingTicks, now));
+            exitSetup, preparedRoute, deferred, openingTicks, fuelQuote, now));
         return true;
     }
 
@@ -509,10 +511,19 @@ public final class EntityRelocationManager {
     }
 
     private static PortalFuelUse fuelUse(Transaction tx, Entity target) {
-        int amount = PortalFuelCost.choose(tx.profile().minimumConsumption(),
+        int baseAmount = PortalFuelCost.choose(tx.profile().minimumConsumption(),
             tx.profile().maximumConsumption(), ServerConfig.VALUES.randomConsumption.get(),
             target.getRandom()::nextInt);
-        return new PortalFuelUse(tx.profile(), amount);
+        return new PortalFuelUse(tx.profile(), tx.fuelQuote().cost(baseAmount));
+    }
+
+    private static EntityRelocationFuelPolicy.Multipliers relocationFuelMultipliers() {
+        return new EntityRelocationFuelPolicy.Multipliers(
+            ServerConfig.VALUES.passiveRelocationFuelMultiplier.get(),
+            ServerConfig.VALUES.hostileRelocationFuelMultiplier.get(),
+            ServerConfig.VALUES.playerRelocationFuelMultiplier.get(),
+            ServerConfig.VALUES.bossRelocationFuelMultiplier.get(),
+            ServerConfig.VALUES.projectileRelocationFuelMultiplier.get());
     }
 
     private static @Nullable Entity teleport(Entity target, ServerLevel targetLevel,
@@ -729,6 +740,7 @@ public final class EntityRelocationManager {
                                UUID visualId, @Nullable ExitSetup exitSetup,
                                @Nullable PreparedRoute preparedRoute, boolean deferred,
                                int openingTicks,
+                               EntityRelocationFuelPolicy.Quote fuelQuote,
                                long startedAt) {}
 
     private record PreparedRoute(ResourceKey<Level> dimension, Vec3 exitCenter,

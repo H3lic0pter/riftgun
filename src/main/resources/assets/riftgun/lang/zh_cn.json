@@ -321,6 +321,7 @@
   "tooltip.riftgun.basic_module.not_installable": "不可安装",
   "item.riftgun.entity_relocation_module": "实体转移模块",
   "tooltip.riftgun.module.entity_relocation_module.description": "在目标生物脚下演出传送门，并将其转移到所选目的地。",
+  "tooltip.riftgun.module.entity_relocation_fuel_warning": "实体转移会根据目标类型增加传送液消耗。",
   "key.riftgun.entity_relocation": "转移准星所指实体",
   "screen.riftgun.placement_mode.entity_relocation": "实体转移",
   "screen.riftgun.entity_relocation": "实体转移",

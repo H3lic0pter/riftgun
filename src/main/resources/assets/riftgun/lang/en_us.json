@@ -321,6 +321,7 @@
   "tooltip.riftgun.basic_module.not_installable": "Not installable",
   "item.riftgun.entity_relocation_module": "Entity Relocation Module",
   "tooltip.riftgun.module.entity_relocation_module.description": "Opens a visual gate beneath a targeted creature and relocates it to the selected destination.",
+  "tooltip.riftgun.module.entity_relocation_fuel_warning": "Entity Relocation increases portal-fluid consumption according to the target type.",
   "key.riftgun.entity_relocation": "Relocate Targeted Entity",
   "screen.riftgun.placement_mode.entity_relocation": "Entity Relocation",
   "screen.riftgun.entity_relocation": "Entity Relocation",

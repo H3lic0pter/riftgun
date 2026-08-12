@@ -35,6 +35,7 @@ public final class PortalFuelManager {
         Optional<PortalFuelProfile> current = PortalFuelProfiles.resolve(stored);
         if (current.isEmpty() || !current.get().id().equals(use.profile().id())
             || stored.getAmount() < use.amount()) return false;
+        if (use.amount() == 0) return true;
         return tank.drain(use.amount(), IFluidHandler.FluidAction.EXECUTE).getAmount() == use.amount();
     }
 
