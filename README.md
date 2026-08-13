@@ -134,7 +134,7 @@ The system first checks whether the traveler can reasonably survive an event, th
 Player-facing options are available from the Portal Gun GUI. NeoForge also generates:
 
 - `config/riftgun-client.toml` for client-local visuals and optional dynamic-light brightness.
-- `<world>/serverconfig/riftgun-server.toml` for destination limits, fuel costs, module limits, portal duration, privacy timeouts, shortcut gun lookup, prediction tuning, unstable-fluid classification, and crisis behavior.
+- `<world>/serverconfig/riftgun-server.toml` for destination limits, fuel costs, module limits, portal duration, passenger-tree transit, privacy timeouts, shortcut gun lookup, prediction tuning, unstable-fluid classification, and crisis behavior.
 
 Keyboard shortcuts use `shortcuts.gunLookupMode`. Its default, `HELD_HANDS`, operates on the main-hand Portal Gun or falls back to the offhand. `REGISTERED_LOCATORS` restores inventory-wide lookup and includes third-party gun locator extensions. The Close Portals shortcut never requires a gun.
 

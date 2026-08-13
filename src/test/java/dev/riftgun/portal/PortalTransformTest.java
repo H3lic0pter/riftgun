@@ -38,6 +38,26 @@ final class PortalTransformTest {
         assertEquals(1.0, result.dot(PortalOrientation.VERTICAL.normal(180.0F)), 1.0E-8);
     }
 
+    @Test
+    void everyOrientationPairPreservesSpeedAndExitsOutward() {
+        for (PortalOrientation source : PortalOrientation.values()) {
+            for (PortalOrientation target : PortalOrientation.values()) {
+                Vec3 input = source.normal(35.0F).scale(-2.0)
+                    .add(source.traversalRight(35.0F).scale(0.3))
+                    .add(source.traversalUp(35.0F).scale(0.2));
+
+                Vec3 result = PortalTransform.between(
+                    input, source, 35.0F, target, 215.0F);
+
+                assertEquals(input.length(), result.length(), 1.0E-8,
+                    source + " -> " + target);
+                org.junit.jupiter.api.Assertions.assertTrue(
+                    result.dot(target.normal(215.0F)) > 0.0,
+                    source + " -> " + target);
+            }
+        }
+    }
+
     private static void assertVec(Vec3 expected, Vec3 actual) {
         assertEquals(expected.x, actual.x, 1.0E-8);
         assertEquals(expected.y, actual.y, 1.0E-8);

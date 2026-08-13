@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /** Event-maintained projectile set plus per-level chunk index of projectile-enabled portals. */
@@ -66,14 +67,32 @@ public final class ProjectilePortalIndex {
     }
 
     public static boolean tryTransit(Projectile projectile) {
+        Vec3 start = new Vec3(projectile.xo, projectile.yo, projectile.zo);
+        return tryTransit(projectile, start, projectile.position(), null);
+    }
+
+    public static boolean tryTransit(Projectile projectile, HitResult impact) {
+        return tryTransit(projectile, projectile.position(), impact.getLocation(), impact);
+    }
+
+    private static boolean tryTransit(Projectile projectile, Vec3 start, Vec3 end,
+                                      HitResult impact) {
         if (!ServerConfig.VALUES.enableProjectileSweptCollision.get()
             || !(projectile.level() instanceof ServerLevel level)) return false;
         LevelIndex index = LEVELS.get(level);
         if (index == null) return false;
-        for (PortalEntity portal : index.candidates(projectile)) {
-            if (portal.isAlive() && portal.trySweptProjectile(projectile)) return true;
+        for (PortalEntity portal : index.candidates(projectile, start, end)) {
+            if (!portal.isAlive()) continue;
+            if (impact != null && !PortalProjectileIntersection.crossesBeforeImpact(
+                portal.placement(), start, end, projectileRadius(projectile),
+                impact.getLocation())) continue;
+            if (portal.trySweptProjectile(projectile, start, end)) return true;
         }
         return false;
+    }
+
+    private static double projectileRadius(Projectile projectile) {
+        return Math.max(projectile.getBbWidth(), projectile.getBbHeight()) * 0.5;
     }
 
     public static void reset() {
@@ -103,18 +122,14 @@ public final class ProjectilePortalIndex {
             }
         }
 
-        List<PortalEntity> candidates(Projectile projectile) {
-            AABB swept = projectile.getBoundingBox().expandTowards(
-                new net.minecraft.world.phys.Vec3(projectile.xo, projectile.yo, projectile.zo)
-                    .subtract(projectile.position())).inflate(0.25);
+        List<PortalEntity> candidates(Projectile projectile, Vec3 start, Vec3 end) {
+            AABB swept = new AABB(start, end).inflate(projectileRadius(projectile) + 0.25);
             Set<PortalEntity> result = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
             for (long chunk : chunks(swept)) {
                 Set<PortalEntity> portals = byChunk.get(chunk);
                 if (portals != null) result.addAll(portals);
             }
-            Vec3 start = new Vec3(projectile.xo, projectile.yo, projectile.zo);
-            Vec3 end = projectile.position();
-            double radius = Math.max(projectile.getBbWidth(), projectile.getBbHeight()) * 0.5;
+            double radius = projectileRadius(projectile);
             List<PortalEntity> ordered = new ArrayList<>(result);
             ordered.sort(java.util.Comparator.comparingDouble(portal ->
                 PortalProjectileIntersection.crossingFraction(

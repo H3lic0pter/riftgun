@@ -102,7 +102,9 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void projectileImpact(ProjectileImpactEvent event) {
         if (!event.getProjectile().level().isClientSide()
-            && ProjectilePortalIndex.tryTransit(event.getProjectile())) event.setCanceled(true);
+            && ProjectilePortalIndex.tryTransit(event.getProjectile(), event.getRayTraceResult())) {
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent

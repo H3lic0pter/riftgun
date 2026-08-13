@@ -34,6 +34,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxDurationExtensionModules;
         public final ModConfigSpec.IntValue durationExtensionSecondsPerModule;
         public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
+        public final ModConfigSpec.BooleanValue enablePassengerTreeTransit;
         public final ModConfigSpec.IntValue maximumConcurrentEntityRelocations;
         public final ModConfigSpec.IntValue entityRelocationTargetCooldownTicks;
         public final ModConfigSpec.IntValue entityRelocationExitDurationSeconds;
@@ -122,6 +123,11 @@ public final class ServerConfig {
                     "Maximum fully-open duration selectable on a Portal Gun, in seconds.")
                 .defineInRange("maximumDurationSeconds", 15,
                     PortalOpenDuration.MINIMUM_SECONDS, PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS);
+            enablePassengerTreeTransit = builder.comment(
+                    "Allow a vehicle or other entity with passengers to transit as one passenger tree. "
+                        + "Disable to leave mounted trees untouched; empty vehicles and ordinary single "
+                        + "entities can still transit.")
+                .define("enablePassengerTreeTransit", true);
             horizontalTriggerExtend = builder.comment(
                     "Extra trigger reach along the normal for flat top/bottom portals, in blocks. "
                         + "Catches falling bodies before their feet touch the ground so fall damage "

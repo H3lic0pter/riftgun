@@ -1,5 +1,6 @@
 package dev.riftgun.portal;
 
+import com.mojang.logging.LogUtils;
 import dev.riftgun.sound.PortalSounds;
 import java.util.HashSet;
 import java.util.List;
@@ -9,15 +10,18 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 /** Routes portal contact through normal, deferred and crisis-return transit pipelines. */
 final class PortalTransitOrchestrator {
     private static final float FACING_THRESHOLD = 0.35F;
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private final PortalEntity portal;
     private final PortalTransitGate gate = new PortalTransitGate();
@@ -71,9 +75,23 @@ final class PortalTransitOrchestrator {
 
     @Nullable Entity bootstrapTree(Entity root, ServerLevel targetLevel,
                                    PortalExitTarget target, List<Entity> movedEntities) {
+        PortalTransitService.TransitPlan[] rootPlan = new PortalTransitService.TransitPlan[1];
         return PortalTransitService.teleportTree(root,
-            (entity, mounted) -> transitBootstrapSingle(entity, targetLevel, target, mounted),
-            movedEntities::add, ignored -> {});
+            (entity, mounted) -> {
+                Vec3 momentum = entity instanceof Projectile
+                    ? entity.getDeltaMovement() : Vec3.ZERO;
+                PortalTransitService.TransitPlan plan = new PortalTransitService.TransitPlan(
+                    target.position(), momentum, target.yaw(), entity.getXRot());
+                if (mounted) {
+                    plan = PortalTransitService.mountedPlan(
+                        rootPlan[0], plan.yaw(), plan.pitch());
+                } else {
+                    rootPlan[0] = plan;
+                }
+                return transitSingle(entity, targetLevel, plan, mounted);
+            }, movedEntities::add,
+            (failed, stage) -> logTreeFailure(
+                root, failed, targetLevel, stage, movedEntities.size()));
     }
 
     void markInside(UUID entityId, long now) {
@@ -84,11 +102,13 @@ final class PortalTransitOrchestrator {
         gate.leave(entityId);
     }
 
-    boolean trySweptProjectile(Projectile projectile) {
+    boolean trySweptProjectile(Projectile projectile, Vec3 start, Vec3 end) {
         if (!portal.allowsProjectile(projectile)) return false;
         PortalEntity target = portal.linkedPortal();
         if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return false;
-        if (!PortalProjectileIntersection.crosses(portal.placement(), projectile)) return false;
+        double radius = Math.max(projectile.getBbWidth(), projectile.getBbHeight()) * 0.5;
+        if (!PortalProjectileIntersection.crosses(
+            portal.placement(), start, end, radius)) return false;
         long now = portal.serverTime();
         if (!gate.enter(projectile.getUUID(), now, portal.transitCooldownTicks())) return false;
         return transitNormalTree(projectile, target) != null;
@@ -97,13 +117,38 @@ final class PortalTransitOrchestrator {
     private @Nullable Entity transitNormalTree(Entity root, PortalEntity target) {
         ServerLevel sourceLevel = (ServerLevel) portal.level();
         Vec3 sourcePosition = root.position();
+        Vec3 rootDestination = treeDestination(root, target);
+        if (rootDestination == null) {
+            leave(root.getUUID());
+            logTreeFailure(root, root, (ServerLevel) target.level(),
+                PortalTransitService.FailureStage.PREFLIGHT_CLEARANCE, 0);
+            return null;
+        }
+        PortalTransitService.TransitPlan[] rootPlan = new PortalTransitService.TransitPlan[1];
+        int[] movedCount = new int[1];
         Entity movedRoot = PortalTransitService.teleportTree(root,
-            (entity, mounted) -> transitNormalSingle(entity, target, mounted),
+            (entity, mounted) -> {
+                PortalTransitService.TransitPlan plan = normalPlan(entity, target);
+                if (mounted) {
+                    plan = PortalTransitService.mountedPlan(
+                        rootPlan[0], plan.yaw(), plan.pitch());
+                } else {
+                    plan = new PortalTransitService.TransitPlan(
+                        rootDestination, plan.momentum(), plan.yaw(), plan.pitch());
+                    rootPlan[0] = plan;
+                }
+                return transitSingle(entity, (ServerLevel) target.level(), plan, mounted);
+            },
             moved -> {
+                movedCount[0]++;
                 long now = portal.serverTime();
                 markInside(moved.getUUID(), now);
                 target.transit().markInside(moved.getUUID(), now);
-            }, failed -> leave(failed.getUUID()));
+            }, (failed, stage) -> {
+                leave(failed.getUUID());
+                logTreeFailure(
+                    root, failed, (ServerLevel) target.level(), stage, movedCount[0]);
+            });
         if (movedRoot != null) {
             if (movedRoot instanceof Projectile projectile) {
                 PortalProjectileState.recordSuccessfulTransit(projectile);
@@ -115,6 +160,23 @@ final class PortalTransitOrchestrator {
             }
         }
         return movedRoot;
+    }
+
+    private @Nullable Vec3 treeDestination(Entity root, PortalEntity target) {
+        Vec3 destination = target.outputPosition(root);
+        Vec3 translation = destination.subtract(root.position());
+        List<AABB> predicted = root.getSelfAndPassengers()
+            .map(entity -> entity.getBoundingBox().move(translation))
+            .toList();
+        double correction = PortalTreeClearance.outwardCorrection(
+            target.placement(), predicted, target.horizontalTriggerExtend());
+        Vec3 correctionVector = target.normal().scale(correction);
+        ServerLevel targetLevel = (ServerLevel) target.level();
+        for (AABB bounds : predicted) {
+            AABB corrected = bounds.move(correctionVector).deflate(0.001);
+            if (targetLevel.getBlockCollisions(null, corrected).iterator().hasNext()) return null;
+        }
+        return destination.add(correctionVector);
     }
 
     private boolean projectileBudgetAllows(Entity entity) {
@@ -133,8 +195,7 @@ final class PortalTransitOrchestrator {
         }
     }
 
-    private @Nullable Entity transitNormalSingle(Entity entity, PortalEntity target,
-                                                  boolean mountedTransit) {
+    private PortalTransitService.TransitPlan normalPlan(Entity entity, PortalEntity target) {
         Vec3 momentum = portal.transformVector(entity.getDeltaMovement(), target);
         if (!(entity instanceof Projectile)) {
             double outwardSpeed = momentum.dot(target.normal());
@@ -158,20 +219,16 @@ final class PortalTransitOrchestrator {
         }
         float yaw = (float) Math.toDegrees(Math.atan2(-look.x, look.z));
         float pitch = (float) Math.toDegrees(Math.asin(Mth.clamp(-look.y, -1.0, 1.0)));
-        return transitSingle(entity, (ServerLevel) target.level(), target.outputPosition(entity),
-            momentum, yaw, pitch, mountedTransit);
-    }
-
-    private @Nullable Entity transitBootstrapSingle(Entity entity, ServerLevel targetLevel,
-                                                     PortalExitTarget target, boolean mountedTransit) {
-        Vec3 bootstrapMomentum = entity instanceof Projectile ? entity.getDeltaMovement() : Vec3.ZERO;
-        return transitSingle(entity, targetLevel, target.position(), bootstrapMomentum,
-            target.yaw(), entity.getXRot(), mountedTransit);
+        return new PortalTransitService.TransitPlan(
+            target.outputPosition(entity), momentum, yaw, pitch);
     }
 
     private @Nullable Entity transitSingle(Entity entity, ServerLevel targetLevel,
-                                           Vec3 destination, Vec3 momentum,
-                                           float yaw, float pitch, boolean mountedTransit) {
+                                           PortalTransitService.TransitPlan plan,
+                                           boolean mountedTransit) {
+        Vec3 destination = plan.destination();
+        Vec3 momentum = plan.momentum();
+        float yaw = plan.yaw();
         PortalCrisisController.Prepared prepared = entity instanceof ServerPlayer player
             ? portal.crisis().prepare(
                 player, targetLevel, destination, momentum, yaw, mountedTransit) : null;
@@ -182,10 +239,23 @@ final class PortalTransitOrchestrator {
             yaw = relocation.exitPlacement().yaw();
         }
         Entity moved = PortalTransitService.complete(entity, targetLevel,
-            new PortalTransitService.TransitPlan(destination, momentum, yaw, pitch),
+            new PortalTransitService.TransitPlan(destination, momentum, yaw, plan.pitch()),
             portal.fallGuard(), portal.entityFallGuard());
         if (moved instanceof ServerPlayer player && prepared != null) prepared.commit(player);
         else if (moved == null && prepared != null) prepared.abort();
         return moved;
     }
+
+    private void logTreeFailure(Entity root, Entity failed, ServerLevel targetLevel,
+                                PortalTransitService.FailureStage stage, int movedCount) {
+        PortalEntity linked = portal.linkedPortal();
+        LOGGER.warn(
+            "Portal passenger-tree failure stage={} portal={} linked={} sourceDimension={} "
+                + "targetDimension={} rootType={} rootUuid={} failedType={} failedUuid={} movedCount={}",
+            stage, portal.getUUID(), linked == null ? "deferred" : linked.getUUID(),
+            portal.level().dimension().location(), targetLevel.dimension().location(),
+            EntityType.getKey(root.getType()), root.getUUID(),
+            EntityType.getKey(failed.getType()), failed.getUUID(), movedCount);
+    }
+
 }

@@ -6,6 +6,7 @@ import net.minecraft.world.phys.Vec3;
 /** Exact segment/portal-face test used after the chunk index finds a nearby candidate. */
 final class PortalProjectileIntersection {
     private static final double EPSILON = 1.0E-7;
+    private static final double IMPACT_EPSILON = 1.0E-4;
 
     static boolean crosses(PortalPlacement portal, Projectile projectile) {
         Vec3 start = new Vec3(projectile.xo, projectile.yo, projectile.zo);
@@ -16,6 +17,17 @@ final class PortalProjectileIntersection {
 
     static boolean crosses(PortalPlacement portal, Vec3 start, Vec3 end, double radius) {
         return Double.isFinite(crossingFraction(portal, start, end, radius));
+    }
+
+    static boolean crossesBeforeImpact(PortalPlacement portal, Vec3 start, Vec3 end,
+                                       double radius, Vec3 impact) {
+        double crossing = crossingFraction(portal, start, end, radius);
+        if (!Double.isFinite(crossing)) return false;
+        Vec3 path = end.subtract(start);
+        double pathLengthSqr = path.lengthSqr();
+        if (pathLengthSqr < EPSILON) return false;
+        double impactFraction = impact.subtract(start).dot(path) / pathLengthSqr;
+        return crossing <= impactFraction + IMPACT_EPSILON;
     }
 
     static double crossingFraction(PortalPlacement portal, Vec3 start, Vec3 end, double radius) {

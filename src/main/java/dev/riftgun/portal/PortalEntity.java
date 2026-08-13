@@ -535,8 +535,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         return entityAccess.projectile();
     }
 
-    boolean trySweptProjectile(Projectile projectile) {
-        return transit.trySweptProjectile(projectile);
+    boolean trySweptProjectile(Projectile projectile, Vec3 start, Vec3 end) {
+        return transit.trySweptProjectile(projectile, start, end);
     }
 
     boolean entityFallGuard() {
@@ -556,6 +556,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     Vec3 outputPosition(Entity entity) {
+        if (entity instanceof Projectile) {
+            return PortalExitClearance.projectilePosition(
+                placement(), entity.getBbWidth(), entity.getBbHeight());
+        }
         return switch (orientation()) {
             case VERTICAL -> position().add(normal().scale(0.85)).subtract(up().scale(portalHeight() * 0.5));
             case TOP -> position().add(normal().scale(0.15));

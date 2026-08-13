@@ -1,5 +1,6 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.config.ServerConfig;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import dev.riftgun.relocation.EntityRelocationArrivalLatch;
 import dev.riftgun.service.PortalPrivacyService;
@@ -26,12 +27,18 @@ record PortalTransitEligibility(
 
     boolean allows(Entity root) {
         if (root instanceof PortalEntity || root.isPassenger()) return false;
+        if (!allowsPassengerTree(ServerConfig.VALUES.enablePassengerTreeTransit.get(),
+            !root.getPassengers().isEmpty())) return false;
         if (!PortalServices.ENTITY_ELIGIBILITY.allowsTree(root, entityAccess::allows)) return false;
         if (!PortalTriggerShape.intersects(
             placement, root.getBoundingBox(), horizontalTriggerExtend)) return false;
         if (containsExcludedPlayer(root)) return false;
         if (exitPortal && EntityRelocationArrivalLatch.blocksExit(root)) return false;
         return !exitPortal || !containsTransitProtectedPlayer(root);
+    }
+
+    static boolean allowsPassengerTree(boolean enabled, boolean hasPassengers) {
+        return enabled || !hasPassengers;
     }
 
     private boolean containsExcludedPlayer(Entity root) {
