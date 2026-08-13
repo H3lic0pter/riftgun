@@ -37,4 +37,15 @@ class PortalProjectileIntersectionTest {
         assertEquals(0.5, PortalProjectileIntersection.crossingFraction(
             PORTAL, new Vec3(0.0, 0.0, -4.0), new Vec3(0.0, 0.0, 4.0), 0.1), 1.0E-9);
     }
+
+    @Test
+    void portalOnlyPreemptsAnImpactAtOrAfterItsCrossingPoint() {
+        Vec3 start = new Vec3(0.0, 0.0, -1.0);
+        Vec3 end = new Vec3(0.0, 0.0, 1.0);
+
+        assertTrue(PortalProjectileIntersection.crossesBeforeImpact(
+            PORTAL, start, end, 0.1, new Vec3(0.0, 0.0, 0.01)));
+        assertFalse(PortalProjectileIntersection.crossesBeforeImpact(
+            PORTAL, start, end, 0.1, new Vec3(0.0, 0.0, -0.01)));
+    }
 }

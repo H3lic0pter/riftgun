@@ -86,6 +86,17 @@ public final class PortalPrivacyService {
         }
     }
 
+    public static boolean reservationValid(MinecraftServer server, GrantReservation reservation) {
+        return reservation != null && gameTime(server) < reservation.grant().expiresAt();
+    }
+
+    public static boolean allowsWithoutRequest(ServerPlayer target, UUID requesterId,
+                                               PortalRequestPurpose purpose) {
+        return target.getUUID().equals(requesterId)
+            || effectivePolicy(PortalDataStore.load(target), requesterId,
+                purpose.permissionId()) == PortalPermissionPolicy.ALLOW;
+    }
+
     /** Applies a token-bound chat response and notifies both online participants. */
     public static RespondResult respond(MinecraftServer server, ServerPlayer target,
                                         UUID requestToken, Response response) {

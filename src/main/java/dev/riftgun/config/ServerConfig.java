@@ -34,15 +34,22 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxDurationExtensionModules;
         public final ModConfigSpec.IntValue durationExtensionSecondsPerModule;
         public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
+        public final ModConfigSpec.BooleanValue enablePassengerTreeTransit;
         public final ModConfigSpec.IntValue maximumConcurrentEntityRelocations;
         public final ModConfigSpec.IntValue entityRelocationTargetCooldownTicks;
         public final ModConfigSpec.IntValue entityRelocationExitDurationSeconds;
+        public final ModConfigSpec.IntValue destinationReadinessTimeoutTicks;
+        public final ModConfigSpec.IntValue entityRelocationExitPortalImmunityTicks;
+        public final ModConfigSpec.BooleanValue enableTransitDiagnostics;
         public final ModConfigSpec.IntValue projectileRelocationOpeningTicks;
         public final ModConfigSpec.DoubleValue passiveRelocationFuelMultiplier;
         public final ModConfigSpec.DoubleValue hostileRelocationFuelMultiplier;
         public final ModConfigSpec.DoubleValue playerRelocationFuelMultiplier;
         public final ModConfigSpec.DoubleValue bossRelocationFuelMultiplier;
         public final ModConfigSpec.DoubleValue projectileRelocationFuelMultiplier;
+        public final ModConfigSpec.DoubleValue utilityRelocationFuelMultiplier;
+        public final ModConfigSpec.BooleanValue enablePassengerTreeRelocation;
+        public final ModConfigSpec.IntValue maximumPassengerTreeSize;
         public final ModConfigSpec.IntValue maximumProjectileTransits;
         public final ModConfigSpec.BooleanValue enableProjectileSweptCollision;
         public final ModConfigSpec.IntValue projectileEffectCooldownTicks;
@@ -122,6 +129,11 @@ public final class ServerConfig {
                     "Maximum fully-open duration selectable on a Portal Gun, in seconds.")
                 .defineInRange("maximumDurationSeconds", 15,
                     PortalOpenDuration.MINIMUM_SECONDS, PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS);
+            enablePassengerTreeTransit = builder.comment(
+                    "Allow a vehicle or other entity with passengers to transit as one passenger tree. "
+                        + "Disable to leave mounted trees untouched; empty vehicles and ordinary single "
+                        + "entities can still transit.")
+                .define("enablePassengerTreeTransit", true);
             horizontalTriggerExtend = builder.comment(
                     "Extra trigger reach along the normal for flat top/bottom portals, in blocks. "
                         + "Catches falling bodies before their feet touch the ground so fall damage "
@@ -140,6 +152,21 @@ public final class ServerConfig {
                     "Fully-open hold time for visual Entity Relocation exits, in seconds. "
                         + "Opening and closing animations are not included.")
                 .defineInRange("exitDurationSeconds", 3, 1, 30);
+            destinationReadinessTimeoutTicks = builder.comment(
+                    "Maximum time to wait for an Entity Relocation destination to become ready, "
+                        + "during both chunk preparation and active transit.")
+                .defineInRange("destinationReadinessTimeoutTicks", 100, 20, 600);
+            entityRelocationExitPortalImmunityTicks = builder.comment(
+                    "Time after a successful Entity Relocation during which non-player members "
+                        + "of the relocated entity tree cannot trigger normal portal exits. "
+                        + "Set to zero to disable.")
+                .defineInRange("exitPortalImmunityTicks", 100, 0, 1200);
+            enablePassengerTreeRelocation = builder.comment(
+                    "Allow Entity Relocation to move a vehicle and its full passenger tree.")
+                .define("enablePassengerTreeRelocation", true);
+            maximumPassengerTreeSize = builder.comment(
+                    "Maximum members in one Entity Relocation passenger tree, including the root.")
+                .defineInRange("maximumPassengerTreeSize", 16, 1, 64);
             projectileRelocationOpeningTicks = builder.comment(
                     "Opening animation duration for newly created Projectile Entity Relocation "
                         + "entrances and exits. Existing shared exits keep their current duration.")
@@ -155,6 +182,8 @@ public final class ServerConfig {
                 "boss", 10.0, "entities in NeoForge's boss tag");
             projectileRelocationFuelMultiplier = relocationFuelMultiplier(builder,
                 "projectile", 1.0, "projectiles");
+            utilityRelocationFuelMultiplier = relocationFuelMultiplier(builder,
+                "utility", 1.0, "vehicles and dropped item entities");
             builder.pop();
             builder.pop();
 
@@ -252,6 +281,13 @@ public final class ServerConfig {
             nauseaAmplifier = builder.defineInRange("nauseaAmplifier", 0, 0, 255);
             nauseaSoundVolume = builder.defineInRange("nauseaSoundVolume", 0.45, 0.0, 4.0);
             nauseaSoundPitch = builder.defineInRange("nauseaSoundPitch", 1.35, 0.01, 4.0);
+            builder.pop();
+
+            builder.push("debug");
+            enableTransitDiagnostics = builder.comment(
+                    "Log detailed portal transit, chunk ticket, and post-teleport diagnostics. "
+                        + "Disabled by default; changes take effect when the server config reloads.")
+                .define("enableTransitDiagnostics", false);
             builder.pop();
         }
 

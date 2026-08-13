@@ -1,11 +1,13 @@
 package dev.riftgun.relocation;
 
 import dev.riftgun.config.ServerConfig;
+import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.crisis.PortalCrisisCoordinator;
 import dev.riftgun.crisis.PortalCrisisPlan;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlayerData;
+import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.fuel.PortalFuelCost;
 import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
@@ -14,7 +16,6 @@ import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.portal.PortalEntity;
-import dev.riftgun.portal.PortalLifecycle;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalProjectileState;
@@ -29,23 +30,23 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.vehicle.VehicleEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -53,8 +54,10 @@ import org.jetbrains.annotations.Nullable;
 
 /** Server-authoritative five-tick relocation transactions, independent of normal portal pairs. */
 public final class EntityRelocationManager {
+    private static final TicketType<UUID> PREPARATION_TICKET =
+        TicketType.create("riftgun_entity_relocation_preparation", UUID::compareTo);
     private static final List<Transaction> ACTIVE = new ArrayList<>();
-    private static final EntityRelocationExitIndex EXIT_INDEX = new EntityRelocationExitIndex();
+    private static final List<PendingPreparation> PREPARING = new ArrayList<>();
     private static EntityRelocationRegistry registry;
     private static int configuredMaximum;
     private static int configuredCooldown;
@@ -85,13 +88,15 @@ public final class EntityRelocationManager {
                                  PortalGunCapabilities capabilities, Entity target) {
         MinecraftServer server = owner.getServer();
         if (server == null) return true;
+        EntityRelocationTree tree = EntityRelocationTree.capture(target);
+        List<Entity> treeMembers = tree.members(target);
         ResolvedDestination destination = resolveDestination(server, data);
         if (destination == null) {
             message(owner, "message.riftgun.no_destination_selected");
             return true;
         }
         List<PermissionRequirement> permissions = permissionRequirements(
-            server, owner, target, destination);
+            server, owner, treeMembers, destination);
         if (permissions == null) return true;
         ItemStack gun = locatedGun.stack();
         PortalGunTank tank = new PortalGunTank(gun);
@@ -109,21 +114,28 @@ public final class EntityRelocationManager {
         EntityRelocationRegistry state = registry();
         UUID gunId = PortalGunIdentity.ensure(gun);
         EntityRelocationFuelPolicy.Quote fuelQuote = EntityRelocationFuelPolicy.quote(
-            target, profile.maximumConsumption(), relocationFuelMultipliers());
+            treeMembers.stream().map(EntityRelocationFuelPolicy::classify).toList(),
+            profile.maximumConsumption(), relocationFuelMultipliers());
         int reserve = fuelQuote.maximumReservation();
         if (tank.getFluid().getAmount() - state.reservedFuel(gunId) < reserve) {
             message(owner, "message.riftgun.fuel_insufficient");
             return true;
         }
         long now = server.overworld().getGameTime();
-        EntityRelocationRegistry.Begin begin = state.begin(gunId, target.getUUID(), reserve, now);
+        EntityRelocationRegistry.Begin begin = state.begin(gunId, tree.memberIds(), reserve, now);
         if (begin.status() != EntityRelocationRegistry.BeginStatus.ACCEPTED) {
-            message(owner, switch (begin.status()) {
+            TransitDiagnostics.relocation("request rejected owner={} target={} gun={} status={} preparing={}",
+                owner.getUUID(), target.getUUID(), gunId, begin.status(),
+                isPreparing(target.getUUID()));
+            String rejectionMessage = switch (begin.status()) {
                 case GUN_CAPACITY -> "message.riftgun.entity_relocation_capacity";
-                case TARGET_BUSY -> "message.riftgun.entity_relocation_target_busy";
+                case TARGET_BUSY -> preparingMessageShown(target.getUUID())
+                    ? "message.riftgun.entity_relocation_preparing_busy"
+                    : null;
                 case TARGET_COOLDOWN -> "message.riftgun.entity_relocation_target_cooldown";
                 default -> "message.riftgun.entity_relocation_failed";
-            });
+            };
+            if (rejectionMessage != null) message(owner, rejectionMessage);
             return true;
         }
 
@@ -134,7 +146,9 @@ public final class EntityRelocationManager {
             message(owner, "message.riftgun.entity_relocation_failed");
             return true;
         }
-        float side = EntityRelocationGeometry.sideLength(target.getBbWidth(), target.getBbWidth());
+        EntityRelocationTree.Metrics treeMetrics = tree.metrics(target);
+        float side = EntityRelocationGeometry.sideLength(
+            (float) treeMetrics.width(), (float) treeMetrics.depth());
         Vec3 center = feetCenter(target);
         PortalSoundSnapshot sounds = PortalSoundSnapshot.from(data.settings().portalSounds());
         PortalCrisisConfigurationSnapshot crises =
@@ -152,12 +166,18 @@ public final class EntityRelocationManager {
         int openingTicks = target instanceof Projectile
             ? ServerConfig.VALUES.projectileRelocationOpeningTicks.get()
             : EntityRelocationLifecycle.OPENING_TICKS;
-        PreparedRoute preparedRoute = deferred ? null
-            : prepareRoute(target, destination, destinationLevel, crises);
-        ExitSetup exitSetup = deferred ? null
-            : prepareExit(server, destinationLevel, destination, preparedRoute,
-                side, profile.rgb(), sounds, openingTicks);
-        if (!deferred && exitSetup == null) {
+        if (deferred) {
+            beginPreparation(destinationLevel, begin.reservation(), owner, target, tree,
+                locatedGun.saveReference(),
+                destination, profile, sounds, capabilities, crises, privacyReservations,
+                snapshotPermissions(permissions),
+                openingTicks, fuelQuote, now);
+            return true;
+        }
+        PreparedRoute preparedRoute = prepareRoute(target, tree, destination, destinationLevel, crises);
+        EntityRelocationExitService.Handle exitSetup = prepareExit(server, destinationLevel, destination, preparedRoute,
+            side, profile.rgb(), sounds, openingTicks);
+        if (exitSetup == null) {
             state.fail(begin.reservation());
             releasePrivacyGrants(server, privacyReservations);
             message(owner, "message.riftgun.entity_relocation_failed");
@@ -177,20 +197,62 @@ public final class EntityRelocationManager {
         ACTIVE.add(new Transaction(begin.reservation(), owner.getUUID(), target.getUUID(),
             target.level().dimension(), gun, destination, profile, side, sounds,
             capabilities.fallGuard(), capabilities.entityFallGuard(),
-            capabilities.transitCooldownTicks(), crises,
-            privacyReservations, visual.getUUID(),
-            exitSetup, preparedRoute, deferred, openingTicks, fuelQuote, now));
+            crises, privacyReservations, visual.getUUID(),
+            exitSetup, preparedRoute, openingTicks, fuelQuote, tree, now));
         return true;
     }
 
+    private static void beginPreparation(
+            ServerLevel destinationLevel, EntityRelocationRegistry.Reservation reservation,
+            ServerPlayer owner, Entity target, EntityRelocationTree tree,
+            net.minecraft.nbt.CompoundTag gunReference, ResolvedDestination destination,
+            PortalFuelProfile profile, PortalSoundSnapshot sounds,
+            PortalGunCapabilities capabilities, PortalCrisisConfigurationSnapshot crises,
+            List<PortalPrivacyService.GrantReservation> privacyReservations,
+            List<PermissionSnapshot> permissions,
+            int openingTicks, EntityRelocationFuelPolicy.Quote fuelQuote, long now) {
+        UUID ticketId = reservation.id();
+        ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()));
+        TransitDiagnostics.relocation("prepare begin reservation={} owner={} target={} source={} destination={} chunk={} timeoutTicks={} tickingBeforeTicket={}",
+            reservation.id(), owner.getUUID(), target.getUUID(),
+            target.level().dimension().location(), destination.dimension().location(), chunk,
+            ServerConfig.VALUES.destinationReadinessTimeoutTicks.get(),
+            destinationLevel.isPositionEntityTicking(BlockPos.containing(destination.position())));
+        destinationLevel.getChunkSource().addRegionTicket(
+            PREPARATION_TICKET, chunk, 3, ticketId, true);
+        EntityRelocationPreparation preparation = new EntityRelocationPreparation(
+            now, ServerConfig.VALUES.destinationReadinessTimeoutTicks.get(),
+            () -> {
+                destinationLevel.getChunkSource().removeRegionTicket(
+                    PREPARATION_TICKET, chunk, 3, ticketId, true);
+                TransitDiagnostics.ticket("relocation preparation released reservation={} destination={} chunk={}",
+                    reservation.id(), destination.dimension().location(), chunk);
+            });
+        PREPARING.add(new PendingPreparation(
+            reservation, owner.getUUID(), target.getUUID(), target.level().dimension(),
+            gunReference,
+            destination, profile, sounds, capabilities.fallGuard(),
+            capabilities.entityFallGuard(), crises, privacyReservations, permissions,
+            openingTicks, fuelQuote, tree, preparation));
+    }
+
+    private static List<PermissionSnapshot> snapshotPermissions(
+            List<PermissionRequirement> requirements) {
+        return requirements.stream().map(requirement -> new PermissionSnapshot(
+            requirement.target().getUUID(), requirement.purpose(), requirement.requiresGrant()))
+            .toList();
+    }
+
     private static @Nullable List<PermissionRequirement> permissionRequirements(
-            MinecraftServer server, ServerPlayer owner, Entity subject,
+            MinecraftServer server, ServerPlayer owner, List<Entity> subjects,
             ResolvedDestination destination) {
-        List<PermissionRequirement> requirements = new ArrayList<>(2);
-        if (subject instanceof ServerPlayer playerSubject
-            && !playerSubject.getUUID().equals(owner.getUUID())) {
-            requirements.add(new PermissionRequirement(
-                playerSubject, PortalRequestPurpose.ENTITY_RELOCATION_SUBJECT));
+        List<PermissionRequirement> requirements = new ArrayList<>(subjects.size() + 1);
+        for (Entity subject : subjects) {
+            if (subject instanceof ServerPlayer playerSubject
+                && !playerSubject.getUUID().equals(owner.getUUID())) {
+                requirements.add(new PermissionRequirement(
+                    playerSubject, PortalRequestPurpose.ENTITY_RELOCATION_SUBJECT));
+            }
         }
         ServerPlayer destinationPlayer = destination.resolvePlayer(server);
         if (destination.playerId() != null && destinationPlayer == null) {
@@ -251,25 +313,205 @@ public final class EntityRelocationManager {
     }
 
     public static void tick(MinecraftServer server) {
+        tickPreparations(server);
         if (ACTIVE.isEmpty()) return;
         long now = server.overworld().getGameTime();
         Iterator<Transaction> iterator = ACTIVE.iterator();
         while (iterator.hasNext()) {
             Transaction tx = iterator.next();
-            if (now - tx.startedAt() < tx.openingTicks()) continue;
-            if (!tx.deferred()) {
-                ExitReadiness readiness = exitReadiness(server, tx.exitSetup());
-                if (readiness == ExitReadiness.WAITING) continue;
-                if (readiness == ExitReadiness.FAILED) {
-                    iterator.remove();
-                    fail(server, tx);
-                    continue;
+            long elapsed = now - tx.startedAt();
+            EntityRelocationPortalEntity exit = resolveExit(server, tx.exitSetup());
+            ServerLevel exitLevel = server.getLevel(tx.exitSetup().dimension());
+            boolean destinationTicking = exit != null && exitLevel != null
+                && exitLevel.isPositionEntityTicking(exit.blockPosition());
+            EntityRelocationCompletionPolicy.Decision decision =
+                EntityRelocationCompletionPolicy.decide(elapsed, tx.openingTicks(),
+                    ServerConfig.VALUES.destinationReadinessTimeoutTicks.get(),
+                    exit != null, destinationTicking);
+            if (decision == EntityRelocationCompletionPolicy.Decision.WAITING) {
+                if (elapsed == tx.openingTicks() || elapsed % 20L == 0L) {
+                    TransitDiagnostics.relocation("waiting for exit reservation={} elapsedTicks={} exitPresent={} phase={} phaseTicks={} ticketHeld={} chunkTicking={}",
+                        tx.reservation().id(), elapsed, exit != null,
+                        exit == null ? "null" : exit.phase(), exit == null ? -1 : exit.phaseTicks(),
+                        exit != null && exit.chunkTicketHeld(), exitLevel != null && exit != null
+                            && exitLevel.isPositionEntityTicking(exit.blockPosition()));
                 }
+                continue;
+            }
+            if (decision != EntityRelocationCompletionPolicy.Decision.READY) {
+                iterator.remove();
+                TransitDiagnostics.warning("relocation completion gate failed reservation={} decision={} elapsedTicks={}",
+                    tx.reservation().id(), decision, elapsed);
+                fail(server, tx);
+                continue;
             }
             iterator.remove();
-            if (tx.deferred()) completeDeferred(server, tx, now);
-            else completeLoaded(server, tx, now);
+            completeLoaded(server, tx, now);
         }
+    }
+
+    private static void tickPreparations(MinecraftServer server) {
+        if (PREPARING.isEmpty()) return;
+        long now = server.overworld().getGameTime();
+        Iterator<PendingPreparation> iterator = PREPARING.iterator();
+        while (iterator.hasNext()) {
+            PendingPreparation pending = iterator.next();
+            ServerLevel targetLevel = server.getLevel(pending.destination().dimension());
+            boolean ready = targetLevel != null && targetLevel.isPositionEntityTicking(
+                BlockPos.containing(pending.destination().position()));
+            if (!ready && pending.preparation().shouldShowPreparingMessage(now)) {
+                ServerPlayer owner = server.getPlayerList().getPlayer(pending.ownerId());
+                if (owner != null) message(owner, "message.riftgun.entity_relocation_preparing");
+            }
+            EntityRelocationPreparation.Outcome outcome =
+                pending.preparation().advance(now, ready);
+            if (outcome == EntityRelocationPreparation.Outcome.WAITING) continue;
+            iterator.remove();
+            TransitDiagnostics.relocation("prepare terminal reservation={} outcome={} elapsedTicks={} destination={} ticking={}",
+                pending.reservation().id(), outcome,
+                now - pending.preparation().startedAt(), pending.destination().dimension().location(), ready);
+            if (outcome == EntityRelocationPreparation.Outcome.TIMED_OUT) {
+                abortPreparation(server, pending,
+                    "message.riftgun.entity_relocation_preparation_timeout");
+                continue;
+            }
+            startPrepared(server, pending, now);
+        }
+    }
+
+    private static void startPrepared(MinecraftServer server, PendingPreparation pending, long now) {
+        ServerLevel sourceLevel = server.getLevel(pending.sourceDimension());
+        Entity target = liveTarget(sourceLevel, pending.targetId());
+        ServerPlayer owner = server.getPlayerList().getPlayer(pending.ownerId());
+        PortalGunLocator.LocatedGun located = owner == null ? null
+            : PortalGunLocator.resolveReference(owner, pending.gunReference()).orElse(null);
+        ItemStack gun = located == null ? ItemStack.EMPTY : located.stack();
+        ResolvedDestination destination = refreshPreparedDestination(server, owner,
+            pending.destination());
+        ServerLevel targetLevel = destination == null ? null : server.getLevel(destination.dimension());
+        String abortReason = preparedAbortReason(server, pending, target, destination, targetLevel, gun);
+        if (abortReason != null) {
+            TransitDiagnostics.warning("relocation prepared revalidation failed reservation={} reason={} ownerPresent={} targetPresent={}",
+                pending.reservation().id(), abortReason, owner != null, target != null);
+            abortPreparation(server, pending, "message.riftgun.entity_relocation_failed");
+            return;
+        }
+
+        if (!pending.tree().matches(target)) {
+            abortPreparation(server, pending, "message.riftgun.entity_relocation_failed");
+            return;
+        }
+        EntityRelocationTree.Metrics metrics = pending.tree().metrics(target);
+        float side = EntityRelocationGeometry.sideLength(
+            (float) metrics.width(), (float) metrics.depth());
+        PreparedRoute route = prepareRoute(
+            target, pending.tree(), destination, targetLevel, pending.crises());
+        if (route.crisis() != null && route.crisis().relocation() != null
+            && !targetLevel.isPositionEntityTicking(BlockPos.containing(route.exitCenter()))) {
+            route = normalRoute(target, pending.tree(), destination, null);
+        }
+        EntityRelocationExitService.Handle exit = prepareExit(server, targetLevel, destination, route, side,
+            pending.profile().rgb(), pending.sounds(), pending.openingTicks());
+        if (exit == null) {
+            TransitDiagnostics.warning("relocation prepared exit creation failed reservation={} destination={} exitCenter={}",
+                pending.reservation().id(), targetLevel.dimension().location(), route.exitCenter());
+            abortPreparation(server, pending, "message.riftgun.entity_relocation_failed");
+            return;
+        }
+        Vec3 center = feetCenter(target);
+        EntityRelocationPortalEntity visual = EntityRelocationPortalEntity.createEntrance(
+            sourceLevel, center, side, pending.profile().rgb(), target.getUUID(),
+            pending.sounds(), pending.openingTicks());
+        if (!sourceLevel.addFreshEntity(visual)) {
+            TransitDiagnostics.warning("relocation entrance creation failed reservation={} source={} center={}",
+                pending.reservation().id(), sourceLevel.dimension().location(), center);
+            closeExit(server, exit, false);
+            abortPreparation(server, pending, "message.riftgun.entity_relocation_failed");
+            return;
+        }
+        if (owner != null) PortalSounds.playShot(owner, pending.sounds());
+        PortalSounds.playOpening(sourceLevel, center, pending.sounds());
+        ACTIVE.add(new Transaction(pending.reservation(), pending.ownerId(), pending.targetId(),
+            pending.sourceDimension(), gun, destination, pending.profile(), side,
+            pending.sounds(), pending.fallGuard(), pending.entityFallGuard(),
+            pending.crises(), pending.privacyReservations(),
+            visual.getUUID(), exit, route, pending.openingTicks(), pending.fuelQuote(),
+            pending.tree(), now));
+        TransitDiagnostics.relocation("animation started reservation={} target={} source={} destination={} exitCenter={} openingTicks={} visual={}",
+            pending.reservation().id(), pending.targetId(),
+            pending.sourceDimension().location(), destination.dimension().location(),
+            route.exitCenter(), pending.openingTicks(), visual.getUUID());
+    }
+
+    private static @Nullable String preparedAbortReason(
+            MinecraftServer server, PendingPreparation pending, @Nullable Entity target,
+            @Nullable ResolvedDestination destination, @Nullable ServerLevel targetLevel,
+            ItemStack gun) {
+        if (target == null) return "target_missing";
+        if (destination == null) return "destination_missing";
+        if (targetLevel == null) return "destination_level_missing";
+        if (!targetLevel.isPositionEntityTicking(BlockPos.containing(destination.position()))) {
+            return "destination_not_entity_ticking";
+        }
+        if (!pending.sourceDimension().equals(destination.dimension())
+            && !pending.profile().crossDimension()) return "cross_dimension_denied";
+        if (!permissionsStillValid(server, pending)) return "permission_invalid";
+        if (!reservationFuelAvailable(pending, gun)) return "gun_or_fuel_invalid";
+        return null;
+    }
+
+    private static @Nullable ResolvedDestination refreshPreparedDestination(
+            MinecraftServer server, @Nullable ServerPlayer owner,
+            ResolvedDestination original) {
+        if (original.playerId() != null) return original.refresh(server);
+        if (owner == null || original.savedDestinationId() == null) return null;
+        Destination saved = PortalDataStore.load(owner).destination(original.savedDestinationId())
+            .orElse(null);
+        return saved == null ? null : ResolvedDestination.saved(saved);
+    }
+
+    private static void abortPreparation(MinecraftServer server, PendingPreparation pending,
+                                         String messageKey) {
+        TransitDiagnostics.warning("relocation preparation aborted reservation={} message={}",
+            pending.reservation().id(), messageKey);
+        pending.preparation().close();
+        registry().fail(pending.reservation());
+        releasePrivacyGrants(server, pending.privacyReservations());
+        ServerPlayer owner = server.getPlayerList().getPlayer(pending.ownerId());
+        if (owner != null) message(owner, messageKey);
+    }
+
+    private static boolean permissionsStillValid(MinecraftServer server,
+                                                  PendingPreparation pending) {
+        if (!pending.privacyReservations().stream().allMatch(
+            reservation -> PortalPrivacyService.reservationValid(server, reservation))) {
+            return false;
+        }
+        for (PermissionSnapshot permission : pending.permissions()) {
+            if (permission.oneShot()) continue;
+            ServerPlayer target = server.getPlayerList().getPlayer(permission.targetId());
+            if (target == null || !PortalPrivacyService.allowsWithoutRequest(
+                target, pending.ownerId(), permission.purpose())) return false;
+        }
+        return true;
+    }
+
+    private static boolean reservationFuelAvailable(PendingPreparation pending, ItemStack gun) {
+        PortalGunTank tank = new PortalGunTank(gun);
+        return !gun.isEmpty()
+            && PortalFuelProfiles.resolve(tank.getFluid())
+                .filter(profile -> profile.id().equals(pending.profile().id())).isPresent()
+            && tank.getFluid().getAmount() >= registry().reservedFuel(
+                pending.reservation().gunId());
+    }
+
+    private static boolean isPreparing(UUID targetId) {
+        return PREPARING.stream().anyMatch(pending -> pending.targetId().equals(targetId));
+    }
+
+    private static boolean preparingMessageShown(UUID targetId) {
+        return PREPARING.stream().filter(pending -> pending.targetId().equals(targetId))
+            .anyMatch(pending -> pending.preparation().preparingMessageShown());
     }
 
     private static void completeLoaded(MinecraftServer server, Transaction tx, long now) {
@@ -297,93 +539,76 @@ public final class EntityRelocationManager {
             return;
         }
 
-        PreparedRoute route = refreshRoute(target, destination, tx.preparedRoute().crisis());
+        if (!tx.tree().matches(target)) {
+            fail(server, tx, "message.riftgun.entity_relocation_tree_incomplete");
+            return;
+        }
+        PreparedRoute route = refreshRoute(
+            target, tx.tree(), destination, tx.preparedRoute().crisis());
         Vec3 sourcePosition = target.position();
         freezeSource(sourceLevel, tx.visualId());
-        Entity moved = teleport(target, targetLevel, route.outputPosition(), route.momentum());
-        if (moved == null) {
+        long teleportStarted = TransitDiagnostics.enabled() ? System.nanoTime() : 0L;
+        TransitDiagnostics.relocation("teleport before reservation={} target={} from={} pos={} to={} pos={} chunkTicking={}",
+            tx.reservation().id(), target.getUUID(),
+            sourceLevel.dimension().location(), sourcePosition, targetLevel.dimension().location(),
+            route.outputPosition(), targetLevel.isPositionEntityTicking(BlockPos.containing(route.outputPosition())));
+        if (!targetLevel.noCollision(
+            tx.tree().destinationEnvelope(target, route.outputPosition()).deflate(0.001))) {
+            TransitDiagnostics.warning("relocation tree clearance failed reservation={} target={} members={} destination={} envelope={}",
+                tx.reservation().id(), target.getUUID(), tx.tree().size(),
+                targetLevel.dimension().location(),
+                tx.tree().destinationEnvelope(target, route.outputPosition()));
             fail(server, tx);
             return;
         }
-        Vec3 actualExitCenter = exitCenter(server, tx.exitSetup(), route.exitCenter());
+        EntityRelocationTree.Transfer transfer = tx.tree().transfer(
+            target, targetLevel, route.outputPosition(), route.momentum());
+        Entity moved = transfer.root();
+        TransitDiagnostics.relocation("teleport after reservation={} result={} elapsedMs={} resultDimension={} resultPos={}",
+            tx.reservation().id(), moved != null,
+            TransitDiagnostics.enabled()
+                ? (System.nanoTime() - teleportStarted) / 1_000_000.0 : 0.0,
+            moved == null ? "null" : moved.level().dimension().location(),
+            moved == null ? "null" : moved.position());
+        if (moved == null || !transfer.complete()) {
+            TransitDiagnostics.warning("relocation tree transfer incomplete reservation={} target={} expectedMembers={} movedMembers={}",
+                tx.reservation().id(), target.getUUID(), tx.tree().size(), transfer.members().size());
+            fail(server, tx, "message.riftgun.entity_relocation_tree_incomplete");
+            return;
+        }
+        TransitDiagnostics.trackPostcondition(
+            moved, tx.sourceDimension(), route.outputPosition(), "relocation", now);
         closeExit(server, tx.exitSetup(), true);
-        finishSuccessful(server, sourceLevel, targetLevel, sourcePosition, moved, tx, use,
-            route.momentum(), route.crisis(), route.landingPosition(), actualExitCenter, now);
-    }
-
-    private static void completeDeferred(MinecraftServer server, Transaction tx, long now) {
-        ServerLevel sourceLevel = server.getLevel(tx.sourceDimension());
-        Entity target = liveTarget(sourceLevel, tx.targetId());
-        if (target == null) {
-            fail(server, tx);
-            return;
-        }
-        ResolvedDestination destination = tx.destination().refresh(server);
-        ServerLevel targetLevel = destination == null ? null : server.getLevel(destination.dimension());
-        if (targetLevel == null || !dimensionAllowed(tx, destination)) {
-            fail(server, tx);
-            return;
-        }
-        PortalFuelUse use = fuelUse(tx, target);
-        if (!canConsume(tx.gun(), use)) {
-            fail(server, tx);
-            return;
-        }
-
-        Vec3 sourcePosition = target.position();
-        Vec3 bootstrapMomentum = relocationMomentum(target, target.getDeltaMovement(),
-            PortalOrientation.BOTTOM, destination.yaw());
-        freezeSource(sourceLevel, tx.visualId());
-        Entity moved = teleport(target, targetLevel,
-            destination.position().add(0.0, 0.15, 0.0), bootstrapMomentum);
-        if (moved == null) {
-            fail(server, tx);
-            return;
-        }
-
-        PreparedRoute route = prepareRoute(moved, destination, targetLevel, tx.crises());
-        if (route.crisis() != null && route.crisis().relocation() != null) {
-            Entity crisisMoved = teleport(moved, targetLevel, route.outputPosition(), route.momentum());
-            if (crisisMoved != null) moved = crisisMoved;
-            else route = normalRoute(moved, destination, null);
-        } else {
-            route = new PreparedRoute(route.dimension(), route.exitCenter(), route.exitOrientation(),
-                route.exitYaw(), moved.position(), bootstrapMomentum, destination.position(),
-                route.crisis(), route.shareable());
-        }
-
-        ExitSetup exit = prepareExit(server, targetLevel, destination, route,
-            tx.side(), tx.profile().rgb(), tx.sounds(), tx.openingTicks());
-        Vec3 actualExitCenter = exitCenter(server, exit, route.exitCenter());
-        closeExit(server, exit, true);
-        finishSuccessful(server, sourceLevel, targetLevel, sourcePosition, moved, tx, use,
-            route.momentum(), route.crisis(), route.landingPosition(), actualExitCenter, now);
+        finishSuccessful(server, sourceLevel, targetLevel, sourcePosition, moved,
+            transfer.members(), tx, use,
+            route.momentum(), route.crisis(), now);
     }
 
     private static void finishSuccessful(MinecraftServer server, ServerLevel sourceLevel,
                                          ServerLevel targetLevel, Vec3 sourcePosition, Entity moved,
-                                         Transaction tx, PortalFuelUse use, Vec3 momentum,
-                                         @Nullable PortalCrisisPlan crisis, Vec3 landingPosition,
-                                         Vec3 exitCenter, long now) {
+                                         List<Entity> movedMembers, Transaction tx,
+                                         PortalFuelUse use, Vec3 momentum,
+                                         @Nullable PortalCrisisPlan crisis, long now) {
         if (!PortalFuelManager.consume(tx.gun(), use)) {
             ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
             if (owner != null) message(owner, "message.riftgun.entity_relocation_failed");
         }
         moved.setDeltaMovement(momentum);
         moved.hasImpulse = true;
-        if (moved instanceof Projectile projectile) {
-            ProjectileMotion.alignToVelocity(projectile, momentum);
+        for (Entity member : movedMembers) {
+            if (member != moved) member.setDeltaMovement(Vec3.ZERO);
+            if (member instanceof Projectile projectile) {
+                ProjectileMotion.alignToVelocity(projectile, member.getDeltaMovement());
+                PortalProjectileState.recordSuccessfulTransit(projectile);
+            }
+            if (dev.riftgun.portal.PortalFallGuardPolicy.applies(
+                member, tx.fallGuard(), tx.entityFallGuard())) member.fallDistance = 0.0F;
         }
-        if (dev.riftgun.portal.PortalFallGuardPolicy.applies(
-            moved, tx.fallGuard(), tx.entityFallGuard())) moved.fallDistance = 0.0F;
         if (moved instanceof ServerPlayer player && crisis != null) {
             PortalCrisisCoordinator.apply(crisis, player);
         }
-        EntityRelocationArrivalLatch.register(moved, landingPosition, exitCenter, tx.side(), now,
-            tx.transitCooldownTicks());
-        if (moved instanceof Projectile projectile) {
-            PortalProjectileState.recordSuccessfulTransit(projectile);
-        }
+        EntityRelocationExitImmunity.registerTree(moved, now,
+            ServerConfig.VALUES.entityRelocationExitPortalImmunityTicks.get());
         if (moved instanceof Projectile) {
             Entity sourceVisual = sourceLevel.getEntity(tx.visualId());
             if (sourceVisual instanceof EntityRelocationPortalEntity sourcePortal
@@ -399,14 +624,24 @@ public final class EntityRelocationManager {
             PortalSounds.playTransit(targetLevel, moved.position(), tx.sounds());
         }
         registry().complete(tx.reservation(), now);
+        TransitDiagnostics.relocation("completed reservation={} target={} destination={} now={}",
+            tx.reservation().id(), moved.getUUID(),
+            moved.level().dimension().location(), now);
     }
 
     private static void fail(MinecraftServer server, Transaction tx) {
+        fail(server, tx, "message.riftgun.entity_relocation_failed");
+    }
+
+    private static void fail(MinecraftServer server, Transaction tx, String messageKey) {
+        TransitDiagnostics.warning("relocation failed reservation={} target={} source={} destination={}",
+            tx.reservation().id(), tx.targetId(),
+            tx.sourceDimension().location(), tx.destination().dimension().location());
         registry().fail(tx.reservation());
         releasePrivacyGrants(server, tx.privacyReservations());
         closeExit(server, tx.exitSetup(), false);
         ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
-        if (owner != null) message(owner, "message.riftgun.entity_relocation_failed");
+        if (owner != null) message(owner, messageKey);
         ServerLevel source = server.getLevel(tx.sourceDimension());
         if (source != null) {
             Entity visual = source.getEntity(tx.visualId());
@@ -419,41 +654,30 @@ public final class EntityRelocationManager {
         if (visual instanceof EntityRelocationPortalEntity portal) portal.freezeAndClose();
     }
 
-    private static @Nullable ExitSetup prepareExit(
+    private static @Nullable EntityRelocationExitService.Handle prepareExit(
             MinecraftServer server, ServerLevel targetLevel, ResolvedDestination destination,
             PreparedRoute route, float side, int rgb, PortalSoundSnapshot sounds,
             int openingTicks) {
-        EntityRelocationExitIndex.Lease shared = route.shareable()
-            ? reserveSharedExit(server, destination, side) : null;
-        if (shared != null) return new ExitSetup(shared, null, targetLevel.dimension());
         int durationTicks = PortalOpenDuration.ticks(
             ServerConfig.VALUES.entityRelocationExitDurationSeconds.get());
-        EntityRelocationPortalEntity exit;
+        ServerPlayer followPlayer = null;
         if (destination.playerId() != null
             && (route.crisis() == null || route.crisis().relocation() == null)) {
-            ServerPlayer player = destination.resolvePlayer(server);
-            if (player == null || player.serverLevel() != targetLevel) return null;
-            exit = EntityRelocationPortalEntity.createPlayerDestinationExit(
-                targetLevel, player, side, rgb, durationTicks, sounds, openingTicks);
-        } else {
-            exit = EntityRelocationPortalEntity.createExit(targetLevel, route.exitCenter(), side,
-                rgb, durationTicks, sounds, route.exitOrientation(), route.exitYaw(), openingTicks);
+            followPlayer = destination.resolvePlayer(server);
+            if (followPlayer == null || followPlayer.serverLevel() != targetLevel) return null;
         }
-        if (!targetLevel.addFreshEntity(exit)) return null;
-        PortalSounds.playOpening(targetLevel, exit.position(), sounds);
         EntityRelocationExitIndex.DestinationKey key = route.shareable()
             ? destination.sharedKey() : null;
-        if (key != null) {
-            EXIT_INDEX.register(key, new EntityRelocationExitIndex.ExitReference(
-                exit.getUUID(), targetLevel.dimension().location()));
-        }
-        return new ExitSetup(null, exit.getUUID(), targetLevel.dimension());
+        return EntityRelocationExitService.open(server, new EntityRelocationExitService.OpenRequest(
+            targetLevel, followPlayer, route.exitCenter(), side, rgb, durationTicks, sounds,
+            route.exitOrientation(), route.exitYaw(), openingTicks, key));
     }
 
-    private static PreparedRoute prepareRoute(Entity target, ResolvedDestination destination,
+    private static PreparedRoute prepareRoute(Entity target, EntityRelocationTree tree,
+                                              ResolvedDestination destination,
                                               ServerLevel targetLevel,
                                               PortalCrisisConfigurationSnapshot crises) {
-        PreparedRoute normal = normalRoute(target, destination, null);
+        PreparedRoute normal = normalRoute(target, tree, destination, null);
         PortalCrisisPlan crisis = target instanceof ServerPlayer player
             ? PortalCrisisCoordinator.prepare(crises, player, targetLevel,
                 destination.position().add(0.0, 0.15, 0.0), normal.momentum(),
@@ -470,7 +694,8 @@ public final class EntityRelocationManager {
             relocation.destination(), relocation.momentum(), relocation.destination(), crisis, false);
     }
 
-    private static PreparedRoute refreshRoute(Entity target, ResolvedDestination destination,
+    private static PreparedRoute refreshRoute(Entity target, EntityRelocationTree tree,
+                                              ResolvedDestination destination,
                                               @Nullable PortalCrisisPlan crisis) {
         if (crisis != null && crisis.relocation() != null) {
             PortalCrisisPlan.Relocation relocation = crisis.relocation();
@@ -478,11 +703,13 @@ public final class EntityRelocationManager {
                 relocation.exitPlacement().orientation(), relocation.exitPlacement().yaw(),
                 relocation.destination(), relocation.momentum(), relocation.destination(), crisis, false);
         }
-        return normalRoute(target, destination, crisis);
+        return normalRoute(target, tree, destination, crisis);
     }
 
-    private static PreparedRoute normalRoute(Entity target, ResolvedDestination destination,
+    private static PreparedRoute normalRoute(Entity target, EntityRelocationTree tree,
+                                             ResolvedDestination destination,
                                              @Nullable PortalCrisisPlan crisis) {
+        double treeHeight = tree.metrics(target).height();
         if (destination.playerId() != null) {
             return new PreparedRoute(destination.dimension(), destination.playerExitCenter(),
                 PortalOrientation.BOTTOM, destination.yaw(),
@@ -492,10 +719,10 @@ public final class EntityRelocationManager {
                 destination.position(), crisis, false);
         }
         Vec3 exitCenter = EntityRelocationGeometry.savedDestinationBottomExitCenter(
-            destination.position(), target.getBbHeight());
+            destination.position(), treeHeight);
         return new PreparedRoute(destination.dimension(), exitCenter, PortalOrientation.BOTTOM,
             destination.yaw(), EntityRelocationGeometry.bottomOutputPosition(
-                exitCenter, target.getBbHeight()), relocationMomentum(
+                exitCenter, treeHeight), relocationMomentum(
                     target, target.getDeltaMovement(), PortalOrientation.BOTTOM, destination.yaw()),
             destination.position(), crisis, true);
     }
@@ -503,7 +730,7 @@ public final class EntityRelocationManager {
     private static @Nullable Entity liveTarget(@Nullable ServerLevel sourceLevel, UUID targetId) {
         Entity raw = sourceLevel == null ? null : sourceLevel.getEntity(targetId);
         return raw != null && raw.isAlive() && isRelocatableType(raw)
-            && !raw.isPassenger() && raw.getPassengers().isEmpty() ? raw : null;
+            && !raw.isPassenger() ? raw : null;
     }
 
     private static boolean dimensionAllowed(Transaction tx, ResolvedDestination destination) {
@@ -511,10 +738,10 @@ public final class EntityRelocationManager {
     }
 
     private static PortalFuelUse fuelUse(Transaction tx, Entity target) {
-        int baseAmount = PortalFuelCost.choose(tx.profile().minimumConsumption(),
-            tx.profile().maximumConsumption(), ServerConfig.VALUES.randomConsumption.get(),
-            target.getRandom()::nextInt);
-        return new PortalFuelUse(tx.profile(), tx.fuelQuote().cost(baseAmount));
+        int amount = tx.fuelQuote().cost(() -> PortalFuelCost.choose(
+            tx.profile().minimumConsumption(), tx.profile().maximumConsumption(),
+            ServerConfig.VALUES.randomConsumption.get(), target.getRandom()::nextInt));
+        return new PortalFuelUse(tx.profile(), amount);
     }
 
     private static EntityRelocationFuelPolicy.Multipliers relocationFuelMultipliers() {
@@ -523,20 +750,8 @@ public final class EntityRelocationManager {
             ServerConfig.VALUES.hostileRelocationFuelMultiplier.get(),
             ServerConfig.VALUES.playerRelocationFuelMultiplier.get(),
             ServerConfig.VALUES.bossRelocationFuelMultiplier.get(),
-            ServerConfig.VALUES.projectileRelocationFuelMultiplier.get());
-    }
-
-    private static @Nullable Entity teleport(Entity target, ServerLevel targetLevel,
-                                             Vec3 position, Vec3 momentum) {
-        float yaw = target.getYRot();
-        float pitch = target.getXRot();
-        if (target.level() == targetLevel) {
-            boolean ok = target.teleportTo(targetLevel, position.x, position.y, position.z,
-                Set.<RelativeMovement>of(), yaw, pitch);
-            return ok ? target : null;
-        }
-        return target.changeDimension(new DimensionTransition(
-            targetLevel, position, momentum, yaw, pitch, DimensionTransition.DO_NOTHING));
+            ServerConfig.VALUES.projectileRelocationFuelMultiplier.get(),
+            ServerConfig.VALUES.utilityRelocationFuelMultiplier.get());
     }
 
     private static Vec3 upwardMomentum(Vec3 momentum) {
@@ -557,47 +772,22 @@ public final class EntityRelocationManager {
             ? downwardMomentum(momentum) : upwardMomentum(momentum);
     }
 
-    private static ExitReadiness exitReadiness(MinecraftServer server,
-                                               @Nullable ExitSetup setup) {
-        EntityRelocationPortalEntity portal = resolveExit(server, setup);
-        if (portal == null) return ExitReadiness.FAILED;
-        return switch (portal.phase()) {
-            case OPEN -> ExitReadiness.READY;
-            case CHARGING, OPENING -> ExitReadiness.WAITING;
-            case CLOSING, CLOSED -> ExitReadiness.FAILED;
-        };
-    }
-
-    private static Vec3 exitCenter(MinecraftServer server, @Nullable ExitSetup setup,
+    private static Vec3 exitCenter(MinecraftServer server,
+                                   @Nullable EntityRelocationExitService.Handle setup,
                                    Vec3 fallback) {
         EntityRelocationPortalEntity portal = resolveExit(server, setup);
         return portal == null ? fallback : portal.position();
     }
 
-    private static void closeExit(MinecraftServer server, @Nullable ExitSetup setup,
-                                  boolean successful) {
-        if (setup == null) return;
-        if (setup.sharedExit() != null) {
-            releaseSharedExit(server, setup.sharedExit(), successful);
-            return;
-        }
-        if (!successful) {
-            EntityRelocationPortalEntity portal = resolveExit(server, setup);
-            // Once fully open this exit may already have been reserved by another relocation.
-            // Leaving an orphan open for its normal short hold is safer than closing it under
-            // another transaction; only abort an exit that is still in its opening animation.
-            if (portal != null && portal.phase() != PortalLifecycle.Phase.OPEN) portal.beginClosing();
-        }
+    private static void closeExit(MinecraftServer server,
+                                  @Nullable EntityRelocationExitService.Handle setup,
+                                   boolean successful) {
+        EntityRelocationExitService.close(server, setup, successful);
     }
 
     private static @Nullable EntityRelocationPortalEntity resolveExit(
-            MinecraftServer server, @Nullable ExitSetup setup) {
-        if (setup == null) return null;
-        if (setup.sharedExit() != null) return resolveExit(server, setup.sharedExit());
-        if (setup.portalId() == null) return null;
-        ServerLevel level = server.getLevel(setup.dimension());
-        Entity entity = level == null ? null : level.getEntity(setup.portalId());
-        return entity instanceof EntityRelocationPortalEntity portal && portal.isExit() ? portal : null;
+            MinecraftServer server, @Nullable EntityRelocationExitService.Handle setup) {
+        return EntityRelocationExitService.resolve(server, setup);
     }
 
     private static void notifyUnavailablePlayerDestination(MinecraftServer server, Transaction tx) {
@@ -607,54 +797,8 @@ public final class EntityRelocationManager {
             "message.riftgun.player_destination_unavailable"), false);
     }
 
-    private static @Nullable EntityRelocationExitIndex.Lease reserveSharedExit(
-            MinecraftServer server, ResolvedDestination destination, float requiredSide) {
-        EntityRelocationExitIndex.DestinationKey key = destination.sharedKey();
-        if (key == null) return null;
-        return EXIT_INDEX.reserveStable(key, requiredSide, new EntityRelocationExitIndex.CandidateAccess() {
-            @Override
-            public EntityRelocationExitIndex.Candidate inspect(
-                    EntityRelocationExitIndex.ExitReference exit) {
-                EntityRelocationPortalEntity portal = resolveExit(server, exit);
-                if (portal == null) return EntityRelocationExitIndex.Candidate.missing();
-                return switch (portal.phase()) {
-                    case OPENING -> EntityRelocationExitIndex.Candidate.opening();
-                    case OPEN -> EntityRelocationExitIndex.Candidate.open(portal.remainingOpenTicks());
-                    case CLOSING, CLOSED -> EntityRelocationExitIndex.Candidate.closing();
-                    case CHARGING -> EntityRelocationExitIndex.Candidate.opening();
-                };
-            }
-
-            @Override
-            public boolean tryReserve(EntityRelocationExitIndex.ExitReference exit, float side) {
-                EntityRelocationPortalEntity portal = resolveExit(server, exit);
-                return portal != null && portal.tryReserve(side);
-            }
-        }).orElse(null);
-    }
-
-    private static void releaseSharedExit(MinecraftServer server,
-                                          @Nullable EntityRelocationExitIndex.Lease lease,
-                                          boolean successful) {
-        EntityRelocationPortalEntity portal = resolveExit(server, lease);
-        if (portal != null) portal.releaseReservation(successful);
-    }
-
-    private static @Nullable EntityRelocationPortalEntity resolveExit(
-            MinecraftServer server, @Nullable EntityRelocationExitIndex.Lease lease) {
-        return lease == null ? null : resolveExit(server, lease.exit());
-    }
-
-    private static @Nullable EntityRelocationPortalEntity resolveExit(
-            MinecraftServer server, EntityRelocationExitIndex.ExitReference reference) {
-        ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, reference.dimension());
-        ServerLevel level = server.getLevel(dimension);
-        Entity entity = level == null ? null : level.getEntity(reference.portalId());
-        return entity instanceof EntityRelocationPortalEntity portal && portal.isExit() ? portal : null;
-    }
-
     static void unregisterExit(UUID portalId) {
-        EXIT_INDEX.unregister(portalId);
+        EntityRelocationExitService.unregister(portalId);
     }
 
     private static Optional<Entity> findTarget(ServerPlayer owner, PortalGunCapabilities capabilities) {
@@ -667,19 +811,41 @@ public final class EntityRelocationManager {
         Vec3 finalEnd = end;
         return owner.level().getEntities(owner, search, entity ->
                 entity != owner && entity.isAlive() && !entity.isSpectator()
-                    && !entity.isPassenger() && entity.getPassengers().isEmpty()
                     && isRelocatableType(entity)
-                    && (!(entity instanceof Projectile projectile)
-                        || PortalProjectileState.canTransit(projectile))
-                    && (entity instanceof Player ? capabilities.playerTarget()
-                        : capabilities.entityAccess().allows(entity))
                     && entity.getBoundingBox().inflate(0.3).clip(start, finalEnd).isPresent())
-            .stream().min(java.util.Comparator.comparingDouble(entity ->
-                entity.getBoundingBox().clip(start, finalEnd).orElse(entity.position()).distanceToSqr(start)));
+            .stream()
+            .sorted(java.util.Comparator.comparingDouble(entity ->
+                entity.getBoundingBox().clip(start, finalEnd)
+                    .orElse(entity.position()).distanceToSqr(start)))
+            .map(EntityRelocationTree::promotedRoot)
+            .distinct()
+            .filter(root -> treeEligible(root, capabilities))
+            .findFirst();
     }
 
     private static boolean isRelocatableType(Entity entity) {
-        return entity instanceof LivingEntity || entity instanceof Projectile;
+        return entity instanceof LivingEntity || entity instanceof Projectile
+            || entity instanceof ItemEntity || entity instanceof VehicleEntity;
+    }
+
+    private static boolean treeEligible(Entity root, PortalGunCapabilities capabilities) {
+        if (root.isPassenger()) return false;
+        EntityRelocationTree tree = EntityRelocationTree.capture(root);
+        if (tree.size() > ServerConfig.VALUES.maximumPassengerTreeSize.get()) return false;
+        if (tree.size() > 1 && !ServerConfig.VALUES.enablePassengerTreeRelocation.get()) return false;
+        for (Entity member : tree.members(root)) {
+            if (!member.isAlive() || member.isSpectator() || !isRelocatableType(member)) return false;
+            if (member instanceof Projectile projectile && !PortalProjectileState.canTransit(projectile)) {
+                return false;
+            }
+            if (member instanceof Player) {
+                if (!capabilities.playerTarget()) return false;
+            } else if (!(member instanceof ItemEntity) && !(member instanceof VehicleEntity)
+                && !capabilities.entityAccess().allows(member)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static @Nullable ResolvedDestination resolveDestination(MinecraftServer server,
@@ -710,7 +876,7 @@ public final class EntityRelocationManager {
     private static EntityRelocationRegistry registry() {
         int maximum = ServerConfig.VALUES.maximumConcurrentEntityRelocations.get();
         int cooldown = ServerConfig.VALUES.entityRelocationTargetCooldownTicks.get();
-        if (registry == null || ACTIVE.isEmpty()
+        if (registry == null || ACTIVE.isEmpty() && PREPARING.isEmpty()
             && (maximum != configuredMaximum || cooldown != configuredCooldown)) {
             configuredMaximum = maximum;
             configuredCooldown = cooldown;
@@ -720,9 +886,26 @@ public final class EntityRelocationManager {
     }
 
     public static void reset() {
+        for (PendingPreparation pending : PREPARING) pending.preparation().close();
+        PREPARING.clear();
         ACTIVE.clear();
         registry = null;
-        EXIT_INDEX.clear();
+        EntityRelocationExitService.clear();
+    }
+
+    public static void cancelAll(MinecraftServer server) {
+        for (PendingPreparation pending : PREPARING) {
+            pending.preparation().close();
+            registry().fail(pending.reservation());
+            releasePrivacyGrants(server, pending.privacyReservations());
+        }
+        PREPARING.clear();
+        for (Transaction tx : ACTIVE) {
+            registry().fail(tx.reservation());
+            releasePrivacyGrants(server, tx.privacyReservations());
+            closeExit(server, tx.exitSetup(), false);
+        }
+        ACTIVE.clear();
     }
 
     private static void message(ServerPlayer player, String key) {
@@ -734,28 +917,36 @@ public final class EntityRelocationManager {
                                ItemStack gun, ResolvedDestination destination, PortalFuelProfile profile,
                                float side, PortalSoundSnapshot sounds, boolean fallGuard,
                                boolean entityFallGuard,
-                               int transitCooldownTicks,
                                PortalCrisisConfigurationSnapshot crises,
                                List<PortalPrivacyService.GrantReservation> privacyReservations,
-                               UUID visualId, @Nullable ExitSetup exitSetup,
-                               @Nullable PreparedRoute preparedRoute, boolean deferred,
+                               UUID visualId, @Nullable EntityRelocationExitService.Handle exitSetup,
+                               @Nullable PreparedRoute preparedRoute,
                                int openingTicks,
                                EntityRelocationFuelPolicy.Quote fuelQuote,
+                               EntityRelocationTree tree,
                                long startedAt) {}
+
+    private record PendingPreparation(
+        EntityRelocationRegistry.Reservation reservation, UUID ownerId, UUID targetId,
+        ResourceKey<Level> sourceDimension,
+        net.minecraft.nbt.CompoundTag gunReference, ResolvedDestination destination,
+        PortalFuelProfile profile, PortalSoundSnapshot sounds, boolean fallGuard,
+        boolean entityFallGuard,
+        PortalCrisisConfigurationSnapshot crises,
+        List<PortalPrivacyService.GrantReservation> privacyReservations,
+        List<PermissionSnapshot> permissions, int openingTicks,
+        EntityRelocationFuelPolicy.Quote fuelQuote,
+        EntityRelocationTree tree,
+        EntityRelocationPreparation preparation
+    ) {}
+
+    private record PermissionSnapshot(UUID targetId, PortalRequestPurpose purpose,
+                                      boolean oneShot) {}
 
     private record PreparedRoute(ResourceKey<Level> dimension, Vec3 exitCenter,
                                  PortalOrientation exitOrientation, float exitYaw,
                                  Vec3 outputPosition, Vec3 momentum, Vec3 landingPosition,
                                  @Nullable PortalCrisisPlan crisis, boolean shareable) {}
-
-    private record ExitSetup(@Nullable EntityRelocationExitIndex.Lease sharedExit,
-                             @Nullable UUID portalId, ResourceKey<Level> dimension) {}
-
-    private enum ExitReadiness {
-        WAITING,
-        READY,
-        FAILED
-    }
 
     private record ResolvedDestination(net.minecraft.resources.ResourceKey<Level> dimension,
                                        Vec3 position, float yaw, @Nullable UUID playerId,

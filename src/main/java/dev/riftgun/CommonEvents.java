@@ -81,7 +81,9 @@ public final class CommonEvents {
         PortalServices.MOTION_HISTORY.tick(event.getServer());
         PortalPrivacyService.tick(event.getServer());
         EntityRelocationManager.tick(event.getServer());
-        dev.riftgun.relocation.EntityRelocationArrivalLatch.tick(event.getServer());
+        dev.riftgun.relocation.EntityRelocationExitImmunity.tick(
+            event.getServer().overworld().getGameTime());
+        dev.riftgun.diagnostics.TransitDiagnostics.tick(event.getServer());
         ProjectilePortalIndex.tick(event.getServer());
     }
 
@@ -102,7 +104,9 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void projectileImpact(ProjectileImpactEvent event) {
         if (!event.getProjectile().level().isClientSide()
-            && ProjectilePortalIndex.tryTransit(event.getProjectile())) event.setCanceled(true);
+            && ProjectilePortalIndex.tryTransit(event.getProjectile(), event.getRayTraceResult())) {
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent
@@ -111,13 +115,15 @@ public final class CommonEvents {
         PortalCrisisTestOverrides.reset();
         PortalSounds.endServerShutdown();
         EntityRelocationManager.reset();
-        dev.riftgun.relocation.EntityRelocationArrivalLatch.reset();
+        dev.riftgun.diagnostics.TransitDiagnostics.reset();
+        dev.riftgun.relocation.EntityRelocationExitImmunity.reset();
         ProjectilePortalIndex.reset();
     }
 
     @SubscribeEvent
     public static void serverStopping(ServerStoppingEvent event) {
         PortalSounds.beginServerShutdown();
+        EntityRelocationManager.cancelAll(event.getServer());
     }
 
     private static void closeOwned(ServerPlayer player) {

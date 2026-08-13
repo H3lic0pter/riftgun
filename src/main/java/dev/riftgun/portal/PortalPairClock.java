@@ -37,6 +37,12 @@ public final class PortalPairClock {
         return now - PortalLifecycle.CHARGE_TICKS - PortalLifecycle.ANIMATION_TICKS;
     }
 
+    /** Either ticking endpoint may finish synchronizing a deferred pair. */
+    public static boolean shouldSynchronize(boolean waitingForLinkedOpen,
+                                            boolean synchronizePairOnOpen) {
+        return waitingForLinkedOpen || synchronizePairOnOpen;
+    }
+
     private static int saturatedInt(long value) {
         return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
