@@ -2,6 +2,7 @@ package dev.riftgun.portal;
 
 import com.mojang.logging.LogUtils;
 import dev.riftgun.diagnostics.TransitDiagnostics;
+import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.sound.PortalSounds;
 import java.util.HashSet;
 import java.util.List;
@@ -56,9 +57,12 @@ final class PortalTransitOrchestrator {
                 if (reason == null && !projectileBudgetAllows(first)) reason = "projectile_budget";
                 if (reason == null && crisisExit) reason = "crisis_return_denied";
                 lastBlockedRouteDiagnosticAt = now;
-                TransitDiagnostics.portal("nearby entity rejected portal={} root={} type={} dimension={} reason={}",
+                long immunityRemaining = "relocation_exit_immunity".equals(reason)
+                    ? EntityRelocationExitImmunity.remainingTicks(first) : 0L;
+                TransitDiagnostics.portal("nearby entity rejected portal={} root={} type={} dimension={} reason={} remainingTicks={}",
                     portal.getUUID(), first.getUUID(), first.getType(),
-                    portal.level().dimension().location(), reason == null ? "unknown" : reason);
+                    portal.level().dimension().location(), reason == null ? "unknown" : reason,
+                    immunityRemaining);
             }
         }
         Set<UUID> touchingIds = new HashSet<>(touching.size());

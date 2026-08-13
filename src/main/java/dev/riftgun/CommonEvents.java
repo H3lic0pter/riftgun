@@ -81,8 +81,9 @@ public final class CommonEvents {
         PortalServices.MOTION_HISTORY.tick(event.getServer());
         PortalPrivacyService.tick(event.getServer());
         EntityRelocationManager.tick(event.getServer());
+        dev.riftgun.relocation.EntityRelocationExitImmunity.tick(
+            event.getServer().overworld().getGameTime());
         dev.riftgun.diagnostics.TransitDiagnostics.tick(event.getServer());
-        dev.riftgun.relocation.EntityRelocationArrivalLatch.tick(event.getServer());
         ProjectilePortalIndex.tick(event.getServer());
     }
 
@@ -115,7 +116,7 @@ public final class CommonEvents {
         PortalSounds.endServerShutdown();
         EntityRelocationManager.reset();
         dev.riftgun.diagnostics.TransitDiagnostics.reset();
-        dev.riftgun.relocation.EntityRelocationArrivalLatch.reset();
+        dev.riftgun.relocation.EntityRelocationExitImmunity.reset();
         ProjectilePortalIndex.reset();
     }
 

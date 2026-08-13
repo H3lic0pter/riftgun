@@ -2,7 +2,7 @@ package dev.riftgun.portal;
 
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
-import dev.riftgun.relocation.EntityRelocationArrivalLatch;
+import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.PortalServices;
 import java.util.UUID;
@@ -40,7 +40,9 @@ record PortalTransitEligibility(
         if (!PortalTriggerShape.intersects(
             placement, root.getBoundingBox(), horizontalTriggerExtend)) return "trigger_shape_miss";
         if (containsExcludedPlayer(root)) return "excluded_player";
-        if (exitPortal && EntityRelocationArrivalLatch.blocksExit(root)) return "arrival_latch";
+        if (exitPortal && EntityRelocationExitImmunity.blocksExit(root)) {
+            return "relocation_exit_immunity";
+        }
         if (exitPortal && containsTransitProtectedPlayer(root)) return "privacy_protected_player";
         return null;
     }

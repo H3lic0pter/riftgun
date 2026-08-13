@@ -547,17 +547,15 @@ public final class EntityRelocationManager {
         }
         TransitDiagnostics.trackPostcondition(
             moved, tx.sourceDimension(), route.outputPosition(), "relocation", now);
-        Vec3 actualExitCenter = exitCenter(server, tx.exitSetup(), route.exitCenter());
         closeExit(server, tx.exitSetup(), true);
         finishSuccessful(server, sourceLevel, targetLevel, sourcePosition, moved, tx, use,
-            route.momentum(), route.crisis(), route.landingPosition(), actualExitCenter, now);
+            route.momentum(), route.crisis(), now);
     }
 
     private static void finishSuccessful(MinecraftServer server, ServerLevel sourceLevel,
                                          ServerLevel targetLevel, Vec3 sourcePosition, Entity moved,
                                          Transaction tx, PortalFuelUse use, Vec3 momentum,
-                                         @Nullable PortalCrisisPlan crisis, Vec3 landingPosition,
-                                         Vec3 exitCenter, long now) {
+                                         @Nullable PortalCrisisPlan crisis, long now) {
         if (!PortalFuelManager.consume(tx.gun(), use)) {
             ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
             if (owner != null) message(owner, "message.riftgun.entity_relocation_failed");
@@ -572,8 +570,8 @@ public final class EntityRelocationManager {
         if (moved instanceof ServerPlayer player && crisis != null) {
             PortalCrisisCoordinator.apply(crisis, player);
         }
-        EntityRelocationArrivalLatch.register(moved, landingPosition, exitCenter, tx.side(), now,
-            tx.transitCooldownTicks());
+        EntityRelocationExitImmunity.registerTree(moved, now,
+            ServerConfig.VALUES.entityRelocationExitPortalImmunityTicks.get());
         if (moved instanceof Projectile projectile) {
             PortalProjectileState.recordSuccessfulTransit(projectile);
         }

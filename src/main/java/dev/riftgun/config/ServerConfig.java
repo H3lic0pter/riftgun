@@ -39,6 +39,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue entityRelocationTargetCooldownTicks;
         public final ModConfigSpec.IntValue entityRelocationExitDurationSeconds;
         public final ModConfigSpec.IntValue destinationReadinessTimeoutTicks;
+        public final ModConfigSpec.IntValue entityRelocationExitPortalImmunityTicks;
         public final ModConfigSpec.BooleanValue enableTransitDiagnostics;
         public final ModConfigSpec.IntValue projectileRelocationOpeningTicks;
         public final ModConfigSpec.DoubleValue passiveRelocationFuelMultiplier;
@@ -152,6 +153,11 @@ public final class ServerConfig {
                     "Maximum time to wait for an Entity Relocation destination to become ready, "
                         + "during both chunk preparation and active transit.")
                 .defineInRange("destinationReadinessTimeoutTicks", 100, 20, 600);
+            entityRelocationExitPortalImmunityTicks = builder.comment(
+                    "Time after a successful Entity Relocation during which non-player members "
+                        + "of the relocated entity tree cannot trigger normal portal exits. "
+                        + "Set to zero to disable.")
+                .defineInRange("exitPortalImmunityTicks", 100, 0, 1200);
             projectileRelocationOpeningTicks = builder.comment(
                     "Opening animation duration for newly created Projectile Entity Relocation "
                         + "entrances and exits. Existing shared exits keep their current duration.")
