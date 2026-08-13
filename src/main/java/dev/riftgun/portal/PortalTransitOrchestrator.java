@@ -1,6 +1,5 @@
 package dev.riftgun.portal;
 
-import com.mojang.logging.LogUtils;
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.sound.PortalSounds;
@@ -18,12 +17,10 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 /** Routes portal contact through normal, deferred and crisis-return transit pipelines. */
 final class PortalTransitOrchestrator {
     private static final float FACING_THRESHOLD = 0.35F;
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     private final PortalEntity portal;
     private final PortalTransitGate gate = new PortalTransitGate();
@@ -309,8 +306,8 @@ final class PortalTransitOrchestrator {
     private void logTreeFailure(Entity root, Entity failed, ServerLevel targetLevel,
                                 PortalTransitService.FailureStage stage, int movedCount) {
         PortalEntity linked = portal.linkedPortal();
-        LOGGER.warn(
-            "Portal passenger-tree failure stage={} portal={} linked={} sourceDimension={} "
+        TransitDiagnostics.warning(
+            "portal passenger-tree failure stage={} portal={} linked={} sourceDimension={} "
                 + "targetDimension={} rootType={} rootUuid={} failedType={} failedUuid={} movedCount={}",
             stage, portal.getUUID(), linked == null ? "deferred" : linked.getUUID(),
             portal.level().dimension().location(), targetLevel.dimension().location(),
