@@ -1,5 +1,6 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.sound.PortalSounds;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,9 +52,17 @@ final class PortalDeferredExitController {
 
         creatingExit = true;
         try {
-            if (destinationLevel.isPositionEntityTicking(BlockPos.containing(currentTarget.position()))) {
+            BlockPos targetPosition = BlockPos.containing(currentTarget.position());
+            boolean ticking = destinationLevel.isPositionEntityTicking(targetPosition);
+            TransitDiagnostics.portal("deferred trigger portal={} root={} type={} source={} destination={} target={} chunkTicking={}",
+                portal.getUUID(), root.getUUID(), root.getType(),
+                portal.level().dimension().location(), destinationLevel.dimension().location(),
+                currentTarget.position(), ticking);
+            if (ticking) {
                 PortalEntity exit = portal.createDeferredExit(
                     destinationLevel, currentTarget, List.of(), excludedPlayer);
+                TransitDiagnostics.portal("deferred target already ticking portal={} root={} exitCreated={}",
+                    portal.getUUID(), root.getUUID(), exit != null);
                 portal.transit().leave(root.getUUID());
                 if (exit == null) portal.warnDeferredExitFailure(destinationLevel.getServer(), List.of());
                 return;
@@ -62,16 +71,30 @@ final class PortalDeferredExitController {
             ServerLevel sourceLevel = (ServerLevel) portal.level();
             Vec3 sourcePosition = root.position();
             List<Entity> movedEntities = new ArrayList<>();
+            long teleportStarted = TransitDiagnostics.enabled() ? System.nanoTime() : 0L;
+            TransitDiagnostics.portal("deferred bootstrap before portal={} root={} sourcePos={} destination={} target={}",
+                portal.getUUID(), root.getUUID(), sourcePosition,
+                destinationLevel.dimension().location(), currentTarget.position());
             Entity movedRoot = portal.transit().bootstrapTree(
                 root, destinationLevel, currentTarget, movedEntities);
+            TransitDiagnostics.portal("deferred bootstrap after portal={} root={} result={} movedCount={} elapsedMs={} resultPos={} chunkTicking={}",
+                portal.getUUID(), root.getUUID(), movedRoot != null,
+                movedEntities.size(), TransitDiagnostics.enabled()
+                    ? (System.nanoTime() - teleportStarted) / 1_000_000.0 : 0.0,
+                movedRoot == null ? "null" : movedRoot.position(),
+                destinationLevel.isPositionEntityTicking(targetPosition));
             if (movedRoot == null) {
                 portal.transit().leave(root.getUUID());
                 portal.warnDeferredTeleportFailure(destinationLevel.getServer(), root);
                 return;
             }
+            TransitDiagnostics.trackPostcondition(movedRoot, sourceLevel.dimension(),
+                currentTarget.position(), "deferred_portal", portal.serverTime());
 
             PortalEntity exit = portal.createDeferredExit(
                 destinationLevel, currentTarget, movedEntities, excludedPlayer);
+            TransitDiagnostics.portal("deferred exit creation portal={} root={} exitCreated={} movedCount={}",
+                portal.getUUID(), root.getUUID(), exit != null, movedEntities.size());
             if (exit == null) portal.warnDeferredExitFailure(destinationLevel.getServer(), movedEntities);
             if (exit != null) {
                 for (Entity moved : movedEntities) {

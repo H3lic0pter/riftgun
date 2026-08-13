@@ -1,6 +1,7 @@
 package dev.riftgun.portal;
 
 import com.mojang.logging.LogUtils;
+import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.sound.PortalSounds;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +26,7 @@ final class PortalTransitOrchestrator {
 
     private final PortalEntity portal;
     private final PortalTransitGate gate = new PortalTransitGate();
+    private long lastBlockedRouteDiagnosticAt = Long.MIN_VALUE;
 
     PortalTransitOrchestrator(PortalEntity portal) {
         this.portal = portal;
@@ -42,6 +44,23 @@ final class PortalTransitOrchestrator {
             eligibility.allows(entity) && projectileBudgetAllows(entity)
                 && (!crisisExit || entity instanceof ServerPlayer
                 && portal.crisis().allowsReturn(entity)));
+        if (TransitDiagnostics.enabled() && touching.isEmpty()
+            && now - lastBlockedRouteDiagnosticAt >= 20L) {
+            List<Entity> nearby = portal.level().getEntities(portal, search, entity ->
+                !(entity instanceof PortalEntity) && !entity.isPassenger()
+                    && PortalTriggerShape.intersects(portal.placement(), entity.getBoundingBox(),
+                        portal.horizontalTriggerExtend()));
+            if (!nearby.isEmpty()) {
+                Entity first = nearby.getFirst();
+                String reason = eligibility.rejectionReason(first);
+                if (reason == null && !projectileBudgetAllows(first)) reason = "projectile_budget";
+                if (reason == null && crisisExit) reason = "crisis_return_denied";
+                lastBlockedRouteDiagnosticAt = now;
+                TransitDiagnostics.portal("nearby entity rejected portal={} root={} type={} dimension={} reason={}",
+                    portal.getUUID(), first.getUUID(), first.getType(),
+                    portal.level().dimension().location(), reason == null ? "unknown" : reason);
+            }
+        }
         Set<UUID> touchingIds = new HashSet<>(touching.size());
         for (Entity entity : touching) touchingIds.add(entity.getUUID());
         gate.retainInside(touchingIds, now, portal.transitCooldownTicks());
@@ -56,7 +75,10 @@ final class PortalTransitOrchestrator {
 
         PortalEntity target = portal.linkedPortal();
         if (target != null) {
-            if (target.phase() != PortalLifecycle.Phase.OPEN) return;
+            if (target.phase() != PortalLifecycle.Phase.OPEN) {
+                logBlockedRoute(touching, now, "linked_target_" + target.phase(), target);
+                return;
+            }
             for (Entity entity : touching) {
                 if (!gate.enter(entity.getUUID(), now, portal.transitCooldownTicks())) continue;
                 transitNormalTree(entity, target);
@@ -65,7 +87,11 @@ final class PortalTransitOrchestrator {
         }
 
         PortalDeferredExitController deferred = portal.deferredExit();
-        if (!deferred.active() || deferred.busy()) return;
+        if (!deferred.active() || deferred.busy()) {
+            logBlockedRoute(touching, now,
+                deferred.busy() ? "deferred_busy" : "linked_target_missing_and_no_deferred_target", null);
+            return;
+        }
         for (Entity entity : touching) {
             if (!gate.enter(entity.getUUID(), now, portal.transitCooldownTicks())) continue;
             deferred.transit(entity);
@@ -98,6 +124,18 @@ final class PortalTransitOrchestrator {
         gate.markInside(entityId, now, portal.transitCooldownTicks());
     }
 
+    private void logBlockedRoute(List<Entity> touching, long now, String reason,
+                                 @Nullable PortalEntity target) {
+        if (touching.isEmpty() || now - lastBlockedRouteDiagnosticAt < 20L) return;
+        lastBlockedRouteDiagnosticAt = now;
+        Entity first = touching.getFirst();
+        TransitDiagnostics.portal("contact blocked portal={} root={} type={} dimension={} reason={} target={} targetDimension={}",
+            portal.getUUID(), first.getUUID(), first.getType(),
+            portal.level().dimension().location(), reason,
+            target == null ? "null" : target.getUUID(),
+            target == null ? "null" : target.level().dimension().location());
+    }
+
     void leave(UUID entityId) {
         gate.leave(entityId);
     }
@@ -116,9 +154,16 @@ final class PortalTransitOrchestrator {
 
     private @Nullable Entity transitNormalTree(Entity root, PortalEntity target) {
         ServerLevel sourceLevel = (ServerLevel) portal.level();
+        ServerLevel targetLevel = (ServerLevel) target.level();
         Vec3 sourcePosition = root.position();
+        TransitDiagnostics.portal("normal trigger sourcePortal={} targetPortal={} root={} type={} source={} destination={} targetChunkTicking={}",
+            portal.getUUID(), target.getUUID(), root.getUUID(), root.getType(),
+            sourceLevel.dimension().location(), targetLevel.dimension().location(),
+            targetLevel.isPositionEntityTicking(target.blockPosition()));
         Vec3 rootDestination = treeDestination(root, target);
         if (rootDestination == null) {
+            TransitDiagnostics.warning("normal portal preflight failed sourcePortal={} targetPortal={} root={}",
+                portal.getUUID(), target.getUUID(), root.getUUID());
             leave(root.getUUID());
             logTreeFailure(root, root, (ServerLevel) target.level(),
                 PortalTransitService.FailureStage.PREFLIGHT_CLEARANCE, 0);
@@ -126,6 +171,9 @@ final class PortalTransitOrchestrator {
         }
         PortalTransitService.TransitPlan[] rootPlan = new PortalTransitService.TransitPlan[1];
         int[] movedCount = new int[1];
+        long teleportStarted = TransitDiagnostics.enabled() ? System.nanoTime() : 0L;
+        TransitDiagnostics.portal("normal teleport before sourcePortal={} targetPortal={} root={} destination={}",
+            portal.getUUID(), target.getUUID(), root.getUUID(), rootDestination);
         Entity movedRoot = PortalTransitService.teleportTree(root,
             (entity, mounted) -> {
                 PortalTransitService.TransitPlan plan = normalPlan(entity, target);
@@ -149,7 +197,15 @@ final class PortalTransitOrchestrator {
                 logTreeFailure(
                     root, failed, (ServerLevel) target.level(), stage, movedCount[0]);
             });
+        TransitDiagnostics.portal("normal teleport after sourcePortal={} targetPortal={} root={} result={} movedCount={} elapsedMs={} resultDimension={} resultPos={}",
+            portal.getUUID(), target.getUUID(), root.getUUID(), movedRoot != null,
+            movedCount[0], TransitDiagnostics.enabled()
+                ? (System.nanoTime() - teleportStarted) / 1_000_000.0 : 0.0,
+            movedRoot == null ? "null" : movedRoot.level().dimension().location(),
+            movedRoot == null ? "null" : movedRoot.position());
         if (movedRoot != null) {
+            TransitDiagnostics.trackPostcondition(movedRoot, sourceLevel.dimension(),
+                rootDestination, "normal_portal", portal.serverTime());
             if (movedRoot instanceof Projectile projectile) {
                 PortalProjectileState.recordSuccessfulTransit(projectile);
                 playProjectileTransitEffects(sourceLevel, sourcePosition, target, movedRoot);

@@ -26,15 +26,23 @@ record PortalTransitEligibility(
     }
 
     boolean allows(Entity root) {
-        if (root instanceof PortalEntity || root.isPassenger()) return false;
+        return rejectionReason(root) == null;
+    }
+
+    @Nullable String rejectionReason(Entity root) {
+        if (root instanceof PortalEntity) return "portal_entity";
+        if (root.isPassenger()) return "passenger_not_root";
         if (!allowsPassengerTree(ServerConfig.VALUES.enablePassengerTreeTransit.get(),
-            !root.getPassengers().isEmpty())) return false;
-        if (!PortalServices.ENTITY_ELIGIBILITY.allowsTree(root, entityAccess::allows)) return false;
+            !root.getPassengers().isEmpty())) return "passenger_tree_disabled";
+        if (!PortalServices.ENTITY_ELIGIBILITY.allowsTree(root, entityAccess::allows)) {
+            return "entity_access_denied";
+        }
         if (!PortalTriggerShape.intersects(
-            placement, root.getBoundingBox(), horizontalTriggerExtend)) return false;
-        if (containsExcludedPlayer(root)) return false;
-        if (exitPortal && EntityRelocationArrivalLatch.blocksExit(root)) return false;
-        return !exitPortal || !containsTransitProtectedPlayer(root);
+            placement, root.getBoundingBox(), horizontalTriggerExtend)) return "trigger_shape_miss";
+        if (containsExcludedPlayer(root)) return "excluded_player";
+        if (exitPortal && EntityRelocationArrivalLatch.blocksExit(root)) return "arrival_latch";
+        if (exitPortal && containsTransitProtectedPlayer(root)) return "privacy_protected_player";
+        return null;
     }
 
     static boolean allowsPassengerTree(boolean enabled, boolean hasPassengers) {

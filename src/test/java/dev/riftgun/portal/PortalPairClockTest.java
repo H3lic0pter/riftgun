@@ -1,6 +1,8 @@
 package dev.riftgun.portal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -23,5 +25,12 @@ final class PortalPairClockTest {
 
         assertEquals(PortalLifecycle.Phase.OPEN, PortalPairClock.phase(startedAt, -1L, now));
         assertEquals(0, PortalPairClock.phaseTicks(startedAt, -1L, now));
+    }
+
+    @Test
+    void eitherTickingEndpointMayCompleteDeferredPairSynchronization() {
+        assertTrue(PortalPairClock.shouldSynchronize(true, false));
+        assertTrue(PortalPairClock.shouldSynchronize(false, true));
+        assertFalse(PortalPairClock.shouldSynchronize(false, false));
     }
 }

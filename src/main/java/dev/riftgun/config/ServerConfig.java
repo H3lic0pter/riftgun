@@ -38,6 +38,8 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maximumConcurrentEntityRelocations;
         public final ModConfigSpec.IntValue entityRelocationTargetCooldownTicks;
         public final ModConfigSpec.IntValue entityRelocationExitDurationSeconds;
+        public final ModConfigSpec.IntValue destinationReadinessTimeoutTicks;
+        public final ModConfigSpec.BooleanValue enableTransitDiagnostics;
         public final ModConfigSpec.IntValue projectileRelocationOpeningTicks;
         public final ModConfigSpec.DoubleValue passiveRelocationFuelMultiplier;
         public final ModConfigSpec.DoubleValue hostileRelocationFuelMultiplier;
@@ -146,6 +148,10 @@ public final class ServerConfig {
                     "Fully-open hold time for visual Entity Relocation exits, in seconds. "
                         + "Opening and closing animations are not included.")
                 .defineInRange("exitDurationSeconds", 3, 1, 30);
+            destinationReadinessTimeoutTicks = builder.comment(
+                    "Maximum time to wait for an Entity Relocation destination to become ready, "
+                        + "during both chunk preparation and active transit.")
+                .defineInRange("destinationReadinessTimeoutTicks", 100, 20, 600);
             projectileRelocationOpeningTicks = builder.comment(
                     "Opening animation duration for newly created Projectile Entity Relocation "
                         + "entrances and exits. Existing shared exits keep their current duration.")
@@ -258,6 +264,13 @@ public final class ServerConfig {
             nauseaAmplifier = builder.defineInRange("nauseaAmplifier", 0, 0, 255);
             nauseaSoundVolume = builder.defineInRange("nauseaSoundVolume", 0.45, 0.0, 4.0);
             nauseaSoundPitch = builder.defineInRange("nauseaSoundPitch", 1.35, 0.01, 4.0);
+            builder.pop();
+
+            builder.push("debug");
+            enableTransitDiagnostics = builder.comment(
+                    "Log detailed portal transit, chunk ticket, and post-teleport diagnostics. "
+                        + "Disabled by default; changes take effect when the server config reloads.")
+                .define("enableTransitDiagnostics", false);
             builder.pop();
         }
 

@@ -335,12 +335,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         }
         if (nextPhase != PortalLifecycle.Phase.OPEN) return;
 
-        if (synchronizePairOnOpen) {
+        if (PortalPairClock.shouldSynchronize(
+                waitingForLinkedOpen, synchronizePairOnOpen)) {
             synchronizeOpenPair(now);
-            return;
-        }
-        if (waitingForLinkedOpen) {
-            if (linkedPortal() == null) startClosing();
             return;
         }
         if (deferredExit.active() && deferredExit.targetLevel() == null) {

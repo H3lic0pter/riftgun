@@ -1,6 +1,7 @@
 package dev.riftgun.relocation;
 
 import dev.riftgun.RiftGun;
+import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.portal.PortalEntity;
@@ -18,6 +19,8 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
@@ -26,6 +29,8 @@ import net.minecraft.world.phys.Vec3;
 
 /** Visual-only TOP gate used by Entity Relocation entrances and reusable saved-destination exits. */
 public final class EntityRelocationPortalEntity extends Entity implements PortalVisualSource {
+    private static final TicketType<UUID> EXIT_TICKET =
+        TicketType.create("riftgun_entity_relocation_exit", UUID::compareTo);
     private static final EntityDataAccessor<Float> SIDE = SynchedEntityData.defineId(
         EntityRelocationPortalEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> TARGET_SIDE = SynchedEntityData.defineId(
@@ -53,6 +58,8 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
     private int reservations;
     private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
     private long lastProjectileEffectAt = Long.MIN_VALUE;
+    private ChunkPos ticketChunk;
+    private int ticketReservations;
 
     public EntityRelocationPortalEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -161,6 +168,11 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
         PortalLifecycle.Step next = PortalLifecycle.tick(current, phaseTicks(),
             openingTicks(), EntityRelocationLifecycle.CLOSING_TICKS);
         setPhase(next.phase(), next.phaseTicks());
+        if (next.phase() != current) {
+            TransitDiagnostics.relocation("portal phase portal={} exit={} dimension={} pos={} {}->{} ticketHeld={}",
+                getUUID(), isExit(), level().dimension().location(), position(),
+                current, next.phase(), ticketReservations > 0);
+        }
         if (next.phase() == PortalLifecycle.Phase.CLOSED) discardPortal();
     }
 
@@ -265,6 +277,39 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
         discard();
     }
 
+    void acquireChunkTicket() {
+        if (!isExit() || !(level() instanceof ServerLevel serverLevel)) return;
+        ticketReservations++;
+        if (ticketReservations > 1) return;
+        ticketChunk = chunkPosition();
+        serverLevel.getChunkSource().addRegionTicket(
+            EXIT_TICKET, ticketChunk, 3, getUUID(), true);
+        TransitDiagnostics.ticket("relocation exit acquired portal={} dimension={} chunk={} entityTicking={}",
+            getUUID(), serverLevel.dimension().location(), ticketChunk,
+            serverLevel.isPositionEntityTicking(blockPosition()));
+    }
+
+    void releaseChunkTicket() {
+        if (ticketReservations <= 0) return;
+        ticketReservations--;
+        if (ticketReservations > 0) return;
+        if (ticketChunk == null || !(level() instanceof ServerLevel serverLevel)) return;
+        serverLevel.getChunkSource().removeRegionTicket(
+            EXIT_TICKET, ticketChunk, 3, getUUID(), true);
+        TransitDiagnostics.ticket("relocation exit released portal={} dimension={} chunk={} removalReasonPending={}",
+            getUUID(), serverLevel.dimension().location(), ticketChunk, getRemovalReason());
+        ticketChunk = null;
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        if (ticketReservations > 0) {
+            ticketReservations = 1;
+            releaseChunkTicket();
+        }
+        super.remove(reason);
+    }
+
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
         entityData.set(SIDE, EntityRelocationGeometry.normalizeSide(tag.getFloat("Side")));
@@ -330,6 +375,10 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
 
     public int openingTicks() {
         return Math.max(1, entityData.get(OPENING_TICKS));
+    }
+
+    boolean chunkTicketHeld() {
+        return ticketReservations > 0;
     }
 
     @Override public float visualAge(float partialTick) { return tickCount + partialTick; }
