@@ -47,6 +47,9 @@ public final class ServerConfig {
         public final ModConfigSpec.DoubleValue playerRelocationFuelMultiplier;
         public final ModConfigSpec.DoubleValue bossRelocationFuelMultiplier;
         public final ModConfigSpec.DoubleValue projectileRelocationFuelMultiplier;
+        public final ModConfigSpec.DoubleValue utilityRelocationFuelMultiplier;
+        public final ModConfigSpec.BooleanValue enablePassengerTreeRelocation;
+        public final ModConfigSpec.IntValue maximumPassengerTreeSize;
         public final ModConfigSpec.IntValue maximumProjectileTransits;
         public final ModConfigSpec.BooleanValue enableProjectileSweptCollision;
         public final ModConfigSpec.IntValue projectileEffectCooldownTicks;
@@ -158,6 +161,12 @@ public final class ServerConfig {
                         + "of the relocated entity tree cannot trigger normal portal exits. "
                         + "Set to zero to disable.")
                 .defineInRange("exitPortalImmunityTicks", 100, 0, 1200);
+            enablePassengerTreeRelocation = builder.comment(
+                    "Allow Entity Relocation to move a vehicle and its full passenger tree.")
+                .define("enablePassengerTreeRelocation", true);
+            maximumPassengerTreeSize = builder.comment(
+                    "Maximum members in one Entity Relocation passenger tree, including the root.")
+                .defineInRange("maximumPassengerTreeSize", 16, 1, 64);
             projectileRelocationOpeningTicks = builder.comment(
                     "Opening animation duration for newly created Projectile Entity Relocation "
                         + "entrances and exits. Existing shared exits keep their current duration.")
@@ -173,6 +182,8 @@ public final class ServerConfig {
                 "boss", 10.0, "entities in NeoForge's boss tag");
             projectileRelocationFuelMultiplier = relocationFuelMultiplier(builder,
                 "projectile", 1.0, "projectiles");
+            utilityRelocationFuelMultiplier = relocationFuelMultiplier(builder,
+                "utility", 1.0, "vehicles and dropped item entities");
             builder.pop();
             builder.pop();
 

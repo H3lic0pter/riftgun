@@ -2,11 +2,14 @@ package dev.riftgun.relocation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+import java.util.PrimitiveIterator;
+
 import org.junit.jupiter.api.Test;
 
 final class EntityRelocationFuelPolicyTest {
     private static final EntityRelocationFuelPolicy.Multipliers DEFAULTS =
-        new EntityRelocationFuelPolicy.Multipliers(1.5, 3.0, 3.0, 10.0, 1.0);
+        new EntityRelocationFuelPolicy.Multipliers(1.5, 3.0, 3.0, 10.0, 1.0, 1.0);
 
     @Test
     void classificationUsesProjectilePlayerBossHostilePassivePriority() {
@@ -29,6 +32,7 @@ final class EntityRelocationFuelPolicyTest {
         assertEquals(3.0, DEFAULTS.forKind(EntityRelocationFuelPolicy.TargetKind.PLAYER));
         assertEquals(10.0, DEFAULTS.forKind(EntityRelocationFuelPolicy.TargetKind.BOSS));
         assertEquals(1.0, DEFAULTS.forKind(EntityRelocationFuelPolicy.TargetKind.PROJECTILE));
+        assertEquals(1.0, DEFAULTS.forKind(EntityRelocationFuelPolicy.TargetKind.UTILITY));
     }
 
     @Test
@@ -44,5 +48,18 @@ final class EntityRelocationFuelPolicyTest {
     void zeroMultiplierMakesReservationAndUseFree() {
         assertEquals(0, EntityRelocationFuelPolicy.scale(100, 0.0));
         assertEquals(0, new EntityRelocationFuelPolicy.Quote(0.0, 0).cost(100));
+    }
+
+    @Test
+    void treeQuoteSumsEachMembersScaledCost() {
+        EntityRelocationFuelPolicy.Quote quote = EntityRelocationFuelPolicy.quote(
+            List.of(EntityRelocationFuelPolicy.TargetKind.UTILITY,
+                EntityRelocationFuelPolicy.TargetKind.PLAYER,
+                EntityRelocationFuelPolicy.TargetKind.PASSIVE), 8, DEFAULTS);
+
+        assertEquals(44, quote.maximumReservation());
+        assertEquals(38, quote.cost(7));
+        PrimitiveIterator.OfInt rolls = java.util.stream.IntStream.of(5, 7, 3).iterator();
+        assertEquals(30, quote.cost(rolls::nextInt));
     }
 }

@@ -333,6 +333,7 @@
   "message.riftgun.entity_relocation_capacity": "This Portal Gun is already handling too many relocations",
   "message.riftgun.entity_relocation_target_busy": "That creature is already being relocated",
   "message.riftgun.entity_relocation_target_cooldown": "That creature is still recovering from relocation",
+  "message.riftgun.entity_relocation_tree_incomplete": "The passenger tree was not fully relocated; riding links were restored where possible",
   "message.riftgun.entity_relocation_failed": "Entity relocation failed",
   "message.riftgun.entity_relocation_preparing": "Preparing the destination chunk for entity relocation...",
   "message.riftgun.entity_relocation_preparing_busy": "That creature is waiting for its destination chunk to load",

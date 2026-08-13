@@ -3,6 +3,8 @@ package dev.riftgun.relocation;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.List;
+import java.util.HashSet;
 import org.jetbrains.annotations.Nullable;
 
 /** Owns concurrent target locks, per-gun fuel reservations and successful-target cooldowns. */
@@ -21,20 +23,31 @@ public final class EntityRelocationRegistry {
     }
 
     public Begin begin(UUID gunId, UUID targetId, int reservedFuel, long now) {
-        if (activeTokenByTarget.containsKey(targetId)) return Begin.rejected(BeginStatus.TARGET_BUSY);
-        Long cooldownUntil = targetCooldownUntil.get(targetId);
-        if (cooldownUntil != null) {
-            if (now < cooldownUntil) return Begin.rejected(BeginStatus.TARGET_COOLDOWN);
-            targetCooldownUntil.remove(targetId);
+        return begin(gunId, List.of(targetId), reservedFuel, now);
+    }
+
+    public Begin begin(UUID gunId, List<UUID> targetIds, int reservedFuel, long now) {
+        if (targetIds.isEmpty() || new HashSet<>(targetIds).size() != targetIds.size()) {
+            return Begin.rejected(BeginStatus.TARGET_BUSY);
+        }
+        for (UUID targetId : targetIds) {
+            if (activeTokenByTarget.containsKey(targetId)) return Begin.rejected(BeginStatus.TARGET_BUSY);
+            Long cooldownUntil = targetCooldownUntil.get(targetId);
+            if (cooldownUntil != null) {
+                if (now < cooldownUntil) return Begin.rejected(BeginStatus.TARGET_COOLDOWN);
+                targetCooldownUntil.remove(targetId);
+            }
         }
         if (activeCountByGun.getOrDefault(gunId, 0) >= maximumPerGun) {
             return Begin.rejected(BeginStatus.GUN_CAPACITY);
         }
 
         Reservation reservation = new Reservation(
-            UUID.randomUUID(), gunId, targetId, Math.max(0, reservedFuel));
+            UUID.randomUUID(), gunId, List.copyOf(targetIds), Math.max(0, reservedFuel));
         activeByToken.put(reservation.id(), reservation);
-        activeTokenByTarget.put(targetId, reservation.id());
+        for (UUID targetId : reservation.targetIds()) {
+            activeTokenByTarget.put(targetId, reservation.id());
+        }
         activeCountByGun.merge(gunId, 1, Integer::sum);
         reservedFuelByGun.merge(gunId, reservation.reservedFuel(), Integer::sum);
         return new Begin(BeginStatus.ACCEPTED, reservation);
@@ -49,7 +62,7 @@ public final class EntityRelocationRegistry {
         if (targetCooldownTicks > 0) {
             long until = now > Long.MAX_VALUE - targetCooldownTicks
                 ? Long.MAX_VALUE : now + targetCooldownTicks;
-            targetCooldownUntil.put(reservation.targetId(), until);
+            for (UUID targetId : reservation.targetIds()) targetCooldownUntil.put(targetId, until);
         }
     }
 
@@ -60,7 +73,7 @@ public final class EntityRelocationRegistry {
     private boolean release(Reservation reservation) {
         Reservation active = activeByToken.remove(reservation.id());
         if (active == null || !active.equals(reservation)) return false;
-        activeTokenByTarget.remove(active.targetId(), active.id());
+        for (UUID targetId : active.targetIds()) activeTokenByTarget.remove(targetId, active.id());
         decrement(activeCountByGun, active.gunId(), 1);
         decrement(reservedFuelByGun, active.gunId(), active.reservedFuel());
         return true;
@@ -85,5 +98,7 @@ public final class EntityRelocationRegistry {
         }
     }
 
-    public record Reservation(UUID id, UUID gunId, UUID targetId, int reservedFuel) {}
+    public record Reservation(UUID id, UUID gunId, List<UUID> targetIds, int reservedFuel) {
+        public UUID targetId() { return targetIds.getFirst(); }
+    }
 }

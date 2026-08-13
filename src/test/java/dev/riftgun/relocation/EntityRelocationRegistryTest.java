@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 final class EntityRelocationRegistryTest {
@@ -45,5 +46,20 @@ final class EntityRelocationRegistryTest {
         assertEquals(EntityRelocationRegistry.BeginStatus.ACCEPTED,
             registry.begin(UUID.randomUUID(), target, 5, 30L).status());
         assertTrue(registry.reservedFuel(reservation.gunId()) == 0);
+    }
+
+    @Test
+    void passengerTreeLocksAndCoolsDownEveryMember() {
+        EntityRelocationRegistry registry = new EntityRelocationRegistry(8, 10);
+        UUID root = UUID.randomUUID();
+        UUID passenger = UUID.randomUUID();
+        EntityRelocationRegistry.Reservation reservation = registry.begin(
+            UUID.randomUUID(), List.of(root, passenger), 5, 20L).reservation();
+
+        assertEquals(EntityRelocationRegistry.BeginStatus.TARGET_BUSY,
+            registry.begin(UUID.randomUUID(), passenger, 5, 20L).status());
+        registry.complete(reservation, 20L);
+        assertEquals(EntityRelocationRegistry.BeginStatus.TARGET_COOLDOWN,
+            registry.begin(UUID.randomUUID(), passenger, 5, 29L).status());
     }
 }
