@@ -2,6 +2,7 @@ package dev.riftgun.client.model;
 
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.fuel.PortalGunTank;
+import dev.riftgun.fuel.PortalFuelManager;
 import net.minecraft.client.color.item.ItemColor;
 import net.minecraft.world.item.ItemStack;
 
@@ -23,6 +24,10 @@ public final class PortalGunItemColors implements ItemColor {
         if (!PortalGunFluidLevel.isLiquidTint(tintIndex)) return -1;
         PortalGunTank tank = new PortalGunTank(stack);
         var fluid = tank.getFluid();
+        if (fluid.isEmpty() && PortalFuelManager.hasInfiniteFuel(stack)) {
+            return tintIndex == PortalGunFluidLevel.FULL_TINT
+                ? LIQUID_ALPHA << 24 | PortalFuelProfiles.DIMENSIONAL_RGB : HIDDEN_LIQUID;
+        }
         if (fluid.isEmpty() || tintIndex != PortalGunFluidLevel.tintIndex(
                 fluid.getAmount(), tank.nominalCapacity())) return HIDDEN_LIQUID;
         return PortalFuelProfiles.resolve(fluid)

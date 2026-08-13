@@ -33,6 +33,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue surfaceRangePerModule;
         public final ModConfigSpec.IntValue maxDurationExtensionModules;
         public final ModConfigSpec.IntValue durationExtensionSecondsPerModule;
+        public final ModConfigSpec.BooleanValue enableZeroPointFuelRecipe;
         public final ModConfigSpec.IntValue maximumPortalDurationSeconds;
         public final ModConfigSpec.BooleanValue enablePassengerTreeTransit;
         public final ModConfigSpec.IntValue maximumConcurrentEntityRelocations;
@@ -122,6 +123,9 @@ public final class ServerConfig {
             surfaceRangePerModule = builder.defineInRange("surfaceRangePerModule", 16, 1, 1024);
             maxDurationExtensionModules = builder.defineInRange("maximumDurationExtensionModules", 1, 0, 9);
             durationExtensionSecondsPerModule = builder.defineInRange("durationExtensionSecondsPerModule", 45, 1, 300);
+            enableZeroPointFuelRecipe = builder.comment(
+                    "Enable crafting the Zero-Point Fuel Module. Creative/admin acquisition is unaffected.")
+                .define("enableZeroPointFuelRecipe", true);
             builder.pop();
 
             builder.push("portal");

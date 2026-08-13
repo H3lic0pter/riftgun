@@ -62,6 +62,10 @@ public final class PortalFuelProfiles {
         return resolve(stack).isPresent();
     }
 
+    public static PortalFuelProfile dimensional() {
+        return resolveBuiltin(PortalFluids.DIMENSIONAL.get()).orElseThrow();
+    }
+
     private static PortalFuelProfile profile(String path, int rgb, boolean crossDimension, int min, int max) {
         return new PortalFuelProfile(ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path), rgb,
             crossDimension, Math.max(1, min), Math.max(Math.max(1, min), max));

@@ -63,8 +63,8 @@ public final class PortalGunModuleContainer extends SimpleContainer {
         if (previous == null) return;
 
         PortalModuleRules rules = PortalModuleRules.current();
-        int oldReservoirCount = PortalGunModules.installedCount(previous, PortalModuleKind.RESERVOIR_EXPANSION);
-        int newReservoirCount = PortalGunModules.installedCount(getItems(), PortalModuleKind.RESERVOIR_EXPANSION);
+        int oldReservoirCount = activeCount(previous, PortalModuleKind.RESERVOIR_EXPANSION, rules);
+        int newReservoirCount = activeCount(getItems(), PortalModuleKind.RESERVOIR_EXPANSION, rules);
         int oldActiveRange = activeCount(previous, PortalModuleKind.SURFACE_RANGE, rules);
         int newActiveRange = activeCount(getItems(), PortalModuleKind.SURFACE_RANGE, rules);
         int oldActiveRelocation = activeCount(previous, PortalModuleKind.ENTITY_RELOCATION, rules);
@@ -93,9 +93,7 @@ public final class PortalGunModuleContainer extends SimpleContainer {
     }
 
     private static int activeCount(Iterable<ItemStack> items, PortalModuleKind kind, PortalModuleRules rules) {
-        int installed = PortalGunModules.installedCount(items, kind);
-        int maximum = PortalModuleRegistry.find(kind).map(definition -> definition.maximumCount(rules)).orElse(0);
-        return Math.min(installed, maximum);
+        return PortalGunModules.activeCount(items, kind, rules);
     }
 
     private NonNullList<ItemStack> copyItems() {

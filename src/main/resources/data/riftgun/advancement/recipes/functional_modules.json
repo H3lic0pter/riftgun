@@ -14,6 +14,7 @@
   "rewards": {
     "recipes": [
       "riftgun:boss_transit_module",
+      "riftgun:advanced_basic_module",
       "riftgun:coordinate_override_module",
       "riftgun:duration_extension_module",
       "riftgun:entity_relocation_module",
@@ -26,7 +27,8 @@
       "riftgun:player_target_module",
       "riftgun:portal_aperture_module",
       "riftgun:reservoir_expansion_module",
-      "riftgun:surface_range_amplifier"
+      "riftgun:surface_range_amplifier",
+      "riftgun:zero_point_fuel_module"
     ]
   }
 }

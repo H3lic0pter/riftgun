@@ -101,26 +101,35 @@ public final class EntityRelocationManager {
         ItemStack gun = locatedGun.stack();
         PortalGunTank tank = new PortalGunTank(gun);
         var profileResult = PortalFuelProfiles.resolve(tank.getFluid());
-        if (profileResult.isEmpty()) {
+        boolean infiniteFuel = PortalFuelManager.hasInfiniteFuel(gun);
+        if (profileResult.isEmpty() && !infiniteFuel) {
             message(owner, "message.riftgun.fuel_empty");
             return true;
         }
-        PortalFuelProfile profile = profileResult.get();
-        if (!owner.level().dimension().equals(destination.dimension()) && !profile.crossDimension()) {
-            message(owner, "message.riftgun.fuel_dimension_denied");
-            return true;
-        }
-
         EntityRelocationRegistry state = registry();
         UUID gunId = PortalGunIdentity.ensure(gun);
+        PortalFuelProfile profile = profileResult.orElseGet(PortalFuelProfiles::dimensional);
         EntityRelocationFuelPolicy.Quote fuelQuote = EntityRelocationFuelPolicy.quote(
             treeMembers.stream().map(EntityRelocationFuelPolicy::classify).toList(),
             profile.maximumConsumption(), relocationFuelMultipliers());
-        int reserve = fuelQuote.maximumReservation();
-        if (tank.getFluid().getAmount() - state.reservedFuel(gunId) < reserve) {
+        boolean realFuelEligible = (owner.level().dimension().equals(destination.dimension())
+            || profile.crossDimension())
+            && tank.getFluid().getAmount() - state.reservedFuel(gunId) >= fuelQuote.maximumReservation();
+        boolean virtualFuel = !realFuelEligible && infiniteFuel;
+        if (virtualFuel) {
+            profile = PortalFuelProfiles.dimensional();
+            fuelQuote = EntityRelocationFuelPolicy.quote(
+                treeMembers.stream().map(EntityRelocationFuelPolicy::classify).toList(),
+                profile.maximumConsumption(), relocationFuelMultipliers());
+        } else if (!realFuelEligible) {
+            if (!owner.level().dimension().equals(destination.dimension()) && !profile.crossDimension()) {
+                message(owner, "message.riftgun.fuel_dimension_denied");
+                return true;
+            }
             message(owner, "message.riftgun.fuel_insufficient");
             return true;
         }
+        int reserve = virtualFuel ? 0 : fuelQuote.maximumReservation();
         long now = server.overworld().getGameTime();
         EntityRelocationRegistry.Begin begin = state.begin(gunId, tree.memberIds(), reserve, now);
         if (begin.status() != EntityRelocationRegistry.BeginStatus.ACCEPTED) {
@@ -151,8 +160,9 @@ public final class EntityRelocationManager {
             (float) treeMetrics.width(), (float) treeMetrics.depth());
         Vec3 center = feetCenter(target);
         PortalSoundSnapshot sounds = PortalSoundSnapshot.from(data.settings().portalSounds());
-        PortalCrisisConfigurationSnapshot crises =
-            PortalCrisisConfigurationSnapshot.capture(tank.getFluid());
+        PortalCrisisConfigurationSnapshot crises = virtualFuel
+            ? PortalCrisisConfigurationSnapshot.stable()
+            : PortalCrisisConfigurationSnapshot.capture(tank.getFluid());
         ServerLevel destinationLevel = server.getLevel(destination.dimension());
         if (destinationLevel == null) {
             state.fail(begin.reservation());
@@ -171,7 +181,7 @@ public final class EntityRelocationManager {
                 locatedGun.saveReference(),
                 destination, profile, sounds, capabilities, crises, privacyReservations,
                 snapshotPermissions(permissions),
-                openingTicks, fuelQuote, now);
+                openingTicks, fuelQuote, virtualFuel, now);
             return true;
         }
         PreparedRoute preparedRoute = prepareRoute(target, tree, destination, destinationLevel, crises);
@@ -198,7 +208,7 @@ public final class EntityRelocationManager {
             target.level().dimension(), gun, destination, profile, side, sounds,
             capabilities.fallGuard(), capabilities.entityFallGuard(),
             crises, privacyReservations, visual.getUUID(),
-            exitSetup, preparedRoute, openingTicks, fuelQuote, tree, now));
+            exitSetup, preparedRoute, openingTicks, fuelQuote, virtualFuel, tree, now));
         return true;
     }
 
@@ -210,7 +220,8 @@ public final class EntityRelocationManager {
             PortalGunCapabilities capabilities, PortalCrisisConfigurationSnapshot crises,
             List<PortalPrivacyService.GrantReservation> privacyReservations,
             List<PermissionSnapshot> permissions,
-            int openingTicks, EntityRelocationFuelPolicy.Quote fuelQuote, long now) {
+            int openingTicks, EntityRelocationFuelPolicy.Quote fuelQuote,
+            boolean virtualFuel, long now) {
         UUID ticketId = reservation.id();
         ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()));
         TransitDiagnostics.relocation("prepare begin reservation={} owner={} target={} source={} destination={} chunk={} timeoutTicks={} tickingBeforeTicket={}",
@@ -233,7 +244,7 @@ public final class EntityRelocationManager {
             gunReference,
             destination, profile, sounds, capabilities.fallGuard(),
             capabilities.entityFallGuard(), crises, privacyReservations, permissions,
-            openingTicks, fuelQuote, tree, preparation));
+            openingTicks, fuelQuote, virtualFuel, tree, preparation));
     }
 
     private static List<PermissionSnapshot> snapshotPermissions(
@@ -435,7 +446,7 @@ public final class EntityRelocationManager {
             pending.sourceDimension(), gun, destination, pending.profile(), side,
             pending.sounds(), pending.fallGuard(), pending.entityFallGuard(),
             pending.crises(), pending.privacyReservations(),
-            visual.getUUID(), exit, route, pending.openingTicks(), pending.fuelQuote(),
+            visual.getUUID(), exit, route, pending.openingTicks(), pending.fuelQuote(), pending.virtualFuel(),
             pending.tree(), now));
         TransitDiagnostics.relocation("animation started reservation={} target={} source={} destination={} exitCenter={} openingTicks={} visual={}",
             pending.reservation().id(), pending.targetId(),
@@ -498,6 +509,7 @@ public final class EntityRelocationManager {
 
     private static boolean reservationFuelAvailable(PendingPreparation pending, ItemStack gun) {
         PortalGunTank tank = new PortalGunTank(gun);
+        if (pending.virtualFuel()) return !gun.isEmpty() && PortalFuelManager.hasInfiniteFuel(gun);
         return !gun.isEmpty()
             && PortalFuelProfiles.resolve(tank.getFluid())
                 .filter(profile -> profile.id().equals(pending.profile().id())).isPresent()
@@ -741,7 +753,9 @@ public final class EntityRelocationManager {
         int amount = tx.fuelQuote().cost(() -> PortalFuelCost.choose(
             tx.profile().minimumConsumption(), tx.profile().maximumConsumption(),
             ServerConfig.VALUES.randomConsumption.get(), target.getRandom()::nextInt));
-        return new PortalFuelUse(tx.profile(), amount);
+        return tx.virtualFuel()
+            ? PortalFuelManager.virtualUse(tx.profile(), amount)
+            : new PortalFuelUse(tx.profile(), amount);
     }
 
     private static EntityRelocationFuelPolicy.Multipliers relocationFuelMultipliers() {
@@ -867,10 +881,7 @@ public final class EntityRelocationManager {
     }
 
     private static boolean canConsume(ItemStack gun, PortalFuelUse use) {
-        PortalGunTank tank = new PortalGunTank(gun);
-        return PortalFuelProfiles.resolve(tank.getFluid())
-            .filter(profile -> profile.id().equals(use.profile().id()))
-            .isPresent() && tank.getFluid().getAmount() >= use.amount();
+        return PortalFuelManager.canConsume(gun, use);
     }
 
     private static EntityRelocationRegistry registry() {
@@ -923,6 +934,7 @@ public final class EntityRelocationManager {
                                @Nullable PreparedRoute preparedRoute,
                                int openingTicks,
                                EntityRelocationFuelPolicy.Quote fuelQuote,
+                               boolean virtualFuel,
                                EntityRelocationTree tree,
                                long startedAt) {}
 
@@ -936,6 +948,7 @@ public final class EntityRelocationManager {
         List<PortalPrivacyService.GrantReservation> privacyReservations,
         List<PermissionSnapshot> permissions, int openingTicks,
         EntityRelocationFuelPolicy.Quote fuelQuote,
+        boolean virtualFuel,
         EntityRelocationTree tree,
         EntityRelocationPreparation preparation
     ) {}

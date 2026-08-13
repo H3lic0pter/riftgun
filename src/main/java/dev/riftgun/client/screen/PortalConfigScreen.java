@@ -1513,12 +1513,13 @@ public final class PortalConfigScreen extends Screen {
     private void renderFuelGauge(GuiGraphics graphics, int mouseX, int mouseY) {
         int amount = PortalClientState.gun().getInt("Amount");
         int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity"));
+        boolean infinite = amount == 0 && PortalClientState.gun().getBoolean("InfiniteFuel");
         boolean overfilled = amount > capacity;
         int rgb = PortalClientState.gun().getInt("Rgb");
         int fluidColor = 0xFF000000 | (rgb == 0 ? 0x34363D : rgb);
         graphics.fill(fuelGaugeX, fuelGaugeY, fuelGaugeX + FUEL_GAUGE_WIDTH, fuelGaugeY + 19,
             PortalTheme.FIELD);
-        int fillWidth = Mth.clamp((int) Math.ceil(Math.min(1.0, amount / (double) capacity)
+        int fillWidth = infinite ? FUEL_GAUGE_WIDTH - 4 : Mth.clamp((int) Math.ceil(Math.min(1.0, amount / (double) capacity)
             * (FUEL_GAUGE_WIDTH - 4)), 0, FUEL_GAUGE_WIDTH - 4);
         graphics.fill(fuelGaugeX + 2, fuelGaugeY + 14,
             fuelGaugeX + FUEL_GAUGE_WIDTH - 2, fuelGaugeY + 17, 0xFF292B31);
@@ -1526,14 +1527,15 @@ public final class PortalConfigScreen extends Screen {
             fuelGaugeX + 2 + fillWidth, fuelGaugeY + 17, fluidColor);
         graphics.renderOutline(fuelGaugeX, fuelGaugeY, FUEL_GAUGE_WIDTH, 19,
             overfilled ? 0xFFFFAA00 : PortalTheme.BORDER);
-        String shortAmount = shortFluidAmount(amount);
+        String shortAmount = infinite ? "∞" : shortFluidAmount(amount);
         graphics.drawCenteredString(font, shortAmount, fuelGaugeX + FUEL_GAUGE_WIDTH / 2,
-            fuelGaugeY + 3, amount == 0 ? PortalTheme.TEXT_MUTED : PortalTheme.TEXT);
+            fuelGaugeY + 3, amount == 0 && !infinite ? PortalTheme.TEXT_MUTED : PortalTheme.TEXT);
     }
 
     private void renderFuelGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int amount = PortalClientState.gun().getInt("Amount");
         int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity"));
+        boolean infinite = amount == 0 && PortalClientState.gun().getBoolean("InfiniteFuel");
         boolean overfilled = amount > capacity;
         if (mouseX >= fuelGaugeX && mouseX < fuelGaugeX + FUEL_GAUGE_WIDTH
             && mouseY >= fuelGaugeY && mouseY < fuelGaugeY + 19) {
@@ -1545,7 +1547,9 @@ public final class PortalConfigScreen extends Screen {
                         .withStyle(net.minecraft.ChatFormatting.DARK_RED));
             }
             tooltip.add(fluidName);
-            tooltip.add(Component.literal(amount + "/" + capacity + " mB"));
+            tooltip.add(infinite
+                ? Component.translatable("screen.riftgun.zero_point_fuel_active")
+                : Component.literal(amount + "/" + capacity + " mB"));
             if (overfilled) tooltip.add(Component.translatable("screen.riftgun.overfilled")
                 .withStyle(net.minecraft.ChatFormatting.GOLD));
             graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);

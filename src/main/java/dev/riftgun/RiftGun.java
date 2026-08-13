@@ -123,6 +123,7 @@ public final class RiftGun {
     private void acceptModItems(BuildCreativeModeTabContentsEvent event) {
         event.accept(PORTAL_GUN.get());
         event.accept(PortalModules.BASIC_MODULE.get());
+        event.accept(PortalModules.ADVANCED_BASIC_MODULE.get());
         PortalModuleRegistry.definitions().forEach(definition -> event.accept(definition.item().get()));
         event.accept(PortalFluids.UNSTABLE_BUCKET.get());
         event.accept(PortalFluids.PORTAL_BUCKET.get());

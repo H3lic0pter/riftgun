@@ -68,8 +68,12 @@ public final class ClientGameEvents {
 
     @SubscribeEvent
     public static void itemTooltip(ItemTooltipEvent event) {
-        if (event.getItemStack().is(PortalModules.BASIC_MODULE.get())) {
-            event.getToolTip().add(Component.translatable("tooltip.riftgun.basic_module.description")
+        if (event.getItemStack().is(PortalModules.BASIC_MODULE.get())
+            || event.getItemStack().is(PortalModules.ADVANCED_BASIC_MODULE.get())) {
+            String description = event.getItemStack().is(PortalModules.ADVANCED_BASIC_MODULE.get())
+                ? "tooltip.riftgun.advanced_basic_module.description"
+                : "tooltip.riftgun.basic_module.description";
+            event.getToolTip().add(Component.translatable(description)
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             event.getToolTip().add(Component.translatable("tooltip.riftgun.basic_module.not_installable")
                 .withStyle(ChatFormatting.GRAY));
@@ -130,6 +134,9 @@ public final class ClientGameEvents {
                 event.getToolTip().add(Component.translatable("screen.riftgun.overfilled")
                     .withStyle(ChatFormatting.GOLD));
             }
+        } else if (dev.riftgun.fuel.PortalFuelManager.hasInfiniteFuel(event.getItemStack())) {
+            event.getToolTip().add(Component.translatable("screen.riftgun.zero_point_fuel_active")
+                .withStyle(style -> style.withColor(dev.riftgun.fuel.PortalFuelProfiles.DIMENSIONAL_RGB)));
         }
         PortalPlayerData data = PortalClientState.data();
         UUID selectedId = data.selectedDestinationId();
