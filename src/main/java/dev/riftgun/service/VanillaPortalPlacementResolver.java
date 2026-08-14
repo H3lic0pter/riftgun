@@ -1,5 +1,6 @@
 package dev.riftgun.service;
 
+import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.portal.PortalGeometry;
@@ -69,15 +70,15 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                               PortalPlacementConstraints constraints) {
         PortalAperture aperture = constraints.aperture();
         boolean downShot = usesDownshot(player.getXRot(),
-            PortalServices.PLACEMENT_CAPABILITIES.downshotMinimumPitch(player));
+            RiftRuntime.current().placementCapabilities().downshotMinimumPitch(player));
         PortalMotionPredictor.Purpose purpose = downShot
             ? PortalMotionPredictor.Purpose.DOWN_SHOT : PortalMotionPredictor.Purpose.FRONT;
         boolean trajectory = mode == PortalPredictionMode.TRAJECTORY;
         Vec3 prediction = trajectory ? predictedDisplacement(player, purpose) : Vec3.ZERO;
         List<Vec3> positions = trajectory && prediction.lengthSqr() >= 1.0E-8
             ? List.of(prediction, Vec3.ZERO) : List.of(prediction);
-        double frontDistance = PortalServices.PLACEMENT_CAPABILITIES.frontDistance(player);
-        double downshotDistance = PortalServices.PLACEMENT_CAPABILITIES.downshotDistance(player);
+        double frontDistance = RiftRuntime.current().placementCapabilities().frontDistance(player);
+        double downshotDistance = RiftRuntime.current().placementCapabilities().downshotDistance(player);
         if (mode == PortalPredictionMode.PROJECTION) {
             double extra = downShot
                 ? projectionExtra(player, downshotProjectionAxis(),
@@ -100,9 +101,9 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             }
             EntryResult standard = downShot
                 ? downshot(player, displacement, downshotDistance, PortalGeometry.HORIZONTAL,
-                    PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player))
+                    RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player))
                 : verticalFront(player, displacement, frontDistance, PortalGeometry.FLOATING_VERTICAL,
-                    PortalServices.PLACEMENT_CAPABILITIES.minimumFloatingPortalExposure(player));
+                    RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player));
             if (standard.placement != null) return standard;
             last = standard;
         }
@@ -116,7 +117,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
      * The factor is per door type: front uses the view axis factor, downshot the vertical one.
      */
     private static double projectionExtra(ServerPlayer player, Vec3 axis, double factor) {
-        Vec3 velocity = PortalServices.MOTION_HISTORY.recentVelocity(player)
+        Vec3 velocity = RiftRuntime.current().motionHistory().recentVelocity(player)
             .orElse(player.getDeltaMovement());
         double projection = velocity.dot(axis) * TICKS_PER_SECOND;
         return Mth.clamp(projection * factor, 0.0, MAXIMUM_PROJECTION_EXTRA);
@@ -162,8 +163,8 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
     private Vec3 predictedDisplacement(ServerPlayer player, PortalMotionPredictor.Purpose purpose) {
         int ticks = PortalLifecycle.CHARGE_TICKS + PortalLifecycle.ANIMATION_TICKS;
-        return PortalServices.MOTION_PREDICTOR.predictDisplacement(player, purpose, ticks,
-            PortalServices.PLACEMENT_CAPABILITIES.maximumHorizontalPrediction(player));
+        return RiftRuntime.current().motionPredictor().predictDisplacement(player, purpose, ticks,
+            RiftRuntime.current().placementCapabilities().maximumHorizontalPrediction(player));
     }
 
     static boolean usesDownshot(float pitch, float minimumPitch) {

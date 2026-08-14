@@ -1,5 +1,6 @@
 package dev.riftgun;
 
+import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.core.registry.RiftContent;
@@ -19,7 +20,6 @@ import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.relocation.EntityRelocationPortalEntity;
 import dev.riftgun.recipe.RiftGunRecipes;
-import dev.riftgun.service.PortalServices;
 import dev.riftgun.sound.PortalSounds;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.particles.ParticleType;
@@ -110,6 +110,7 @@ public final class RiftGun {
     }
 
     public RiftGun(IEventBus modBus, ModContainer container) {
+        RiftRuntime.bootstrapDefaults();
         ServerConfig.publishSnapshot();
         ClientConfig.publishSnapshot();
         ITEMS.register(modBus);
@@ -130,7 +131,6 @@ public final class RiftGun {
         modBus.addListener(this::onConfigReloaded);
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         container.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
-        PortalServices.bootstrap();
     }
 
     private void onConfigLoaded(ModConfigEvent.Loading event) {

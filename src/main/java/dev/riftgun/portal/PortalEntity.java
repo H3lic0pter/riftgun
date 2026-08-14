@@ -1,12 +1,12 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
 import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.service.PortalPlacementResult;
-import dev.riftgun.service.PortalServices;
 import dev.riftgun.service.PortalSupportArea;
 import dev.riftgun.sound.PortalSoundSnapshot;
 import dev.riftgun.sound.PortalSounds;
@@ -349,7 +349,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
             startClosing();
             return;
         }
-        if (PortalServices.CLOSE_POLICY.shouldClose(this)) {
+        if (RiftRuntime.current().closePolicy().shouldClose(this)) {
             startClosing();
         } else {
             transit.tick();
@@ -404,7 +404,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     @Nullable PortalEntity createDeferredExit(ServerLevel targetLevel, PortalExitTarget target,
                                               List<Entity> movedEntities,
                                               @Nullable UUID deferredExitExclude) {
-        PortalPlacementResult result = PortalServices.PLACEMENT_RESOLVER.resolveExitPrepared(
+        PortalPlacementResult result = RiftRuntime.current().placementResolver().resolveExitPrepared(
             targetLevel, target, placement(), aperture);
         if (!result.successful()) return null;
 

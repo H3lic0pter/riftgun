@@ -2,7 +2,6 @@ package dev.riftgun.portal;
 
 import dev.riftgun.core.transit.tree.PassengerTreeTransfer;
 import dev.riftgun.core.transit.tree.MinecraftEntityTreeAccess;
-import dev.riftgun.service.PortalServices;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -10,6 +9,8 @@ import java.util.function.Consumer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+
+import dev.riftgun.core.runtime.RiftRuntime;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.portal.DimensionTransition;
@@ -61,7 +62,7 @@ final class PortalTransitService {
         if (PortalFallGuardPolicy.applies(moved, playerFallGuard, entityFallGuard)) {
             moved.fallDistance = 0.0F;
         }
-        if (moved instanceof ServerPlayer player) PortalServices.MOTION_HISTORY.reset(player);
+        if (moved instanceof ServerPlayer player) RiftRuntime.current().motionHistory().reset(player);
         return moved;
     }
 
