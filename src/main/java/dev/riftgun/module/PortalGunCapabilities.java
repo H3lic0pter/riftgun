@@ -2,7 +2,6 @@ package dev.riftgun.module;
 
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import dev.riftgun.config.ServerConfig;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalOpenDuration;
 

@@ -1,7 +1,7 @@
 package dev.riftgun.diagnostics;
 
+import dev.riftgun.core.config.RiftConfigs;
 import com.mojang.logging.LogUtils;
-import dev.riftgun.config.ServerConfig;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.UUID;
@@ -23,7 +23,7 @@ public final class TransitDiagnostics {
     private static long lastOverflowWarningAt = Long.MIN_VALUE;
 
     public static boolean enabled() {
-        return ServerConfig.VALUES.enableTransitDiagnostics.get();
+        return RiftConfigs.server().diagnostics().transitEnabled();
     }
 
     public static void portal(String message, Object... arguments) {

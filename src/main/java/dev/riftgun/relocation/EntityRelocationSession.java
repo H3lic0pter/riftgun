@@ -1,6 +1,7 @@
 package dev.riftgun.relocation;
 
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
+import dev.riftgun.core.config.RiftConfig;
 import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.sound.PortalSoundSnapshot;
@@ -74,6 +75,8 @@ final class EntityRelocationSession {
     EntityRelocationFuelPolicy.Quote fuelQuote() { return context.fuelQuote(); }
     boolean virtualFuel() { return context.virtualFuel(); }
     EntityRelocationTree tree() { return context.tree(); }
+    RiftConfig.RelocationConfig relocationConfig() { return context.relocationConfig(); }
+    RiftConfig.FuelConfig fuelConfig() { return context.fuelConfig(); }
 
     CompoundTag gunReference() { return preparingState().gunReference(); }
     List<EntityRelocationManager.PermissionSnapshot> permissions() {
@@ -120,7 +123,9 @@ final class EntityRelocationSession {
         int openingTicks,
         EntityRelocationFuelPolicy.Quote fuelQuote,
         boolean virtualFuel,
-        EntityRelocationTree tree
+        EntityRelocationTree tree,
+        RiftConfig.RelocationConfig relocationConfig,
+        RiftConfig.FuelConfig fuelConfig
     ) {
         Context {
             privacyReservations = List.copyOf(privacyReservations);

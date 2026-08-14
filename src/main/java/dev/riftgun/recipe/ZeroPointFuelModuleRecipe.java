@@ -1,6 +1,6 @@
 package dev.riftgun.recipe;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.module.PortalModules;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.ItemStack;
@@ -20,7 +20,7 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
 
     @Override
     public boolean matches(CraftingInput input, Level level) {
-        if (!ServerConfig.VALUES.enableZeroPointFuelRecipe.get()
+        if (!RiftConfigs.server().modules().zeroPointFuelRecipeEnabled()
             || input.width() != 3 || input.height() != 3) return false;
         return input.getItem(0, 0).is(Items.NETHERITE_INGOT)
             && input.getItem(1, 0).is(Items.DEEPSLATE_EMERALD_ORE)

@@ -1,7 +1,8 @@
 package dev.riftgun.fuel;
 
 import dev.riftgun.RiftGun;
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -37,18 +38,18 @@ public final class PortalFuelProfiles {
     }
 
     private static Optional<PortalFuelProfile> resolveBuiltin(Fluid fluid) {
-        ServerConfig.Values config = ServerConfig.VALUES;
+        RiftConfig.FuelConfig config = RiftConfigs.server().fuel();
         if (sameFamily(fluid, PortalFluids.UNSTABLE.get(), PortalFluids.FLOWING_UNSTABLE.get())) {
             return Optional.of(profile("unstable_portal_fluid", UNSTABLE_RGB, false,
-                config.unstableFuelMin.get(), config.unstableFuelMax.get()));
+                config.unstableMinimum(), config.unstableMaximum()));
         }
         if (sameFamily(fluid, PortalFluids.PORTAL.get(), PortalFluids.FLOWING_PORTAL.get())) {
             return Optional.of(profile("portal_fluid", PORTAL_RGB, false,
-                config.portalFuelMin.get(), config.portalFuelMax.get()));
+                config.portalMinimum(), config.portalMaximum()));
         }
         if (sameFamily(fluid, PortalFluids.DIMENSIONAL.get(), PortalFluids.FLOWING_DIMENSIONAL.get())) {
             return Optional.of(profile("dimensional_portal_fluid", DIMENSIONAL_RGB, true,
-                config.dimensionalFuelMin.get(), config.dimensionalFuelMax.get()));
+                config.dimensionalMinimum(), config.dimensionalMaximum()));
         }
         return Optional.empty();
     }

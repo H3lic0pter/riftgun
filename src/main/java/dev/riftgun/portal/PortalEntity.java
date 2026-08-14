@@ -1,9 +1,9 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
 import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
-import dev.riftgun.config.ServerConfig;
 import dev.riftgun.service.PortalPlacementResult;
 import dev.riftgun.service.PortalServices;
 import dev.riftgun.service.PortalSupportArea;
@@ -516,7 +516,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     boolean claimProjectileEffect(long now) {
-        int cooldown = ServerConfig.VALUES.projectileEffectCooldownTicks.get();
+        int cooldown = RiftConfigs.server().projectile().effectCooldownTicks();
         if (cooldown > 0 && lastProjectileEffectAt != Long.MIN_VALUE
             && now - lastProjectileEffectAt < cooldown) return false;
         lastProjectileEffectAt = now;

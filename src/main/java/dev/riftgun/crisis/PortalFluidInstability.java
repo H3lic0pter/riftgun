@@ -1,7 +1,7 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
-import dev.riftgun.config.ServerConfig;
 import java.util.List;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -18,8 +18,8 @@ public final class PortalFluidInstability {
     public static boolean isUnstable(FluidStack stack) {
         if (stack.isEmpty()) return false;
         ResourceLocation id = BuiltInRegistries.FLUID.getKey(stack.getFluid());
-        if (contains(ServerConfig.VALUES.forceStableFluids.get(), id)) return false;
-        if (contains(ServerConfig.VALUES.forceUnstableFluids.get(), id)) return true;
+        if (contains(RiftConfigs.server().crises().forceStableFluids(), id)) return false;
+        if (contains(RiftConfigs.server().crises().forceUnstableFluids(), id)) return true;
         return stack.is(UNSTABLE_FLUIDS);
     }
 

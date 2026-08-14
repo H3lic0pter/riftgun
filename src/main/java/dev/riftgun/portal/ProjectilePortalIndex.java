@@ -1,6 +1,6 @@
 package dev.riftgun.portal;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +25,7 @@ public final class ProjectilePortalIndex {
 
     static void refresh(PortalEntity portal) {
         if (!(portal.level() instanceof ServerLevel level)) return;
-        if (!ServerConfig.VALUES.enableProjectileSweptCollision.get()) {
+        if (!RiftConfigs.server().projectile().sweptCollisionEnabled()) {
             LevelIndex existing = LEVELS.get(level);
             if (existing != null) existing.remove(portal.getUUID());
             return;
@@ -47,7 +47,7 @@ public final class ProjectilePortalIndex {
 
     public static void track(Projectile projectile) {
         if (!projectile.level().isClientSide()
-            && ServerConfig.VALUES.enableProjectileSweptCollision.get()) PROJECTILES.add(projectile);
+            && RiftConfigs.server().projectile().sweptCollisionEnabled()) PROJECTILES.add(projectile);
     }
 
     public static void untrack(Projectile projectile) {
@@ -55,7 +55,7 @@ public final class ProjectilePortalIndex {
     }
 
     public static void tick(MinecraftServer server) {
-        if (!ServerConfig.VALUES.enableProjectileSweptCollision.get()) {
+        if (!RiftConfigs.server().projectile().sweptCollisionEnabled()) {
             LEVELS.clear();
             PROJECTILES.clear();
             return;
@@ -77,7 +77,7 @@ public final class ProjectilePortalIndex {
 
     private static boolean tryTransit(Projectile projectile, Vec3 start, Vec3 end,
                                       HitResult impact) {
-        if (!ServerConfig.VALUES.enableProjectileSweptCollision.get()
+        if (!RiftConfigs.server().projectile().sweptCollisionEnabled()
             || !(projectile.level() instanceof ServerLevel level)) return false;
         LevelIndex index = LEVELS.get(level);
         if (index == null) return false;

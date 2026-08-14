@@ -1,7 +1,7 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.config.RiftConfigs;
 import com.mojang.logging.LogUtils;
-import dev.riftgun.config.ServerConfig;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +67,7 @@ public record PortalCrisisConfigurationSnapshot(boolean unstable, Map<ResourceLo
     private static Map<ResourceLocation, Integer> configuredWeights() {
         Map<ResourceLocation, Integer> defaults = PortalCrisisRegistry.defaultWeights();
         Map<ResourceLocation, Integer> configured = new LinkedHashMap<>(defaults);
-        List<? extends String> entries = ServerConfig.VALUES.crisisWeights.get();
+        List<? extends String> entries = RiftConfigs.server().crises().weights();
         for (String entry : entries) {
             int separator = entry.lastIndexOf('=');
             if (separator <= 0) continue;

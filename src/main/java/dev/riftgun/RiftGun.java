@@ -33,6 +33,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
@@ -99,6 +100,8 @@ public final class RiftGun {
     );
 
     public RiftGun(IEventBus modBus, ModContainer container) {
+        ServerConfig.publishSnapshot();
+        ClientConfig.publishSnapshot();
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         CREATIVE_TABS.register(modBus);
@@ -113,9 +116,24 @@ public final class RiftGun {
         modBus.addListener(this::addCreativeTabContents);
         modBus.addListener(this::registerCapabilities);
         modBus.addListener(PortalNetworking::register);
+        modBus.addListener(this::onConfigLoaded);
+        modBus.addListener(this::onConfigReloaded);
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         container.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         PortalServices.bootstrap();
+    }
+
+    private void onConfigLoaded(ModConfigEvent.Loading event) {
+        publishConfig(event.getConfig());
+    }
+
+    private void onConfigReloaded(ModConfigEvent.Reloading event) {
+        publishConfig(event.getConfig());
+    }
+
+    private static void publishConfig(ModConfig config) {
+        if (config.getSpec() == ServerConfig.SPEC) ServerConfig.publishSnapshot();
+        if (config.getSpec() == ClientConfig.SPEC) ClientConfig.publishSnapshot();
     }
 
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {

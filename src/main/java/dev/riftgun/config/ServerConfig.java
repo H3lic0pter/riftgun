@@ -1,5 +1,7 @@
 package dev.riftgun.config;
 
+import dev.riftgun.core.config.RiftConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import java.util.List;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import dev.riftgun.portal.PortalOpenDuration;
@@ -13,6 +15,74 @@ public final class ServerConfig {
         var configured = new ModConfigSpec.Builder().configure(Values::new);
         VALUES = configured.getLeft();
         SPEC = configured.getRight();
+        publishSnapshot();
+    }
+
+    /** Rebuilds and atomically publishes a complete loader-neutral snapshot. */
+    public static void publishSnapshot() {
+        Values value = VALUES;
+        RiftConfigs.publishServer(new RiftConfig(
+            new RiftConfig.ShortcutConfig(value.shortcutGunMode.get()),
+            new RiftConfig.DestinationConfig(
+                value.maxDestinations.get(), value.maxGroups.get(),
+                value.maxDestinationNameLength.get(), value.maxGroupNameLength.get()),
+            new RiftConfig.FuelConfig(
+                value.randomConsumption.get(), value.unstableFuelMin.get(), value.unstableFuelMax.get(),
+                value.portalFuelMin.get(), value.portalFuelMax.get(),
+                value.dimensionalFuelMin.get(), value.dimensionalFuelMax.get()),
+            new RiftConfig.ModuleConfig(
+                value.maxReservoirModules.get(), value.reservoirModuleCapacity.get(),
+                value.maxSurfaceRangeModules.get(), value.surfaceRangePerModule.get(),
+                value.maxDurationExtensionModules.get(), value.durationExtensionSecondsPerModule.get(),
+                value.enableZeroPointFuelRecipe.get(), value.matterAnchorPreventsDespawn.get()),
+            new RiftConfig.PortalConfig(
+                value.maximumPortalDurationSeconds.get(), value.enablePassengerTreeTransit.get(),
+                value.horizontalTriggerExtend.get()),
+            new RiftConfig.RelocationConfig(
+                value.maximumConcurrentEntityRelocations.get(),
+                value.entityRelocationTargetCooldownTicks.get(),
+                value.entityRelocationExitDurationSeconds.get(),
+                value.destinationReadinessTimeoutTicks.get(),
+                value.entityRelocationExitPortalImmunityTicks.get(),
+                value.projectileRelocationOpeningTicks.get(),
+                value.passiveRelocationFuelMultiplier.get(),
+                value.hostileRelocationFuelMultiplier.get(),
+                value.playerRelocationFuelMultiplier.get(),
+                value.bossRelocationFuelMultiplier.get(),
+                value.projectileRelocationFuelMultiplier.get(),
+                value.utilityRelocationFuelMultiplier.get(),
+                value.enablePassengerTreeRelocation.get(), value.maximumPassengerTreeSize.get()),
+            new RiftConfig.ProjectileConfig(
+                value.maximumProjectileTransits.get(), value.enableProjectileSweptCollision.get(),
+                value.projectileEffectCooldownTicks.get()),
+            new RiftConfig.PrivacyConfig(
+                value.defaultTargetPrivacy.get(),
+                value.defaultEntityRelocationDestinationPrivacy.get(),
+                value.defaultEntityRelocationSubjectPrivacy.get(),
+                value.defaultForeignExitTransitAllowed.get(),
+                value.privacyRequestTimeoutSeconds.get(), value.privacyGrantTimeoutSeconds.get(),
+                value.privacyDenyOnceCooldownSeconds.get()),
+            new RiftConfig.PredictionConfig(
+                value.frontProjectionFactor.get(), value.downshotProjectionFactor.get()),
+            new RiftConfig.CrisisConfig(
+                strings(value.forceUnstableFluids.get()), strings(value.forceStableFluids.get()),
+                strings(value.crisisWeights.get()), value.maximumCrisisExits.get(),
+                value.maximumTrackedCrisisPlayers.get(), value.highFallHeight.get(),
+                value.minimumHighFallDrop.get(), value.highFallCooldownTicks.get(),
+                value.guardedHighFallCooldownTicks.get(), value.lavaSearchRadius.get(),
+                value.lavaCandidateChecks.get(), value.lavaMinimumArmor.get(),
+                value.lavaMinimumFireProtection.get(), value.spatialTearMinimumHealth.get(),
+                value.spatialTearMinimumHealthRatio.get(), value.spatialTearProtectionTicks.get(),
+                value.spatialTearCooldownTicks.get(), value.weaknessDurationTicks.get(),
+                value.weaknessAmplifier.get(), value.nauseaDurationTicks.get(),
+                value.nauseaAmplifier.get(), value.nauseaSoundVolume.get(),
+                value.nauseaSoundPitch.get()),
+            new RiftConfig.DiagnosticsConfig(value.enableTransitDiagnostics.get())
+        ));
+    }
+
+    private static List<String> strings(List<? extends String> values) {
+        return List.copyOf(values);
     }
 
     public static final class Values {

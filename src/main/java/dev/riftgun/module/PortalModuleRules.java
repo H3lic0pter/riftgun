@@ -1,6 +1,6 @@
 package dev.riftgun.module;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.portal.PortalOpenDuration;
 import net.minecraft.nbt.CompoundTag;
 
@@ -42,15 +42,15 @@ public record PortalModuleRules(
     public static PortalModuleRules current() {
         return new PortalModuleRules(
             DEFAULT_BASE_CAPACITY,
-            ServerConfig.VALUES.reservoirModuleCapacity.get(),
-            ServerConfig.VALUES.maxReservoirModules.get(),
+            RiftConfigs.server().modules().reservoirCapacityPerModule(),
+            RiftConfigs.server().modules().maximumReservoirModules(),
             DEFAULT_BASE_SURFACE_RANGE,
-            ServerConfig.VALUES.surfaceRangePerModule.get(),
-            ServerConfig.VALUES.maxSurfaceRangeModules.get(),
-            ServerConfig.VALUES.maxDurationExtensionModules.get(),
-            ServerConfig.VALUES.durationExtensionSecondsPerModule.get(),
-            ServerConfig.VALUES.maximumPortalDurationSeconds.get(),
-            ServerConfig.VALUES.matterAnchorPreventsDespawn.get()
+            RiftConfigs.server().modules().surfaceRangePerModule(),
+            RiftConfigs.server().modules().maximumSurfaceRangeModules(),
+            RiftConfigs.server().modules().maximumDurationExtensionModules(),
+            RiftConfigs.server().modules().durationExtensionSecondsPerModule(),
+            RiftConfigs.server().portal().maximumDurationSeconds(),
+            RiftConfigs.server().modules().matterAnchorPreventsDespawn()
         );
     }
 

@@ -1,6 +1,6 @@
 package dev.riftgun.network;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.PortalPlayerData;
@@ -109,7 +109,7 @@ final class PortalDestinationActions {
     }
 
     static boolean createGroup(PortalPlayerData data, CompoundTag request) {
-        if (data.groups().size() >= ServerConfig.VALUES.maxGroups.get()) {
+        if (data.groups().size() >= RiftConfigs.server().destinations().maximumGroups()) {
             throw PortalRequestFields.error("message.riftgun.group_limit");
         }
         String name = groupName(data, request.getString("Name"), null);
@@ -201,7 +201,7 @@ final class PortalDestinationActions {
     }
 
     private static void requireDestinationCapacity(PortalPlayerData data) {
-        if (data.destinations().size() >= ServerConfig.VALUES.maxDestinations.get()) {
+        if (data.destinations().size() >= RiftConfigs.server().destinations().maximumDestinations()) {
             throw PortalRequestFields.error("message.riftgun.destination_limit");
         }
     }
@@ -218,7 +218,7 @@ final class PortalDestinationActions {
         String name = raw == null ? "" : raw.strip();
         if (name.isEmpty() && allowDefault) name = data.nextLocationName();
         if (name.isEmpty()) throw PortalRequestFields.error("message.riftgun.name_empty");
-        if (name.length() > ServerConfig.VALUES.maxDestinationNameLength.get()) {
+        if (name.length() > RiftConfigs.server().destinations().maximumDestinationNameLength()) {
             throw PortalRequestFields.error("message.riftgun.name_too_long");
         }
         return name;
@@ -227,7 +227,7 @@ final class PortalDestinationActions {
     private static String groupName(PortalPlayerData data, String raw, UUID ignoredGroup) {
         String name = raw == null ? "" : raw.strip();
         if (name.isEmpty()) throw PortalRequestFields.error("message.riftgun.name_empty");
-        if (name.length() > ServerConfig.VALUES.maxGroupNameLength.get()) {
+        if (name.length() > RiftConfigs.server().destinations().maximumGroupNameLength()) {
             throw PortalRequestFields.error("message.riftgun.name_too_long");
         }
         String normalized = name.toLowerCase(Locale.ROOT);

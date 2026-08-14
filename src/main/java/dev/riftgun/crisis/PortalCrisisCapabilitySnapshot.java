@@ -1,7 +1,7 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
-import dev.riftgun.config.ServerConfig;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.module.PortalGunCapabilities;
 import java.util.List;
@@ -66,13 +66,13 @@ public record PortalCrisisCapabilitySnapshot(
         }
         boolean lava = player.hasEffect(MobEffects.FIRE_RESISTANCE)
             || firePotion
-            || player.getArmorValue() >= ServerConfig.VALUES.lavaMinimumArmor.get()
-            || fireProtectionLevel >= ServerConfig.VALUES.lavaMinimumFireProtection.get();
+            || player.getArmorValue() >= RiftConfigs.server().crises().lavaMinimumArmor()
+            || fireProtectionLevel >= RiftConfigs.server().crises().lavaMinimumFireProtection();
 
         boolean harmful = player.getActiveEffects().stream().anyMatch(effect ->
             effect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL);
-        float minimumHealth = Math.max(ServerConfig.VALUES.spatialTearMinimumHealth.get().floatValue(),
-            player.getMaxHealth() * ServerConfig.VALUES.spatialTearMinimumHealthRatio.get().floatValue());
+        float minimumHealth = Math.max((float) RiftConfigs.server().crises().spatialTearMinimumHealth(),
+            player.getMaxHealth() * (float) RiftConfigs.server().crises().spatialTearMinimumHealthRatio());
         return new PortalCrisisCapabilitySnapshot(
             mountedTransit,
             rescueItem || guard,

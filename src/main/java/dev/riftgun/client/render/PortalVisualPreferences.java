@@ -1,6 +1,7 @@
 package dev.riftgun.client.render;
 
 import dev.riftgun.config.ClientConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import net.minecraft.resources.ResourceLocation;
 
 public final class PortalVisualPreferences {
@@ -9,7 +10,7 @@ public final class PortalVisualPreferences {
     }
 
     public static ResourceLocation selectedId() {
-        ResourceLocation parsed = ResourceLocation.tryParse(ClientConfig.VALUES.portalVisualType.get());
+        ResourceLocation parsed = ResourceLocation.tryParse(RiftConfigs.client().portalVisualType());
         ResourceLocation resolved = parsed == null ? PortalVisualRegistry.DEFAULT_ID
             : PortalVisualSelection.resolve(PortalVisualRegistry.values(), parsed, PortalVisualRegistry.DEFAULT_ID);
         if (parsed == null || !parsed.equals(resolved)) save(resolved);
@@ -33,8 +34,9 @@ public final class PortalVisualPreferences {
 
     private static void save(ResourceLocation id) {
         String value = id.toString();
-        if (value.equals(ClientConfig.VALUES.portalVisualType.get())) return;
+        if (value.equals(RiftConfigs.client().portalVisualType())) return;
         ClientConfig.VALUES.portalVisualType.set(value);
+        ClientConfig.publishSnapshot();
         ClientConfig.SPEC.save();
     }
 

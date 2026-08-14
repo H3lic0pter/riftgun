@@ -1,6 +1,6 @@
 package dev.riftgun.fuel;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
@@ -27,7 +27,7 @@ public final class PortalFuelManager {
                 return Plan.success(selectLoadedFuel(profile, 0, true));
             }
             int rolled = PortalFuelCost.choose(profile.minimumConsumption(), profile.maximumConsumption(),
-                ServerConfig.VALUES.randomConsumption.get(), player.getRandom()::nextInt);
+                RiftConfigs.server().fuel().randomConsumption(), player.getRandom()::nextInt);
             int affordable = PortalFuelCost.affordableCost(
                 stored.getAmount(), profile.minimumConsumption(), rolled);
             return affordable == 0

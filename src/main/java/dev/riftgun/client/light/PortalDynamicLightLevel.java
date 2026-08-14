@@ -1,6 +1,6 @@
 package dev.riftgun.client.light;
 
-import dev.riftgun.config.ClientConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalLifecycle;
 import dev.riftgun.relocation.EntityRelocationPortalEntity;
@@ -25,7 +25,7 @@ public final class PortalDynamicLightLevel {
     }
 
     public static int configuredMaximum() {
-        return ClientConfig.VALUES.portalDynamicLightLevel.get();
+        return RiftConfigs.client().portalDynamicLightLevel();
     }
 
     private PortalDynamicLightLevel() {}

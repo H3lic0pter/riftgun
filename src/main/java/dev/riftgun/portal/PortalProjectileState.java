@@ -1,7 +1,7 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
-import dev.riftgun.config.ServerConfig;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.projectile.Projectile;
 
@@ -11,7 +11,7 @@ public final class PortalProjectileState {
     private static final String COUNT = "Count";
 
     public static boolean canTransit(Projectile projectile) {
-        return count(projectile) < ServerConfig.VALUES.maximumProjectileTransits.get();
+        return count(projectile) < RiftConfigs.server().projectile().maximumTransits();
     }
 
     public static int count(Projectile projectile) {

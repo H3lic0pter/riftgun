@@ -1,5 +1,6 @@
 package dev.riftgun.service;
 
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
@@ -16,7 +17,6 @@ import dev.riftgun.sound.PortalSoundSnapshot;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PlayerExcludeMode;
-import dev.riftgun.config.ServerConfig;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -127,8 +127,8 @@ public final class PortalOpenCoordinator {
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
             data.settings().predictionMode(), gunCapabilities.aperture(),
-            ServerConfig.VALUES.frontProjectionFactor.get(),
-            ServerConfig.VALUES.downshotProjectionFactor.get());
+            RiftConfigs.server().prediction().frontProjectionFactor(),
+            RiftConfigs.server().prediction().downshotProjectionFactor());
         PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(player, mode, constraints);
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());
@@ -155,7 +155,7 @@ public final class PortalOpenCoordinator {
             gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(),
             gunCapabilities.aperture(), gunCapabilities.transitCooldownTicks(),
             gunCapabilities.fallGuard(), gunCapabilities.entityFallGuard(),
-            ServerConfig.VALUES.horizontalTriggerExtend.get(),
+            RiftConfigs.server().portal().horizontalTriggerExtend(),
             PortalSoundSnapshot.from(data.settings().portalSounds()),
             PortalCrisisConfigurationSnapshot.capture(new PortalGunTank(locatedGun.stack()).getFluid()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
