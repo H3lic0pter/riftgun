@@ -6,6 +6,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
+import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 
 /** Synchronized, derived state used by the Portal Gun item renderer. */
 public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuelRgb) {
@@ -39,8 +40,11 @@ public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuel
 
     /** Indexes eight liquid states times two core states. */
     public int geometryKey() {
-        int liquidSlot = isLiquidTint(liquidTint) ? liquidTint - 1 : 0;
-        return liquidSlot | (coreVisible ? 8 : 0);
+        return PortalGunVisualSnapshot.geometryKey(liquidTint, coreVisible);
+    }
+
+    public PortalGunVisualSnapshot snapshot() {
+        return PortalGunVisualSnapshot.create(liquidTint, coreVisible, fuelRgb);
     }
 
     public static PortalGunVisualState current(ItemStack gun) {

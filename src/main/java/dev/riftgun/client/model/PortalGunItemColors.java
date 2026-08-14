@@ -1,6 +1,7 @@
 package dev.riftgun.client.model;
 
 import dev.riftgun.fuel.PortalGunVisualState;
+import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 import net.minecraft.client.color.item.ItemColor;
 import net.minecraft.world.item.ItemStack;
 
@@ -13,25 +14,10 @@ import net.minecraft.world.item.ItemStack;
  * never tinted.
  */
 public final class PortalGunItemColors implements ItemColor {
-    /** Alpha applied to the tinted liquid; opaque makes the fuel read as a solid color. */
-    private static final int LIQUID_ALPHA = 0xFF;
-    /** Fully transparent ARGB used to hide the liquid column in an empty gun. */
-    private static final int HIDDEN_LIQUID = 0x00000000;
-
     @Override
     public int getColor(ItemStack stack, int tintIndex) {
-        boolean coreTint = tintIndex == PortalGunCoreColors.OUTER_TINT
-            || tintIndex == PortalGunCoreColors.INNER_TINT;
-        if (!coreTint && !PortalGunFluidLevel.isLiquidTint(tintIndex)) return -1;
-
         PortalGunVisualState visual = PortalGunVisualState.current(stack);
-        if (coreTint) {
-            if (!visual.coreVisible()) return HIDDEN_LIQUID;
-            return tintIndex == PortalGunCoreColors.INNER_TINT
-                ? PortalGunCoreColors.inner(visual.fuelRgb())
-                : PortalGunCoreColors.outer(visual.fuelRgb());
-        }
-        if (tintIndex != visual.liquidTint()) return HIDDEN_LIQUID;
-        return LIQUID_ALPHA << 24 | visual.fuelRgb();
+        return PortalGunVisualSnapshot.color(
+            visual.liquidTint(), visual.coreVisible(), visual.fuelRgb(), tintIndex);
     }
 }
