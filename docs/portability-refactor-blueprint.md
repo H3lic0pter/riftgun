@@ -311,6 +311,26 @@ an immutable O(1) fluid-to-profile index, reports conflicts, and rebuilds after
 tag reload. A Java resolver remains available for dynamic or
 component-sensitive integrations.
 
+Datapack definitions live at
+`data/<namespace>/riftgun/portal_fuels/<name>.json`; the file ID becomes the
+profile ID. Exactly one selector is required:
+
+```json
+{
+  "fluid": "example:bright_fluid",
+  "color": "#12ABEF",
+  "cross_dimension": true,
+  "minimum_consumption": 3,
+  "maximum_consumption": 7
+}
+```
+
+Replace `fluid` with `tag` to expand a fluid tag. Definitions are processed in
+stable ID order; if selectors overlap, the first profile wins and the conflict
+is logged. Datapack profiles take precedence over builtin profiles and Java
+resolvers. The existing builtin fuels remain config-backed fallbacks, so the
+current TOML fuel ranges keep their behavior.
+
 ## Client rendering interface
 
 Shared client semantics include:

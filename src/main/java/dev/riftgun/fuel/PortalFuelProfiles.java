@@ -5,6 +5,7 @@ import dev.riftgun.core.config.RiftConfig;
 import dev.riftgun.core.config.RiftConfigs;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -20,12 +21,15 @@ public final class PortalFuelProfiles {
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "portal_gun_fuels")
     );
     private static final List<PortalFuelProfileResolver> RESOLVERS = new CopyOnWriteArrayList<>();
+    private static volatile Map<Fluid, PortalFuelProfile> dataProfiles = Map.of();
 
     static {
         registerResolver(PortalFuelProfiles::resolveBuiltin);
     }
 
     public static Optional<PortalFuelProfile> resolve(Fluid fluid) {
+        PortalFuelProfile dataProfile = dataProfiles.get(fluid);
+        if (dataProfile != null) return Optional.of(dataProfile);
         for (PortalFuelProfileResolver resolver : RESOLVERS) {
             Optional<PortalFuelProfile> profile = resolver.resolve(fluid);
             if (profile.isPresent()) return profile;
@@ -35,6 +39,10 @@ public final class PortalFuelProfiles {
 
     public static void registerResolver(PortalFuelProfileResolver resolver) {
         RESOLVERS.add(resolver);
+    }
+
+    static void installDataProfiles(Map<Fluid, PortalFuelProfile> profiles) {
+        dataProfiles = Map.copyOf(profiles);
     }
 
     private static Optional<PortalFuelProfile> resolveBuiltin(Fluid fluid) {
@@ -55,7 +63,7 @@ public final class PortalFuelProfiles {
     }
 
     public static Optional<PortalFuelProfile> resolve(FluidStack stack) {
-        if (stack.isEmpty() || !stack.is(PORTAL_GUN_FUELS)) return Optional.empty();
+        if (stack.isEmpty()) return Optional.empty();
         return resolve(stack.getFluid());
     }
 
