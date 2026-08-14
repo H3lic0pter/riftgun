@@ -577,25 +577,31 @@ public final class EntityRelocationManager {
                 ? (System.nanoTime() - teleportStarted) / 1_000_000.0 : 0.0,
             moved == null ? "null" : moved.level().dimension().location(),
             moved == null ? "null" : moved.position());
-        if (moved == null || !transfer.complete()) {
+        if (moved == null) {
             TransitDiagnostics.warning("relocation tree transfer incomplete reservation={} target={} expectedMembers={} movedMembers={}",
                 tx.reservation().id(), target.getUUID(), tx.tree().size(), transfer.members().size());
             fail(server, tx, "message.riftgun.entity_relocation_tree_incomplete");
             return;
+        }
+        if (transfer.partial()) {
+            TransitDiagnostics.warning("relocation tree transfer partial reservation={} target={} expectedMembers={} movedMembers={} failures={}",
+                tx.reservation().id(), target.getUUID(), tx.tree().size(), transfer.members().size(),
+                transfer.failures());
         }
         TransitDiagnostics.trackPostcondition(
             moved, tx.sourceDimension(), route.outputPosition(), "relocation", now);
         closeExit(server, tx.exitSetup(), true);
         finishSuccessful(server, sourceLevel, targetLevel, sourcePosition, moved,
             transfer.members(), tx, use,
-            route.momentum(), route.crisis(), now);
+            route.momentum(), route.crisis(), transfer.partial(), now);
     }
 
     private static void finishSuccessful(MinecraftServer server, ServerLevel sourceLevel,
                                          ServerLevel targetLevel, Vec3 sourcePosition, Entity moved,
                                          List<Entity> movedMembers, Transaction tx,
                                          PortalFuelUse use, Vec3 momentum,
-                                         @Nullable PortalCrisisPlan crisis, long now) {
+                                         @Nullable PortalCrisisPlan crisis,
+                                         boolean partial, long now) {
         if (!PortalFuelManager.consume(tx.gun(), use)) {
             ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
             if (owner != null) message(owner, "message.riftgun.entity_relocation_failed");
@@ -614,8 +620,12 @@ public final class EntityRelocationManager {
         if (moved instanceof ServerPlayer player && crisis != null) {
             PortalCrisisCoordinator.apply(crisis, player);
         }
-        EntityRelocationExitImmunity.registerTree(moved, now,
-            ServerConfig.VALUES.entityRelocationExitPortalImmunityTicks.get());
+        int immunityTicks = ServerConfig.VALUES.entityRelocationExitPortalImmunityTicks.get();
+        for (Entity member : movedMembers) {
+            if (!(member instanceof net.minecraft.world.entity.player.Player)) {
+                EntityRelocationExitImmunity.register(member.getUUID(), now, immunityTicks);
+            }
+        }
         if (moved instanceof Projectile) {
             Entity sourceVisual = sourceLevel.getEntity(tx.visualId());
             if (sourceVisual instanceof EntityRelocationPortalEntity sourcePortal
@@ -631,6 +641,10 @@ public final class EntityRelocationManager {
             PortalSounds.playTransit(targetLevel, moved.position(), tx.sounds());
         }
         registry().complete(tx.reservation(), now);
+        if (partial) {
+            ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
+            if (owner != null) message(owner, "message.riftgun.entity_relocation_tree_incomplete");
+        }
         TransitDiagnostics.relocation("completed reservation={} target={} destination={} now={}",
             tx.reservation().id(), moved.getUUID(),
             moved.level().dimension().location(), now);
