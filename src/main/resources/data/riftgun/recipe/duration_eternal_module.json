@@ -6,7 +6,7 @@
     "E": { "item": "minecraft:echo_shard" },
     "D": { "item": "minecraft:deepslate_emerald_ore" },
     "N": { "tag": "c:ingots/netherite" },
-    "M": { "item": "riftgun:duration_extension_module" },
+    "M": { "item": "riftgun:advanced_basic_module" },
     "O": { "item": "minecraft:crying_obsidian" },
     "S": { "item": "minecraft:nether_star" }
   },

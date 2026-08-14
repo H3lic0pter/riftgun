@@ -1,6 +1,6 @@
 package dev.riftgun.service;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import java.util.Optional;
 import java.util.function.Supplier;
 import net.minecraft.server.level.ServerPlayer;
@@ -8,13 +8,13 @@ import net.minecraft.server.level.ServerPlayer;
 /** Resolves the one gun a keyboard shortcut is allowed to operate on. */
 public final class PortalShortcutGunSelection {
     public static Optional<PortalGunLocator.LocatedGun> locate(ServerPlayer player) {
-        return select(ServerConfig.VALUES.shortcutGunMode.get(),
+        return select(RiftConfigs.server().shortcuts().gunLookupMode(),
             () -> VanillaInventoryPortalGunLocator.locateHeld(player),
             () -> PortalGunLocator.first(player));
     }
 
     public static PortalShortcutGunMode mode() {
-        return ServerConfig.VALUES.shortcutGunMode.get();
+        return RiftConfigs.server().shortcuts().gunLookupMode();
     }
 
     static <T> Optional<T> select(PortalShortcutGunMode mode,

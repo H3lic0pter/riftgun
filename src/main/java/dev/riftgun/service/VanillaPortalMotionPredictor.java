@@ -1,5 +1,6 @@
 package dev.riftgun.service;
 
+import dev.riftgun.core.runtime.RiftRuntime;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,9 +17,9 @@ public final class VanillaPortalMotionPredictor implements PortalMotionPredictor
     public Vec3 predictDisplacement(ServerPlayer player, Purpose purpose, int ticks,
                                     double maximumHorizontalDisplacement) {
         int horizon = Math.max(0, ticks
-            + PortalServices.PLACEMENT_CAPABILITIES.motionPredictionCalibrationTicks(player));
+            + RiftRuntime.current().placementCapabilities().motionPredictionCalibrationTicks(player));
         Vec3 instantaneous = player.getDeltaMovement();
-        Vec3 observed = PortalServices.MOTION_HISTORY.recentVelocity(player).orElse(instantaneous);
+        Vec3 observed = RiftRuntime.current().motionHistory().recentVelocity(player).orElse(instantaneous);
 
         if (player.getAbilities().flying) {
             return linear(observed, true, horizon, maximumHorizontalDisplacement);

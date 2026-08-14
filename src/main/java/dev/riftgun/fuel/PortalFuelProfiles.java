@@ -1,14 +1,15 @@
 package dev.riftgun.fuel;
 
 import dev.riftgun.RiftGun;
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 public final class PortalFuelProfiles {
     public static final int UNSTABLE_RGB = 0xA855D4;
@@ -19,12 +20,15 @@ public final class PortalFuelProfiles {
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "portal_gun_fuels")
     );
     private static final List<PortalFuelProfileResolver> RESOLVERS = new CopyOnWriteArrayList<>();
+    private static volatile Map<Fluid, PortalFuelProfile> dataProfiles = Map.of();
 
     static {
         registerResolver(PortalFuelProfiles::resolveBuiltin);
     }
 
     public static Optional<PortalFuelProfile> resolve(Fluid fluid) {
+        PortalFuelProfile dataProfile = dataProfiles.get(fluid);
+        if (dataProfile != null) return Optional.of(dataProfile);
         for (PortalFuelProfileResolver resolver : RESOLVERS) {
             Optional<PortalFuelProfile> profile = resolver.resolve(fluid);
             if (profile.isPresent()) return profile;
@@ -36,30 +40,33 @@ public final class PortalFuelProfiles {
         RESOLVERS.add(resolver);
     }
 
+    static void installDataProfiles(Map<Fluid, PortalFuelProfile> profiles) {
+        dataProfiles = Map.copyOf(profiles);
+    }
+
     private static Optional<PortalFuelProfile> resolveBuiltin(Fluid fluid) {
-        ServerConfig.Values config = ServerConfig.VALUES;
+        RiftConfig.FuelConfig config = RiftConfigs.server().fuel();
         if (sameFamily(fluid, PortalFluids.UNSTABLE.get(), PortalFluids.FLOWING_UNSTABLE.get())) {
             return Optional.of(profile("unstable_portal_fluid", UNSTABLE_RGB, false,
-                config.unstableFuelMin.get(), config.unstableFuelMax.get()));
+                config.unstableMinimum(), config.unstableMaximum()));
         }
         if (sameFamily(fluid, PortalFluids.PORTAL.get(), PortalFluids.FLOWING_PORTAL.get())) {
             return Optional.of(profile("portal_fluid", PORTAL_RGB, false,
-                config.portalFuelMin.get(), config.portalFuelMax.get()));
+                config.portalMinimum(), config.portalMaximum()));
         }
         if (sameFamily(fluid, PortalFluids.DIMENSIONAL.get(), PortalFluids.FLOWING_DIMENSIONAL.get())) {
             return Optional.of(profile("dimensional_portal_fluid", DIMENSIONAL_RGB, true,
-                config.dimensionalFuelMin.get(), config.dimensionalFuelMax.get()));
+                config.dimensionalMinimum(), config.dimensionalMaximum()));
         }
         return Optional.empty();
     }
 
-    public static Optional<PortalFuelProfile> resolve(FluidStack stack) {
-        if (stack.isEmpty() || !stack.is(PORTAL_GUN_FUELS)) return Optional.empty();
-        return resolve(stack.getFluid());
+    public static boolean accepts(Fluid fluid) {
+        return resolve(fluid).isPresent();
     }
 
-    public static boolean accepts(FluidStack stack) {
-        return resolve(stack).isPresent();
+    public static PortalFuelProfile dimensional() {
+        return resolveBuiltin(PortalFluids.DIMENSIONAL.get()).orElseThrow();
     }
 
     private static PortalFuelProfile profile(String path, int rgb, boolean crossDimension, int min, int max) {

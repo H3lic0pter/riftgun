@@ -1,6 +1,6 @@
 package dev.riftgun.portal;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.crisis.ForcedCrisisPreparation;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.crisis.PortalCrisisCoordinator;
@@ -160,7 +160,7 @@ final class PortalCrisisController {
     private boolean canCreateExit() {
         PortalEntity linked = portal.linkedPortal();
         return session.canCreateExit(linked == null ? null : linked.crisis().session,
-            ServerConfig.VALUES.maximumCrisisExits.get());
+            RiftConfigs.server().crises().maximumExits());
     }
 
     private @Nullable PortalEntity createExit(ServerPlayer player, ServerLevel targetLevel,
@@ -200,7 +200,7 @@ final class PortalCrisisController {
     }
 
     private static int maximumTrackedPlayers() {
-        return ServerConfig.VALUES.maximumTrackedCrisisPlayers.get();
+        return RiftConfigs.server().crises().maximumTrackedPlayers();
     }
 
     final class Prepared {

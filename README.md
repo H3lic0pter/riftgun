@@ -66,9 +66,29 @@ Each Portal Gun stores one fluid type at a time and has a base nominal capacity 
 
 Consumption ranges and random consumption are server-configurable. When randomness is disabled, every use consumes the configured minimum.
 
+The Zero-Point Fuel Module makes the gun's currently loaded portal fluid
+unlimited. If the gun is empty, it provides unlimited Dimensional Portal Fluid
+behavior instead. Installing it does not force the tank gauge to full, replace
+loaded fluid, or change that fluid's color and cross-dimensional capability.
+
 The gun always exposes its standard item fluid capability to pipes, tanks, and machine GUIs. Bucket mode controls only direct player interaction and prioritizes extraction from a clicked tank before insertion. A direct world scoop may accept one complete `1000 mB` source while the gun is still below nominal capacity, allowing at most `capacity + 999 mB`. Once over capacity, further filling is rejected. Standard fluid capabilities used by pipes, tanks, and other mods always stop at nominal capacity.
 
 Portal fluids are created by dropping all recipe ingredients into one independent water source block. Once the complete ingredient set is present, the water converts immediately into a `1000 mB` portal-fluid source. JEI provides an in-game view of these recipes.
+
+Datapacks can register third-party fuels under
+`data/<namespace>/riftgun/portal_fuels/<name>.json`. Each definition selects
+exactly one fluid or fluid tag and supplies its color, travel capability, and
+consumption range:
+
+```json
+{
+  "tag": "example:portal_fuels",
+  "color": "#4FCB72",
+  "cross_dimension": true,
+  "minimum_consumption": 5,
+  "maximum_consumption": 8
+}
+```
 
 ### Modules
 
@@ -91,8 +111,19 @@ The gun starts with nine module slots. Each Module Bay Expansion adds three slot
 | Matter Anchor | Prevents a dropped Portal Gun from despawning or being destroyed by fire, lava, or explosions | 1 |
 | Projectile Transit | Allows eligible projectiles to cross portals while preserving transformed velocity and orientation | 1 |
 | Entity Relocation | Opens a short-lived visual gate around a targeted entity and sends it to the selected destination | 1 |
+| Zero-Point Fuel | Makes the loaded portal-fluid profile unlimited; supplies Dimensional Portal Fluid behavior when empty | 1 |
+| Creative | Grants every module function at its configured maximum and unlocks all module slots | 1 |
 
 Module limits and numerical bonuses marked as defaults may be changed by the server configuration. Removing a Reservoir Expansion discards fluid above the reduced capacity. A Module Bay Expansion cannot be removed while slots that depend on it are occupied.
+
+The Advanced Basic Module is a non-installable endgame crafting component used
+by the Eternal Duration and Zero-Point Fuel modules. Its recipe returns the
+bucket containers and does not consume the Dragon Egg. The Creative Module has
+no survival recipe and is intended for Creative mode or administrators.
+
+Matter Anchor always protects a dropped gun from fire, lava, and explosions.
+Its no-despawn behavior is enabled by default and can be disabled independently
+with the server setting `modules.matterAnchorPreventsDespawn`.
 
 Entity Relocation has independent enable and SMART-routing controls. Its fuel
 cost is calculated once when the transfer starts: projectiles use the base

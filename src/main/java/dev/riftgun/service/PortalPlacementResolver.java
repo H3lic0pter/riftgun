@@ -1,5 +1,6 @@
 package dev.riftgun.service;
 
+import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
@@ -50,7 +51,7 @@ public interface PortalPlacementResolver {
                                           PortalPlacementMode mode, int smartDistance,
                                           PortalPredictionMode predictionMode) {
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
-            smartDistance, PortalServices.PLACEMENT_CAPABILITIES.maximumSurfaceRange(player), predictionMode,
+            smartDistance, RiftRuntime.current().placementCapabilities().maximumSurfaceRange(player), predictionMode,
             PortalAperture.STANDARD);
         PortalPlacementCapture capture = capture(player, mode, constraints);
         return capture.successful()

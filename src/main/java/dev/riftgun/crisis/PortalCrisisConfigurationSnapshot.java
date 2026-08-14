@@ -1,7 +1,7 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.config.RiftConfigs;
 import com.mojang.logging.LogUtils;
-import dev.riftgun.config.ServerConfig;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +9,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.fluids.FluidStack;
+import net.minecraft.world.level.material.Fluid;
 import org.slf4j.Logger;
 
 /** Weight and instability snapshot captured once when a portal opens. */
@@ -20,7 +20,7 @@ public record PortalCrisisConfigurationSnapshot(boolean unstable, Map<ResourceLo
         weights = Map.copyOf(weights);
     }
 
-    public static PortalCrisisConfigurationSnapshot capture(FluidStack fluid) {
+    public static PortalCrisisConfigurationSnapshot capture(Fluid fluid) {
         if (!PortalFluidInstability.isUnstable(fluid)) return stable();
         return new PortalCrisisConfigurationSnapshot(true, configuredWeights());
     }
@@ -67,7 +67,7 @@ public record PortalCrisisConfigurationSnapshot(boolean unstable, Map<ResourceLo
     private static Map<ResourceLocation, Integer> configuredWeights() {
         Map<ResourceLocation, Integer> defaults = PortalCrisisRegistry.defaultWeights();
         Map<ResourceLocation, Integer> configured = new LinkedHashMap<>(defaults);
-        List<? extends String> entries = ServerConfig.VALUES.crisisWeights.get();
+        List<? extends String> entries = RiftConfigs.server().crises().weights();
         for (String entry : entries) {
             int separator = entry.lastIndexOf('=');
             if (separator <= 0) continue;

@@ -1,5 +1,6 @@
 package dev.riftgun.network;
 
+import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.data.DestinationSort;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
@@ -12,7 +13,6 @@ import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
-import dev.riftgun.service.PortalServices;
 import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.sound.PortalSoundSettings;
 import java.util.Locale;
@@ -73,7 +73,7 @@ final class PortalGunActions {
                 : data.settings().portalSounds()
         );
         data.settings(settings);
-        PortalServices.MOTION_HISTORY.setPredictionEnabled(player,
+        RiftRuntime.current().motionHistory().setPredictionEnabled(player,
             settings.predictionMode() != PortalPredictionMode.OFF);
         return true;
     }

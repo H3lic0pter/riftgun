@@ -1,6 +1,6 @@
 package dev.riftgun.module;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.portal.PortalOpenDuration;
 import net.minecraft.nbt.CompoundTag;
 
@@ -13,7 +13,8 @@ public record PortalModuleRules(
     int maximumSurfaceRangeModules,
     int maximumDurationExtensionModules,
     int durationExtensionSecondsPerModule,
-    int basePortalDurationSeconds
+    int basePortalDurationSeconds,
+    boolean matterAnchorPreventsDespawn
 ) {
     public static final int DEFAULT_BASE_CAPACITY = 8000;
     public static final int DEFAULT_RESERVOIR_BONUS = 8000;
@@ -41,14 +42,15 @@ public record PortalModuleRules(
     public static PortalModuleRules current() {
         return new PortalModuleRules(
             DEFAULT_BASE_CAPACITY,
-            ServerConfig.VALUES.reservoirModuleCapacity.get(),
-            ServerConfig.VALUES.maxReservoirModules.get(),
+            RiftConfigs.server().modules().reservoirCapacityPerModule(),
+            RiftConfigs.server().modules().maximumReservoirModules(),
             DEFAULT_BASE_SURFACE_RANGE,
-            ServerConfig.VALUES.surfaceRangePerModule.get(),
-            ServerConfig.VALUES.maxSurfaceRangeModules.get(),
-            ServerConfig.VALUES.maxDurationExtensionModules.get(),
-            ServerConfig.VALUES.durationExtensionSecondsPerModule.get(),
-            ServerConfig.VALUES.maximumPortalDurationSeconds.get()
+            RiftConfigs.server().modules().surfaceRangePerModule(),
+            RiftConfigs.server().modules().maximumSurfaceRangeModules(),
+            RiftConfigs.server().modules().maximumDurationExtensionModules(),
+            RiftConfigs.server().modules().durationExtensionSecondsPerModule(),
+            RiftConfigs.server().portal().maximumDurationSeconds(),
+            RiftConfigs.server().modules().matterAnchorPreventsDespawn()
         );
     }
 
@@ -62,7 +64,8 @@ public record PortalModuleRules(
             DEFAULT_MAXIMUM_SURFACE_RANGE_MODULES,
             DEFAULT_MAXIMUM_DURATION_EXTENSION_MODULES,
             DEFAULT_DURATION_EXTENSION_SECONDS_PER_MODULE,
-            DEFAULT_BASE_PORTAL_DURATION_SECONDS
+            DEFAULT_BASE_PORTAL_DURATION_SECONDS,
+            true
         );
     }
 
@@ -94,6 +97,7 @@ public record PortalModuleRules(
         tag.putInt("MaximumDurationExtensionModules", maximumDurationExtensionModules);
         tag.putInt("DurationExtensionSecondsPerModule", durationExtensionSecondsPerModule);
         tag.putInt("BasePortalDurationSeconds", basePortalDurationSeconds);
+        tag.putBoolean("MatterAnchorPreventsDespawn", matterAnchorPreventsDespawn);
         return tag;
     }
 
@@ -109,7 +113,8 @@ public record PortalModuleRules(
             tag.getInt("MaximumDurationExtensionModules"),
             tag.getInt("DurationExtensionSecondsPerModule"),
             tag.contains("BasePortalDurationSeconds")
-                ? tag.getInt("BasePortalDurationSeconds") : DEFAULT_BASE_PORTAL_DURATION_SECONDS
+                ? tag.getInt("BasePortalDurationSeconds") : DEFAULT_BASE_PORTAL_DURATION_SECONDS,
+            !tag.contains("MatterAnchorPreventsDespawn") || tag.getBoolean("MatterAnchorPreventsDespawn")
         );
     }
 }

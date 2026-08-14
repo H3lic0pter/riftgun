@@ -1,9 +1,10 @@
 package dev.riftgun.relocation;
 
+import dev.riftgun.core.registry.RiftContent;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.fuel.PortalFuelProfiles;
-import dev.riftgun.config.ServerConfig;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalLifecycle;
@@ -118,7 +119,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
             Level level, Vec3 center, float side, int rgb, boolean exit, UUID followTarget,
             int openDurationTicks, PortalSoundSnapshot sounds, int openingTicks) {
         EntityRelocationPortalEntity portal = new EntityRelocationPortalEntity(
-            RiftGun.ENTITY_RELOCATION_PORTAL.get(), level);
+            RiftContent.ENTITY_RELOCATION_PORTAL.get(), level);
         portal.setPos(center);
         float normalizedSide = EntityRelocationGeometry.normalizeSide(side);
         portal.entityData.set(SIDE, normalizedSide);
@@ -212,7 +213,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
     }
 
     boolean claimProjectileEffect(long now) {
-        int cooldown = ServerConfig.VALUES.projectileEffectCooldownTicks.get();
+        int cooldown = RiftConfigs.server().projectile().effectCooldownTicks();
         if (cooldown > 0 && lastProjectileEffectAt != Long.MIN_VALUE
             && now - lastProjectileEffectAt < cooldown) return false;
         lastProjectileEffectAt = now;

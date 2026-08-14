@@ -1,6 +1,6 @@
 package dev.riftgun.service;
 
-import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.data.PlayerPermissionProfile;
 import dev.riftgun.data.PlayerPermissionProfileMode;
 import dev.riftgun.data.PortalPermissionDefinition;
@@ -322,15 +322,15 @@ public final class PortalPrivacyService {
     }
 
     private static long requestTtlTicks() {
-        return (long) ServerConfig.VALUES.privacyRequestTimeoutSeconds.get() * TICKS_PER_SECOND;
+        return (long) RiftConfigs.server().privacy().requestTimeoutSeconds() * TICKS_PER_SECOND;
     }
 
     private static long grantTtlTicks() {
-        return (long) ServerConfig.VALUES.privacyGrantTimeoutSeconds.get() * TICKS_PER_SECOND;
+        return (long) RiftConfigs.server().privacy().grantTimeoutSeconds() * TICKS_PER_SECOND;
     }
 
     private static long denyOnceCooldownTicks() {
-        return (long) ServerConfig.VALUES.privacyDenyOnceCooldownSeconds.get() * TICKS_PER_SECOND;
+        return (long) RiftConfigs.server().privacy().denyOnceCooldownSeconds() * TICKS_PER_SECOND;
     }
 
     private static long gameTime(MinecraftServer server) {

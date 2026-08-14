@@ -1,6 +1,7 @@
 package dev.riftgun.module;
 
 import dev.riftgun.fuel.PortalGunComponents;
+import dev.riftgun.fuel.PortalGunVisualState;
 import java.util.EnumMap;
 import java.util.Map;
 import net.minecraft.core.NonNullList;
@@ -24,6 +25,7 @@ public final class PortalGunModules {
 
     public static void save(ItemStack gun, NonNullList<ItemStack> items) {
         gun.set(PortalGunComponents.MODULES, ItemContainerContents.fromItems(items));
+        PortalGunVisualState.refresh(gun);
     }
 
     public static int installedCount(ItemStack gun, PortalModuleKind kind) {
@@ -40,13 +42,23 @@ public final class PortalGunModules {
     }
 
     public static int activeCount(ItemStack gun, PortalModuleKind kind, PortalModuleRules rules) {
-        NonNullList<ItemStack> items = load(gun);
-        int installed = installedCount(activeItems(items), kind);
+        return activeCount(load(gun), kind, rules);
+    }
+
+    public static int activeCount(Iterable<ItemStack> items, PortalModuleKind kind, PortalModuleRules rules) {
         int maximum = PortalModuleRegistry.find(kind).map(definition -> definition.maximumCount(rules)).orElse(0);
+        if (kind != PortalModuleKind.CREATIVE && hasCreativeModule(items)) return maximum;
+        int installed = items instanceof NonNullList<ItemStack> list
+            ? installedCount(activeItems(list), kind) : installedCount(items, kind);
         return Math.min(installed, maximum);
     }
 
+    public static boolean hasCreativeModule(Iterable<ItemStack> items) {
+        return installedCount(items, PortalModuleKind.CREATIVE) > 0;
+    }
+
     public static int unlockedSlotCount(Iterable<ItemStack> items) {
+        if (hasCreativeModule(items)) return SLOT_COUNT;
         int expansions = Math.min(MAXIMUM_EXPANSION_MODULES,
             installedCount(items, PortalModuleKind.MODULE_BAY_EXPANSION));
         return slotCountForExpansionModules(expansions);
@@ -81,6 +93,7 @@ public final class PortalGunModules {
 
     public static int inactiveSlots(Iterable<ItemStack> items, PortalModuleRules rules) {
         PortalModules.bootstrap();
+        if (hasCreativeModule(items)) return 0;
         Map<PortalModuleKind, Integer> seen = new EnumMap<>(PortalModuleKind.class);
         int mask = 0;
         int slot = 0;

@@ -1,7 +1,7 @@
 package dev.riftgun.data;
 
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
-import dev.riftgun.config.ServerConfig;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
@@ -33,13 +33,13 @@ public final class PortalDataStore {
     private static Map<ResourceLocation, PortalPermissionPolicy> permissionDefaults() {
         Map<ResourceLocation, PortalPermissionPolicy> defaults = new HashMap<>();
         defaults.put(PortalPermissions.PLAYER_PORTAL,
-            fromTargetPrivacy(ServerConfig.VALUES.defaultTargetPrivacy.get()));
+            fromTargetPrivacy(RiftConfigs.server().privacy().defaultTarget()));
         defaults.put(PortalPermissions.ENTITY_RELOCATION_DESTINATION,
-            fromTargetPrivacy(ServerConfig.VALUES.defaultEntityRelocationDestinationPrivacy.get()));
+            fromTargetPrivacy(RiftConfigs.server().privacy().defaultRelocationDestination()));
         defaults.put(PortalPermissions.ENTITY_RELOCATION_SUBJECT,
-            fromTargetPrivacy(ServerConfig.VALUES.defaultEntityRelocationSubjectPrivacy.get()));
+            fromTargetPrivacy(RiftConfigs.server().privacy().defaultRelocationSubject()));
         defaults.put(PortalPermissions.FOREIGN_EXIT_TRANSIT,
-            ServerConfig.VALUES.defaultForeignExitTransitAllowed.get()
+            RiftConfigs.server().privacy().foreignExitTransitAllowed()
                 ? PortalPermissionPolicy.ALLOW : PortalPermissionPolicy.DENY);
         return defaults;
     }

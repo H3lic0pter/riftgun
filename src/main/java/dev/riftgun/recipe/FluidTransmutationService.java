@@ -106,7 +106,8 @@ public final class FluidTransmutationService {
     private static void playFeedback(ServerLevel level, BlockPos pos, Fluid output) {
         level.playSound(null, pos, SoundEvents.BREWING_STAND_BREW, SoundSource.BLOCKS,
             0.75F, 1.15F);
-        int rgb = PortalFuelProfiles.resolve(output).map(PortalFuelProfile::rgb).orElse(0x7FD9E8);
+        int rgb = PortalFuelProfiles.resolve(output)
+            .map(PortalFuelProfile::rgb).orElse(0x7FD9E8);
         level.sendParticles(new DustParticleOptions(Vec3.fromRGB24(rgb).toVector3f(), 0.85F),
             pos.getX() + 0.5, pos.getY() + 0.55, pos.getZ() + 0.5,
             14, 0.32, 0.22, 0.32, 0.015);

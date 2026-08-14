@@ -1,11 +1,13 @@
 package dev.riftgun.service;
 
+import dev.riftgun.core.runtime.RiftRuntime;
+import dev.riftgun.core.fuel.RiftFuelStores;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.fuel.PortalFuelManager;
-import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
@@ -16,7 +18,6 @@ import dev.riftgun.sound.PortalSoundSnapshot;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PlayerExcludeMode;
-import dev.riftgun.config.ServerConfig;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -109,7 +110,7 @@ public final class PortalOpenCoordinator {
                                 Destination destination, PortalPlacementMode mode,
                                 PortalGunLocator.LocatedGun locatedGun, @Nullable UUID entryExclude,
                                 @Nullable UUID exitExclude, boolean recordAsDestination, boolean fromGui) {
-        var dimensionResult = PortalServices.DIMENSION_POLICY.validate(player, destination);
+        var dimensionResult = RiftRuntime.current().dimensionPolicy().validate(player, destination);
         if (!dimensionResult.allowed()) {
             player.displayClientMessage(dimensionResult.message(), true);
             return false;
@@ -127,14 +128,14 @@ public final class PortalOpenCoordinator {
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
             data.settings().predictionMode(), gunCapabilities.aperture(),
-            ServerConfig.VALUES.frontProjectionFactor.get(),
-            ServerConfig.VALUES.downshotProjectionFactor.get());
-        PortalPlacementCapture capture = PortalServices.PLACEMENT_RESOLVER.capture(player, mode, constraints);
+            RiftConfigs.server().prediction().frontProjectionFactor(),
+            RiftConfigs.server().prediction().downshotProjectionFactor());
+        PortalPlacementCapture capture = RiftRuntime.current().placementResolver().capture(player, mode, constraints);
         if (!capture.successful()) {
             failMessage(player, capture.errorKey());
             return false;
         }
-        PortalEntryPlacementResult entry = PortalServices.PLACEMENT_RESOLVER.resolveEntry(
+        PortalEntryPlacementResult entry = RiftRuntime.current().placementResolver().resolveEntry(
             player, capture.intent(), constraints);
         if (!entry.successful()) {
             failMessage(player, entry.errorKey());
@@ -155,9 +156,10 @@ public final class PortalOpenCoordinator {
             gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(),
             gunCapabilities.aperture(), gunCapabilities.transitCooldownTicks(),
             gunCapabilities.fallGuard(), gunCapabilities.entityFallGuard(),
-            ServerConfig.VALUES.horizontalTriggerExtend.get(),
+            RiftConfigs.server().portal().horizontalTriggerExtend(),
             PortalSoundSnapshot.from(data.settings().portalSounds()),
-            PortalCrisisConfigurationSnapshot.capture(new PortalGunTank(locatedGun.stack()).getFluid()));
+            PortalCrisisConfigurationSnapshot.capture(
+                RiftFuelStores.open(locatedGun.stack()).content().fluid()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;
@@ -169,16 +171,16 @@ public final class PortalOpenCoordinator {
         } else {
             Destination resolved = destination;
             if (!crossDimension && data.settings().safetyCheckEnabled()) {
-                safetyReport = PortalServices.SAFETY_INSPECTOR.inspect(targetLevel, destination);
+                safetyReport = RiftRuntime.current().safetyInspector().inspect(targetLevel, destination);
                 if (!safetyReport.safe()) {
                     player.displayClientMessage(
                         Component.translatable("message.riftgun.destination_unsafe"), true);
                 }
-                resolved = PortalServices.SAFE_DESTINATION_RESOLVER.resolve(
+                resolved = RiftRuntime.current().safeDestinationResolver().resolve(
                     targetLevel, destination, safetyReport);
             }
 
-            PortalPlacementResult placement = PortalServices.PLACEMENT_RESOLVER.resolveExitPrepared(
+            PortalPlacementResult placement = RiftRuntime.current().placementResolver().resolveExitPrepared(
                 targetLevel, PortalExitTarget.from(resolved), entry.placement(), gunCapabilities.aperture());
             if (!placement.successful()) {
                 failMessage(player, placement.errorKey());

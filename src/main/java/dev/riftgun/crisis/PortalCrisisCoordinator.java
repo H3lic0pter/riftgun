@@ -1,8 +1,9 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.runtime.RiftRuntime;
+import dev.riftgun.core.registry.RiftContent;
 import com.mojang.logging.LogUtils;
 import dev.riftgun.RiftGun;
-import dev.riftgun.service.PortalServices;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +37,7 @@ public final class PortalCrisisCoordinator {
                 player.getRandom().nextInt(PortalCrisisEngine.TOTAL_WEIGHT));
             if (selected.isEmpty()) return Optional.empty();
             PortalCrisisContext context = new PortalCrisisContext(player, targetLevel, normalDestination,
-                normalMomentum, destinationYaw, capabilities, PortalServices.SAFETY_INSPECTOR,
+                normalMomentum, destinationYaw, capabilities, RiftRuntime.current().safetyInspector(),
                 relocationAllowed);
             return selected.get().prepare(context);
         } catch (RuntimeException exception) {
@@ -71,7 +72,7 @@ public final class PortalCrisisCoordinator {
                 player, targetLevel, mountedTransit);
             PortalCrisisContext context = new PortalCrisisContext(player, targetLevel,
                 normalDestination, normalMomentum, destinationYaw, capabilities,
-                PortalServices.SAFETY_INSPECTOR, relocationAllowed);
+                RiftRuntime.current().safetyInspector(), relocationAllowed);
             return crisis.prepare(context)
                 .map(ForcedCrisisPreparation::success)
                 .orElseGet(() -> ForcedCrisisPreparation.failed(
@@ -91,7 +92,7 @@ public final class PortalCrisisCoordinator {
             return false;
         }
         if (plan.cooldownTicks() > 0) {
-            player.getCooldowns().addCooldown(RiftGun.PORTAL_GUN.get(), plan.cooldownTicks());
+            player.getCooldowns().addCooldown(RiftContent.PORTAL_GUN.get(), plan.cooldownTicks());
         }
         Component crisisName = Component.translatable(
             "crisis." + plan.crisisId().getNamespace() + "." + plan.crisisId().getPath());

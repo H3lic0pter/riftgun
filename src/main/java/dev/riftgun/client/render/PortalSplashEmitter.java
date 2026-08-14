@@ -1,5 +1,6 @@
 package dev.riftgun.client.render;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalLifecycle;
@@ -95,7 +96,7 @@ public final class PortalSplashEmitter {
         double speed = 0.025 + random.nextDouble() * 0.04;
 
         Particle particle = minecraft.particleEngine.createParticle(
-            RiftGun.PORTAL_SPLASH.get(),
+            RiftContent.PORTAL_SPLASH.get(),
             position.x, position.y, position.z,
             horizontal.x * speed, 0.0, horizontal.z * speed
         );

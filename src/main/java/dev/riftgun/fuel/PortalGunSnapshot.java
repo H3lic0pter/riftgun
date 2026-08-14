@@ -19,11 +19,13 @@ public final class PortalGunSnapshot {
         PortalModuleRules rules = PortalModuleRules.current();
         PortalGunTank tank = new PortalGunTank(gun);
         FluidStack fluid = tank.getFluid();
+        boolean infiniteFuel = PortalFuelManager.hasInfiniteFuel(gun);
         tag.putBoolean("BucketMode", PortalGunMode.bucketMode(gun));
         tag.putInt("Amount", fluid.getAmount());
         tag.putInt("Capacity", tank.nominalCapacity());
         tag.putBoolean("Overfilled", fluid.getAmount() > tank.nominalCapacity());
-        tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid));
+        tag.putBoolean("InfiniteFuel", infiniteFuel);
+        tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid.getFluid()));
         tag.putBoolean("CoordinateOverride", capabilities.coordinateOverride());
         tag.putInt("MaximumSurfaceRange", capabilities.maximumSurfaceRange());
         tag.putInt("SurfaceRange", capabilities.configuredSurfaceRange());
@@ -61,11 +63,17 @@ public final class PortalGunSnapshot {
         }
         tag.put("Modules", modules);
         tag.put("ModuleRules", rules.save());
-        PortalFuelProfiles.resolve(fluid).ifPresent(profile -> {
+        PortalFuelProfiles.resolve(fluid.getFluid()).ifPresent(profile -> {
             tag.putString("Fluid", BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());
             tag.putInt("Rgb", profile.rgb());
             tag.putBoolean("CrossDimension", profile.crossDimension());
         });
+        if (fluid.isEmpty() && infiniteFuel) {
+            PortalFuelProfile profile = PortalFuelProfiles.dimensional();
+            tag.putString("Fluid", profile.id().toString());
+            tag.putInt("Rgb", profile.rgb());
+            tag.putBoolean("CrossDimension", true);
+        }
         return tag;
     }
 

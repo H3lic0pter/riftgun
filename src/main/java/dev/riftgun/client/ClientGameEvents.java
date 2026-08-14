@@ -1,5 +1,6 @@
 package dev.riftgun.client;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalSplashEmitter;
 import dev.riftgun.data.Destination;
@@ -68,8 +69,12 @@ public final class ClientGameEvents {
 
     @SubscribeEvent
     public static void itemTooltip(ItemTooltipEvent event) {
-        if (event.getItemStack().is(PortalModules.BASIC_MODULE.get())) {
-            event.getToolTip().add(Component.translatable("tooltip.riftgun.basic_module.description")
+        if (event.getItemStack().is(PortalModules.BASIC_MODULE.get())
+            || event.getItemStack().is(PortalModules.ADVANCED_BASIC_MODULE.get())) {
+            String description = event.getItemStack().is(PortalModules.ADVANCED_BASIC_MODULE.get())
+                ? "tooltip.riftgun.advanced_basic_module.description"
+                : "tooltip.riftgun.basic_module.description";
+            event.getToolTip().add(Component.translatable(description)
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             event.getToolTip().add(Component.translatable("tooltip.riftgun.basic_module.not_installable")
                 .withStyle(ChatFormatting.GRAY));
@@ -83,7 +88,11 @@ public final class ClientGameEvents {
                 return;
             }
             var definition = module.get();
-            event.getToolTip().add(Component.translatable(definition.descriptionKey())
+            String descriptionKey = definition.kind() == PortalModuleKind.MATTER_ANCHOR
+                && !PortalClientState.moduleRules().matterAnchorPreventsDespawn()
+                ? "tooltip.riftgun.module.matter_anchor_module.damage_only_description"
+                : definition.descriptionKey();
+            event.getToolTip().add(Component.translatable(descriptionKey)
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             event.getToolTip().add(Component.translatable("tooltip.riftgun.module.limit",
                 definition.maximumCount(PortalClientState.moduleRules()))
@@ -103,7 +112,7 @@ public final class ClientGameEvents {
             }
             return;
         }
-        if (event.getItemStack().is(RiftGun.PRIVACY_TERMINAL_ITEM.get())) {
+        if (event.getItemStack().is(RiftContent.PRIVACY_TERMINAL_ITEM.get())) {
             if (!Screen.hasShiftDown()) {
                 event.getToolTip().add(Component.translatable("tooltip.riftgun.module.hold_shift")
                     .withStyle(ChatFormatting.GRAY));
@@ -113,7 +122,7 @@ public final class ClientGameEvents {
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             return;
         }
-        if (!event.getItemStack().is(RiftGun.PORTAL_GUN.get())) return;
+        if (!event.getItemStack().is(RiftContent.PORTAL_GUN.get())) return;
         PortalGunTank tank = new PortalGunTank(event.getItemStack());
         var fluid = tank.getFluid();
         if (PortalGunMode.bucketMode(event.getItemStack())) {
@@ -121,7 +130,7 @@ public final class ClientGameEvents {
                 Component.translatable("screen.riftgun.on")).withStyle(ChatFormatting.GRAY));
         }
         if (!fluid.isEmpty()) {
-            int fluidRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid)
+            int fluidRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid.getFluid())
                 .map(dev.riftgun.fuel.PortalFuelProfile::rgb).orElse(0xA7A39C);
             event.getToolTip().add(Component.translatable("tooltip.riftgun.fluid",
                 fluid.getHoverName(), fluid.getAmount(), tank.nominalCapacity())
@@ -130,6 +139,13 @@ public final class ClientGameEvents {
                 event.getToolTip().add(Component.translatable("screen.riftgun.overfilled")
                     .withStyle(ChatFormatting.GOLD));
             }
+        }
+        if (dev.riftgun.fuel.PortalFuelManager.hasInfiniteFuel(event.getItemStack())) {
+            int infiniteRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid.getFluid())
+                .map(dev.riftgun.fuel.PortalFuelProfile::rgb)
+                .orElse(dev.riftgun.fuel.PortalFuelProfiles.DIMENSIONAL_RGB);
+            event.getToolTip().add(Component.translatable("screen.riftgun.zero_point_fuel_active")
+                .withStyle(style -> style.withColor(infiniteRgb)));
         }
         PortalPlayerData data = PortalClientState.data();
         UUID selectedId = data.selectedDestinationId();

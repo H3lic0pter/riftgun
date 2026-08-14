@@ -14,6 +14,8 @@ public final class PortalModules {
 
     public static final DeferredHolder<Item, Item> BASIC_MODULE = ITEMS.register(
         "basic_module", () -> new Item(new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, Item> ADVANCED_BASIC_MODULE = ITEMS.register(
+        "advanced_basic_module", () -> new Item(new Item.Properties().stacksTo(64)));
 
     public static final ModuleEntry COORDINATE_OVERRIDE = register(
         "coordinate_override_module", PortalModuleKind.COORDINATE_OVERRIDE, ignored -> 1, 0x74D9E8);
@@ -49,6 +51,10 @@ public final class PortalModules {
         "matter_anchor_module", PortalModuleKind.MATTER_ANCHOR, ignored -> 1, 0x8A86A8);
     public static final ModuleEntry PROJECTILE_TRANSIT = register(
         "projectile_transit_module", PortalModuleKind.PROJECTILE_TRANSIT, ignored -> 1, 0xD7C65C);
+    public static final ModuleEntry ZERO_POINT_FUEL = register(
+        "zero_point_fuel_module", PortalModuleKind.ZERO_POINT_FUEL, ignored -> 1, 0x4FCB72);
+    public static final ModuleEntry CREATIVE = register(
+        "creative_module", PortalModuleKind.CREATIVE, ignored -> 1, 0xE6C85C);
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {

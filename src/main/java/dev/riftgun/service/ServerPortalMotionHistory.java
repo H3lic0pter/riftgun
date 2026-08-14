@@ -1,5 +1,6 @@
 package dev.riftgun.service;
 
+import dev.riftgun.core.runtime.RiftRuntime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -52,7 +53,7 @@ public final class ServerPortalMotionHistory implements PortalMotionHistory {
             if (track.hasGun) {
                 track.window.record(player.level().dimension(), player.position(),
                     server.overworld().getGameTime(),
-                    PortalServices.PLACEMENT_CAPABILITIES.motionHistoryTeleportThreshold(player));
+                    RiftRuntime.current().placementCapabilities().motionHistoryTeleportThreshold(player));
             }
         }
     }

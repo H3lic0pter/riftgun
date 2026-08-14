@@ -1,5 +1,6 @@
 package dev.riftgun.service;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import java.util.Optional;
 import net.minecraft.nbt.CompoundTag;
@@ -56,6 +57,6 @@ public final class VanillaInventoryPortalGunLocator implements PortalGunLocator 
     }
 
     private static boolean isGun(ItemStack stack) {
-        return stack.is(RiftGun.PORTAL_GUN.get());
+        return stack.is(RiftContent.PORTAL_GUN.get());
     }
 }

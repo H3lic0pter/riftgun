@@ -1,7 +1,7 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
-import dev.riftgun.config.ServerConfig;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.portal.PortalGeometry;
@@ -56,8 +56,8 @@ final class BuiltinPortalCrises {
         int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
             normal.getX(), normal.getZ());
         int spawnY = Math.min(level.getMaxBuildHeight() - 3,
-            surfaceY + ServerConfig.VALUES.highFallHeight.get());
-        if (spawnY - surfaceY < ServerConfig.VALUES.minimumHighFallDrop.get()) {
+            surfaceY + RiftConfigs.server().crises().highFallHeight());
+        if (spawnY - surfaceY < RiftConfigs.server().crises().minimumHighFallDrop()) {
             return Optional.empty();
         }
         Vec3 destination = new Vec3(context.normalDestination().x, spawnY,
@@ -71,8 +71,8 @@ final class BuiltinPortalCrises {
         PortalPlacement exit = floatingExit(destination, context.destinationYaw());
         if (!level.noCollision(exit.bounds().deflate(0.002))) return Optional.empty();
         int cooldown = context.capabilities().fallGuard()
-            ? ServerConfig.VALUES.guardedHighFallCooldownTicks.get()
-            : ServerConfig.VALUES.highFallCooldownTicks.get();
+            ? RiftConfigs.server().crises().guardedHighFallCooldownTicks()
+            : RiftConfigs.server().crises().highFallCooldownTicks();
         return Optional.of(new PortalCrisisPlan(HIGH_FALL,
             new PortalCrisisPlan.Relocation(destination, momentum, exit),
             PortalCrisisPlan.Effect.NONE, cooldown));
@@ -83,8 +83,8 @@ final class BuiltinPortalCrises {
         ServerLevel level = context.targetLevel();
         BlockPos normal = BlockPos.containing(context.normalDestination());
         level.getChunk(normal);
-        int radius = ServerConfig.VALUES.lavaSearchRadius.get();
-        int checks = ServerConfig.VALUES.lavaCandidateChecks.get();
+        int radius = RiftConfigs.server().crises().lavaSearchRadius();
+        int checks = RiftConfigs.server().crises().lavaCandidateChecks();
         for (int attempt = 0; attempt < checks; attempt++) {
             int x = normal.getX() + (attempt == 0 ? 0 : context.player().getRandom().nextInt(-radius, radius + 1));
             int z = normal.getZ() + (attempt == 0 ? 0 : context.player().getRandom().nextInt(-radius, radius + 1));
@@ -137,29 +137,29 @@ final class BuiltinPortalCrises {
 
     private static Optional<PortalCrisisPlan> prepareSpatialTear(PortalCrisisContext context) {
         if (!safe(context, context.normalDestination())) return Optional.empty();
-        int protectionTicks = ServerConfig.VALUES.spatialTearProtectionTicks.get();
+        int protectionTicks = RiftConfigs.server().crises().spatialTearProtectionTicks();
         return Optional.of(PortalCrisisPlan.effect(SPATIAL_TEAR, player -> {
             player.setHealth(1.0F);
             player.invulnerableTime = Math.max(player.invulnerableTime, protectionTicks);
-        }, ServerConfig.VALUES.spatialTearCooldownTicks.get()));
+        }, RiftConfigs.server().crises().spatialTearCooldownTicks()));
     }
 
     private static Optional<PortalCrisisPlan> prepareWeakness(PortalCrisisContext context) {
         return Optional.of(PortalCrisisPlan.effect(WEAKNESS, player -> player.addEffect(
             new MobEffectInstance(MobEffects.WEAKNESS,
-                ServerConfig.VALUES.weaknessDurationTicks.get(),
-                ServerConfig.VALUES.weaknessAmplifier.get())), 0));
+                RiftConfigs.server().crises().weaknessDurationTicks(),
+                RiftConfigs.server().crises().weaknessAmplifier())), 0));
     }
 
     private static Optional<PortalCrisisPlan> prepareNausea(PortalCrisisContext context) {
         return Optional.of(PortalCrisisPlan.effect(NAUSEA, player -> {
             player.addEffect(new MobEffectInstance(MobEffects.CONFUSION,
-                ServerConfig.VALUES.nauseaDurationTicks.get(),
-                ServerConfig.VALUES.nauseaAmplifier.get()));
+                RiftConfigs.server().crises().nauseaDurationTicks(),
+                RiftConfigs.server().crises().nauseaAmplifier()));
             player.serverLevel().playSound(null, player.blockPosition(),
                 SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.PLAYERS,
-                ServerConfig.VALUES.nauseaSoundVolume.get().floatValue(),
-                ServerConfig.VALUES.nauseaSoundPitch.get().floatValue());
+                (float) RiftConfigs.server().crises().nauseaSoundVolume(),
+                (float) RiftConfigs.server().crises().nauseaSoundPitch());
         }, 0));
     }
 

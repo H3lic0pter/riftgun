@@ -5,7 +5,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.neoforged.neoforge.common.Tags;
 
 public record PortalEntityAccessSnapshot(boolean passive, boolean hostile, boolean boss,
                                          boolean projectile) {
@@ -21,7 +20,7 @@ public record PortalEntityAccessSnapshot(boolean passive, boolean hostile, boole
             return projectile && !entity.getType().is(PortalEntityTags.PROJECTILE_TRANSIT_EXCLUDED);
         }
         if (!(entity instanceof LivingEntity)) return false;
-        if (entity.getType().is(Tags.EntityTypes.BOSSES)) return boss;
+        if (entity.getType().is(PortalEntityTags.BOSSES)) return boss;
         if (entity instanceof Enemy) return hostile;
         return passive;
     }

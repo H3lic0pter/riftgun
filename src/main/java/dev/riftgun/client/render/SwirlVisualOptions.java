@@ -1,6 +1,7 @@
 package dev.riftgun.client.render;
 
 import dev.riftgun.config.ClientConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import java.util.List;
 
 public final class SwirlVisualOptions {
@@ -51,23 +52,23 @@ public final class SwirlVisualOptions {
     );
 
     public static boolean animationEnabled() {
-        return ClientConfig.VALUES.swirlAnimationEnabled.get();
+        return RiftConfigs.client().swirlAnimationEnabled();
     }
 
     public static double outerPeriod() {
-        return ClientConfig.VALUES.swirlOuterPeriod.get();
+        return RiftConfigs.client().swirlOuterPeriod();
     }
 
     public static double innerPeriod() {
-        return ClientConfig.VALUES.swirlInnerPeriod.get();
+        return RiftConfigs.client().swirlInnerPeriod();
     }
 
     public static double inwardPeriod() {
-        return ClientConfig.VALUES.swirlInwardPeriod.get();
+        return RiftConfigs.client().swirlInwardPeriod();
     }
 
     public static boolean inwardDirection() {
-        return ClientConfig.VALUES.swirlInwardDirection.get();
+        return RiftConfigs.client().swirlInwardDirection();
     }
 
     public static Snapshot snapshot() {
@@ -77,22 +78,27 @@ public final class SwirlVisualOptions {
 
     public static void setAnimationEnabled(boolean enabled) {
         ClientConfig.VALUES.swirlAnimationEnabled.set(enabled);
+        ClientConfig.publishSnapshot();
     }
 
     public static void setInwardDirection(boolean towardCenter) {
         ClientConfig.VALUES.swirlInwardDirection.set(towardCenter);
+        ClientConfig.publishSnapshot();
     }
 
     private static void setOuterPeriod(double seconds) {
         ClientConfig.VALUES.swirlOuterPeriod.set(seconds);
+        ClientConfig.publishSnapshot();
     }
 
     private static void setInnerPeriod(double seconds) {
         ClientConfig.VALUES.swirlInnerPeriod.set(seconds);
+        ClientConfig.publishSnapshot();
     }
 
     private static void setInwardPeriod(double seconds) {
         ClientConfig.VALUES.swirlInwardPeriod.set(seconds);
+        ClientConfig.publishSnapshot();
     }
 
     public record Snapshot(boolean animationEnabled, float outerPeriod,

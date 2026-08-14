@@ -1,5 +1,7 @@
 package dev.riftgun.config;
 
+import dev.riftgun.core.config.ClientVisualConfig;
+import dev.riftgun.core.config.RiftConfigs;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class ClientConfig {
@@ -10,6 +12,15 @@ public final class ClientConfig {
         var configured = new ModConfigSpec.Builder().configure(Values::new);
         VALUES = configured.getLeft();
         SPEC = configured.getRight();
+    }
+
+    /** Rebuilds and atomically publishes a complete loader-neutral snapshot. */
+    public static void publishSnapshot() {
+        RiftConfigs.publishClient(new ClientVisualConfig(
+            VALUES.portalVisualType.get(), VALUES.swirlAnimationEnabled.get(),
+            VALUES.swirlOuterPeriod.get(), VALUES.swirlInnerPeriod.get(),
+            VALUES.swirlInwardPeriod.get(), VALUES.swirlInwardDirection.get(),
+            VALUES.portalDynamicLightLevel.get()));
     }
 
     public static final class Values {
