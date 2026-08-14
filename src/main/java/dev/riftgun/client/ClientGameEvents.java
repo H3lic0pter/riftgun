@@ -87,7 +87,11 @@ public final class ClientGameEvents {
                 return;
             }
             var definition = module.get();
-            event.getToolTip().add(Component.translatable(definition.descriptionKey())
+            String descriptionKey = definition.kind() == PortalModuleKind.MATTER_ANCHOR
+                && !PortalClientState.moduleRules().matterAnchorPreventsDespawn()
+                ? "tooltip.riftgun.module.matter_anchor_module.damage_only_description"
+                : definition.descriptionKey();
+            event.getToolTip().add(Component.translatable(descriptionKey)
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             event.getToolTip().add(Component.translatable("tooltip.riftgun.module.limit",
                 definition.maximumCount(PortalClientState.moduleRules()))

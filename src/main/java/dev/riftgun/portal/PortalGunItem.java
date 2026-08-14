@@ -29,7 +29,8 @@ public final class PortalGunItem extends Item {
 
     @Override
     public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
-        if (hasMatterAnchor(stack) && entity.getAge() != Short.MIN_VALUE) {
+        if (hasMatterAnchor(stack) && PortalModuleRules.current().matterAnchorPreventsDespawn()
+            && entity.getAge() != Short.MIN_VALUE) {
             entity.setUnlimitedLifetime();
         }
         return false;

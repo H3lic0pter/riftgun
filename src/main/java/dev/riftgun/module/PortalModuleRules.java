@@ -13,7 +13,8 @@ public record PortalModuleRules(
     int maximumSurfaceRangeModules,
     int maximumDurationExtensionModules,
     int durationExtensionSecondsPerModule,
-    int basePortalDurationSeconds
+    int basePortalDurationSeconds,
+    boolean matterAnchorPreventsDespawn
 ) {
     public static final int DEFAULT_BASE_CAPACITY = 8000;
     public static final int DEFAULT_RESERVOIR_BONUS = 8000;
@@ -48,7 +49,8 @@ public record PortalModuleRules(
             ServerConfig.VALUES.maxSurfaceRangeModules.get(),
             ServerConfig.VALUES.maxDurationExtensionModules.get(),
             ServerConfig.VALUES.durationExtensionSecondsPerModule.get(),
-            ServerConfig.VALUES.maximumPortalDurationSeconds.get()
+            ServerConfig.VALUES.maximumPortalDurationSeconds.get(),
+            ServerConfig.VALUES.matterAnchorPreventsDespawn.get()
         );
     }
 
@@ -62,7 +64,8 @@ public record PortalModuleRules(
             DEFAULT_MAXIMUM_SURFACE_RANGE_MODULES,
             DEFAULT_MAXIMUM_DURATION_EXTENSION_MODULES,
             DEFAULT_DURATION_EXTENSION_SECONDS_PER_MODULE,
-            DEFAULT_BASE_PORTAL_DURATION_SECONDS
+            DEFAULT_BASE_PORTAL_DURATION_SECONDS,
+            true
         );
     }
 
@@ -94,6 +97,7 @@ public record PortalModuleRules(
         tag.putInt("MaximumDurationExtensionModules", maximumDurationExtensionModules);
         tag.putInt("DurationExtensionSecondsPerModule", durationExtensionSecondsPerModule);
         tag.putInt("BasePortalDurationSeconds", basePortalDurationSeconds);
+        tag.putBoolean("MatterAnchorPreventsDespawn", matterAnchorPreventsDespawn);
         return tag;
     }
 
@@ -109,7 +113,8 @@ public record PortalModuleRules(
             tag.getInt("MaximumDurationExtensionModules"),
             tag.getInt("DurationExtensionSecondsPerModule"),
             tag.contains("BasePortalDurationSeconds")
-                ? tag.getInt("BasePortalDurationSeconds") : DEFAULT_BASE_PORTAL_DURATION_SECONDS
+                ? tag.getInt("BasePortalDurationSeconds") : DEFAULT_BASE_PORTAL_DURATION_SECONDS,
+            !tag.contains("MatterAnchorPreventsDespawn") || tag.getBoolean("MatterAnchorPreventsDespawn")
         );
     }
 }
