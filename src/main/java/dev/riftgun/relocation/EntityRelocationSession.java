@@ -2,6 +2,7 @@ package dev.riftgun.relocation;
 
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.core.config.RiftConfig;
+import dev.riftgun.entity.SpecialEntityTransitPolicy;
 import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.sound.PortalSoundSnapshot;
@@ -10,6 +11,7 @@ import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 
 /** Owns one relocation request while it moves through preparation and opening. */
@@ -77,6 +79,7 @@ final class EntityRelocationSession {
     EntityRelocationTree tree() { return context.tree(); }
     RiftConfig.RelocationConfig relocationConfig() { return context.relocationConfig(); }
     RiftConfig.FuelConfig fuelConfig() { return context.fuelConfig(); }
+    SpecialEntityTransitPolicy<EntityType<?>> specialEntities() { return context.specialEntities(); }
 
     CompoundTag gunReference() { return preparingState().gunReference(); }
     List<EntityRelocationManager.PermissionSnapshot> permissions() {
@@ -124,6 +127,7 @@ final class EntityRelocationSession {
         EntityRelocationFuelPolicy.Quote fuelQuote,
         boolean virtualFuel,
         EntityRelocationTree tree,
+        SpecialEntityTransitPolicy<EntityType<?>> specialEntities,
         RiftConfig.RelocationConfig relocationConfig,
         RiftConfig.FuelConfig fuelConfig
     ) {

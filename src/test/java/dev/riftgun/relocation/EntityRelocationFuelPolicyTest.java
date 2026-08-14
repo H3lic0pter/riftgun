@@ -26,6 +26,14 @@ final class EntityRelocationFuelPolicyTest {
     }
 
     @Test
+    void datapackOnlySpecialEntitiesUseUtilityFuelWithoutOverridingPriority() {
+        assertEquals(EntityRelocationFuelPolicy.TargetKind.UTILITY,
+            EntityRelocationFuelPolicy.classify(false, false, false, false, true));
+        assertEquals(EntityRelocationFuelPolicy.TargetKind.PROJECTILE,
+            EntityRelocationFuelPolicy.classify(true, false, false, false, true));
+    }
+
+    @Test
     void defaultMultipliersMatchTargetCategories() {
         assertEquals(1.5, DEFAULTS.forKind(EntityRelocationFuelPolicy.TargetKind.PASSIVE));
         assertEquals(3.0, DEFAULTS.forKind(EntityRelocationFuelPolicy.TargetKind.HOSTILE));

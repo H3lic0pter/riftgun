@@ -6,24 +6,34 @@ import dev.riftgun.crisis.PortalCrisisTestOverrides;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.diagnostics.TransitDiagnostics;
+import dev.riftgun.entity.SpecialEntityTransitPolicies;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
-import dev.riftgun.portal.ProjectilePortalIndex;
+import dev.riftgun.portal.SweptPortalIndex;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.relocation.EntityRelocationManager;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.sound.PortalSounds;
 import java.util.UUID;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.HitResult;
 
 /** Loader-neutral entry points for the server lifecycle and gameplay events. */
 public final class RiftLifecycle {
     public static void serverStarting(MinecraftServer server) {
         PortalCrisisRegistry.freeze();
+        SpecialEntityTransitPolicies.rebuild(server.registryAccess());
+    }
+
+    public static void tagsUpdated(RegistryAccess access) {
+        SpecialEntityTransitPolicies.rebuild(access);
+        SweptPortalIndex.reconcileSpecialEntities();
     }
 
     public static void serverTick(MinecraftServer server) {
@@ -32,7 +42,13 @@ public final class RiftLifecycle {
         EntityRelocationManager.tick(server);
         EntityRelocationExitImmunity.tick(server.overworld().getGameTime());
         TransitDiagnostics.tick(server);
-        ProjectilePortalIndex.tick(server);
+        SweptPortalIndex.serverTick();
+    }
+
+    public static void levelTickBeforeEntities(Level level) {
+        if (level instanceof ServerLevel serverLevel) {
+            SweptPortalIndex.beforeEntityTicks(serverLevel);
+        }
     }
 
     public static void playerJoined(ServerPlayer player) {
@@ -63,20 +79,20 @@ public final class RiftLifecycle {
     }
 
     public static void entityJoined(Entity entity) {
-        if (entity instanceof Projectile projectile && !entity.level().isClientSide()) {
-            ProjectilePortalIndex.track(projectile);
-        }
+        if (entity.level().isClientSide()) return;
+        if (entity instanceof Projectile projectile) SweptPortalIndex.track(projectile);
+        SweptPortalIndex.trackSpecialEntity(entity);
     }
 
     public static void entityLeft(Entity entity) {
-        if (entity instanceof Projectile projectile && !entity.level().isClientSide()) {
-            ProjectilePortalIndex.untrack(projectile);
-        }
+        if (entity.level().isClientSide()) return;
+        if (entity instanceof Projectile projectile) SweptPortalIndex.untrack(projectile);
+        SweptPortalIndex.untrackSpecialEntity(entity);
     }
 
     public static boolean projectileImpact(Projectile projectile, HitResult hit) {
         return !projectile.level().isClientSide()
-            && ProjectilePortalIndex.tryTransit(projectile, hit);
+            && SweptPortalIndex.tryTransit(projectile, hit);
     }
 
     public static void serverStopping(MinecraftServer server) {
@@ -91,7 +107,8 @@ public final class RiftLifecycle {
         EntityRelocationManager.reset();
         TransitDiagnostics.reset();
         EntityRelocationExitImmunity.reset();
-        ProjectilePortalIndex.reset();
+        SweptPortalIndex.reset();
+        SpecialEntityTransitPolicies.reset();
     }
 
     private static void updatePrediction(ServerPlayer player) {

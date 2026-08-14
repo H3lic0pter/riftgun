@@ -11,6 +11,7 @@ public record RiftConfig(
     FuelConfig fuel,
     ModuleConfig modules,
     PortalConfig portal,
+    SpecialEntityTransitConfig specialEntityTransit,
     RelocationConfig relocation,
     ProjectileConfig projectile,
     PrivacyConfig privacy,
@@ -25,6 +26,7 @@ public record RiftConfig(
             new FuelConfig(true, 50, 100, 5, 8, 5, 8),
             new ModuleConfig(2, 8000, 3, 16, 1, 45, true, true),
             new PortalConfig(15, true, 0.35),
+            new SpecialEntityTransitConfig(true),
             new RelocationConfig(8, 10, 3, 100, 100, 2,
                 1.5, 3.0, 3.0, 10.0, 1.0, 1.0, true, 16),
             new ProjectileConfig(32, true, 2),
@@ -78,6 +80,8 @@ public record RiftConfig(
         boolean passengerTreeTransitEnabled,
         double horizontalTriggerExtend
     ) {}
+
+    public record SpecialEntityTransitConfig(boolean sweptCollisionEnabled) {}
 
     public record RelocationConfig(
         int maximumConcurrentPerGun,

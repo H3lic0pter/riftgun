@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:falling_block",
+    "minecraft:tnt",
+    "minecraft:experience_orb"
+  ]
+}

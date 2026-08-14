@@ -165,9 +165,32 @@ The system first checks whether the traveler can reasonably survive an event, th
 Player-facing options are available from the Portal Gun GUI. NeoForge also generates:
 
 - `config/riftgun-client.toml` for client-local visuals and optional dynamic-light brightness.
-- `<world>/serverconfig/riftgun-server.toml` for destination limits, fuel costs, module limits, portal duration, passenger-tree transit and relocation, destination-readiness timeouts, privacy timeouts, shortcut gun lookup, prediction tuning, unstable-fluid classification, crisis behavior, and opt-in transit diagnostics.
+- `<world>/serverconfig/riftgun-server.toml` for destination limits, fuel costs, module limits, portal duration, passenger-tree transit and relocation, special-entity swept collision, destination-readiness timeouts, privacy timeouts, shortcut gun lookup, prediction tuning, unstable-fluid classification, crisis behavior, and opt-in transit diagnostics.
 
 Entity Relocation can move eligible vehicles, dropped items, and complete passenger trees. Servers can independently disable passenger-tree relocation, cap each tree's member count, tune utility-entity fuel cost, and set the temporary immunity that prevents relocated non-player entities from immediately triggering normal portal exits. Transit diagnostics remain disabled by default under `debug.enableTransitDiagnostics`.
+
+Falling blocks, primed TNT, and experience orbs are enabled for both ordinary
+portal transit and Entity Relocation by built-in entity-type tags. Falling
+blocks and primed TNT additionally use swept collision so fast movement cannot
+skip a portal face; this runtime check can be disabled with
+`specialEntityTransit.enableSweptCollision` without disabling ordinary
+trigger-box transit.
+
+Modpacks can extend or restrict the feature with datapack entity-type tags.
+Deny tags take precedence over built-in behavior and allow tags, while portal
+and relocation policy remain independent:
+
+- `#riftgun:portal_transit_allowed`
+- `#riftgun:portal_transit_denied`
+- `#riftgun:portal_transit_swept`
+- `#riftgun:entity_relocation_allowed`
+- `#riftgun:entity_relocation_denied`
+
+Tagged mod entities use Minecraft's generic entity teleportation, preserving
+vanilla-managed entity data and timers. Entity Relocation charges unfamiliar
+tag-only entities at the configurable utility multiplier. Compatibility still
+depends on the entity supporting Minecraft's normal cross-dimension teleport
+contract.
 
 Keyboard shortcuts use `shortcuts.gunLookupMode`. Its default, `HELD_HANDS`, operates on the main-hand Portal Gun or falls back to the offhand. `REGISTERED_LOCATORS` restores inventory-wide lookup and includes third-party gun locator extensions. The Close Portals shortcut never requires a gun.
 
