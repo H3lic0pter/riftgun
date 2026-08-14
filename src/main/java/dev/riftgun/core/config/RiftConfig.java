@@ -18,6 +18,31 @@ public record RiftConfig(
     CrisisConfig crises,
     DiagnosticsConfig diagnostics
 ) {
+    public static RiftConfig defaults() {
+        return new RiftConfig(
+            new ShortcutConfig(PortalShortcutGunMode.HELD_HANDS),
+            new DestinationConfig(256, 32, 48, 32),
+            new FuelConfig(true, 50, 100, 5, 8, 5, 8),
+            new ModuleConfig(2, 8000, 3, 16, 1, 45, true, true),
+            new PortalConfig(15, true, 0.35),
+            new RelocationConfig(8, 10, 3, 100, 100, 2,
+                1.5, 3.0, 3.0, 10.0, 1.0, 1.0, true, 16),
+            new ProjectileConfig(32, true, 2),
+            new PrivacyConfig(TargetPrivacy.PUBLIC, TargetPrivacy.REQUEST, TargetPrivacy.REQUEST,
+                true, 10, 60, 10),
+            new PredictionConfig(0.7, 2.5),
+            new CrisisConfig(List.of(), List.of(), List.of(
+                "riftgun:high_altitude_fall=8",
+                "riftgun:lava_hazard=5",
+                "riftgun:spatial_tear=2",
+                "riftgun:weakness=30",
+                "riftgun:nausea=55"
+            ), 4, 1024, 192, 128, 30, 15, 24, 96, 16, 4,
+                16, 0.8, 30, 40, 1000, 0, 160, 0, 0.45, 1.35),
+            new DiagnosticsConfig(false)
+        );
+    }
+
     public record ShortcutConfig(PortalShortcutGunMode gunLookupMode) {}
 
     public record DestinationConfig(

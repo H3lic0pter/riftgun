@@ -2,8 +2,10 @@ package dev.riftgun.core.config;
 
 /** Common access point installed and refreshed by the active loader adapter. */
 public final class RiftConfigs {
-    private static final ConfigStore<RiftConfig> SERVER = new ConfigStore<>();
-    private static final ConfigStore<ClientVisualConfig> CLIENT = new ConfigStore<>();
+    private static final ConfigStore<RiftConfig> SERVER =
+        new ConfigStore<>(RiftConfig.defaults());
+    private static final ConfigStore<ClientVisualConfig> CLIENT =
+        new ConfigStore<>(ClientVisualConfig.defaults());
 
     public static RiftConfig server() {
         return SERVER.current();

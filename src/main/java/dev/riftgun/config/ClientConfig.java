@@ -12,7 +12,6 @@ public final class ClientConfig {
         var configured = new ModConfigSpec.Builder().configure(Values::new);
         VALUES = configured.getLeft();
         SPEC = configured.getRight();
-        publishSnapshot();
     }
 
     /** Rebuilds and atomically publishes a complete loader-neutral snapshot. */

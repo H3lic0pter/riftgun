@@ -9,4 +9,9 @@ public record ClientVisualConfig(
     double swirlInwardPeriod,
     boolean swirlInwardDirection,
     int portalDynamicLightLevel
-) {}
+) {
+    public static ClientVisualConfig defaults() {
+        return new ClientVisualConfig("riftgun:swirl", true,
+            20.0, 20.0, 2.5, true, 9);
+    }
+}

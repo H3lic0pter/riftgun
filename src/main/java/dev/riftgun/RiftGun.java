@@ -111,8 +111,6 @@ public final class RiftGun {
 
     public RiftGun(IEventBus modBus, ModContainer container) {
         RiftRuntime.bootstrapDefaults();
-        ServerConfig.publishSnapshot();
-        ClientConfig.publishSnapshot();
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         CREATIVE_TABS.register(modBus);
