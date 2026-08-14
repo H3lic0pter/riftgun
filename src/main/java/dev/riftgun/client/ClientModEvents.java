@@ -1,32 +1,35 @@
 package dev.riftgun.client;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.riftgun.RiftGun;
+import dev.riftgun.client.light.PortalDynamicLights;
+import dev.riftgun.client.model.PortalGunLayeredModel;
+import dev.riftgun.client.render.EntityRelocationPortalRenderer;
 import dev.riftgun.client.render.PortalRenderTypes;
 import dev.riftgun.client.render.PortalRenderer;
-import dev.riftgun.client.render.EntityRelocationPortalRenderer;
 import dev.riftgun.client.render.TintableSplashParticle;
-import dev.riftgun.client.light.PortalDynamicLights;
+import dev.riftgun.client.screen.PortalModuleScreen;
 import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalFuelProfiles;
+import dev.riftgun.module.PortalModuleMenus;
 import dev.riftgun.network.PortalNetworking;
 import java.io.IOException;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.entity.EntityRenderers;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
-import dev.riftgun.module.PortalModuleMenus;
-import dev.riftgun.client.screen.PortalModuleScreen;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.model.DynamicFluidContainerModel;
@@ -34,6 +37,8 @@ import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ClientModEvents {
+    private static final ModelResourceLocation PORTAL_GUN_MODEL = ModelResourceLocation.inventory(
+        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "portal_gun"));
     public static final KeyMapping OPEN_CONFIG = new KeyMapping(
         "key.riftgun.open_config", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.riftgun"
     );
@@ -114,6 +119,12 @@ public final class ClientModEvents {
             PortalFluids.DIMENSIONAL_BUCKET.get());
         event.register(new dev.riftgun.client.model.PortalGunItemColors(),
             RiftGun.PORTAL_GUN.get());
+    }
+
+    @SubscribeEvent
+    public static void modifyBakedModels(ModelEvent.ModifyBakingResult event) {
+        event.getModels().computeIfPresent(PORTAL_GUN_MODEL,
+            (ignored, model) -> new PortalGunLayeredModel(model));
     }
 
     @SubscribeEvent

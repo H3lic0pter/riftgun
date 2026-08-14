@@ -1,6 +1,7 @@
 package dev.riftgun.module;
 
 import dev.riftgun.fuel.PortalGunComponents;
+import dev.riftgun.fuel.PortalGunVisualState;
 import java.util.EnumMap;
 import java.util.Map;
 import net.minecraft.core.NonNullList;
@@ -24,6 +25,7 @@ public final class PortalGunModules {
 
     public static void save(ItemStack gun, NonNullList<ItemStack> items) {
         gun.set(PortalGunComponents.MODULES, ItemContainerContents.fromItems(items));
+        PortalGunVisualState.refresh(gun);
     }
 
     public static int installedCount(ItemStack gun, PortalModuleKind kind) {

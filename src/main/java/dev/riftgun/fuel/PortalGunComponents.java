@@ -41,5 +41,10 @@ public final class PortalGunComponents {
             .persistent(UUIDUtil.CODEC)
             .networkSynchronized(UUIDUtil.STREAM_CODEC));
 
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<PortalGunVisualState>> VISUAL_STATE =
+        COMPONENTS.registerComponentType("portal_gun_visual_state", builder -> builder
+            .persistent(PortalGunVisualState.CODEC)
+            .networkSynchronized(PortalGunVisualState.STREAM_CODEC));
+
     private PortalGunComponents() {}
 }

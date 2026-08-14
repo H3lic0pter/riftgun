@@ -7,6 +7,7 @@ import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.fuel.PortalGunCapabilityPolicy;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
+import dev.riftgun.fuel.PortalGunVisualState;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.module.PortalModules;
 import dev.riftgun.module.PortalModuleRegistry;
@@ -60,7 +61,8 @@ public final class RiftGun {
 
     public static final DeferredHolder<Item, PortalGunItem> PORTAL_GUN = ITEMS.register(
         "portal_gun",
-        () -> new PortalGunItem(new Item.Properties().stacksTo(1))
+        () -> new PortalGunItem(new Item.Properties().stacksTo(1)
+            .component(PortalGunComponents.VISUAL_STATE.get(), PortalGunVisualState.UNINITIALIZED))
     );
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> RIFT_GUN_TAB = CREATIVE_TABS.register(

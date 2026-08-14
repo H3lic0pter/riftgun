@@ -84,4 +84,16 @@ public final class PortalGunTank extends FluidHandlerItemStack {
     public void clear() {
         setContainerToEmpty();
     }
+
+    @Override
+    protected void setFluid(FluidStack fluid) {
+        super.setFluid(fluid);
+        PortalGunVisualState.refresh(container);
+    }
+
+    @Override
+    protected void setContainerToEmpty() {
+        super.setContainerToEmpty();
+        PortalGunVisualState.refresh(container);
+    }
 }

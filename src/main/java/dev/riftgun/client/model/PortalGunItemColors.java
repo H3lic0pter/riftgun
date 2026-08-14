@@ -1,8 +1,6 @@
 package dev.riftgun.client.model;
 
-import dev.riftgun.fuel.PortalFuelProfiles;
-import dev.riftgun.fuel.PortalGunTank;
-import dev.riftgun.fuel.PortalFuelManager;
+import dev.riftgun.fuel.PortalGunVisualState;
 import net.minecraft.client.color.item.ItemColor;
 import net.minecraft.world.item.ItemStack;
 
@@ -22,26 +20,18 @@ public final class PortalGunItemColors implements ItemColor {
 
     @Override
     public int getColor(ItemStack stack, int tintIndex) {
-        if (tintIndex == PortalGunCoreColors.OUTER_TINT
-            || tintIndex == PortalGunCoreColors.INNER_TINT) {
-            if (!PortalFuelManager.hasInfiniteFuel(stack)) return HIDDEN_LIQUID;
-            int rgb = fuelTheme(new PortalGunTank(stack));
-            return tintIndex == PortalGunCoreColors.INNER_TINT
-                ? PortalGunCoreColors.inner(rgb)
-                : PortalGunCoreColors.outer(rgb);
-        }
-        if (!PortalGunFluidLevel.isLiquidTint(tintIndex)) return -1;
-        PortalGunTank tank = new PortalGunTank(stack);
-        var fluid = tank.getFluid();
-        if (fluid.isEmpty() || tintIndex != PortalGunFluidLevel.tintIndex(
-                fluid.getAmount(), tank.nominalCapacity())) return HIDDEN_LIQUID;
-        return PortalFuelProfiles.resolve(fluid)
-            .map(profile -> LIQUID_ALPHA << 24 | profile.rgb())
-            .orElse(-1);
-    }
+        boolean coreTint = tintIndex == PortalGunCoreColors.OUTER_TINT
+            || tintIndex == PortalGunCoreColors.INNER_TINT;
+        if (!coreTint && !PortalGunFluidLevel.isLiquidTint(tintIndex)) return -1;
 
-    private static int fuelTheme(PortalGunTank tank) {
-        return PortalFuelProfiles.resolve(tank.getFluid())
-            .map(profile -> profile.rgb()).orElse(PortalFuelProfiles.DIMENSIONAL_RGB);
+        PortalGunVisualState visual = PortalGunVisualState.current(stack);
+        if (coreTint) {
+            if (!visual.coreVisible()) return HIDDEN_LIQUID;
+            return tintIndex == PortalGunCoreColors.INNER_TINT
+                ? PortalGunCoreColors.inner(visual.fuelRgb())
+                : PortalGunCoreColors.outer(visual.fuelRgb());
+        }
+        if (tintIndex != visual.liquidTint()) return HIDDEN_LIQUID;
+        return LIQUID_ALPHA << 24 | visual.fuelRgb();
     }
 }

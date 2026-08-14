@@ -5,6 +5,7 @@ import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunCapabilityPolicy;
 import dev.riftgun.fuel.PortalGunFluidInteractions;
 import dev.riftgun.fuel.PortalGunWorldScoop;
+import dev.riftgun.fuel.PortalGunVisualState;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
@@ -16,6 +17,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -29,11 +31,17 @@ public final class PortalGunItem extends Item {
 
     @Override
     public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
+        if (!entity.level().isClientSide()) PortalGunVisualState.ensureInitialized(stack);
         if (hasMatterAnchor(stack) && PortalModuleRules.current().matterAnchorPreventsDespawn()
             && entity.getAge() != Short.MIN_VALUE) {
             entity.setUnlimitedLifetime();
         }
         return false;
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {
+        if (!level.isClientSide()) PortalGunVisualState.ensureInitialized(stack);
     }
 
     @Override
