@@ -10,6 +10,7 @@ import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.fuel.PortalGunVisualState;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.network.NeoForgeNetworkAdapter;
 import dev.riftgun.module.PortalModules;
 import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModuleMenus;
@@ -122,7 +123,7 @@ public final class RiftGun {
         PortalSounds.register(modBus);
         modBus.addListener(this::addCreativeTabContents);
         modBus.addListener(this::registerCapabilities);
-        modBus.addListener(PortalNetworking::register);
+        modBus.addListener(NeoForgeNetworkAdapter::register);
         modBus.addListener(this::onConfigLoaded);
         modBus.addListener(this::onConfigReloaded);
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
