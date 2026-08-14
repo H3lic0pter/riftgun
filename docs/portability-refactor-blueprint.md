@@ -424,6 +424,39 @@ behavioral regression can be reverted without discarding platform work.
 - Existing config, saved guns/worlds, and network protocol remain compatible.
 - Datapacks can define third-party portal fuels, with an advanced Java escape
   hatch.
-- Unit, architecture, selected GameTests, full build, manual smoke tests, and
-  performance gates pass.
+- Unit and architecture tests, the full build, and automated performance
+  invariants pass. Selected GameTests run once the project has a real GameTest
+  server task; manual smoke testing remains a merge/release gate.
 - The branch is ready to merge into `dev` without requiring a Fabric module.
+
+## Implementation record (2026-08-14)
+
+The refactor was delivered as buildable, reviewable slices on
+`codex/portability-refactor`:
+
+| Area | Commit |
+| --- | --- |
+| Shared passenger-tree engine | `98c9a5e` |
+| Relocation session state machine | `ed761f1` |
+| Immutable server/client configuration | `a2153d7` |
+| Loader-neutral lifecycle entry points | `93eebb1` |
+| Once-installed registry refs | `3355415` |
+| Network transport seam | `c4579b1` |
+| Fuel store seam | `207c33b` |
+| Datapack-first fuel profiles | `ef3f496` |
+| Shared item visual semantics | `7f71d86` |
+| Executable architecture boundaries | `86d1132` |
+| Immutable runtime dependency graph | `089314e` |
+| NeoForge dependency containment | `88bcda2` |
+
+Final verification completed with `gradlew build`: 247 JUnit tests passed,
+`verifyReleaseJar` passed, and `riftgun-0.1.0-beta.4.jar` was produced. The
+common hot paths retain O(n) passenger-tree work, perform no stream scan per
+server tick, and add no per-tint or per-quad render allocation. The prior manual
+held-item measurement remained 118 FPS held versus 118 FPS not held.
+
+This branch deliberately does not claim Minecraft GameTest coverage: the
+project currently has no GameTest run/source set (`testJunit` is `NO-SOURCE`).
+Adding tests that CI never executes would provide false confidence. A real
+GameTest server task and the selected cross-dimension passenger-tree scenarios
+remain the first follow-up when the Fabric/multi-loader build is introduced.
