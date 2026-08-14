@@ -2,6 +2,7 @@ package dev.riftgun;
 
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.ServerConfig;
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.fuel.PortalGunCapabilityPolicy;
@@ -53,14 +54,14 @@ public final class RiftGun {
     private static final DeferredRegister<ParticleType<?>> PARTICLE_TYPES =
         DeferredRegister.create(Registries.PARTICLE_TYPE, MOD_ID);
 
-    public static final DeferredHolder<Block, dev.riftgun.block.PrivacyTerminalBlock> PRIVACY_TERMINAL =
+    private static final DeferredHolder<Block, dev.riftgun.block.PrivacyTerminalBlock> PRIVACY_TERMINAL =
         BLOCKS.register("privacy_terminal", dev.riftgun.block.PrivacyTerminalBlock::new);
-    public static final DeferredHolder<Item, BlockItem> PRIVACY_TERMINAL_ITEM = ITEMS.register(
+    private static final DeferredHolder<Item, BlockItem> PRIVACY_TERMINAL_ITEM = ITEMS.register(
         "privacy_terminal",
         () -> new BlockItem(PRIVACY_TERMINAL.get(), new Item.Properties())
     );
 
-    public static final DeferredHolder<Item, PortalGunItem> PORTAL_GUN = ITEMS.register(
+    private static final DeferredHolder<Item, PortalGunItem> PORTAL_GUN = ITEMS.register(
         "portal_gun",
         () -> new PortalGunItem(new Item.Properties().stacksTo(1)
             .component(PortalGunComponents.VISUAL_STATE.get(), PortalGunVisualState.UNINITIALIZED))
@@ -74,7 +75,7 @@ public final class RiftGun {
             .build()
     );
 
-    public static final DeferredHolder<EntityType<?>, EntityType<PortalEntity>> PORTAL = ENTITY_TYPES.register(
+    private static final DeferredHolder<EntityType<?>, EntityType<PortalEntity>> PORTAL = ENTITY_TYPES.register(
         "portal",
         () -> EntityType.Builder.<PortalEntity>of(PortalEntity::new, MobCategory.MISC)
             .sized(1.2F, 2.2F)
@@ -83,7 +84,7 @@ public final class RiftGun {
             .build("portal")
     );
 
-    public static final DeferredHolder<EntityType<?>, EntityType<EntityRelocationPortalEntity>>
+    private static final DeferredHolder<EntityType<?>, EntityType<EntityRelocationPortalEntity>>
         ENTITY_RELOCATION_PORTAL = ENTITY_TYPES.register(
             "entity_relocation_portal",
             () -> EntityType.Builder.<EntityRelocationPortalEntity>of(
@@ -94,10 +95,16 @@ public final class RiftGun {
                 .build("entity_relocation_portal")
         );
 
-    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> PORTAL_SPLASH = PARTICLE_TYPES.register(
+    private static final DeferredHolder<ParticleType<?>, SimpleParticleType> PORTAL_SPLASH = PARTICLE_TYPES.register(
         "portal_splash",
         () -> new SimpleParticleType(false)
     );
+
+    static {
+        RiftContent.install(new RiftContent.Installation(
+            PRIVACY_TERMINAL::get, PRIVACY_TERMINAL_ITEM::get, PORTAL_GUN::get,
+            PORTAL::get, ENTITY_RELOCATION_PORTAL::get, PORTAL_SPLASH::get));
+    }
 
     public RiftGun(IEventBus modBus, ModContainer container) {
         ServerConfig.publishSnapshot();

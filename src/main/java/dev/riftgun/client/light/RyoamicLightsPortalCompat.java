@@ -1,5 +1,6 @@
 package dev.riftgun.client.light;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import org.thinkingstudio.ryoamiclights.api.DynamicLightHandlers;
 
@@ -7,9 +8,9 @@ import org.thinkingstudio.ryoamiclights.api.DynamicLightHandlers;
 final class RyoamicLightsPortalCompat {
     static void register() {
         DynamicLightHandlers.registerDynamicLightHandler(
-            RiftGun.PORTAL.get(), PortalDynamicLightLevel::forPortal);
+            RiftContent.PORTAL.get(), PortalDynamicLightLevel::forPortal);
         DynamicLightHandlers.registerDynamicLightHandler(
-            RiftGun.ENTITY_RELOCATION_PORTAL.get(), PortalDynamicLightLevel::forRelocationPortal);
+            RiftContent.ENTITY_RELOCATION_PORTAL.get(), PortalDynamicLightLevel::forRelocationPortal);
     }
 
     private RyoamicLightsPortalCompat() {}

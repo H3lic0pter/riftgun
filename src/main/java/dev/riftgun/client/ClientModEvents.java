@@ -1,5 +1,6 @@
 package dev.riftgun.client;
 
+import dev.riftgun.core.registry.RiftContent;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.riftgun.RiftGun;
@@ -64,8 +65,8 @@ public final class ClientModEvents {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
-        EntityRenderers.register(RiftGun.PORTAL.get(), PortalRenderer::new);
-        EntityRenderers.register(RiftGun.ENTITY_RELOCATION_PORTAL.get(), EntityRelocationPortalRenderer::new);
+        EntityRenderers.register(RiftContent.PORTAL.get(), PortalRenderer::new);
+        EntityRenderers.register(RiftContent.ENTITY_RELOCATION_PORTAL.get(), EntityRelocationPortalRenderer::new);
         PortalNetworking.setClientContextWriter(PortalClientState::writeGunReference);
         event.enqueueWork(PortalDynamicLights::initialize);
     }
@@ -102,7 +103,7 @@ public final class ClientModEvents {
 
     @SubscribeEvent
     public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
-        event.registerSpriteSet(RiftGun.PORTAL_SPLASH.get(), TintableSplashParticle.Provider::new);
+        event.registerSpriteSet(RiftContent.PORTAL_SPLASH.get(), TintableSplashParticle.Provider::new);
     }
 
     @SubscribeEvent
@@ -118,7 +119,7 @@ public final class ClientModEvents {
             PortalFluids.UNSTABLE_BUCKET.get(), PortalFluids.PORTAL_BUCKET.get(),
             PortalFluids.DIMENSIONAL_BUCKET.get());
         event.register(new dev.riftgun.client.model.PortalGunItemColors(),
-            RiftGun.PORTAL_GUN.get());
+            RiftContent.PORTAL_GUN.get());
     }
 
     @SubscribeEvent

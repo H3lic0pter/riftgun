@@ -1,5 +1,6 @@
 package dev.riftgun.relocation;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
 import dev.riftgun.diagnostics.TransitDiagnostics;
@@ -118,7 +119,7 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
             Level level, Vec3 center, float side, int rgb, boolean exit, UUID followTarget,
             int openDurationTicks, PortalSoundSnapshot sounds, int openingTicks) {
         EntityRelocationPortalEntity portal = new EntityRelocationPortalEntity(
-            RiftGun.ENTITY_RELOCATION_PORTAL.get(), level);
+            RiftContent.ENTITY_RELOCATION_PORTAL.get(), level);
         portal.setPos(center);
         float normalizedSide = EntityRelocationGeometry.normalizeSide(side);
         portal.entityData.set(SIDE, normalizedSide);

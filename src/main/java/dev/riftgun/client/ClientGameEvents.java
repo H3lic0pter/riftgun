@@ -1,5 +1,6 @@
 package dev.riftgun.client;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalSplashEmitter;
 import dev.riftgun.data.Destination;
@@ -111,7 +112,7 @@ public final class ClientGameEvents {
             }
             return;
         }
-        if (event.getItemStack().is(RiftGun.PRIVACY_TERMINAL_ITEM.get())) {
+        if (event.getItemStack().is(RiftContent.PRIVACY_TERMINAL_ITEM.get())) {
             if (!Screen.hasShiftDown()) {
                 event.getToolTip().add(Component.translatable("tooltip.riftgun.module.hold_shift")
                     .withStyle(ChatFormatting.GRAY));
@@ -121,7 +122,7 @@ public final class ClientGameEvents {
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             return;
         }
-        if (!event.getItemStack().is(RiftGun.PORTAL_GUN.get())) return;
+        if (!event.getItemStack().is(RiftContent.PORTAL_GUN.get())) return;
         PortalGunTank tank = new PortalGunTank(event.getItemStack());
         var fluid = tank.getFluid();
         if (PortalGunMode.bucketMode(event.getItemStack())) {

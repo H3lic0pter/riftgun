@@ -1,5 +1,6 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.registry.RiftContent;
 import com.mojang.logging.LogUtils;
 import dev.riftgun.RiftGun;
 import dev.riftgun.service.PortalServices;
@@ -91,7 +92,7 @@ public final class PortalCrisisCoordinator {
             return false;
         }
         if (plan.cooldownTicks() > 0) {
-            player.getCooldowns().addCooldown(RiftGun.PORTAL_GUN.get(), plan.cooldownTicks());
+            player.getCooldowns().addCooldown(RiftContent.PORTAL_GUN.get(), plan.cooldownTicks());
         }
         Component crisisName = Component.translatable(
             "crisis." + plan.crisisId().getNamespace() + "." + plan.crisisId().getPath());

@@ -1,5 +1,6 @@
 package dev.riftgun.crisis;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
 import dev.riftgun.data.PortalDataStore;
@@ -54,7 +55,7 @@ public record PortalCrisisCapabilitySnapshot(
         boolean rescueItem = items.stream().anyMatch(stack ->
             stack.is(FALL_RESCUE_ITEMS) && (!stack.is(Items.WATER_BUCKET) || !ultraWarm));
         int smartDistance = PortalDataStore.load(player).settings().smartDistance();
-        boolean guard = items.stream().anyMatch(stack -> stack.is(RiftGun.PORTAL_GUN.get())
+        boolean guard = items.stream().anyMatch(stack -> stack.is(RiftContent.PORTAL_GUN.get())
             && PortalGunCapabilities.resolve(stack, smartDistance).fallGuard());
 
         boolean firePotion = items.stream().anyMatch(PortalCrisisCapabilitySnapshot::providesFireResistance);

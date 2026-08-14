@@ -1,5 +1,6 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.RiftGun;
 import dev.riftgun.fuel.PortalFuelProfile;
@@ -182,7 +183,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
                                PortalPlacement placement, int fuelRgb, String fuelId,
                                PortalRuntimeOptions options, long startedAt,
                                @Nullable UUID excludedPlayerId, boolean exitPortal) {
-        PortalEntity portal = new PortalEntity(RiftGun.PORTAL.get(), level);
+        PortalEntity portal = new PortalEntity(RiftContent.PORTAL.get(), level);
         portal.ownerId = owner;
         portal.excludedPlayerId = excludedPlayerId;
         portal.setPos(placement.center());
