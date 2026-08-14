@@ -24,9 +24,11 @@ public final class PortalGunItemColors implements ItemColor {
         if (!PortalGunFluidLevel.isLiquidTint(tintIndex)) return -1;
         PortalGunTank tank = new PortalGunTank(stack);
         var fluid = tank.getFluid();
-        if (fluid.isEmpty() && PortalFuelManager.hasInfiniteFuel(stack)) {
-            return tintIndex == PortalGunFluidLevel.FULL_TINT
-                ? LIQUID_ALPHA << 24 | PortalFuelProfiles.DIMENSIONAL_RGB : HIDDEN_LIQUID;
+        if (PortalFuelManager.hasInfiniteFuel(stack)) {
+            if (tintIndex != PortalGunFluidLevel.FULL_TINT) return HIDDEN_LIQUID;
+            int rgb = PortalFuelProfiles.resolve(fluid)
+                .map(profile -> profile.rgb()).orElse(PortalFuelProfiles.DIMENSIONAL_RGB);
+            return LIQUID_ALPHA << 24 | rgb;
         }
         if (fluid.isEmpty() || tintIndex != PortalGunFluidLevel.tintIndex(
                 fluid.getAmount(), tank.nominalCapacity())) return HIDDEN_LIQUID;

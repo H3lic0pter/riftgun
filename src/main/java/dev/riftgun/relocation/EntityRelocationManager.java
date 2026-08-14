@@ -109,23 +109,16 @@ public final class EntityRelocationManager {
         EntityRelocationRegistry state = registry();
         UUID gunId = PortalGunIdentity.ensure(gun);
         PortalFuelProfile profile = profileResult.orElseGet(PortalFuelProfiles::dimensional);
+        if (!owner.level().dimension().equals(destination.dimension()) && !profile.crossDimension()) {
+            message(owner, "message.riftgun.fuel_dimension_denied");
+            return true;
+        }
         EntityRelocationFuelPolicy.Quote fuelQuote = EntityRelocationFuelPolicy.quote(
             treeMembers.stream().map(EntityRelocationFuelPolicy::classify).toList(),
             profile.maximumConsumption(), relocationFuelMultipliers());
-        boolean realFuelEligible = (owner.level().dimension().equals(destination.dimension())
-            || profile.crossDimension())
-            && tank.getFluid().getAmount() - state.reservedFuel(gunId) >= fuelQuote.maximumReservation();
-        boolean virtualFuel = !realFuelEligible && infiniteFuel;
-        if (virtualFuel) {
-            profile = PortalFuelProfiles.dimensional();
-            fuelQuote = EntityRelocationFuelPolicy.quote(
-                treeMembers.stream().map(EntityRelocationFuelPolicy::classify).toList(),
-                profile.maximumConsumption(), relocationFuelMultipliers());
-        } else if (!realFuelEligible) {
-            if (!owner.level().dimension().equals(destination.dimension()) && !profile.crossDimension()) {
-                message(owner, "message.riftgun.fuel_dimension_denied");
-                return true;
-            }
+        boolean virtualFuel = infiniteFuel;
+        if (!virtualFuel
+            && tank.getFluid().getAmount() - state.reservedFuel(gunId) < fuelQuote.maximumReservation()) {
             message(owner, "message.riftgun.fuel_insufficient");
             return true;
         }
@@ -160,9 +153,8 @@ public final class EntityRelocationManager {
             (float) treeMetrics.width(), (float) treeMetrics.depth());
         Vec3 center = feetCenter(target);
         PortalSoundSnapshot sounds = PortalSoundSnapshot.from(data.settings().portalSounds());
-        PortalCrisisConfigurationSnapshot crises = virtualFuel
-            ? PortalCrisisConfigurationSnapshot.stable()
-            : PortalCrisisConfigurationSnapshot.capture(tank.getFluid());
+        PortalCrisisConfigurationSnapshot crises =
+            PortalCrisisConfigurationSnapshot.capture(tank.getFluid());
         ServerLevel destinationLevel = server.getLevel(destination.dimension());
         if (destinationLevel == null) {
             state.fail(begin.reservation());
@@ -509,7 +501,10 @@ public final class EntityRelocationManager {
 
     private static boolean reservationFuelAvailable(PendingPreparation pending, ItemStack gun) {
         PortalGunTank tank = new PortalGunTank(gun);
-        if (pending.virtualFuel()) return !gun.isEmpty() && PortalFuelManager.hasInfiniteFuel(gun);
+        if (pending.virtualFuel()) {
+            return !gun.isEmpty() && PortalFuelManager.canConsume(
+                gun, PortalFuelManager.virtualUse(pending.profile(), 0));
+        }
         return !gun.isEmpty()
             && PortalFuelProfiles.resolve(tank.getFluid())
                 .filter(profile -> profile.id().equals(pending.profile().id())).isPresent()

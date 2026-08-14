@@ -157,9 +157,7 @@ public final class PortalOpenCoordinator {
             gunCapabilities.fallGuard(), gunCapabilities.entityFallGuard(),
             ServerConfig.VALUES.horizontalTriggerExtend.get(),
             PortalSoundSnapshot.from(data.settings().portalSounds()),
-            fuelPlan.use().virtual()
-                ? PortalCrisisConfigurationSnapshot.stable()
-                : PortalCrisisConfigurationSnapshot.capture(new PortalGunTank(locatedGun.stack()).getFluid()));
+            PortalCrisisConfigurationSnapshot.capture(new PortalGunTank(locatedGun.stack()).getFluid()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;

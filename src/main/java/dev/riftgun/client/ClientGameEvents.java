@@ -134,9 +134,13 @@ public final class ClientGameEvents {
                 event.getToolTip().add(Component.translatable("screen.riftgun.overfilled")
                     .withStyle(ChatFormatting.GOLD));
             }
-        } else if (dev.riftgun.fuel.PortalFuelManager.hasInfiniteFuel(event.getItemStack())) {
+        }
+        if (dev.riftgun.fuel.PortalFuelManager.hasInfiniteFuel(event.getItemStack())) {
+            int infiniteRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid)
+                .map(dev.riftgun.fuel.PortalFuelProfile::rgb)
+                .orElse(dev.riftgun.fuel.PortalFuelProfiles.DIMENSIONAL_RGB);
             event.getToolTip().add(Component.translatable("screen.riftgun.zero_point_fuel_active")
-                .withStyle(style -> style.withColor(dev.riftgun.fuel.PortalFuelProfiles.DIMENSIONAL_RGB)));
+                .withStyle(style -> style.withColor(infiniteRgb)));
         }
         PortalPlayerData data = PortalClientState.data();
         UUID selectedId = data.selectedDestinationId();

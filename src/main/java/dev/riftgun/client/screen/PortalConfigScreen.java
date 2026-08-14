@@ -1513,7 +1513,7 @@ public final class PortalConfigScreen extends Screen {
     private void renderFuelGauge(GuiGraphics graphics, int mouseX, int mouseY) {
         int amount = PortalClientState.gun().getInt("Amount");
         int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity"));
-        boolean infinite = amount == 0 && PortalClientState.gun().getBoolean("InfiniteFuel");
+        boolean infinite = PortalClientState.gun().getBoolean("InfiniteFuel");
         boolean overfilled = amount > capacity;
         int rgb = PortalClientState.gun().getInt("Rgb");
         int fluidColor = 0xFF000000 | (rgb == 0 ? 0x34363D : rgb);
@@ -1535,7 +1535,7 @@ public final class PortalConfigScreen extends Screen {
     private void renderFuelGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int amount = PortalClientState.gun().getInt("Amount");
         int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity"));
-        boolean infinite = amount == 0 && PortalClientState.gun().getBoolean("InfiniteFuel");
+        boolean infinite = PortalClientState.gun().getBoolean("InfiniteFuel");
         boolean overfilled = amount > capacity;
         if (mouseX >= fuelGaugeX && mouseX < fuelGaugeX + FUEL_GAUGE_WIDTH
             && mouseY >= fuelGaugeY && mouseY < fuelGaugeY + 19) {

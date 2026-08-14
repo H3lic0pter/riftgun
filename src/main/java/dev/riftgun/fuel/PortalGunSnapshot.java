@@ -66,7 +66,7 @@ public final class PortalGunSnapshot {
         PortalFuelProfiles.resolve(fluid).ifPresent(profile -> {
             tag.putString("Fluid", BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());
             tag.putInt("Rgb", profile.rgb());
-            tag.putBoolean("CrossDimension", profile.crossDimension() || infiniteFuel);
+            tag.putBoolean("CrossDimension", profile.crossDimension());
         });
         if (fluid.isEmpty() && infiniteFuel) {
             PortalFuelProfile profile = PortalFuelProfiles.dimensional();

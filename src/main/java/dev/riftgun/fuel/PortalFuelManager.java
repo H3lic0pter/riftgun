@@ -20,28 +20,26 @@ public final class PortalFuelManager {
         boolean crossDimension = !player.level().dimension().equals(destinationDimension);
         if (resolved.isPresent()) {
             PortalFuelProfile profile = resolved.get();
+            if (crossDimension && !profile.crossDimension()) {
+                return Plan.failure("message.riftgun.fuel_dimension_denied");
+            }
+            if (hasInfiniteFuel(gun)) {
+                return Plan.success(selectLoadedFuel(profile, 0, true));
+            }
             int rolled = PortalFuelCost.choose(profile.minimumConsumption(), profile.maximumConsumption(),
                 ServerConfig.VALUES.randomConsumption.get(), player.getRandom()::nextInt);
-            if ((!crossDimension || profile.crossDimension()) && stored.getAmount() >= rolled) {
-                return Plan.success(new PortalFuelUse(profile, rolled));
-            }
-            if (!hasInfiniteFuel(gun)) {
-                if (crossDimension && !profile.crossDimension()) {
-                    return Plan.failure("message.riftgun.fuel_dimension_denied");
-                }
-                int affordable = PortalFuelCost.affordableCost(
-                    stored.getAmount(), profile.minimumConsumption(), rolled);
-                return affordable == 0
-                    ? Plan.failure("message.riftgun.fuel_insufficient")
-                    : Plan.success(new PortalFuelUse(profile, affordable));
-            }
+            int affordable = PortalFuelCost.affordableCost(
+                stored.getAmount(), profile.minimumConsumption(), rolled);
+            return affordable == 0
+                ? Plan.failure("message.riftgun.fuel_insufficient")
+                : Plan.success(selectLoadedFuel(profile, affordable, false));
         }
         if (hasInfiniteFuel(gun)) return Plan.success(virtualUse(PortalFuelProfiles.dimensional(), 0));
         return Plan.failure("message.riftgun.fuel_empty");
     }
 
     public static boolean consume(ItemStack gun, PortalFuelUse use) {
-        if (use.virtual()) return hasInfiniteFuel(gun);
+        if (use.virtual()) return canConsume(gun, use);
         PortalGunTank tank = new PortalGunTank(gun);
         FluidStack stored = tank.getFluid();
         Optional<PortalFuelProfile> current = PortalFuelProfiles.resolve(stored);
@@ -52,8 +50,13 @@ public final class PortalFuelManager {
     }
 
     public static boolean canConsume(ItemStack gun, PortalFuelUse use) {
-        if (use.virtual()) return hasInfiniteFuel(gun);
         PortalGunTank tank = new PortalGunTank(gun);
+        if (use.virtual()) {
+            if (!hasInfiniteFuel(gun)) return false;
+            return PortalFuelProfiles.resolve(tank.getFluid())
+                .map(profile -> profile.id().equals(use.profile().id()))
+                .orElseGet(() -> PortalFuelProfiles.dimensional().id().equals(use.profile().id()));
+        }
         return PortalFuelProfiles.resolve(tank.getFluid())
             .filter(profile -> profile.id().equals(use.profile().id())).isPresent()
             && tank.getFluid().getAmount() >= use.amount();
@@ -66,6 +69,10 @@ public final class PortalFuelManager {
 
     public static PortalFuelUse virtualUse(PortalFuelProfile profile, int amount) {
         return new PortalFuelUse(profile, amount, true);
+    }
+
+    static PortalFuelUse selectLoadedFuel(PortalFuelProfile profile, int amount, boolean infiniteFuel) {
+        return infiniteFuel ? virtualUse(profile, 0) : new PortalFuelUse(profile, amount);
     }
 
     public record Plan(PortalFuelUse use, String errorKey) {
