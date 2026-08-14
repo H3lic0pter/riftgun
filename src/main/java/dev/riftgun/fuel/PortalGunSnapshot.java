@@ -25,7 +25,7 @@ public final class PortalGunSnapshot {
         tag.putInt("Capacity", tank.nominalCapacity());
         tag.putBoolean("Overfilled", fluid.getAmount() > tank.nominalCapacity());
         tag.putBoolean("InfiniteFuel", infiniteFuel);
-        tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid));
+        tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid.getFluid()));
         tag.putBoolean("CoordinateOverride", capabilities.coordinateOverride());
         tag.putInt("MaximumSurfaceRange", capabilities.maximumSurfaceRange());
         tag.putInt("SurfaceRange", capabilities.configuredSurfaceRange());
@@ -63,7 +63,7 @@ public final class PortalGunSnapshot {
         }
         tag.put("Modules", modules);
         tag.put("ModuleRules", rules.save());
-        PortalFuelProfiles.resolve(fluid).ifPresent(profile -> {
+        PortalFuelProfiles.resolve(fluid.getFluid()).ifPresent(profile -> {
             tag.putString("Fluid", BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());
             tag.putInt("Rgb", profile.rgb());
             tag.putBoolean("CrossDimension", profile.crossDimension());

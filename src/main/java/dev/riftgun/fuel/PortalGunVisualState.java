@@ -87,7 +87,7 @@ public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuel
         PortalGunTank tank = new PortalGunTank(gun);
         var fluid = tank.getFluid();
         int tint = fluid.isEmpty() ? 0 : liquidTintIndex(fluid.getAmount(), tank.nominalCapacity());
-        int rgb = PortalFuelProfiles.resolve(fluid)
+        int rgb = PortalFuelProfiles.resolve(fluid.getFluid())
             .map(PortalFuelProfile::rgb).orElse(PortalFuelProfiles.DIMENSIONAL_RGB);
         return new PortalGunVisualState(tint, PortalFuelManager.hasInfiniteFuel(gun), rgb);
     }

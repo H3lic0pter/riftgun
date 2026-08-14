@@ -7,6 +7,9 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 
 public final class PortalEntityTags {
+    public static final TagKey<EntityType<?>> BOSSES = TagKey.create(
+        Registries.ENTITY_TYPE,
+        ResourceLocation.fromNamespaceAndPath("c", "bosses"));
     public static final TagKey<EntityType<?>> PROJECTILE_TRANSIT_EXCLUDED = TagKey.create(
         Registries.ENTITY_TYPE,
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "projectile_transit_excluded"));

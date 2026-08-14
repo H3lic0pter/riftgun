@@ -130,7 +130,7 @@ public final class ClientGameEvents {
                 Component.translatable("screen.riftgun.on")).withStyle(ChatFormatting.GRAY));
         }
         if (!fluid.isEmpty()) {
-            int fluidRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid)
+            int fluidRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid.getFluid())
                 .map(dev.riftgun.fuel.PortalFuelProfile::rgb).orElse(0xA7A39C);
             event.getToolTip().add(Component.translatable("tooltip.riftgun.fluid",
                 fluid.getHoverName(), fluid.getAmount(), tank.nominalCapacity())
@@ -141,7 +141,7 @@ public final class ClientGameEvents {
             }
         }
         if (dev.riftgun.fuel.PortalFuelManager.hasInfiniteFuel(event.getItemStack())) {
-            int infiniteRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid)
+            int infiniteRgb = dev.riftgun.fuel.PortalFuelProfiles.resolve(fluid.getFluid())
                 .map(dev.riftgun.fuel.PortalFuelProfile::rgb)
                 .orElse(dev.riftgun.fuel.PortalFuelProfiles.DIMENSIONAL_RGB);
             event.getToolTip().add(Component.translatable("screen.riftgun.zero_point_fuel_active")

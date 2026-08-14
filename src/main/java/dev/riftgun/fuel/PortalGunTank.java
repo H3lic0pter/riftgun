@@ -25,12 +25,12 @@ public final class PortalGunTank extends FluidHandlerItemStack implements Portal
 
     @Override
     public boolean isFluidValid(int tank, FluidStack stack) {
-        return PortalFuelProfiles.accepts(stack);
+        return !stack.isEmpty() && PortalFuelProfiles.accepts(stack.getFluid());
     }
 
     @Override
     public boolean canFillFluidType(FluidStack fluid) {
-        return PortalFuelProfiles.accepts(fluid);
+        return !fluid.isEmpty() && PortalFuelProfiles.accepts(fluid.getFluid());
     }
 
     @Override

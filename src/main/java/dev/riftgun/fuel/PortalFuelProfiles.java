@@ -10,7 +10,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 public final class PortalFuelProfiles {
     public static final int UNSTABLE_RGB = 0xA855D4;
@@ -62,13 +61,8 @@ public final class PortalFuelProfiles {
         return Optional.empty();
     }
 
-    public static Optional<PortalFuelProfile> resolve(FluidStack stack) {
-        if (stack.isEmpty()) return Optional.empty();
-        return resolve(stack.getFluid());
-    }
-
-    public static boolean accepts(FluidStack stack) {
-        return resolve(stack).isPresent();
+    public static boolean accepts(Fluid fluid) {
+        return resolve(fluid).isPresent();
     }
 
     public static PortalFuelProfile dimensional() {

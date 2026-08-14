@@ -6,9 +6,9 @@ import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.vehicle.VehicleEntity;
+import dev.riftgun.module.PortalEntityTags;
 import java.util.List;
 import java.util.function.IntSupplier;
-import net.neoforged.neoforge.common.Tags;
 
 /** Classifies a relocation target once and snapshots its configurable fuel multiplier. */
 final class EntityRelocationFuelPolicy {
@@ -32,7 +32,7 @@ final class EntityRelocationFuelPolicy {
     static TargetKind classify(Entity target) {
         if (target instanceof ItemEntity || target instanceof VehicleEntity) return TargetKind.UTILITY;
         return classify(target instanceof Projectile, target instanceof Player,
-            target.getType().is(Tags.EntityTypes.BOSSES), target instanceof Enemy);
+            target.getType().is(PortalEntityTags.BOSSES), target instanceof Enemy);
     }
 
     static TargetKind classify(boolean projectile, boolean player, boolean boss, boolean hostile) {

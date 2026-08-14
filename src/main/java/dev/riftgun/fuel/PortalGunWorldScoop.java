@@ -35,7 +35,7 @@ public final class PortalGunWorldScoop {
         }
 
         FluidStack source = new FluidStack(fluidState.getType(), PortalGunTank.WORLD_SOURCE_AMOUNT);
-        Optional<PortalFuelProfile> profile = PortalFuelProfiles.resolve(source);
+        Optional<PortalFuelProfile> profile = PortalFuelProfiles.resolve(source.getFluid());
         PortalGunTank tank = new PortalGunTank(gun);
         if (profile.isEmpty()) return fail(player, "message.riftgun.scoop_invalid_fluid");
         if (!tank.canFillWorldSource(source, PortalGunBucketTransferPolicy.OVERFLOW_POLICY)) {

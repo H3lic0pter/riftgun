@@ -1,13 +1,13 @@
 package dev.riftgun.service;
 
 import dev.riftgun.core.runtime.RiftRuntime;
+import dev.riftgun.core.fuel.RiftFuelStores;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.fuel.PortalFuelManager;
-import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
@@ -158,7 +158,8 @@ public final class PortalOpenCoordinator {
             gunCapabilities.fallGuard(), gunCapabilities.entityFallGuard(),
             RiftConfigs.server().portal().horizontalTriggerExtend(),
             PortalSoundSnapshot.from(data.settings().portalSounds()),
-            PortalCrisisConfigurationSnapshot.capture(new PortalGunTank(locatedGun.stack()).getFluid()));
+            PortalCrisisConfigurationSnapshot.capture(
+                RiftFuelStores.open(locatedGun.stack()).content().fluid()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;

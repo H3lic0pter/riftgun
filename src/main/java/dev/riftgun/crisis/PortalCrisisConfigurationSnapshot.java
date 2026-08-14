@@ -9,7 +9,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.fluids.FluidStack;
 import net.minecraft.world.level.material.Fluid;
 import org.slf4j.Logger;
 
@@ -19,10 +18,6 @@ public record PortalCrisisConfigurationSnapshot(boolean unstable, Map<ResourceLo
 
     public PortalCrisisConfigurationSnapshot {
         weights = Map.copyOf(weights);
-    }
-
-    public static PortalCrisisConfigurationSnapshot capture(FluidStack fluid) {
-        return fluid.isEmpty() ? stable() : capture(fluid.getFluid());
     }
 
     public static PortalCrisisConfigurationSnapshot capture(Fluid fluid) {

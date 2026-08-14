@@ -9,16 +9,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 /** Resolves server-authoritative instability with explicit config overrides. */
 public final class PortalFluidInstability {
     public static final TagKey<Fluid> UNSTABLE_FLUIDS = TagKey.create(
         Registries.FLUID, ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "unstable_portal_fluids"));
-
-    public static boolean isUnstable(FluidStack stack) {
-        return !stack.isEmpty() && isUnstable(stack.getFluid());
-    }
 
     public static boolean isUnstable(Fluid fluid) {
         if (fluid == Fluids.EMPTY) return false;
