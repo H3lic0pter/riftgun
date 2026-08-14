@@ -2,6 +2,9 @@ package dev.riftgun.relocation;
 
 import dev.riftgun.core.config.RiftConfig;
 import dev.riftgun.core.config.RiftConfigs;
+import dev.riftgun.core.fuel.PortalFluidContent;
+import dev.riftgun.core.fuel.PortalGunFuelStore;
+import dev.riftgun.core.fuel.RiftFuelStores;
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.crisis.PortalCrisisCoordinator;
@@ -13,7 +16,6 @@ import dev.riftgun.fuel.PortalFuelCost;
 import dev.riftgun.fuel.PortalFuelProfile;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.fuel.PortalFuelUse;
-import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.portal.PortalEntity;
@@ -101,8 +103,9 @@ public final class EntityRelocationManager {
             server, owner, treeMembers, destination);
         if (permissions == null) return true;
         ItemStack gun = locatedGun.stack();
-        PortalGunTank tank = new PortalGunTank(gun);
-        var profileResult = PortalFuelProfiles.resolve(tank.getFluid());
+        PortalGunFuelStore fuelStore = RiftFuelStores.open(gun);
+        PortalFluidContent storedFuel = fuelStore.content();
+        var profileResult = PortalFuelProfiles.resolve(storedFuel.fluid());
         boolean infiniteFuel = PortalFuelManager.hasInfiniteFuel(gun);
         if (profileResult.isEmpty() && !infiniteFuel) {
             message(owner, "message.riftgun.fuel_empty");
@@ -120,7 +123,7 @@ public final class EntityRelocationManager {
             profile.maximumConsumption(), relocationFuelMultipliers(relocationConfig));
         boolean virtualFuel = infiniteFuel;
         if (!virtualFuel
-            && tank.getFluid().getAmount() - state.reservedFuel(gunId) < fuelQuote.maximumReservation()) {
+            && storedFuel.amount() - state.reservedFuel(gunId) < fuelQuote.maximumReservation()) {
             message(owner, "message.riftgun.fuel_insufficient");
             return true;
         }
@@ -156,7 +159,7 @@ public final class EntityRelocationManager {
         Vec3 center = feetCenter(target);
         PortalSoundSnapshot sounds = PortalSoundSnapshot.from(data.settings().portalSounds());
         PortalCrisisConfigurationSnapshot crises =
-            PortalCrisisConfigurationSnapshot.capture(tank.getFluid());
+            PortalCrisisConfigurationSnapshot.capture(storedFuel.fluid());
         ServerLevel destinationLevel = server.getLevel(destination.dimension());
         if (destinationLevel == null) {
             state.fail(begin.reservation());
@@ -526,15 +529,16 @@ public final class EntityRelocationManager {
     }
 
     private static boolean reservationFuelAvailable(EntityRelocationSession pending, ItemStack gun) {
-        PortalGunTank tank = new PortalGunTank(gun);
+        PortalGunFuelStore store = RiftFuelStores.open(gun);
+        PortalFluidContent stored = store.content();
         if (pending.virtualFuel()) {
             return !gun.isEmpty() && PortalFuelManager.canConsume(
                 gun, PortalFuelManager.virtualUse(pending.profile(), 0));
         }
         return !gun.isEmpty()
-            && PortalFuelProfiles.resolve(tank.getFluid())
+            && PortalFuelProfiles.resolve(stored.fluid())
                 .filter(profile -> profile.id().equals(pending.profile().id())).isPresent()
-            && tank.getFluid().getAmount() >= registry().reservedFuel(
+            && stored.amount() >= registry().reservedFuel(
                 pending.reservation().gunId());
     }
 

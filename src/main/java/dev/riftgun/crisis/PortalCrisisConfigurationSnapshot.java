@@ -10,6 +10,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.minecraft.world.level.material.Fluid;
 import org.slf4j.Logger;
 
 /** Weight and instability snapshot captured once when a portal opens. */
@@ -21,6 +22,10 @@ public record PortalCrisisConfigurationSnapshot(boolean unstable, Map<ResourceLo
     }
 
     public static PortalCrisisConfigurationSnapshot capture(FluidStack fluid) {
+        return fluid.isEmpty() ? stable() : capture(fluid.getFluid());
+    }
+
+    public static PortalCrisisConfigurationSnapshot capture(Fluid fluid) {
         if (!PortalFluidInstability.isUnstable(fluid)) return stable();
         return new PortalCrisisConfigurationSnapshot(true, configuredWeights());
     }

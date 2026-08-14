@@ -1,6 +1,9 @@
 package dev.riftgun.fuel;
 
 import dev.riftgun.core.config.RiftConfigs;
+import dev.riftgun.core.fuel.PortalFluidContent;
+import dev.riftgun.core.fuel.PortalGunFuelStore;
+import dev.riftgun.core.fuel.RiftFuelStores;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
@@ -9,14 +12,12 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public final class PortalFuelManager {
     public static Plan plan(ServerPlayer player, ItemStack gun, ResourceKey<Level> destinationDimension) {
-        PortalGunTank tank = new PortalGunTank(gun);
-        FluidStack stored = tank.getFluid();
-        Optional<PortalFuelProfile> resolved = PortalFuelProfiles.resolve(stored);
+        PortalGunFuelStore store = RiftFuelStores.open(gun);
+        PortalFluidContent stored = store.content();
+        Optional<PortalFuelProfile> resolved = PortalFuelProfiles.resolve(stored.fluid());
         boolean crossDimension = !player.level().dimension().equals(destinationDimension);
         if (resolved.isPresent()) {
             PortalFuelProfile profile = resolved.get();
@@ -29,7 +30,7 @@ public final class PortalFuelManager {
             int rolled = PortalFuelCost.choose(profile.minimumConsumption(), profile.maximumConsumption(),
                 RiftConfigs.server().fuel().randomConsumption(), player.getRandom()::nextInt);
             int affordable = PortalFuelCost.affordableCost(
-                stored.getAmount(), profile.minimumConsumption(), rolled);
+                stored.amount(), profile.minimumConsumption(), rolled);
             return affordable == 0
                 ? Plan.failure("message.riftgun.fuel_insufficient")
                 : Plan.success(selectLoadedFuel(profile, affordable, false));
@@ -40,26 +41,27 @@ public final class PortalFuelManager {
 
     public static boolean consume(ItemStack gun, PortalFuelUse use) {
         if (use.virtual()) return canConsume(gun, use);
-        PortalGunTank tank = new PortalGunTank(gun);
-        FluidStack stored = tank.getFluid();
-        Optional<PortalFuelProfile> current = PortalFuelProfiles.resolve(stored);
+        PortalGunFuelStore store = RiftFuelStores.open(gun);
+        PortalFluidContent stored = store.content();
+        Optional<PortalFuelProfile> current = PortalFuelProfiles.resolve(stored.fluid());
         if (current.isEmpty() || !current.get().id().equals(use.profile().id())
-            || stored.getAmount() < use.amount()) return false;
+            || stored.amount() < use.amount()) return false;
         if (use.amount() == 0) return true;
-        return tank.drain(use.amount(), IFluidHandler.FluidAction.EXECUTE).getAmount() == use.amount();
+        return store.drain(use.amount(), false).amount() == use.amount();
     }
 
     public static boolean canConsume(ItemStack gun, PortalFuelUse use) {
-        PortalGunTank tank = new PortalGunTank(gun);
+        PortalGunFuelStore store = RiftFuelStores.open(gun);
+        PortalFluidContent stored = store.content();
         if (use.virtual()) {
             if (!hasInfiniteFuel(gun)) return false;
-            return PortalFuelProfiles.resolve(tank.getFluid())
+            return PortalFuelProfiles.resolve(stored.fluid())
                 .map(profile -> profile.id().equals(use.profile().id()))
                 .orElseGet(() -> PortalFuelProfiles.dimensional().id().equals(use.profile().id()));
         }
-        return PortalFuelProfiles.resolve(tank.getFluid())
+        return PortalFuelProfiles.resolve(stored.fluid())
             .filter(profile -> profile.id().equals(use.profile().id())).isPresent()
-            && tank.getFluid().getAmount() >= use.amount();
+            && stored.amount() >= use.amount();
     }
 
     public static boolean hasInfiniteFuel(ItemStack gun) {

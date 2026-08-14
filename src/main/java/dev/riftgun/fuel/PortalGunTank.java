@@ -1,5 +1,7 @@
 package dev.riftgun.fuel;
 
+import dev.riftgun.core.fuel.PortalFluidContent;
+import dev.riftgun.core.fuel.PortalGunFuelStore;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidHandlerItemStack;
@@ -7,7 +9,7 @@ import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalModuleRules;
 
-public final class PortalGunTank extends FluidHandlerItemStack {
+public final class PortalGunTank extends FluidHandlerItemStack implements PortalGunFuelStore {
     public static final int NOMINAL_CAPACITY = PortalModuleRules.DEFAULT_BASE_CAPACITY;
     public static final int WORLD_SOURCE_AMOUNT = 1000;
 
@@ -73,6 +75,30 @@ public final class PortalGunTank extends FluidHandlerItemStack {
 
     public int nominalCapacity() {
         return capacity;
+    }
+
+    @Override
+    public PortalFluidContent content() {
+        FluidStack stored = getFluid();
+        return new PortalFluidContent(stored.getFluid(), stored.getAmount());
+    }
+
+    @Override
+    public int capacity() {
+        return getTankCapacity(0);
+    }
+
+    @Override
+    public int fill(PortalFluidContent input, boolean simulate) {
+        return fill(new FluidStack(input.fluid(), input.amount()),
+            simulate ? FluidAction.SIMULATE : FluidAction.EXECUTE);
+    }
+
+    @Override
+    public PortalFluidContent drain(int amount, boolean simulate) {
+        FluidStack drained = drain(amount,
+            simulate ? FluidAction.SIMULATE : FluidAction.EXECUTE);
+        return new PortalFluidContent(drained.getFluid(), drained.getAmount());
     }
 
     public void truncateToNominalCapacity() {

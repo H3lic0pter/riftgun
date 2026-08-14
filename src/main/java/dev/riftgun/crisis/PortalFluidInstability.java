@@ -8,6 +8,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 /** Resolves server-authoritative instability with explicit config overrides. */
@@ -16,11 +17,15 @@ public final class PortalFluidInstability {
         Registries.FLUID, ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "unstable_portal_fluids"));
 
     public static boolean isUnstable(FluidStack stack) {
-        if (stack.isEmpty()) return false;
-        ResourceLocation id = BuiltInRegistries.FLUID.getKey(stack.getFluid());
+        return !stack.isEmpty() && isUnstable(stack.getFluid());
+    }
+
+    public static boolean isUnstable(Fluid fluid) {
+        if (fluid == Fluids.EMPTY) return false;
+        ResourceLocation id = BuiltInRegistries.FLUID.getKey(fluid);
         if (contains(RiftConfigs.server().crises().forceStableFluids(), id)) return false;
         if (contains(RiftConfigs.server().crises().forceUnstableFluids(), id)) return true;
-        return stack.is(UNSTABLE_FLUIDS);
+        return fluid.defaultFluidState().is(UNSTABLE_FLUIDS);
     }
 
     private static boolean contains(List<? extends String> configured, ResourceLocation id) {

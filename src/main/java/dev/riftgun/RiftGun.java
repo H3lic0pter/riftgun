@@ -3,6 +3,7 @@ package dev.riftgun;
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.core.registry.RiftContent;
+import dev.riftgun.core.fuel.RiftFuelStores;
 import dev.riftgun.fuel.PortalFluids;
 import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.fuel.PortalGunCapabilityPolicy;
@@ -105,6 +106,7 @@ public final class RiftGun {
         RiftContent.install(new RiftContent.Installation(
             PRIVACY_TERMINAL::get, PRIVACY_TERMINAL_ITEM::get, PORTAL_GUN::get,
             PORTAL::get, ENTITY_RELOCATION_PORTAL::get, PORTAL_SPLASH::get));
+        RiftFuelStores.install(PortalGunTank::new);
     }
 
     public RiftGun(IEventBus modBus, ModContainer container) {
