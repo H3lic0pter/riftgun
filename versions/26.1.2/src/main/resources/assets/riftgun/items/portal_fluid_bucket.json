@@ -1,3 +1,9 @@
 {
-  "model": {"type": "minecraft:model", "model": "riftgun:item/portal_fluid_bucket"}
+  "model": {
+    "type": "neoforge:fluid_container",
+    "fluid": "riftgun:portal_fluid",
+    "textures": {
+      "base": "minecraft:item/bucket"
+    }
+  }
 }

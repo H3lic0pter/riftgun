@@ -2,6 +2,7 @@ package dev.riftgun.fuel;
 
 import dev.riftgun.core.RiftConstants;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
@@ -11,6 +12,10 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.Fluid;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
+//?}
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForgeMod;
 import net.neoforged.neoforge.common.SoundActions;
@@ -44,19 +49,37 @@ public final class PortalFluids {
     public static final DeferredHolder<Fluid, BaseFlowingFluid.Flowing> FLOWING_DIMENSIONAL =
         FLUIDS.register("flowing_dimensional_portal_fluid", () -> new BaseFlowingFluid.Flowing(dimensionalProperties()));
 
+    //? if >=1.21.11 {
+    /*public static final DeferredHolder<Block, LiquidBlock> UNSTABLE_BLOCK = BLOCKS.register(
+        "unstable_portal_fluid", id -> liquidBlock(UNSTABLE.get(), id));
+    public static final DeferredHolder<Block, LiquidBlock> PORTAL_BLOCK = BLOCKS.register(
+        "portal_fluid", id -> liquidBlock(PORTAL.get(), id));
+    public static final DeferredHolder<Block, LiquidBlock> DIMENSIONAL_BLOCK = BLOCKS.register(
+        "dimensional_portal_fluid", id -> liquidBlock(DIMENSIONAL.get(), id));
+    *///?} else {
     public static final DeferredHolder<Block, LiquidBlock> UNSTABLE_BLOCK = BLOCKS.register(
         "unstable_portal_fluid", () -> liquidBlock(UNSTABLE.get()));
     public static final DeferredHolder<Block, LiquidBlock> PORTAL_BLOCK = BLOCKS.register(
         "portal_fluid", () -> liquidBlock(PORTAL.get()));
     public static final DeferredHolder<Block, LiquidBlock> DIMENSIONAL_BLOCK = BLOCKS.register(
         "dimensional_portal_fluid", () -> liquidBlock(DIMENSIONAL.get()));
+    //?}
 
+    //? if >=1.21.11 {
+    /*public static final DeferredHolder<Item, BucketItem> UNSTABLE_BUCKET = ITEMS.register(
+        "unstable_portal_fluid_bucket", id -> bucket(UNSTABLE.get(), id));
+    public static final DeferredHolder<Item, BucketItem> PORTAL_BUCKET = ITEMS.register(
+        "portal_fluid_bucket", id -> bucket(PORTAL.get(), id));
+    public static final DeferredHolder<Item, BucketItem> DIMENSIONAL_BUCKET = ITEMS.register(
+        "dimensional_portal_fluid_bucket", id -> bucket(DIMENSIONAL.get(), id));
+    *///?} else {
     public static final DeferredHolder<Item, BucketItem> UNSTABLE_BUCKET = ITEMS.register(
         "unstable_portal_fluid_bucket", () -> bucket(UNSTABLE.get()));
     public static final DeferredHolder<Item, BucketItem> PORTAL_BUCKET = ITEMS.register(
         "portal_fluid_bucket", () -> bucket(PORTAL.get()));
     public static final DeferredHolder<Item, BucketItem> DIMENSIONAL_BUCKET = ITEMS.register(
         "dimensional_portal_fluid_bucket", () -> bucket(DIMENSIONAL.get()));
+    //?}
 
     public static void register(IEventBus bus) {
         TYPES.register(bus);
@@ -103,14 +126,30 @@ public final class PortalFluids {
             .tickRate(5);
     }
 
+    //? if >=1.21.11 {
+    /*private static LiquidBlock liquidBlock(Fluid fluid, Identifier id) {
+        return new LiquidBlock((BaseFlowingFluid) fluid,
+            BlockBehaviour.Properties.ofFullCopy(Blocks.WATER).noLootTable()
+                .setId(ResourceKey.create(Registries.BLOCK, id)));
+    }
+    *///?} else {
     private static LiquidBlock liquidBlock(Fluid fluid) {
         return new LiquidBlock((BaseFlowingFluid) fluid,
             BlockBehaviour.Properties.ofFullCopy(Blocks.WATER).noLootTable());
     }
+    //?}
 
+    //? if >=1.21.11 {
+    /*private static BucketItem bucket(Fluid fluid, Identifier id) {
+        return new BucketItem(fluid, new Item.Properties()
+            .craftRemainder(Items.BUCKET).stacksTo(1)
+            .setId(ResourceKey.create(Registries.ITEM, id)));
+    }
+    *///?} else {
     private static BucketItem bucket(Fluid fluid) {
         return new BucketItem(fluid, new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1));
     }
+    //?}
 
     private PortalFluids() {}
 }

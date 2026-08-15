@@ -3,6 +3,7 @@ package dev.riftgun.module;
 import dev.riftgun.core.RiftConstants;
 import java.util.function.ToIntFunction;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 //? if >=1.21.11 {
 /*import net.minecraft.resources.Identifier;
 *///?} else {
@@ -16,10 +17,19 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class PortalModules {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, RiftConstants.MOD_ID);
 
+    //? if >=1.21.11 {
+    /*public static final DeferredHolder<Item, Item> BASIC_MODULE = ITEMS.register(
+        "basic_module", id -> new Item(new Item.Properties().stacksTo(64)
+            .setId(ResourceKey.create(Registries.ITEM, id))));
+    public static final DeferredHolder<Item, Item> ADVANCED_BASIC_MODULE = ITEMS.register(
+        "advanced_basic_module", id -> new Item(new Item.Properties().stacksTo(64)
+            .setId(ResourceKey.create(Registries.ITEM, id))));
+    *///?} else {
     public static final DeferredHolder<Item, Item> BASIC_MODULE = ITEMS.register(
         "basic_module", () -> new Item(new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, Item> ADVANCED_BASIC_MODULE = ITEMS.register(
         "advanced_basic_module", () -> new Item(new Item.Properties().stacksTo(64)));
+    //?}
 
     public static final ModuleEntry COORDINATE_OVERRIDE = register(
         "coordinate_override_module", PortalModuleKind.COORDINATE_OVERRIDE, ignored -> 1, 0x74D9E8);
@@ -62,7 +72,12 @@ public final class PortalModules {
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {
+        //? if >=1.21.11 {
+        /*DeferredHolder<Item, Item> item = ITEMS.register(name, id -> new Item(
+            new Item.Properties().stacksTo(1).setId(ResourceKey.create(Registries.ITEM, id))));
+        *///?} else {
         DeferredHolder<Item, Item> item = ITEMS.register(name, () -> new Item(new Item.Properties().stacksTo(1)));
+        //?}
         PortalModuleDefinition definition = PortalModuleRegistry.register(new PortalModuleDefinition(
 //? if >=1.21.11 {
             /*Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, name), kind, item, maximumCount, accentRgb));

@@ -44,12 +44,19 @@ configurations.configureEach {
 
 neoForge {
     version = property("neoforge_version") as String
+    mods {
+        create("riftgun") {
+            sourceSet(sourceSets.main.get())
+        }
+    }
     runs {
         create("client") {
             client()
+            loadedMods.set(mods)
         }
         create("server") {
             server()
+            loadedMods.set(mods)
         }
     }
 }

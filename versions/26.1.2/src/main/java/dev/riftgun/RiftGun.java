@@ -57,15 +57,17 @@ public final class RiftGun {
         DeferredRegister.create(Registries.PARTICLE_TYPE, MOD_ID);
 
     private static final DeferredHolder<Block, dev.riftgun.block.PrivacyTerminalBlock> PRIVACY_TERMINAL =
-        BLOCKS.register("privacy_terminal", dev.riftgun.block.PrivacyTerminalBlock::new);
+        BLOCKS.register("privacy_terminal", id -> new dev.riftgun.block.PrivacyTerminalBlock(id));
     private static final DeferredHolder<Item, BlockItem> PRIVACY_TERMINAL_ITEM = ITEMS.register(
         "privacy_terminal",
-        () -> new BlockItem(PRIVACY_TERMINAL.get(), new Item.Properties())
+        id -> new BlockItem(PRIVACY_TERMINAL.get(), new Item.Properties()
+            .setId(net.minecraft.resources.ResourceKey.create(Registries.ITEM, id)))
     );
 
     private static final DeferredHolder<Item, PortalGunItem> PORTAL_GUN = ITEMS.register(
         "portal_gun",
-        () -> new PortalGunItem(new Item.Properties().stacksTo(1)
+        id -> new PortalGunItem(new Item.Properties().stacksTo(1)
+            .setId(net.minecraft.resources.ResourceKey.create(Registries.ITEM, id))
             .component(PortalGunComponents.VISUAL_STATE.get(), PortalGunVisualState.UNINITIALIZED))
     );
 

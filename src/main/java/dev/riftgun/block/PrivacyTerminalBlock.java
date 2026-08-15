@@ -3,6 +3,8 @@ package dev.riftgun.block;
 import dev.riftgun.network.PortalNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -22,6 +24,10 @@ import net.minecraft.world.level.block.state.properties.DirectionProperty;
 //?}
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
+//?}
 
 /** Opens the Player Portal Privacy configuration screen. */
 public final class PrivacyTerminalBlock extends Block {
@@ -31,6 +37,16 @@ public final class PrivacyTerminalBlock extends Block {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     //?}
 
+    //? if >=1.21.11 {
+    /*public PrivacyTerminalBlock(Identifier id) {
+        super(Properties.of()
+            .mapColor(MapColor.COLOR_BLACK)
+            .strength(2.0F, 6.0F)
+            .sound(SoundType.METAL)
+            .setId(ResourceKey.create(Registries.BLOCK, id)));
+        registerDefaultState(stateDefinition.any().setValue(FACING, net.minecraft.core.Direction.NORTH));
+    }
+    *///?} else {
     public PrivacyTerminalBlock() {
         super(Properties.of()
             .mapColor(MapColor.COLOR_BLACK)
@@ -38,6 +54,7 @@ public final class PrivacyTerminalBlock extends Block {
             .sound(SoundType.METAL));
         registerDefaultState(stateDefinition.any().setValue(FACING, net.minecraft.core.Direction.NORTH));
     }
+    //?}
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {

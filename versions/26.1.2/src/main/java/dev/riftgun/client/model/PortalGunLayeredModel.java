@@ -27,8 +27,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.ItemOwner;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4fc;
 import org.joml.Vector3fc;
 import org.jspecify.annotations.Nullable;
@@ -85,7 +83,6 @@ public record PortalGunLayeredModel(
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     public record Unbaked(Identifier model, Optional<Transformation> transformation)
             implements ItemModel.Unbaked {
         public static final MapCodec<PortalGunLayeredModel.Unbaked> MAP_CODEC = RecordCodecBuilder.mapCodec(
