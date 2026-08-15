@@ -18,10 +18,18 @@ public record PortalEntityAccessSnapshot(boolean passive, boolean hostile, boole
 
     public boolean allows(Entity entity) {
         if (entity instanceof Projectile) {
+//? if >=1.21.11 {
+            /*return projectile && !java.util.stream.StreamSupport.stream(entity.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENTITY_TYPE).getTagOrEmpty(PortalEntityTags.PROJECTILE_TRANSIT_EXCLUDED).spliterator(), false).anyMatch(holder -> holder.value() == entity.getType());
+*///?} else {
             return projectile && !entity.getType().is(PortalEntityTags.PROJECTILE_TRANSIT_EXCLUDED);
+//?}
         }
         if (!(entity instanceof LivingEntity)) return false;
+//? if >=1.21.11 {
+        /*if (java.util.stream.StreamSupport.stream(entity.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENTITY_TYPE).getTagOrEmpty(PortalEntityTags.BOSSES).spliterator(), false).anyMatch(holder -> holder.value() == entity.getType())) return boss;
+*///?} else {
         if (entity.getType().is(PortalEntityTags.BOSSES)) return boss;
+//?}
         if (entity instanceof Enemy) return hostile;
         return passive;
     }

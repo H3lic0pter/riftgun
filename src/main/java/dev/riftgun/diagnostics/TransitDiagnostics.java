@@ -76,7 +76,11 @@ public final class TransitDiagnostics {
             portal("postcondition route={} ageTicks={} entity={} destinationPresent={} sourcePresent={} actualDimension={} actualPos={} expectedPos={} distance={}",
                 probe.route(), age, probe.entityId(), atDestination != null,
                 atSource != null && atSource != atDestination,
+//? if >=1.21.11 {
+                /*atDestination == null ? "null" : atDestination.level().dimension().identifier(),
+*///?} else {
                 atDestination == null ? "null" : atDestination.level().dimension().location(),
+//?}
                 atDestination == null ? "null" : atDestination.position(), probe.expectedPosition(),
                 atDestination == null ? -1.0 : atDestination.position().distanceTo(probe.expectedPosition()));
             if (age >= 5L) iterator.remove();

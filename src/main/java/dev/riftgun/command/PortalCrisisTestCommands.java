@@ -44,7 +44,11 @@ public final class PortalCrisisTestCommands {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("riftgun")
             .then(Commands.literal("crisis")
+//? if >=1.21.11 {
+                /*.requires(source -> net.minecraft.commands.Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+*///?} else {
                 .requires(source -> source.hasPermission(REQUIRED_PERMISSION_LEVEL))
+//?}
                 .then(Commands.literal("force")
                     .then(Commands.argument("targets", EntityArgument.players())
 //? if >=1.21.11 {

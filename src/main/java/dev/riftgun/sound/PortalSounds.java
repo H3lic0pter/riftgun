@@ -60,7 +60,11 @@ public final class PortalSounds {
     }
 
     public static void playShot(ServerPlayer player, PortalSoundSnapshot sounds) {
+//? if >=1.21.11 {
+        /*play((ServerLevel) player.level(), player.position(),
+*///?} else {
         play(player.serverLevel(), player.position(),
+//?}
             PortalSoundRegistry.primaryCue(PortalSoundChannel.SHOT, sounds.shot()));
     }
 

@@ -1,4 +1,5 @@
 package dev.riftgun.module;
+import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.data.PortalDataStore;
@@ -184,7 +185,7 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
             *///?} else {
             if (!allowed && player.level().isClientSide) {
             //?}
-                player.displayClientMessage(Component.translatable(
+                Msg.displayClientMessage(player, Component.translatable(
                     "message.riftgun.modules.clear_expanded_slots"), true);
             }
             return allowed;

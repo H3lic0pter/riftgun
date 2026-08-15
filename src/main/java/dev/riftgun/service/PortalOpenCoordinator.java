@@ -1,4 +1,5 @@
 package dev.riftgun.service;
+import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.runtime.RiftRuntime;
@@ -48,7 +49,11 @@ public final class PortalOpenCoordinator {
     public static void requestPlayerTarget(ServerPlayer player, PortalPlayerData data,
                                            UUID targetPlayerId, boolean fromGui,
                                            PortalPlacementMode mode, PortalGunLocator.LocatedGun locatedGun) {
+//? if >=1.21.11 {
+        /*MinecraftServer server = player.level().getServer();
+*///?} else {
         MinecraftServer server = player.getServer();
+//?}
         ServerPlayer target = server == null ? null : server.getPlayerList().getPlayer(targetPlayerId);
         if (target == null) {
             failMessage(player, "message.riftgun.player_target_offline");
@@ -85,7 +90,11 @@ public final class PortalOpenCoordinator {
 
         long time = player.level().getGameTime();
         Destination destination = new Destination(
+//? if >=1.21.11 {
+            /*UUID.randomUUID(), target.getGameProfile().name(), PortalPlayerData.DEFAULT_GROUP_ID,
+*///?} else {
             UUID.randomUUID(), target.getGameProfile().getName(), PortalPlayerData.DEFAULT_GROUP_ID,
+//?}
             target.level().dimension(), target.getX(), target.getY(), target.getZ(),
             target.getYRot(), time, 0L, false);
         PlayerExcludeMode excludeMode = capabilities.playerExcludeMode();
@@ -113,10 +122,14 @@ public final class PortalOpenCoordinator {
                                 @Nullable UUID exitExclude, boolean recordAsDestination, boolean fromGui) {
         var dimensionResult = RiftRuntime.current().dimensionPolicy().validate(player, destination);
         if (!dimensionResult.allowed()) {
-            player.displayClientMessage(dimensionResult.message(), true);
+            Msg.displayClientMessage(player, dimensionResult.message(), true);
             return false;
         }
+//? if >=1.21.11 {
+        /*MinecraftServer server = player.level().getServer();
+*///?} else {
         MinecraftServer server = player.getServer();
+//?}
         ServerLevel targetLevel = server == null ? null : server.getLevel(destination.dimension());
         if (targetLevel == null) {
             failMessage(player, "message.riftgun.dimension_unavailable");
@@ -174,7 +187,7 @@ public final class PortalOpenCoordinator {
             if (!crossDimension && data.settings().safetyCheckEnabled()) {
                 safetyReport = RiftRuntime.current().safetyInspector().inspect(targetLevel, destination);
                 if (!safetyReport.safe()) {
-                    player.displayClientMessage(
+                    Msg.displayClientMessage(player, 
                         Component.translatable("message.riftgun.destination_unsafe"), true);
                 }
                 resolved = RiftRuntime.current().safeDestinationResolver().resolve(
@@ -207,7 +220,7 @@ public final class PortalOpenCoordinator {
     }
 
     private static void failMessage(ServerPlayer player, String translationKey) {
-        player.displayClientMessage(Component.translatable(translationKey), true);
+        Msg.displayClientMessage(player, Component.translatable(translationKey), true);
     }
 
     private PortalOpenCoordinator() {}

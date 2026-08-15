@@ -118,7 +118,11 @@ public final class RiftLifecycle {
     }
 
     private static void closeOwned(ServerPlayer player) {
+//? if >=1.21.11 {
+        /*MinecraftServer server = player.level().getServer();
+*///?} else {
         MinecraftServer server = player.getServer();
+//?}
         if (server != null) PortalEntity.closeOwnedPortals(server, player.getUUID());
     }
 

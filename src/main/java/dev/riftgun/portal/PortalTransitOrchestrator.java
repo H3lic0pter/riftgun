@@ -138,9 +138,17 @@ final class PortalTransitOrchestrator {
         Entity first = touching.getFirst();
         TransitDiagnostics.portal("contact blocked portal={} root={} type={} dimension={} reason={} target={} targetDimension={}",
             portal.getUUID(), first.getUUID(), first.getType(),
+//? if >=1.21.11 {
+            /*portal.level().dimension().identifier(), reason,
+*///?} else {
             portal.level().dimension().location(), reason,
+//?}
             target == null ? "null" : target.getUUID(),
+//? if >=1.21.11 {
+            /*target == null ? "null" : target.level().dimension().identifier());
+*///?} else {
             target == null ? "null" : target.level().dimension().location());
+//?}
     }
 
     void leave(UUID entityId) {
@@ -181,7 +189,11 @@ final class PortalTransitOrchestrator {
         Vec3 sourcePosition = root.position();
         TransitDiagnostics.portal("normal trigger sourcePortal={} targetPortal={} root={} type={} source={} destination={} targetChunkTicking={}",
             portal.getUUID(), target.getUUID(), root.getUUID(), root.getType(),
+//? if >=1.21.11 {
+            /*sourceLevel.dimension().identifier(), targetLevel.dimension().identifier(),
+*///?} else {
             sourceLevel.dimension().location(), targetLevel.dimension().location(),
+//?}
             targetLevel.isPositionEntityTicking(target.blockPosition()));
         Vec3 rootDestination = treeDestination(root, target);
         if (rootDestination == null) {
@@ -224,7 +236,11 @@ final class PortalTransitOrchestrator {
             portal.getUUID(), target.getUUID(), root.getUUID(), movedRoot != null,
             movedCount[0], TransitDiagnostics.enabled()
                 ? (System.nanoTime() - teleportStarted) / 1_000_000.0 : 0.0,
+//? if >=1.21.11 {
+            /*movedRoot == null ? "null" : movedRoot.level().dimension().identifier(),
+*///?} else {
             movedRoot == null ? "null" : movedRoot.level().dimension().location(),
+//?}
             movedRoot == null ? "null" : movedRoot.position());
         if (movedRoot != null) {
             TransitDiagnostics.trackPostcondition(movedRoot, sourceLevel.dimension(),
@@ -332,7 +348,11 @@ final class PortalTransitOrchestrator {
             "portal passenger-tree failure stage={} portal={} linked={} sourceDimension={} "
                 + "targetDimension={} rootType={} rootUuid={} failedType={} failedUuid={} movedCount={}",
             stage, portal.getUUID(), linked == null ? "deferred" : linked.getUUID(),
+//? if >=1.21.11 {
+            /*portal.level().dimension().identifier(), targetLevel.dimension().identifier(),
+*///?} else {
             portal.level().dimension().location(), targetLevel.dimension().location(),
+//?}
             EntityType.getKey(root.getType()), root.getUUID(),
             EntityType.getKey(failed.getType()), failed.getUUID(), movedCount);
     }

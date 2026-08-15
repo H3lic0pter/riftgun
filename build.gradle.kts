@@ -86,11 +86,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.9.2")
 }
 
-tasks.withType<JavaCompile>().configureEach {
-    options.compilerArgs.add("-Xmaxerrs")
-    options.compilerArgs.add("2000")
-}
-
 tasks.named<Test>("test") {
     useJUnitPlatform()
     // Tests reference root-relative paths (src/main/java, src/main/resources);

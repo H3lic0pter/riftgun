@@ -143,9 +143,17 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             .add(0.0, geometry.height() * 0.5, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.VERTICAL, geometry,
             yawFromNormal(normal), null, null);
+//? if >=1.21.11 {
+        /*return !FloatingPortalBounds.allows(placement.bounds(), ((ServerLevel) player.level()).dimensionType().minY())
+        *///?} else {
         return !FloatingPortalBounds.allows(placement.bounds(), player.serverLevel().getMinBuildHeight())
+        //?}
             ? EntryResult.failure("message.riftgun.void_portal_too_late")
+//? if >=1.21.11 {
+            /*: floatingObstructed((ServerLevel) player.level(), placement, minimumExposure)
+*///?} else {
             : floatingObstructed(player.serverLevel(), placement, minimumExposure)
+//?}
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
@@ -155,9 +163,17 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             .add(0.0, -downshotDistance, 0.0);
         PortalPlacement placement = new PortalPlacement(center, PortalOrientation.TOP,
             geometry, player.getYRot(), null, null);
+//? if >=1.21.11 {
+        /*return !FloatingPortalBounds.allows(placement.bounds(), ((ServerLevel) player.level()).dimensionType().minY())
+        *///?} else {
         return !FloatingPortalBounds.allows(placement.bounds(), player.serverLevel().getMinBuildHeight())
+        //?}
             ? EntryResult.failure("message.riftgun.void_portal_too_late")
+//? if >=1.21.11 {
+            /*: floatingObstructed((ServerLevel) player.level(), placement, minimumExposure)
+*///?} else {
             : floatingObstructed(player.serverLevel(), placement, minimumExposure)
+//?}
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
@@ -176,7 +192,11 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         double rayRange = smart ? maximumRange : maximumRange + 16.0;
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getLookAngle().scale(rayRange));
+//? if >=1.21.11 {
+        /*HitResult raw = ((ServerLevel) player.level()).clip(new ClipContext(
+*///?} else {
         HitResult raw = player.serverLevel().clip(new ClipContext(
+//?}
             eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         if (!(raw instanceof BlockHitResult hit) || raw.getType() != HitResult.Type.BLOCK) {
             return smart ? EntryResult.frontRoute() : EntryResult.failure("message.riftgun.surface_missing");
@@ -185,14 +205,22 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         double distance = eye.distanceTo(hit.getLocation());
         if (smart && distance > Math.min(requestedSmartDistance, maximumRange)) return EntryResult.frontRoute();
         if (distance > maximumRange) return EntryResult.failure("message.riftgun.surface_out_of_range");
+//? if >=1.21.11 {
+        /*return attached((ServerLevel) player.level(), player, hit, aperture);
+*///?} else {
         return attached(player.serverLevel(), player, hit, aperture);
+//?}
     }
 
     private EntryResult revalidateSurface(ServerPlayer player, PortalPlacement placement, double maximumRange) {
         if (placement == null || placement.anchor() == null || placement.anchorFace() == null) {
             return EntryResult.failure("message.riftgun.surface_invalid");
         }
+//? if >=1.21.11 {
+        /*ServerLevel level = (ServerLevel) player.level();
+*///?} else {
         ServerLevel level = player.serverLevel();
+//?}
         BlockPos anchor = placement.anchor();
         if (level.getBlockState(anchor).getCollisionShape(level, anchor).isEmpty()) {
             return EntryResult.failure("message.riftgun.surface_invalid");
@@ -228,7 +256,11 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
         if (face.getAxis().isVertical()) {
             PortalOrientation orientation = face == Direction.UP ? PortalOrientation.TOP : PortalOrientation.BOTTOM;
-            Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
+//? if >=1.21.11 {
+            /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+*///?} else {
+            Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+//?}
             Vec3 center = Vec3.atCenterOf(anchor).add(normal.scale(0.5 + SURFACE_OFFSET));
             PortalPlacement placement = new PortalPlacement(center, orientation, PortalGeometry.HORIZONTAL,
                 player.getYRot(), anchor.immutable(), face);
@@ -236,7 +268,11 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                 ? EntryResult.failure("message.riftgun.surface_obstructed") : EntryResult.success(placement);
         }
 
-        Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
+//? if >=1.21.11 {
+        /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+*///?} else {
+        Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+//?}
         double x = anchor.getX() + 0.5 + normal.x * (0.5 + SURFACE_OFFSET);
         double z = anchor.getZ() + 0.5 + normal.z * (0.5 + SURFACE_OFFSET);
         float yaw = yawFromNormal(normal);
@@ -268,8 +304,16 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         BlockPos hitBlock = hit.getBlockPos();
         Direction face = hit.getDirection();
         Direction lateral = face.getAxis() == Direction.Axis.Z ? Direction.EAST : Direction.SOUTH;
-        Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
-        Vec3 lateralVector = Vec3.atLowerCornerOf(lateral.getNormal());
+//? if >=1.21.11 {
+        /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+*///?} else {
+        Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+//?}
+//? if >=1.21.11 {
+        /*Vec3 lateralVector = new Vec3(lateral.getStepX(), lateral.getStepY(), lateral.getStepZ());
+*///?} else {
+        Vec3 lateralVector = new Vec3(lateral.getStepX(), lateral.getStepY(), lateral.getStepZ());
+//?}
         float yaw = yawFromNormal(normal);
         List<PortalPlacement> candidates = new ArrayList<>(4);
         for (int lateralOffset = -1; lateralOffset <= 0; lateralOffset++) {
@@ -303,7 +347,11 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                                                                Direction face, float yaw) {
         List<PortalPlacement> candidates = new ArrayList<>(4);
         PortalOrientation orientation = face == Direction.UP ? PortalOrientation.TOP : PortalOrientation.BOTTOM;
-        Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
+//? if >=1.21.11 {
+        /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+*///?} else {
+        Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+//?}
         for (int xOffset = -1; xOffset <= 0; xOffset++) {
             for (int zOffset = -1; zOffset <= 0; zOffset++) {
                 BlockPos origin = hitBlock.offset(xOffset, 0, zOffset);
@@ -381,7 +429,11 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     }
 
     private static boolean outsideWorld(ServerLevel level, AABB bounds) {
+        //? if >=1.21.11 {
+        /*return bounds.minY < level.dimensionType().minY() || bounds.maxY > level.dimensionType().minY() + level.dimensionType().height();
+        *///?} else {
         return bounds.minY < level.getMinBuildHeight() || bounds.maxY > level.getMaxBuildHeight();
+        //?}
     }
 
     private static int backingBlock(ServerLevel level, BlockPos position) {

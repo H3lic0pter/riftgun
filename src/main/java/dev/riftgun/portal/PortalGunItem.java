@@ -22,10 +22,12 @@ import net.minecraft.world.InteractionResultHolder;
 //?}
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import net.neoforged.neoforge.fluids.FluidUtil;
 
 public final class PortalGunItem extends Item {
@@ -43,8 +45,13 @@ public final class PortalGunItem extends Item {
         return false;
     }
 
+    //? if >=1.21.11 {
+    /*@Override
+    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
+    *///?} else {
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {
+    //?}
         if (!level.isClientSide()) PortalGunVisualState.ensureInitialized(stack);
     }
 
@@ -91,8 +98,14 @@ public final class PortalGunItem extends Item {
         var primary = sided.orElseGet(() -> unsided.orElse(null));
         boolean transferred = primary != null && PortalGunFluidInteractions.interact(
             player, context.getHand(), primary, unsided.orElse(null));
+        //? if >=1.21.11 {
+        /*return transferred
+            ? context.getLevel().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER
+            : InteractionResult.PASS;
+        *///?} else {
         return transferred
             ? InteractionResult.sidedSuccess(context.getLevel().isClientSide())
             : InteractionResult.PASS;
+        //?}
     }
 }

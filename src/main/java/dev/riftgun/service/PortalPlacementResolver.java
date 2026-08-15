@@ -22,8 +22,11 @@ public interface PortalPlacementResolver {
 
     default PortalPlacementResult resolveExitPrepared(ServerPlayer player, Destination destination,
                                                       PortalPlacement entry, PortalAperture aperture) {
-        ServerLevel targetLevel = player.getServer() == null
-            ? null : player.getServer().getLevel(destination.dimension());
+        //? if >=1.21.11 {
+        /*ServerLevel targetLevel = player.level().getServer() == null ? null : player.level().getServer().getLevel(destination.dimension());
+        *///?} else {
+        ServerLevel targetLevel = player.getServer() == null ? null : player.getServer().getLevel(destination.dimension());
+        //?}
         return targetLevel == null
             ? PortalPlacementResult.failure("message.riftgun.dimension_unavailable")
             : resolveExitPrepared(targetLevel, PortalExitTarget.from(destination), entry, aperture);

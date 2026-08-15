@@ -101,7 +101,7 @@ public final class PortalCrisisCoordinator {
         }
         if (plan.cooldownTicks() > 0) {
 //? if >=1.21.11 {
-            /*player.getCooldowns().addCooldown(RiftContent.PORTAL_GUN.getId(), plan.cooldownTicks());
+            /*player.getCooldowns().addCooldown(net.minecraft.resources.Identifier.fromNamespaceAndPath("riftgun", "portal_gun"), plan.cooldownTicks());
 *///?} else {
             player.getCooldowns().addCooldown(RiftContent.PORTAL_GUN.get(), plan.cooldownTicks());
 //?}

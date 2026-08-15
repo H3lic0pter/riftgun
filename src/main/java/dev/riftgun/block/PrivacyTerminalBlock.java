@@ -65,6 +65,10 @@ public final class PrivacyTerminalBlock extends Block {
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
             PortalNetworking.sendPrivacyTerminal(serverPlayer);
         }
+//? if >=1.21.11 {
+        /*return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+*///?} else {
         return InteractionResult.sidedSuccess(level.isClientSide());
+//?}
     }
 }

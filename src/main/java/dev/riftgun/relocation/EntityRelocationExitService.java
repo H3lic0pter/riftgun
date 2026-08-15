@@ -45,7 +45,11 @@ final class EntityRelocationExitService {
         PortalSounds.playOpening(request.level(), exit.position(), request.sounds());
         if (request.sharedKey() != null) {
             INDEX.register(request.sharedKey(), new EntityRelocationExitIndex.ExitReference(
+//? if >=1.21.11 {
+                /*exit.getUUID(), request.level().dimension().identifier()));
+*///?} else {
                 exit.getUUID(), request.level().dimension().location()));
+//?}
         }
         return new Handle(null, exit.getUUID(), request.level().dimension());
     }

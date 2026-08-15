@@ -1,5 +1,7 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.core.msg.Msg;
+
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.runtime.RiftRuntime;
@@ -179,8 +181,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         if (ticketHeld || !(level() instanceof ServerLevel serverLevel)) return;
         BlockPos position = blockPosition();
         serverLevel.getChunk(position.getX() >> 4, position.getZ() >> 4);
-        serverLevel.getChunkSource().addRegionTicket(
-            PORTAL_TICKET, new ChunkPos(position.getX(), position.getZ()), 3, position, true);
+        serverLevel.getChunkSource().addTicketAndLoadWithRadius(
+            PORTAL_TICKET, new ChunkPos(position.getX(), position.getZ()), 3);
         ticketPosition = position;
         ticketHeld = true;
     }
@@ -384,8 +386,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     void releaseChunkTicket() {
         if (!ticketHeld || ticketPosition == null || !(level() instanceof ServerLevel serverLevel)) return;
-        serverLevel.getChunkSource().removeRegionTicket(
-            PORTAL_TICKET, new ChunkPos(ticketPosition.getX(), ticketPosition.getZ()), 3, ticketPosition, true);
+        serverLevel.getChunkSource().removeTicketWithRadius(
+            PORTAL_TICKET, new ChunkPos(ticketPosition.getX(), ticketPosition.getZ()), 3);
         ticketHeld = false;
     }
 
@@ -446,14 +448,14 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         boolean warned = false;
         for (Entity entity : movedEntities) {
             if (entity instanceof ServerPlayer player) {
-                player.displayClientMessage(
+                Msg.displayClientMessage(player, 
                     Component.translatable("message.riftgun.exit_generation_failed"), true);
                 warned = true;
             }
         }
         if (!warned && ownerId != null) {
             ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
-            if (owner != null) owner.displayClientMessage(
+            if (owner != null) Msg.displayClientMessage(owner, 
                 Component.translatable("message.riftgun.exit_generation_failed"), true);
         }
     }
@@ -462,14 +464,14 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         boolean warned = false;
         for (Entity entity : root.getSelfAndPassengers().toList()) {
             if (entity instanceof ServerPlayer player) {
-                player.displayClientMessage(
+                Msg.displayClientMessage(player, 
                     Component.translatable("message.riftgun.destination_teleport_failed"), true);
                 warned = true;
             }
         }
         if (!warned && ownerId != null) {
             ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
-            if (owner != null) owner.displayClientMessage(
+            if (owner != null) Msg.displayClientMessage(owner, 
                 Component.translatable("message.riftgun.destination_teleport_failed"), true);
         }
     }
@@ -702,7 +704,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     private void addAdditionalToCompound(CompoundTag tag) {
         if (linkedPortalId != null) Nbt.putUUID(tag, "LinkedPortal", linkedPortalId);
-        if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
+        if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.identifier().toString());
         if (ownerId != null) Nbt.putUUID(tag, "Owner", ownerId);
         if (excludedPlayerId != null) Nbt.putUUID(tag, "ExcludedPlayer", excludedPlayerId);
         tag.putBoolean("ExitPortal", exitPortal);

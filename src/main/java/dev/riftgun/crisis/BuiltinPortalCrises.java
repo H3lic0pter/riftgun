@@ -79,7 +79,11 @@ final class BuiltinPortalCrises {
         level.getChunk(normal);
         int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
             normal.getX(), normal.getZ());
+//? if >=1.21.11 {
+        /*int spawnY = Math.min(level.dimensionType().minY() + level.dimensionType().height() - 3,
+*///?} else {
         int spawnY = Math.min(level.getMaxBuildHeight() - 3,
+//?}
             surfaceY + RiftConfigs.server().crises().highFallHeight());
         if (spawnY - surfaceY < RiftConfigs.server().crises().minimumHighFallDrop()) {
             return Optional.empty();
@@ -116,8 +120,16 @@ final class BuiltinPortalCrises {
             int y = (attempt & 1) == 0
                 ? normal.getY() + context.player().getRandom().nextInt(-6, 7)
                 : level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+//? if >=1.21.11 {
+            /*BlockPos feet = new BlockPos(x, Mth.clamp(y, level.dimensionType().minY() + 1,
+*///?} else {
             BlockPos feet = new BlockPos(x, Mth.clamp(y, level.getMinBuildHeight() + 1,
+//?}
+//? if >=1.21.11 {
+                /*level.dimensionType().minY() + level.dimensionType().height() - 2), z);
+*///?} else {
                 level.getMaxBuildHeight() - 2), z);
+//?}
             Optional<PortalCrisisPlan> plan = lavaCandidate(context, feet);
             if (plan.isPresent()) return plan;
         }
@@ -177,10 +189,19 @@ final class BuiltinPortalCrises {
 
     private static Optional<PortalCrisisPlan> prepareNausea(PortalCrisisContext context) {
         return Optional.of(PortalCrisisPlan.effect(NAUSEA, player -> {
-            player.addEffect(new MobEffectInstance(MobEffects.CONFUSION,
+            player.addEffect(new MobEffectInstance(
+                //? if >=1.21.11 {
+                /*net.minecraft.world.effect.MobEffects.NAUSEA,
+                *///?} else {
+                MobEffects.CONFUSION,
+                //?}
                 RiftConfigs.server().crises().nauseaDurationTicks(),
                 RiftConfigs.server().crises().nauseaAmplifier()));
+//? if >=1.21.11 {
+            /*((ServerLevel) player.level()).playSound(null, player.blockPosition(),
+*///?} else {
             player.serverLevel().playSound(null, player.blockPosition(),
+//?}
                 SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.PLAYERS,
                 (float) RiftConfigs.server().crises().nauseaSoundVolume(),
                 (float) RiftConfigs.server().crises().nauseaSoundPitch());

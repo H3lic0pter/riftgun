@@ -53,7 +53,11 @@ final class PortalExitPlacementPolicy {
                                                              float yaw, SpaceProbe space) {
         List<PortalPlacement> candidates = new ArrayList<>(4);
         PortalOrientation orientation = face == Direction.UP ? PortalOrientation.TOP : PortalOrientation.BOTTOM;
-        Vec3 normal = Vec3.atLowerCornerOf(face.getNormal());
+//? if >=1.21.11 {
+        /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+*///?} else {
+        Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+//?}
         for (int xOffset = -1; xOffset <= 0; xOffset++) {
             for (int zOffset = -1; zOffset <= 0; zOffset++) {
                 BlockPos origin = reference.offset(xOffset, 0, zOffset);

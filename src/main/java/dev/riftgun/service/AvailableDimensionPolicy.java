@@ -7,7 +7,11 @@ import net.minecraft.server.level.ServerPlayer;
 public final class AvailableDimensionPolicy implements DestinationDimensionPolicy {
     @Override
     public Result validate(ServerPlayer player, Destination destination) {
+//? if >=1.21.11 {
+        /*return player.level().getServer() != null && player.level().getServer().getLevel(destination.dimension()) != null
+*///?} else {
         return player.getServer() != null && player.getServer().getLevel(destination.dimension()) != null
+//?}
             ? Result.permit()
             : Result.denied(Component.translatable("message.riftgun.dimension_unavailable"));
     }

@@ -90,7 +90,11 @@ public final class PortalNetworking {
 
     /** Pushes the online player roster plus persisted player-target data for the GUI list. */
     public static void sendPlayerList(ServerPlayer player) {
+//? if >=1.21.11 {
+        /*MinecraftServer server = player.level().getServer();
+*///?} else {
         MinecraftServer server = player.getServer();
+//?}
         if (server == null) return;
         PortalPlayerData data = PortalDataStore.load(player);
         ListTag entries = new ListTag();
@@ -101,8 +105,16 @@ public final class PortalNetworking {
         for (ServerPlayer candidate : online) {
             CompoundTag entry = new CompoundTag();
             Nbt.putUUID(entry, "Id", candidate.getUUID());
+//? if >=1.21.11 {
+            /*entry.putString("Name", candidate.getGameProfile().name());
+*///?} else {
             entry.putString("Name", candidate.getGameProfile().getName());
+//?}
+//? if >=1.21.11 {
+            /*entry.putString("Dimension", candidate.level().dimension().identifier().toString());
+*///?} else {
             entry.putString("Dimension", candidate.level().dimension().location().toString());
+//?}
             entry.putBoolean("Pinned", data.isPlayerPinned(candidate.getUUID()));
             entry.putLong("LastUse", data.playerLastUseAt(candidate.getUUID()));
             entry.putBoolean("Self", candidate.getUUID().equals(player.getUUID()));
@@ -117,7 +129,11 @@ public final class PortalNetworking {
 
     private static Comparator<ServerPlayer> playerComparator(ServerPlayer viewer, PortalPlayerData data) {
         Comparator<ServerPlayer> byName = Comparator.comparing(
+//? if >=1.21.11 {
+            /*candidate -> candidate.getGameProfile().name(), String.CASE_INSENSITIVE_ORDER);
+*///?} else {
             candidate -> candidate.getGameProfile().getName(), String.CASE_INSENSITIVE_ORDER);
+//?}
         DestinationSort sort = data.settings().sort();
         return switch (sort) {
             case NAME, CREATED -> byName;
@@ -169,15 +185,27 @@ public final class PortalNetworking {
     }
 
     private static ListTag privacyRoster(ServerPlayer player) {
+//? if >=1.21.11 {
+        /*MinecraftServer server = player.level().getServer();
+*///?} else {
         MinecraftServer server = player.getServer();
+//?}
         ListTag entries = new ListTag();
         if (server == null) return entries;
         List<ServerPlayer> online = new ArrayList<>(server.getPlayerList().getPlayers());
+//? if >=1.21.11 {
+        /*online.sort(Comparator.comparing(value -> value.getGameProfile().name()));
+*///?} else {
         online.sort(Comparator.comparing(value -> value.getGameProfile().getName()));
+//?}
         for (ServerPlayer candidate : online) {
             CompoundTag entry = new CompoundTag();
             Nbt.putUUID(entry, "Id", candidate.getUUID());
+//? if >=1.21.11 {
+            /*entry.putString("Name", candidate.getGameProfile().name());
+*///?} else {
             entry.putString("Name", candidate.getGameProfile().getName());
+//?}
             entries.add(entry);
         }
         return entries;

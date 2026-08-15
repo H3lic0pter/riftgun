@@ -1,4 +1,5 @@
 package dev.riftgun.service;
+import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
@@ -71,11 +72,15 @@ public final class PortalPrivacyService {
         PortalPrivacyLedger.Prompt prompt = LEDGER.prompt(
             parties, gameTime(server), requestTtlTicks());
         if (prompt.fresh()) sendRequestPrompt(target, requester, prompt.token(), purpose);
-        requester.displayClientMessage(styled(purposeKey(prompt.fresh()
+        Msg.displayClientMessage(requester, styled(purposeKey(prompt.fresh()
                 ? "chat.riftgun.privacy_request_sent"
                 : "chat.riftgun.privacy_request_pending", purpose),
             prompt.fresh() ? ChatFormatting.AQUA : ChatFormatting.GRAY,
+//? if >=1.21.11 {
+            /*target.getGameProfile().name()), false);
+*///?} else {
             target.getGameProfile().getName()), false);
+//?}
     }
 
     public static GrantReservation reserveGrant(MinecraftServer server, UUID targetId,
@@ -178,7 +183,11 @@ public final class PortalPrivacyService {
 
     public static void notifyDenied(ServerPlayer requester, ServerPlayer target, Access access,
                                     PortalRequestPurpose purpose) {
+//? if >=1.21.11 {
+        /*String targetName = target.getGameProfile().name();
+*///?} else {
         String targetName = target.getGameProfile().getName();
+//?}
         Component message = switch (access.outcome()) {
             case ALWAYS_DENIED -> styled(purposeKey("chat.riftgun.privacy_always_denied_requester", purpose),
                 ChatFormatting.RED, targetName);
@@ -187,7 +196,7 @@ public final class PortalPrivacyService {
             default -> styled(purposeKey("chat.riftgun.privacy_denied_requester", purpose),
                 ChatFormatting.RED, targetName);
         };
-        requester.displayClientMessage(message, false);
+        Msg.displayClientMessage(requester, message, false);
     }
 
     /** Expires transient state once per second and notifies participants who remain online. */
@@ -249,8 +258,12 @@ public final class PortalPrivacyService {
 
     private static void sendRequestPrompt(ServerPlayer target, ServerPlayer requester, UUID token,
                                           PortalRequestPurpose purpose) {
-        target.displayClientMessage(styled(purposeKey("chat.riftgun.privacy_request_received", purpose),
+        Msg.displayClientMessage(target, styled(purposeKey("chat.riftgun.privacy_request_received", purpose),
+//? if >=1.21.11 {
+            /*ChatFormatting.AQUA, requester.getGameProfile().name()), false);
+*///?} else {
             ChatFormatting.AQUA, requester.getGameProfile().getName()), false);
+//?}
         String command = "/riftgun privacy respond " + token + " ";
         Component actions = Component.empty()
             .append(action("chat.riftgun.privacy_allow_once", ChatFormatting.GREEN,
@@ -264,7 +277,7 @@ public final class PortalPrivacyService {
             .append(Component.literal(" "))
             .append(action("chat.riftgun.privacy_always_deny", ChatFormatting.DARK_PURPLE,
                 command + "always_deny"));
-        target.displayClientMessage(actions, false);
+        Msg.displayClientMessage(target, actions, false);
     }
 
     private static Component action(String key, ChatFormatting color, String command) {
@@ -296,10 +309,10 @@ public final class PortalPrivacyService {
         };
         targetKey = purposeKey(targetKey, parties.purpose());
         requesterKey = purposeKey(requesterKey, parties.purpose());
-        target.displayClientMessage(styled(targetKey, color, parties.requesterName()), false);
+        Msg.displayClientMessage(target, styled(targetKey, color, parties.requesterName()), false);
         ServerPlayer requester = server.getPlayerList().getPlayer(parties.requesterId());
         if (requester != null) {
-            requester.displayClientMessage(styled(
+            Msg.displayClientMessage(requester, styled(
                 requesterKey, color, parties.targetName()), false);
         }
     }
@@ -315,17 +328,17 @@ public final class PortalPrivacyService {
         ServerPlayer target = server.getPlayerList().getPlayer(parties.targetId());
         ServerPlayer requester = server.getPlayerList().getPlayer(parties.requesterId());
         if (expired.expiration() == PortalPrivacyLedger.Expiration.REQUEST) {
-            if (target != null) target.displayClientMessage(styled(
+            if (target != null) Msg.displayClientMessage(target, styled(
                 purposeKey("chat.riftgun.privacy_request_expired_target", parties.purpose()), ChatFormatting.YELLOW,
                 parties.requesterName()), false);
-            if (requester != null) requester.displayClientMessage(styled(
+            if (requester != null) Msg.displayClientMessage(requester, styled(
                 purposeKey("chat.riftgun.privacy_request_expired_requester", parties.purpose()), ChatFormatting.YELLOW,
                 parties.targetName()), false);
         } else {
-            if (target != null) target.displayClientMessage(styled(
+            if (target != null) Msg.displayClientMessage(target, styled(
                 purposeKey("chat.riftgun.privacy_grant_expired_target", parties.purpose()), ChatFormatting.YELLOW,
                 parties.requesterName()), false);
-            if (requester != null) requester.displayClientMessage(styled(
+            if (requester != null) Msg.displayClientMessage(requester, styled(
                 purposeKey("chat.riftgun.privacy_grant_expired_requester", parties.purpose()), ChatFormatting.YELLOW,
                 parties.targetName()), false);
         }
@@ -334,8 +347,16 @@ public final class PortalPrivacyService {
     private static PortalPrivacyLedger.Parties parties(ServerPlayer target, ServerPlayer requester,
                                                         PortalRequestPurpose purpose) {
         return new PortalPrivacyLedger.Parties(
+//? if >=1.21.11 {
+            /*target.getUUID(), target.getGameProfile().name(),
+*///?} else {
             target.getUUID(), target.getGameProfile().getName(),
+//?}
+//? if >=1.21.11 {
+            /*requester.getUUID(), requester.getGameProfile().name(), purpose);
+*///?} else {
             requester.getUUID(), requester.getGameProfile().getName(), purpose);
+//?}
     }
 
     private static Component styled(String key, ChatFormatting color, Object... arguments) {

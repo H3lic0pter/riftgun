@@ -1,4 +1,5 @@
 package dev.riftgun.relocation;
+import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfig;
@@ -98,7 +99,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
                                  PortalGunLocator.LocatedGun locatedGun,
                                  PortalGunCapabilities capabilities, Entity target,
                                  SpecialEntityTransitPolicy<EntityType<?>> specialEntities) {
+//? if >=1.21.11 {
+        /*MinecraftServer server = owner.level().getServer();
+*///?} else {
         MinecraftServer server = owner.getServer();
+//?}
         if (server == null) return true;
         RiftConfig config = RiftConfigs.server();
         RiftConfig.RelocationConfig relocationConfig = config.relocation();
@@ -204,7 +209,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         EntityRelocationPortalEntity visual = EntityRelocationPortalEntity.createEntrance(
             owner.level(), center, side, profile.rgb(), target.getUUID(), sounds, openingTicks);
+//? if >=1.21.11 {
+        /*if (!((ServerLevel) owner.level()).addFreshEntity(visual)) {
+*///?} else {
         if (!owner.serverLevel().addFreshEntity(visual)) {
+//?}
             state.fail(begin.reservation());
             releasePrivacyGrants(server, privacyReservations);
             closeExit(server, exitSetup, false);
@@ -212,7 +221,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             return true;
         }
         PortalSounds.playShot(owner, sounds);
+//? if >=1.21.11 {
+        /*PortalSounds.playOpening((ServerLevel) owner.level(), center, sounds);
+*///?} else {
         PortalSounds.playOpening(owner.serverLevel(), center, sounds);
+//?}
         EntityRelocationSession.Context context = sessionContext(
             begin.reservation(), owner.getUUID(), target, profile, sounds, capabilities,
             crises, privacyReservations, openingTicks, fuelQuote, virtualFuel, tree,
@@ -242,18 +255,36 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         //?}
         TransitDiagnostics.relocation("prepare begin reservation={} owner={} target={} source={} destination={} chunk={} timeoutTicks={} tickingBeforeTicket={}",
             reservation.id(), owner.getUUID(), target.getUUID(),
+//? if >=1.21.11 {
+            /*target.level().dimension().identifier(), destination.dimension().identifier(), chunk,
+*///?} else {
             target.level().dimension().location(), destination.dimension().location(), chunk,
+//?}
             relocationConfig.destinationReadinessTimeoutTicks(),
             destinationLevel.isPositionEntityTicking(BlockPos.containing(destination.position())));
+        //? if >=1.21.11 {
+        /*destinationLevel.getChunkSource().addTicketAndLoadWithRadius(
+            PREPARATION_TICKET, chunk, 3);
+        *///?} else {
         destinationLevel.getChunkSource().addRegionTicket(
             PREPARATION_TICKET, chunk, 3, ticketId, true);
+        //?}
         EntityRelocationPreparation preparation = new EntityRelocationPreparation(
             now, relocationConfig.destinationReadinessTimeoutTicks(),
             () -> {
+                //? if >=1.21.11 {
+                /*destinationLevel.getChunkSource().removeTicketWithRadius(
+                    PREPARATION_TICKET, chunk, 3);
+                *///?} else {
                 destinationLevel.getChunkSource().removeRegionTicket(
                     PREPARATION_TICKET, chunk, 3, ticketId, true);
+                //?}
                 TransitDiagnostics.ticket("relocation preparation released reservation={} destination={} chunk={}",
+//? if >=1.21.11 {
+                    /*reservation.id(), destination.dimension().identifier(), chunk);
+*///?} else {
                     reservation.id(), destination.dimension().location(), chunk);
+//?}
             });
         EntityRelocationSession.Context context = sessionContext(
             reservation, owner.getUUID(), target, profile, sounds, capabilities,
@@ -299,7 +330,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         ServerPlayer destinationPlayer = destination.resolvePlayer(server);
         if (destination.playerId() != null && destinationPlayer == null) {
-            owner.displayClientMessage(Component.translatable(
+            Msg.displayClientMessage(owner, Component.translatable(
                 "message.riftgun.player_destination_unavailable"), false);
             return null;
         }
@@ -416,7 +447,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             if (outcome == EntityRelocationPreparation.Outcome.WAITING) continue;
             TransitDiagnostics.relocation("prepare terminal reservation={} outcome={} elapsedTicks={} destination={} ticking={}",
                 pending.reservation().id(), outcome,
+//? if >=1.21.11 {
+                /*now - pending.preparation().startedAt(), pending.destination().dimension().identifier(), ready);
+*///?} else {
                 now - pending.preparation().startedAt(), pending.destination().dimension().location(), ready);
+//?}
             if (outcome == EntityRelocationPreparation.Outcome.TIMED_OUT) {
                 iterator.remove();
                 abortPreparation(server, pending,
@@ -469,7 +504,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             pending.relocationConfig().exitDurationSeconds());
         if (exit == null) {
             TransitDiagnostics.warning("relocation prepared exit creation failed reservation={} destination={} exitCenter={}",
+//? if >=1.21.11 {
+                /*pending.reservation().id(), targetLevel.dimension().identifier(), route.exitCenter());
+*///?} else {
                 pending.reservation().id(), targetLevel.dimension().location(), route.exitCenter());
+//?}
             abortPreparation(server, pending, "message.riftgun.entity_relocation_failed");
             return;
         }
@@ -479,7 +518,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             pending.sounds(), pending.openingTicks());
         if (!sourceLevel.addFreshEntity(visual)) {
             TransitDiagnostics.warning("relocation entrance creation failed reservation={} source={} center={}",
+//? if >=1.21.11 {
+                /*pending.reservation().id(), sourceLevel.dimension().identifier(), center);
+*///?} else {
                 pending.reservation().id(), sourceLevel.dimension().location(), center);
+//?}
             closeExit(server, exit, false);
             abortPreparation(server, pending, "message.riftgun.entity_relocation_failed");
             return;
@@ -489,7 +532,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         pending.transitionToOpening(gun, destination, visual.getUUID(), exit, route, now);
         TransitDiagnostics.relocation("animation started reservation={} target={} source={} destination={} exitCenter={} openingTicks={} visual={}",
             pending.reservation().id(), pending.targetId(),
+//? if >=1.21.11 {
+            /*pending.sourceDimension().identifier(), destination.dimension().identifier(),
+*///?} else {
             pending.sourceDimension().location(), destination.dimension().location(),
+//?}
             route.exitCenter(), pending.openingTicks(), visual.getUUID());
     }
 
@@ -607,13 +654,21 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         long teleportStarted = TransitDiagnostics.enabled() ? System.nanoTime() : 0L;
         TransitDiagnostics.relocation("teleport before reservation={} target={} from={} pos={} to={} pos={} chunkTicking={}",
             tx.reservation().id(), target.getUUID(),
+//? if >=1.21.11 {
+            /*sourceLevel.dimension().identifier(), sourcePosition, targetLevel.dimension().identifier(),
+*///?} else {
             sourceLevel.dimension().location(), sourcePosition, targetLevel.dimension().location(),
+//?}
             route.outputPosition(), targetLevel.isPositionEntityTicking(BlockPos.containing(route.outputPosition())));
         if (!targetLevel.noCollision(
             tx.tree().destinationEnvelope(target, route.outputPosition()).deflate(0.001))) {
             TransitDiagnostics.warning("relocation tree clearance failed reservation={} target={} members={} destination={} envelope={}",
                 tx.reservation().id(), target.getUUID(), tx.tree().size(),
+//? if >=1.21.11 {
+                /*targetLevel.dimension().identifier(),
+*///?} else {
                 targetLevel.dimension().location(),
+//?}
                 tx.tree().destinationEnvelope(target, route.outputPosition()));
             fail(server, tx);
             return;
@@ -625,7 +680,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             tx.reservation().id(), moved != null,
             TransitDiagnostics.enabled()
                 ? (System.nanoTime() - teleportStarted) / 1_000_000.0 : 0.0,
+//? if >=1.21.11 {
+            /*moved == null ? "null" : moved.level().dimension().identifier(),
+*///?} else {
             moved == null ? "null" : moved.level().dimension().location(),
+//?}
             moved == null ? "null" : moved.position());
         if (moved == null) {
             TransitDiagnostics.warning("relocation tree transfer incomplete reservation={} target={} expectedMembers={} movedMembers={}",
@@ -657,7 +716,13 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             if (owner != null) message(owner, "message.riftgun.entity_relocation_failed");
         }
         moved.setDeltaMovement(momentum);
-        moved.hasImpulse = true;
+//? if >=1.21.11 {
+//?} else {
+//? if >=1.21.11 {
+        //?} else {
+/*        moved.hasImpulse = true;
+*///?}
+//?}
         for (Entity member : movedMembers) {
             if (member != moved) member.setDeltaMovement(Vec3.ZERO);
             if (member instanceof Projectile projectile) {
@@ -697,7 +762,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         TransitDiagnostics.relocation("completed reservation={} target={} destination={} now={}",
             tx.reservation().id(), moved.getUUID(),
+//? if >=1.21.11 {
+            /*moved.level().dimension().identifier(), now);
+*///?} else {
             moved.level().dimension().location(), now);
+//?}
     }
 
     private static void fail(MinecraftServer server, EntityRelocationSession tx) {
@@ -707,7 +776,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
     private static void fail(MinecraftServer server, EntityRelocationSession tx, String messageKey) {
         TransitDiagnostics.warning("relocation failed reservation={} target={} source={} destination={}",
             tx.reservation().id(), tx.targetId(),
+//? if >=1.21.11 {
+            /*tx.sourceDimension().identifier(), tx.destination().dimension().identifier());
+*///?} else {
             tx.sourceDimension().location(), tx.destination().dimension().location());
+//?}
         registry().fail(tx.reservation());
         releasePrivacyGrants(server, tx.privacyReservations());
         closeExit(server, tx.exitSetup(), false);
@@ -735,7 +808,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         if (destination.playerId() != null
             && (route.crisis() == null || route.crisis().relocation() == null)) {
             followPlayer = destination.resolvePlayer(server);
+//? if >=1.21.11 {
+            /*if (followPlayer == null || (ServerLevel) followPlayer.level() != targetLevel) return null;
+*///?} else {
             if (followPlayer == null || followPlayer.serverLevel() != targetLevel) return null;
+//?}
         }
         EntityRelocationExitIndex.DestinationKey key = route.shareable()
             ? destination.sharedKey() : null;
@@ -866,7 +943,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
                                                             EntityRelocationSession tx) {
         if (tx.destination().playerId() == null) return;
         ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
-        if (owner != null) owner.displayClientMessage(Component.translatable(
+        if (owner != null) Msg.displayClientMessage(owner, Component.translatable(
             "message.riftgun.player_destination_unavailable"), false);
     }
 
@@ -981,7 +1058,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
     }
 
     private static void message(ServerPlayer player, String key) {
-        player.displayClientMessage(Component.translatable(key), true);
+        Msg.displayClientMessage(player, Component.translatable(key), true);
     }
 
     record PermissionSnapshot(UUID targetId, PortalRequestPurpose purpose, boolean oneShot) {}
@@ -1018,7 +1095,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
         @Nullable EntityRelocationExitIndex.DestinationKey sharedKey() {
             return savedDestinationId == null ? null : new EntityRelocationExitIndex.DestinationKey(
+//? if >=1.21.11 {
+                /*savedDestinationId, dimension.identifier(), position.x, position.y, position.z);
+*///?} else {
                 savedDestinationId, dimension.location(), position.x, position.y, position.z);
+//?}
         }
 
         Vec3 playerExitCenter() {

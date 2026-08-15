@@ -40,7 +40,11 @@ final class EntityRelocationFuelPolicy {
             return TargetKind.UTILITY;
         }
         return classify(target instanceof Projectile, target instanceof Player,
+//? if >=1.21.11 {
+            /*java.util.stream.StreamSupport.stream(target.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENTITY_TYPE).getTagOrEmpty(PortalEntityTags.BOSSES).spliterator(), false).anyMatch(holder -> holder.value() == target.getType()), target instanceof Enemy, false);
+*///?} else {
             target.getType().is(PortalEntityTags.BOSSES), target instanceof Enemy, false);
+//?}
     }
 
     static TargetKind classify(boolean projectile, boolean player, boolean boss, boolean hostile) {

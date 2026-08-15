@@ -43,7 +43,11 @@ public final class VanillaPortalMotionPredictor implements PortalMotionPredictor
 
     private static boolean controlledMovement(ServerPlayer player) {
         return player.isPassenger() || player.onClimbable() || player.isSwimming()
+//? if >=1.21.11 {
+            /*|| player.isInWater() || player.isInLava() || player.isInFluidType();
+*///?} else {
             || player.isInWaterOrBubble() || player.isInLava() || player.isInFluidType();
+//?}
     }
 
     static Vec3 ordinaryAirborne(Vec3 observedVelocity, double verticalVelocity, double gravity,

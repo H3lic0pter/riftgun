@@ -62,7 +62,7 @@ final class PortalTransitService {
             moved = successful ? entity : null;
         } else {
 //? if >=1.21.11 {
-            /*moved = entity.changeDimension(new TeleportTransition(targetLevel, plan.destination(),
+            /*moved = entity.teleport(new TeleportTransition(targetLevel, plan.destination(),
 *///?} else {
             moved = entity.changeDimension(new DimensionTransition(targetLevel, plan.destination(),
 //?}
@@ -75,7 +75,10 @@ final class PortalTransitService {
         if (moved == null) return null;
 
         moved.setDeltaMovement(plan.momentum());
-        moved.hasImpulse = true;
+//? if >=1.21.11 {
+        //?} else {
+/*        moved.hasImpulse = true;
+*///?}
         if (moved instanceof Projectile projectile) {
             ProjectileMotion.alignToVelocity(projectile, plan.momentum());
         }

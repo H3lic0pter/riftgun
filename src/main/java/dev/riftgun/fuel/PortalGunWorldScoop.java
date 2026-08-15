@@ -1,9 +1,11 @@
 package dev.riftgun.fuel;
+import dev.riftgun.core.msg.Msg;
 
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -52,7 +54,7 @@ public final class PortalGunWorldScoop {
         pickup.getPickupSound(state).ifPresent(sound ->
             player.level().playSound(null, pos, sound, SoundSource.PLAYERS, 1.0F, 1.0F));
         player.level().gameEvent(player, GameEvent.FLUID_PICKUP, pos);
-        player.displayClientMessage(Component.translatable("message.riftgun.scoop_success",
+        Msg.displayClientMessage(player, Component.translatable("message.riftgun.scoop_success",
             PortalGunTank.WORLD_SOURCE_AMOUNT, tank.getFluid().getAmount(), tank.nominalCapacity()), true);
         return true;
     }
@@ -60,12 +62,16 @@ public final class PortalGunWorldScoop {
     private static BlockHitResult sourceHit(ServerPlayer player) {
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getLookAngle().scale(player.blockInteractionRange()));
+//? if >=1.21.11 {
+        /*return ((ServerLevel) player.level()).clip(new ClipContext(
+*///?} else {
         return player.serverLevel().clip(new ClipContext(
+//?}
             eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.SOURCE_ONLY, player));
     }
 
     private static boolean fail(ServerPlayer player, String key) {
-        player.displayClientMessage(Component.translatable(key), true);
+        Msg.displayClientMessage(player, Component.translatable(key), true);
         return false;
     }
 

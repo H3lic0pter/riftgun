@@ -79,7 +79,11 @@ final class PortalDeferredExitController {
             long teleportStarted = TransitDiagnostics.enabled() ? System.nanoTime() : 0L;
             TransitDiagnostics.portal("deferred bootstrap before portal={} root={} sourcePos={} destination={} target={}",
                 portal.getUUID(), root.getUUID(), sourcePosition,
+//? if >=1.21.11 {
+                /*destinationLevel.dimension().identifier(), currentTarget.position());
+*///?} else {
                 destinationLevel.dimension().location(), currentTarget.position());
+//?}
             Entity movedRoot = portal.transit().bootstrapTree(
                 root, destinationLevel, currentTarget, movedEntities);
             TransitDiagnostics.portal("deferred bootstrap after portal={} root={} result={} movedCount={} elapsedMs={} resultPos={} chunkTicking={}",
@@ -106,7 +110,13 @@ final class PortalDeferredExitController {
                     if (moved instanceof net.minecraft.world.entity.projectile.Projectile projectile) {
                         projectile.setDeltaMovement(portal.transformVector(
                             projectile.getDeltaMovement(), exit));
-                        projectile.hasImpulse = true;
+//? if >=1.21.11 {
+//?} else {
+//? if >=1.21.11 {
+                        //?} else {
+/*                        projectile.hasImpulse = true;
+*///?}
+//?}
                         ProjectileMotion.alignToVelocity(projectile, projectile.getDeltaMovement());
                         PortalProjectileState.recordSuccessfulTransit(projectile);
                     }

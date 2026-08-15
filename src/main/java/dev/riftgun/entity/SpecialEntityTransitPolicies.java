@@ -21,7 +21,11 @@ public final class SpecialEntityTransitPolicies {
     }
 
     public static void rebuild(RegistryAccess access) {
+//? if >=1.21.11 {
+        /*Registry<EntityType<?>> entities = access.lookupOrThrow(Registries.ENTITY_TYPE);
+*///?} else {
         Registry<EntityType<?>> entities = access.registryOrThrow(Registries.ENTITY_TYPE);
+//?}
         current = SpecialEntityTransitPolicy.compile(
             new SpecialEntityTransitPolicy.AccessRules<>(
                 values(entities, PortalEntityTags.PORTAL_TRANSIT_ALLOWED),
@@ -38,9 +42,15 @@ public final class SpecialEntityTransitPolicies {
 
     private static Set<EntityType<?>> values(Registry<EntityType<?>> registry,
                                               TagKey<EntityType<?>> tag) {
+//? if >=1.21.11 {
+        /*return java.util.stream.StreamSupport.stream(registry.getTagOrEmpty(tag).spliterator(), false)
+            .map(Holder::value)
+            .collect(Collectors.toUnmodifiableSet());
+        *///?} else {
         return registry.getTag(tag).stream()
             .flatMap(named -> named.stream().map(Holder::value))
             .collect(Collectors.toUnmodifiableSet());
+        //?}
     }
 
     private static SpecialEntityTransitPolicy.AccessRules<EntityType<?>> emptyRules() {

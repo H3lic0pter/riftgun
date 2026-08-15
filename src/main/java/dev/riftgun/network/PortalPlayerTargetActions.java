@@ -1,4 +1,5 @@
 package dev.riftgun.network;
+import dev.riftgun.core.msg.Msg;
 
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
@@ -20,7 +21,11 @@ import net.minecraft.world.item.ItemStack;
 final class PortalPlayerTargetActions {
     static boolean select(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
         UUID playerId = PortalRequestFields.id(request, "Target");
+//? if >=1.21.11 {
+        /*if (player.level().getServer() == null || !ServerPlayerRoster.isOnline(player.level().getServer(), playerId)) {
+*///?} else {
         if (player.getServer() == null || !ServerPlayerRoster.isOnline(player.getServer(), playerId)) {
+//?}
             throw PortalRequestFields.error("message.riftgun.player_target_offline");
         }
         data.selectedDestinationId(null);
@@ -33,7 +38,11 @@ final class PortalPlayerTargetActions {
         if (PortalGunModules.activeCount(gun, PortalModuleKind.PLAYER_TARGET,
             PortalModuleRules.current()) <= 0) return;
         PortalPlayerData data = PortalDataStore.load(player);
+//? if >=1.21.11 {
+        /*data.prunePlayerTargets(ServerPlayerRoster.onlinePlayerIds(player.level().getServer()));
+*///?} else {
         data.prunePlayerTargets(ServerPlayerRoster.onlinePlayerIds(player.getServer()));
+//?}
         PortalDataStore.save(player, data);
         PortalNetworking.sendPlayerList(player);
     }
@@ -57,9 +66,13 @@ final class PortalPlayerTargetActions {
                                 boolean fromGui) {
         UUID targetId = data.selectedPlayerId();
         if (targetId == null) return false;
+//? if >=1.21.11 {
+        /*if (player.level().getServer() == null || !ServerPlayerRoster.isOnline(player.level().getServer(), targetId)) {
+*///?} else {
         if (player.getServer() == null || !ServerPlayerRoster.isOnline(player.getServer(), targetId)) {
+//?}
             if (fromGui) throw PortalRequestFields.error("message.riftgun.player_target_offline");
-            player.displayClientMessage(Component.translatable("message.riftgun.player_target_offline"), true);
+            Msg.displayClientMessage(player, Component.translatable("message.riftgun.player_target_offline"), true);
             return true;
         }
         PortalOpenOrigin origin = fromGui ? PortalOpenOrigin.GUI : PortalOpenOrigin.ITEM;

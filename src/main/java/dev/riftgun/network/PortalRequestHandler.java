@@ -1,4 +1,5 @@
 package dev.riftgun.network;
+import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.data.PortalDataStore;
@@ -25,7 +26,7 @@ public final class PortalRequestHandler {
         PortalAction action = parseAction(request);
         if (action == null) return;
         if (player.isSpectator()) {
-            player.displayClientMessage(Component.translatable("message.riftgun.spectator_denied"), true);
+            Msg.displayClientMessage(player, Component.translatable("message.riftgun.spectator_denied"), true);
             return;
         }
         if (action == PortalAction.CLOSE_PORTALS) {
@@ -50,9 +51,9 @@ public final class PortalRequestHandler {
                     && PortalShortcutGunSelection.mode() == PortalShortcutGunMode.HELD_HANDS
                     ? "message.riftgun.portal_gun_must_be_held"
                     : "message.riftgun.no_portal_gun";
-                player.displayClientMessage(Component.translatable(message), true);
+                Msg.displayClientMessage(player, Component.translatable(message), true);
             } else if (!keyboardShortcut && action != PortalAction.CYCLE_PLACEMENT_MODE) {
-                player.displayClientMessage(Component.translatable("message.riftgun.no_portal_gun"), true);
+                Msg.displayClientMessage(player, Component.translatable("message.riftgun.no_portal_gun"), true);
             }
             return;
         }
@@ -70,9 +71,9 @@ public final class PortalRequestHandler {
             boolean changed = dispatch(player, data, gun, action, request);
             if (changed) sendChangedState(player, data, gun, action);
         } catch (PortalRequestException exception) {
-            player.displayClientMessage(Component.translatable(exception.translationKey()), true);
+            Msg.displayClientMessage(player, Component.translatable(exception.translationKey()), true);
         } catch (NumberFormatException exception) {
-            player.displayClientMessage(Component.translatable("message.riftgun.invalid_coordinate"), true);
+            Msg.displayClientMessage(player, Component.translatable("message.riftgun.invalid_coordinate"), true);
         }
     }
 
@@ -98,7 +99,7 @@ public final class PortalRequestHandler {
             player, data, mode, gun, false)) return;
         UUID selected = data.selectedDestinationId();
         if (selected == null) {
-            player.displayClientMessage(Component.translatable("message.riftgun.no_destination_selected"), true);
+            Msg.displayClientMessage(player, Component.translatable("message.riftgun.no_destination_selected"), true);
             return;
         }
         PortalOpenCoordinator.request(player, data, selected, false,
@@ -187,10 +188,18 @@ public final class PortalRequestHandler {
     }
 
     private static void closePortals(ServerPlayer player) {
+//? if >=1.21.11 {
+        /*if (player.level().getServer() != null) {
+*///?} else {
         if (player.getServer() != null) {
+//?}
+//? if >=1.21.11 {
+            /*PortalEntity.closeOwnedPortals(player.level().getServer(), player.getUUID());
+*///?} else {
             PortalEntity.closeOwnedPortals(player.getServer(), player.getUUID());
+//?}
         }
-        player.displayClientMessage(Component.translatable("message.riftgun.portals_closed"), true);
+        Msg.displayClientMessage(player, Component.translatable("message.riftgun.portals_closed"), true);
     }
 
     private static PortalPlacementMode requestedPlacement(CompoundTag request) {

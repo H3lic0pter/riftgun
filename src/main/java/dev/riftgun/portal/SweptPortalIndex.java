@@ -250,7 +250,11 @@ public final class SweptPortalIndex {
             int minZ = net.minecraft.util.Mth.floor(bounds.minZ) >> 4;
             int maxZ = net.minecraft.util.Mth.floor(bounds.maxZ) >> 4;
             for (int x = minX; x <= maxX; x++) {
+//? if >=1.21.11 {
+                /*for (int z = minZ; z <= maxZ; z++) result.add(ChunkPos.pack(x, z));
+*///?} else {
                 for (int z = minZ; z <= maxZ; z++) result.add(ChunkPos.asLong(x, z));
+//?}
             }
             return result;
         }

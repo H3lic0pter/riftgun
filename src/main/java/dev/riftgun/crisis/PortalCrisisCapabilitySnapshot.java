@@ -59,7 +59,11 @@ public record PortalCrisisCapabilitySnapshot(
             .flatMap(source -> source.items(player))
             .filter(stack -> !stack.isEmpty())
             .toList();
+//? if >=1.21.11 {
+        /*boolean ultraWarm = false;
+*///?} else {
         boolean ultraWarm = targetLevel.dimensionType().ultraWarm();
+//?}
         boolean rescueItem = items.stream().anyMatch(stack ->
             stack.is(FALL_RESCUE_ITEMS) && (!stack.is(Items.WATER_BUCKET) || !ultraWarm));
         int smartDistance = PortalDataStore.load(player).settings().smartDistance();
@@ -70,7 +74,7 @@ public record PortalCrisisCapabilitySnapshot(
         Holder<Enchantment> fireProtection = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
             .getOrThrow(Enchantments.FIRE_PROTECTION);
         int fireProtectionLevel = 0;
-        for (ItemStack armor : player.getArmorSlots()) {
+        for (ItemStack armor : java.util.stream.Stream.of(net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET).map(player::getItemBySlot).toList()) {
             fireProtectionLevel += armor.getEnchantmentLevel(fireProtection);
         }
         boolean lava = player.hasEffect(MobEffects.FIRE_RESISTANCE)

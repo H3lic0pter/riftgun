@@ -1,4 +1,5 @@
 package dev.riftgun.network;
+import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.runtime.RiftRuntime;
@@ -36,7 +37,7 @@ final class PortalGunActions {
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(),
             old.soundsEnabled(), old.sort(), next, old.smartDistance(), old.predictionMode(),
             old.portalSounds()));
-        player.displayClientMessage(Component.translatable(
+        Msg.displayClientMessage(player, Component.translatable(
             "message.riftgun.placement_mode", Component.translatable("screen.riftgun.placement_mode."
                 + next.name().toLowerCase(Locale.ROOT))), true);
         return true;
@@ -161,7 +162,7 @@ final class PortalGunActions {
     static boolean toggleBucketMode(ServerPlayer player, ItemStack gun) {
         boolean enabled = !PortalGunMode.bucketMode(gun);
         PortalGunMode.bucketMode(gun, enabled);
-        player.displayClientMessage(Component.translatable(enabled
+        Msg.displayClientMessage(player, Component.translatable(enabled
             ? "message.riftgun.bucket_mode_enabled" : "message.riftgun.bucket_mode_disabled"), true);
         return true;
     }
@@ -171,7 +172,7 @@ final class PortalGunActions {
         int amount = tank.getFluid().getAmount();
         if (amount <= 0) return false;
         tank.clear();
-        player.displayClientMessage(Component.translatable("message.riftgun.fluid_cleared", amount), true);
+        Msg.displayClientMessage(player, Component.translatable("message.riftgun.fluid_cleared", amount), true);
         return true;
     }
 

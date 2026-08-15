@@ -109,7 +109,7 @@ final class EntityRelocationTree {
             return entity;
         }
 //? if >=1.21.11 {
-        /*return entity.changeDimension(new TeleportTransition(
+        /*return entity.teleport(new TeleportTransition(
 *///?} else {
         return entity.changeDimension(new DimensionTransition(
 //?}

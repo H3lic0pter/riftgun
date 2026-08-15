@@ -1,4 +1,5 @@
 package dev.riftgun.command;
+import dev.riftgun.core.msg.Msg;
 
 import com.mojang.brigadier.CommandDispatcher;
 import dev.riftgun.core.RiftConstants;
@@ -45,7 +46,7 @@ public final class PortalPrivacyCommands {
         PortalPrivacyService.RespondResult result = PortalPrivacyService.respond(
             source.getServer(), target, requestToken, response);
         if (result == PortalPrivacyService.RespondResult.INVALID) {
-            target.displayClientMessage(Component.translatable(
+            Msg.displayClientMessage(target, Component.translatable(
                 "chat.riftgun.privacy_response_expired").withStyle(ChatFormatting.YELLOW), false);
             return 0;
         }

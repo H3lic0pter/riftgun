@@ -64,7 +64,11 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
     private static final EntityDataAccessor<Float> YAW = SynchedEntityData.defineId(
         EntityRelocationPortalEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Optional<UUID>> FOLLOW_TARGET = SynchedEntityData.defineId(
+//? if >=1.21.11 {
+        /*EntityRelocationPortalEntity.class, net.minecraft.network.syncher.EntityDataSerializer.forValueType(net.minecraft.network.codec.ByteBufCodecs.optional(net.minecraft.core.UUIDUtil.STREAM_CODEC)));
+*///?} else {
         EntityRelocationPortalEntity.class, EntityDataSerializers.OPTIONAL_UUID);
+//?}
     private static final EntityDataAccessor<Boolean> FOLLOW_PLAYER_HEAD = SynchedEntityData.defineId(
         EntityRelocationPortalEntity.class, EntityDataSerializers.BOOLEAN);
 
@@ -300,10 +304,19 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         ticketReservations++;
         if (ticketReservations > 1) return;
         ticketChunk = chunkPosition();
+        //? if >=1.21.11 {
+        /*serverLevel.getChunkSource().addTicketAndLoadWithRadius(
+            EXIT_TICKET, ticketChunk, 3);
+        *///?} else {
         serverLevel.getChunkSource().addRegionTicket(
             EXIT_TICKET, ticketChunk, 3, getUUID(), true);
+        //?}
         TransitDiagnostics.ticket("relocation exit acquired portal={} dimension={} chunk={} entityTicking={}",
+//? if >=1.21.11 {
+            /*getUUID(), serverLevel.dimension().identifier(), ticketChunk,
+*///?} else {
             getUUID(), serverLevel.dimension().location(), ticketChunk,
+//?}
             serverLevel.isPositionEntityTicking(blockPosition()));
     }
 
@@ -312,10 +325,19 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         ticketReservations--;
         if (ticketReservations > 0) return;
         if (ticketChunk == null || !(level() instanceof ServerLevel serverLevel)) return;
+        //? if >=1.21.11 {
+        /*serverLevel.getChunkSource().removeTicketWithRadius(
+            EXIT_TICKET, ticketChunk, 3);
+        *///?} else {
         serverLevel.getChunkSource().removeRegionTicket(
             EXIT_TICKET, ticketChunk, 3, getUUID(), true);
+        //?}
         TransitDiagnostics.ticket("relocation exit released portal={} dimension={} chunk={} removalReasonPending={}",
+//? if >=1.21.11 {
+            /*getUUID(), serverLevel.dimension().identifier(), ticketChunk, getRemovalReason());
+*///?} else {
             getUUID(), serverLevel.dimension().location(), ticketChunk, getRemovalReason());
+//?}
         ticketChunk = null;
     }
 
@@ -428,11 +450,14 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
 
     @Override public boolean isPickable() { return false; }
     @Override public boolean isPushable() { return false; }
+    //? if >=1.21.11 {
+    //?} else {
     @Override public AABB getBoundingBoxForCulling() {
         float half = portalWidth() * 0.5F;
         return new AABB(getX() - half, getY() - 0.25, getZ() - half,
             getX() + half, getY() + 0.25, getZ() + half).inflate(0.5);
     }
+    //?}
     @Override public boolean isAlwaysTicking() { return true; }
     @Override public boolean fireImmune() { return true; }
 
