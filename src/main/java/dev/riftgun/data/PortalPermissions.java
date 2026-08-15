@@ -1,6 +1,6 @@
 package dev.riftgun.data;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,7 +41,7 @@ public final class PortalPermissions {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path);
+        return ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
     }
 
     private PortalPermissions() {}

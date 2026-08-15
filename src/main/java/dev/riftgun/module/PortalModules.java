@@ -1,6 +1,6 @@
 package dev.riftgun.module;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import java.util.function.ToIntFunction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -10,7 +10,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class PortalModules {
-    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, RiftGun.MOD_ID);
+    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, RiftConstants.MOD_ID);
 
     public static final DeferredHolder<Item, Item> BASIC_MODULE = ITEMS.register(
         "basic_module", () -> new Item(new Item.Properties().stacksTo(64)));
@@ -60,7 +60,7 @@ public final class PortalModules {
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {
         DeferredHolder<Item, Item> item = ITEMS.register(name, () -> new Item(new Item.Properties().stacksTo(1)));
         PortalModuleDefinition definition = PortalModuleRegistry.register(new PortalModuleDefinition(
-            ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, name), kind, item, maximumCount, accentRgb));
+            ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, name), kind, item, maximumCount, accentRgb));
         return new ModuleEntry(item, definition);
     }
 

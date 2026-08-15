@@ -2,7 +2,7 @@ package dev.riftgun.relocation;
 
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.portal.PortalEntity;

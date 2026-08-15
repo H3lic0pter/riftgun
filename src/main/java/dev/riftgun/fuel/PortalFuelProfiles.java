@@ -1,6 +1,6 @@
 package dev.riftgun.fuel;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import dev.riftgun.core.config.RiftConfig;
 import dev.riftgun.core.config.RiftConfigs;
 import java.util.List;
@@ -17,7 +17,7 @@ public final class PortalFuelProfiles {
     public static final int DIMENSIONAL_RGB = 0x4FCB72;
     public static final TagKey<Fluid> PORTAL_GUN_FUELS = TagKey.create(
         net.minecraft.core.registries.Registries.FLUID,
-        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "portal_gun_fuels")
+        ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "portal_gun_fuels")
     );
     private static final List<PortalFuelProfileResolver> RESOLVERS = new CopyOnWriteArrayList<>();
     private static volatile Map<Fluid, PortalFuelProfile> dataProfiles = Map.of();
@@ -70,7 +70,7 @@ public final class PortalFuelProfiles {
     }
 
     private static PortalFuelProfile profile(String path, int rgb, boolean crossDimension, int min, int max) {
-        return new PortalFuelProfile(ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path), rgb,
+        return new PortalFuelProfile(ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path), rgb,
             crossDimension, Math.max(1, min), Math.max(Math.max(1, min), max));
     }
 

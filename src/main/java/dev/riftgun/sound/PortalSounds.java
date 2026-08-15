@@ -1,6 +1,6 @@
 package dev.riftgun.sound;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 /** Deep playback module: callers provide an event location and a saved selection snapshot. */
 public final class PortalSounds {
     private static final DeferredRegister<SoundEvent> SOUND_EVENTS =
-        DeferredRegister.create(Registries.SOUND_EVENT, RiftGun.MOD_ID);
+        DeferredRegister.create(Registries.SOUND_EVENT, RiftConstants.MOD_ID);
 
     private static final DeferredHolder<SoundEvent, SoundEvent> RIFT_SHOT =
         fixed("rift_shot", 24.0F);
@@ -94,7 +94,7 @@ public final class PortalSounds {
     }
 
     private static DeferredHolder<SoundEvent, SoundEvent> fixed(String path, float range) {
-        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path);
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
         return SOUND_EVENTS.register(path, () -> SoundEvent.createFixedRangeEvent(id, range));
     }
 

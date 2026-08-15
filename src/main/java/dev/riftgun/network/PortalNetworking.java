@@ -1,6 +1,5 @@
 package dev.riftgun.network;
 
-import dev.riftgun.client.PortalClientPayloadHandler;
 import dev.riftgun.core.network.RiftNetwork;
 import java.util.function.Consumer;
 import dev.riftgun.service.PortalGunLocator;
@@ -185,10 +184,6 @@ public final class PortalNetworking {
 
     static void handleRequest(ServerPlayer player, PortalRequestPayload payload) {
         PortalRequestHandler.handle(player, payload.data());
-    }
-
-    static void handleResponse(PortalResponsePayload payload) {
-        PortalClientPayloadHandler.handle(payload.data());
     }
 
     private PortalNetworking() {}

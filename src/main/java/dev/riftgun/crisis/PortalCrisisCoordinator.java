@@ -3,7 +3,7 @@ package dev.riftgun.crisis;
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.core.registry.RiftContent;
 import com.mojang.logging.LogUtils;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

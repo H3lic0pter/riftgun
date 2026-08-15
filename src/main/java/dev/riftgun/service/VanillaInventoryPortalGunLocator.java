@@ -1,7 +1,7 @@
 package dev.riftgun.service;
 
 import dev.riftgun.core.registry.RiftContent;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import java.util.Optional;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;

@@ -1,6 +1,6 @@
 package dev.riftgun.fuel;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.BucketItem;
@@ -22,10 +22,10 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 public final class PortalFluids {
     private static final DeferredRegister<FluidType> TYPES =
-        DeferredRegister.create(NeoForgeRegistries.Keys.FLUID_TYPES, RiftGun.MOD_ID);
-    private static final DeferredRegister<Fluid> FLUIDS = DeferredRegister.create(Registries.FLUID, RiftGun.MOD_ID);
-    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, RiftGun.MOD_ID);
-    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, RiftGun.MOD_ID);
+        DeferredRegister.create(NeoForgeRegistries.Keys.FLUID_TYPES, RiftConstants.MOD_ID);
+    private static final DeferredRegister<Fluid> FLUIDS = DeferredRegister.create(Registries.FLUID, RiftConstants.MOD_ID);
+    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, RiftConstants.MOD_ID);
+    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, RiftConstants.MOD_ID);
 
     public static final DeferredHolder<FluidType, FluidType> UNSTABLE_TYPE = type("unstable_portal_fluid");
     public static final DeferredHolder<FluidType, FluidType> PORTAL_TYPE = type("portal_fluid");
@@ -67,7 +67,7 @@ public final class PortalFluids {
 
     private static DeferredHolder<FluidType, FluidType> type(String name) {
         return TYPES.register(name, () -> new FluidType(FluidType.Properties.create()
-            .descriptionId("fluid." + RiftGun.MOD_ID + "." + name)
+            .descriptionId("fluid." + RiftConstants.MOD_ID + "." + name)
             .canConvertToSource(false)
             .canDrown(false)
             .supportsBoating(false)

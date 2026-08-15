@@ -1,5 +1,6 @@
 package dev.riftgun.network;
 
+import dev.riftgun.client.PortalClientPayloadHandler;
 import dev.riftgun.core.network.NetworkTransport;
 import dev.riftgun.core.network.RiftNetwork;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -20,7 +21,7 @@ public final class NeoForgeNetworkAdapter implements NetworkTransport {
                 }
             });
         registrar.playToClient(PortalResponsePayload.TYPE, PortalResponsePayload.STREAM_CODEC,
-            (payload, context) -> context.enqueueWork(() -> PortalNetworking.handleResponse(payload)));
+            (payload, context) -> context.enqueueWork(() -> PortalClientPayloadHandler.handle(payload.data())));
     }
 
     @Override

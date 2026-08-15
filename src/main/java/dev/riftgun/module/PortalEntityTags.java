@@ -1,6 +1,6 @@
 package dev.riftgun.module;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
@@ -12,7 +12,7 @@ public final class PortalEntityTags {
         ResourceLocation.fromNamespaceAndPath("c", "bosses"));
     public static final TagKey<EntityType<?>> PROJECTILE_TRANSIT_EXCLUDED = TagKey.create(
         Registries.ENTITY_TYPE,
-        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "projectile_transit_excluded"));
+        ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "projectile_transit_excluded"));
     public static final TagKey<EntityType<?>> PORTAL_TRANSIT_ALLOWED = riftgun("portal_transit_allowed");
     public static final TagKey<EntityType<?>> PORTAL_TRANSIT_DENIED = riftgun("portal_transit_denied");
     public static final TagKey<EntityType<?>> PORTAL_TRANSIT_SWEPT = riftgun("portal_transit_swept");
@@ -21,7 +21,7 @@ public final class PortalEntityTags {
 
     private static TagKey<EntityType<?>> riftgun(String path) {
         return TagKey.create(Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path));
+            ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path));
     }
 
     private PortalEntityTags() {}

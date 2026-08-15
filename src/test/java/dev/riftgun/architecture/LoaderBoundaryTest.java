@@ -14,19 +14,13 @@ final class LoaderBoundaryTest {
     private static final Path CORE = Path.of("src/main/java/dev/riftgun/core");
     private static final Path MAIN = Path.of("src/main/java/dev/riftgun");
     private static final Set<String> NEOFORGE_ADAPTERS = Set.of(
-        "RiftGun.java", "CommonEvents.java",
-        "client/ClientGameEvents.java", "client/ClientModEvents.java",
-        "client/compat/jei/RiftGunJeiPlugin.java",
-        "client/light/PortalDynamicLights.java",
-        "client/model/PortalGunLayeredModel.java",
-        "client/render/IrisPortalShaderEnvironment.java",
+        "CommonEvents.java",
         "command/PortalCrisisTestCommands.java", "command/PortalPrivacyCommands.java",
-        "config/ClientConfig.java", "config/ServerConfig.java",
         "fuel/PortalFluids.java", "fuel/PortalGunComponents.java",
         "fuel/PortalGunFluidInteractions.java", "fuel/PortalGunSnapshot.java",
         "fuel/PortalGunTank.java", "fuel/PortalGunWorldScoop.java",
         "module/PortalModuleMenus.java", "module/PortalModules.java",
-        "network/NeoForgeNetworkAdapter.java", "portal/PortalGunItem.java",
+        "portal/PortalGunItem.java",
         "recipe/FluidTransmutationEvents.java", "recipe/FluidTransmutationMatcher.java",
         "recipe/FluidTransmutationRecipe.java", "recipe/FluidTransmutationService.java",
         "recipe/RiftGunRecipes.java", "sound/PortalSounds.java");

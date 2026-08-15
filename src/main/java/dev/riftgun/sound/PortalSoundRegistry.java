@@ -1,6 +1,6 @@
 package dev.riftgun.sound;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -121,7 +121,7 @@ public final class PortalSoundRegistry {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path);
+        return ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
     }
 
     private record Definition(

@@ -2,7 +2,7 @@ package dev.riftgun.crisis;
 
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.module.PortalGunCapabilities;
 import java.util.List;
@@ -32,7 +32,7 @@ public record PortalCrisisCapabilitySnapshot(
     boolean spatialTearReady
 ) {
     public static final TagKey<net.minecraft.world.item.Item> FALL_RESCUE_ITEMS = TagKey.create(
-        Registries.ITEM, ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "fall_rescue_items"));
+        Registries.ITEM, ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "fall_rescue_items"));
     private static final List<PortalCrisisInventorySource> INVENTORY_SOURCES = new CopyOnWriteArrayList<>();
 
     static {

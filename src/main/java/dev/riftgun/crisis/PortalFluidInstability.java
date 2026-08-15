@@ -1,7 +1,7 @@
 package dev.riftgun.crisis;
 
 import dev.riftgun.core.config.RiftConfigs;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import java.util.List;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -13,7 +13,7 @@ import net.minecraft.world.level.material.Fluids;
 /** Resolves server-authoritative instability with explicit config overrides. */
 public final class PortalFluidInstability {
     public static final TagKey<Fluid> UNSTABLE_FLUIDS = TagKey.create(
-        Registries.FLUID, ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "unstable_portal_fluids"));
+        Registries.FLUID, ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "unstable_portal_fluids"));
 
     public static boolean isUnstable(Fluid fluid) {
         if (fluid == Fluids.EMPTY) return false;

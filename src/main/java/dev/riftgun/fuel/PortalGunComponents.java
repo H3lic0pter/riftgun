@@ -1,7 +1,7 @@
 package dev.riftgun.fuel;
 
 import com.mojang.serialization.Codec;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import dev.riftgun.module.PortalGunModuleSettings;
 import java.util.UUID;
 import net.minecraft.core.UUIDUtil;
@@ -15,7 +15,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class PortalGunComponents {
     public static final DeferredRegister.DataComponents COMPONENTS =
-        DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, RiftGun.MOD_ID);
+        DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, RiftConstants.MOD_ID);
 
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<SimpleFluidContent>> FLUID =
         COMPONENTS.registerComponentType("portal_gun_fluid", builder -> builder

@@ -1,7 +1,7 @@
 package dev.riftgun.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import dev.riftgun.service.PortalPrivacyService;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
@@ -15,7 +15,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /** Token-bound chat-button responses for Player Portal privacy requests. */
-@EventBusSubscriber(modid = RiftGun.MOD_ID)
+@EventBusSubscriber(modid = RiftConstants.MOD_ID)
 public final class PortalPrivacyCommands {
     @SubscribeEvent
     public static void register(RegisterCommandsEvent event) {

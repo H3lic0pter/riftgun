@@ -5,7 +5,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import dev.riftgun.crisis.PortalCrisis;
 import dev.riftgun.crisis.PortalCrisisRegistry;
 import dev.riftgun.crisis.PortalCrisisTestOverrides;
@@ -26,7 +26,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /** Operator-only, in-memory controls for reproducing portal crises on a player's next transit. */
-@EventBusSubscriber(modid = RiftGun.MOD_ID)
+@EventBusSubscriber(modid = RiftConstants.MOD_ID)
 public final class PortalCrisisTestCommands {
     private static final int REQUIRED_PERMISSION_LEVEL = 2;
 

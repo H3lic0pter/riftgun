@@ -1,7 +1,7 @@
 package dev.riftgun.crisis;
 
 import dev.riftgun.core.config.RiftConfigs;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.portal.PortalGeometry;
@@ -171,7 +171,7 @@ final class BuiltinPortalCrises {
     }
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path);
+        return ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
     }
 
     private record Definition(ResourceLocation id, int defaultWeight,

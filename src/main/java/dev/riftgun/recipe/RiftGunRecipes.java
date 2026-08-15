@@ -1,6 +1,6 @@
 package dev.riftgun.recipe;
 
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -11,9 +11,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class RiftGunRecipes {
     private static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS =
-        DeferredRegister.create(Registries.RECIPE_SERIALIZER, RiftGun.MOD_ID);
+        DeferredRegister.create(Registries.RECIPE_SERIALIZER, RiftConstants.MOD_ID);
     private static final DeferredRegister<RecipeType<?>> TYPES =
-        DeferredRegister.create(Registries.RECIPE_TYPE, RiftGun.MOD_ID);
+        DeferredRegister.create(Registries.RECIPE_TYPE, RiftConstants.MOD_ID);
 
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<FluidTransmutationRecipe>>
         FLUID_TRANSMUTATION_SERIALIZER = SERIALIZERS.register(
@@ -22,7 +22,7 @@ public final class RiftGunRecipes {
         FLUID_TRANSMUTATION_TYPE = TYPES.register("fluid_transmutation", () -> new RecipeType<>() {
             @Override
             public String toString() {
-                return RiftGun.MOD_ID + ":fluid_transmutation";
+                return RiftConstants.MOD_ID + ":fluid_transmutation";
             }
         });
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<AdvancedBasicModuleRecipe>>
