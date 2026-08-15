@@ -223,6 +223,10 @@ Port, using the 26.1 primer + a fresh MDG 26.1 template project as reference:
 
 ### Phase 5 — Fluids & fuel (0.5–1 day)
 
+- [ ] Phase 1 finding: `FluidUtil`, `IFluidHandler`, `FluidActionResult`,
+      `FluidHandlerItemStack` are **deprecated with removal planned** in
+      NeoForge 26.1.2 (compiler shows `[removal]` warnings). Find the
+      replacement API in the NeoForge changelog before porting.
 - [ ] `fuel/*` are SHARED NeoForge-API files (`FluidStack`, `FluidType`,
       `BaseFlowingFluid`, `SimpleFluidContent`, `FluidHandlerItemStack`,
       `IFluidHandler`). Verify each against the 26.1 NeoForge changelog;
