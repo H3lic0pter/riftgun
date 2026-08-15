@@ -16,3 +16,10 @@ AGENTS.md
 **/.agents/
 CLAUDE.md
 **/CLAUDE.md
+
+# Stonecutter node dev-run products
+versions/*/run/
+versions/*/logs/
+versions/*/crash-reports/
+versions/*/saves/
+versions/*/server.properties

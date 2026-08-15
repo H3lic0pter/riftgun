@@ -10,7 +10,8 @@ base {
     archivesName = property("mod_id") as String
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// Each node declares its own JDK via java_version in versions/<node>/gradle.properties.
+java.toolchain.languageVersion = JavaLanguageVersion.of(property("java_version") as String)
 
 repositories {
     mavenCentral()

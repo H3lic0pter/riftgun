@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -36,5 +38,32 @@ final class SharedSourceBoundaryTest {
                 }
             }
         }
+    }
+
+    @Test
+    void nodeSourcesDoNotDuplicateSharedClasses() throws IOException {
+        Set<String> shared = fqcns(MAIN);
+        try (var nodes = Files.list(Path.of("versions"))) {
+            for (Path node : nodes.filter(Files::isDirectory).toList()) {
+                Path nodeSrc = node.resolve("src/main/java");
+                if (!Files.isDirectory(nodeSrc)) continue;
+                for (String fqcn : fqcns(nodeSrc)) {
+                    assertFalse(shared.contains(fqcn),
+                        () -> fqcn + " exists in both the shared tree and " + node
+                            + "; same-FQCN overrides must be avoided");
+                }
+            }
+        }
+    }
+
+    private static Set<String> fqcns(Path root) throws IOException {
+        Set<String> result = new HashSet<>();
+        try (var paths = Files.walk(root)) {
+            for (Path source : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
+                String relative = root.relativize(source).toString().replace('\\', '/');
+                result.add(relative.substring(0, relative.length() - ".java".length()).replace('/', '.'));
+            }
+        }
+        return result;
     }
 }
