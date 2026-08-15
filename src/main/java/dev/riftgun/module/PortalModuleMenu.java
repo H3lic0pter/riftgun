@@ -179,7 +179,11 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
         public boolean mayPickup(Player player) {
             boolean allowed = super.mayPickup(player)
                 && PortalGunModules.canRemove(container, getContainerSlot());
+            //? if >=1.21.11 {
+            /*if (!allowed && player.level().isClientSide()) {
+            *///?} else {
             if (!allowed && player.level().isClientSide) {
+            //?}
                 player.displayClientMessage(Component.translatable(
                     "message.riftgun.modules.clear_expanded_slots"), true);
             }

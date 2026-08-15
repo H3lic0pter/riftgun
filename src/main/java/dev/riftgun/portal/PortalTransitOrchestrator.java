@@ -60,7 +60,11 @@ final class PortalTransitOrchestrator {
                     ? EntityRelocationExitImmunity.remainingTicks(first) : 0L;
                 TransitDiagnostics.portal("nearby entity rejected portal={} root={} type={} dimension={} reason={} remainingTicks={}",
                     portal.getUUID(), first.getUUID(), first.getType(),
+//? if >=1.21.11 {
+                    /*portal.level().dimension().identifier(), reason == null ? "unknown" : reason,
+*///?} else {
                     portal.level().dimension().location(), reason == null ? "unknown" : reason,
+//?}
                     immunityRemaining);
             }
         }

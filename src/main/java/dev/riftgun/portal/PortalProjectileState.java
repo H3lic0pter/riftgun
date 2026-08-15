@@ -16,11 +16,11 @@ public final class PortalProjectileState {
     }
 
     public static int count(Projectile projectile) {
-        return projectile.getPersistentData().getCompound(ROOT).getInt(COUNT);
+        return Nbt.getInt(Nbt.getCompound(projectile.getPersistentData(), ROOT), COUNT);
     }
 
     public static void recordSuccessfulTransit(Projectile projectile) {
-        CompoundTag root = projectile.getPersistentData().getCompound(ROOT);
+        CompoundTag root = Nbt.getCompound(projectile.getPersistentData(), ROOT);
         root.putInt(COUNT, Math.min(Integer.MAX_VALUE, Nbt.getInt(root, COUNT) + 1));
         projectile.getPersistentData().put(ROOT, root);
     }

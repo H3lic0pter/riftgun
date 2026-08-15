@@ -235,7 +235,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             RiftConfig.RelocationConfig relocationConfig,
             RiftConfig.FuelConfig fuelConfig, long now) {
         UUID ticketId = reservation.id();
+        //? if >=1.21.11 {
+        /*ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()).getX(), BlockPos.containing(destination.position()).getZ());
+        *///?} else {
         ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()));
+        //?}
         TransitDiagnostics.relocation("prepare begin reservation={} owner={} target={} source={} destination={} chunk={} timeoutTicks={} tickingBeforeTicket={}",
             reservation.id(), owner.getUUID(), target.getUUID(),
             target.level().dimension().location(), destination.dimension().location(), chunk,

@@ -30,13 +30,21 @@ public enum MinecraftEntityTreeAccess
     @Override
     public boolean attach(Entity passenger, Entity vehicle) {
         return passenger.level() == vehicle.level()
+//? if >=1.21.11 {
+            /*&& passenger.startRiding(vehicle, true, false);
+*///?} else {
             && passenger.startRiding(vehicle, true);
+//?}
     }
 
     @Override
     public boolean synchronizeRoot(Entity root) {
         if (root.getControllingPassenger() instanceof ServerPlayer player) {
+//? if >=1.21.11 {
+            /*player.connection.send(new ClientboundMoveVehiclePacket(root.position(), root.getYRot(), root.getXRot()));
+*///?} else {
             player.connection.send(new ClientboundMoveVehiclePacket(root));
+//?}
         }
         return true;
     }

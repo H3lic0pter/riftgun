@@ -100,7 +100,11 @@ public final class PortalCrisisCoordinator {
             return false;
         }
         if (plan.cooldownTicks() > 0) {
+//? if >=1.21.11 {
+            /*player.getCooldowns().addCooldown(RiftContent.PORTAL_GUN.getId(), plan.cooldownTicks());
+*///?} else {
             player.getCooldowns().addCooldown(RiftContent.PORTAL_GUN.get(), plan.cooldownTicks());
+//?}
         }
         Component crisisName = Component.translatable(
             "crisis." + plan.crisisId().getNamespace() + "." + plan.crisisId().getPath());

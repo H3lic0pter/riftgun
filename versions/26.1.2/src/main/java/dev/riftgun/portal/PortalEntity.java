@@ -24,6 +24,9 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -177,7 +180,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         BlockPos position = blockPosition();
         serverLevel.getChunk(position.getX() >> 4, position.getZ() >> 4);
         serverLevel.getChunkSource().addRegionTicket(
-            PORTAL_TICKET, new ChunkPos(position), 3, position, true);
+            PORTAL_TICKET, new ChunkPos(position.getX(), position.getZ()), 3, position, true);
         ticketPosition = position;
         ticketHeld = true;
     }
@@ -382,7 +385,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     void releaseChunkTicket() {
         if (!ticketHeld || ticketPosition == null || !(level() instanceof ServerLevel serverLevel)) return;
         serverLevel.getChunkSource().removeRegionTicket(
-            PORTAL_TICKET, new ChunkPos(ticketPosition), 3, ticketPosition, true);
+            PORTAL_TICKET, new ChunkPos(ticketPosition.getX(), ticketPosition.getZ()), 3, ticketPosition, true);
         ticketHeld = false;
     }
 
@@ -616,7 +619,27 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag tag) {
+    protected void readAdditionalSaveData(ValueInput input) {
+        CompoundTag tag = new CompoundTag();
+        for (String key : input.keySet()) {
+            input.read(key, ExtraCodecs.NBT).ifPresent(value -> tag.put(key, value));
+        }
+        readAdditionalFromCompound(tag);
+    }
+
+    @Override
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+        return false;
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput output) {
+        CompoundTag tag = new CompoundTag();
+        addAdditionalToCompound(tag);
+        output.store(tag);
+    }
+
+    private void readAdditionalFromCompound(CompoundTag tag) {
         if (Nbt.hasUUID(tag, "LinkedPortal")) linkedPortalId = Nbt.getUUID(tag, "LinkedPortal");
         Identifier linkedDimensionId = Identifier.tryParse(Nbt.getString(tag, "LinkedDimension"));
         if (linkedDimensionId != null) {
@@ -677,8 +700,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         crisis.load(tag);
     }
 
-    @Override
-    protected void addAdditionalSaveData(CompoundTag tag) {
+    private void addAdditionalToCompound(CompoundTag tag) {
         if (linkedPortalId != null) Nbt.putUUID(tag, "LinkedPortal", linkedPortalId);
         if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
         if (ownerId != null) Nbt.putUUID(tag, "Owner", ownerId);
@@ -705,11 +727,6 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         tag.putInt("Aperture", aperture.ordinal());
         tag.put("PortalSounds", sounds.save());
         crisis.save(tag);
-    }
-
-    @Override
-    public AABB getBoundingBoxForCulling() {
-        return placement().bounds().inflate(0.5);
     }
 
     @Override

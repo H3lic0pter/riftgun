@@ -127,7 +127,11 @@ final class PortalCrisisSession {
         if (returnTarget != null) tag.put("CrisisReturnTarget", returnTarget.save());
         if (parentId != null) Nbt.putUUID(tag, "CrisisParent", parentId);
         if (parentDimension != null) {
+//? if >=1.21.11 {
+            /*tag.putString("CrisisParentDimension", parentDimension.identifier().toString());
+*///?} else {
             tag.putString("CrisisParentDimension", parentDimension.location().toString());
+//?}
         }
     }
 }

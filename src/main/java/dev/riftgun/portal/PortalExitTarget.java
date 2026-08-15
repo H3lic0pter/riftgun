@@ -30,7 +30,11 @@ public record PortalExitTarget(
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         Nbt.putUUID(tag, "DestinationId", destinationId);
+//? if >=1.21.11 {
+        /*tag.putString("Dimension", dimension.identifier().toString());
+*///?} else {
         tag.putString("Dimension", dimension.location().toString());
+//?}
         tag.putDouble("X", position.x);
         tag.putDouble("Y", position.y);
         tag.putDouble("Z", position.z);

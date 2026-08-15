@@ -22,7 +22,11 @@ public final class VanillaInventoryPortalGunLocator implements PortalGunLocator 
         Optional<LocatedGun> held = locateHeld(player);
         if (held.isPresent()) return held;
         Inventory inventory = player.getInventory();
+                //? if >=1.21.11 {
+        /*int selected = inventory.getSelectedSlot();
+        *///?} else {
         int selected = inventory.selected;
+        //?}
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
             if (slot != selected && slot != Inventory.SLOT_OFFHAND && isGun(inventory.getItem(slot))) {
                 return Optional.of(located(inventory, slot));
@@ -33,7 +37,11 @@ public final class VanillaInventoryPortalGunLocator implements PortalGunLocator 
 
     static Optional<LocatedGun> locateHeld(ServerPlayer player) {
         Inventory inventory = player.getInventory();
+                //? if >=1.21.11 {
+        /*int selected = inventory.getSelectedSlot();
+        *///?} else {
         int selected = inventory.selected;
+        //?}
         return PortalShortcutGunSelection.preferMainHand(
             () -> isGun(inventory.getItem(selected))
                 ? Optional.of(located(inventory, selected)) : Optional.empty(),

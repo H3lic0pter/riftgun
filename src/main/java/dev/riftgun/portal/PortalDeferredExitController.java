@@ -57,7 +57,11 @@ final class PortalDeferredExitController {
             boolean ticking = destinationLevel.isPositionEntityTicking(targetPosition);
             TransitDiagnostics.portal("deferred trigger portal={} root={} type={} source={} destination={} target={} chunkTicking={}",
                 portal.getUUID(), root.getUUID(), root.getType(),
+//? if >=1.21.11 {
+                /*portal.level().dimension().identifier(), destinationLevel.dimension().identifier(),
+*///?} else {
                 portal.level().dimension().location(), destinationLevel.dimension().location(),
+//?}
                 currentTarget.position(), ticking);
             if (ticking) {
                 PortalEntity exit = portal.createDeferredExit(

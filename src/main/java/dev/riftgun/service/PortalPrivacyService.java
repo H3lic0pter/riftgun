@@ -271,7 +271,11 @@ public final class PortalPrivacyService {
         return Component.translatable(key).withStyle(style -> style
             .withColor(color)
             .withUnderlined(true)
+//? if >=1.21.11 {
+            /*.withClickEvent(new ClickEvent.RunCommand(command)));
+*///?} else {
             .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command)));
+//?}
     }
 
     private static void notifyResponse(MinecraftServer server, ServerPlayer target,

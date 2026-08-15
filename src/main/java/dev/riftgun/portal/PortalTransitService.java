@@ -55,7 +55,7 @@ final class PortalTransitService {
             boolean successful = entity.teleportTo(targetLevel,
                 plan.destination().x, plan.destination().y, plan.destination().z,
 //? if >=1.21.11 {
-                /*Set.<Relative>of(), plan.yaw(), plan.pitch());
+                /*Set.<Relative>of(), plan.yaw(), plan.pitch(), false);
 *///?} else {
                 Set.<RelativeMovement>of(), plan.yaw(), plan.pitch());
 //?}

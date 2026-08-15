@@ -17,6 +17,14 @@ import dev.riftgun.sound.PortalSounds;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
+//? if >=1.21.11 {
+/*import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+*///?} else {
+//?} else {
+ /*26.1.2-only ValueIO imports live in the branch above 
+*///?}
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -24,6 +32,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -175,7 +184,11 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         setPhase(next.phase(), next.phaseTicks());
         if (next.phase() != current) {
             TransitDiagnostics.relocation("portal phase portal={} exit={} dimension={} pos={} {}->{} ticketHeld={}",
+//? if >=1.21.11 {
+                /*getUUID(), isExit(), level().dimension().identifier(), position(),
+*///?} else {
                 getUUID(), isExit(), level().dimension().location(), position(),
+//?}
                 current, next.phase(), ticketReservations > 0);
         }
         if (next.phase() == PortalLifecycle.Phase.CLOSED) discardPortal();
@@ -315,8 +328,21 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         super.remove(reason);
     }
 
+    //? if >=1.21.11 {
+    /*@Override
+    protected void readAdditionalSaveData(ValueInput input) {
+        CompoundTag tag = new CompoundTag();
+        for (String key : input.keySet()) {
+            input.read(key, ExtraCodecs.NBT).ifPresent(value -> tag.put(key, value));
+        }
+        readAdditionalFromCompound(tag);
+    }
+
+    private void readAdditionalFromCompound(CompoundTag tag) {
+    *///?} else {
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
+    //?}
         entityData.set(SIDE, EntityRelocationGeometry.normalizeSide(Nbt.getFloat(tag, "Side")));
         entityData.set(TARGET_SIDE, Math.max(entityData.get(SIDE), Nbt.getFloat(tag, "TargetSide")));
         entityData.set(FUEL_RGB, Nbt.getInt(tag, "FuelRgb"));
@@ -339,8 +365,19 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         reservations = 0;
     }
 
+    //? if >=1.21.11 {
+    /*@Override
+    protected void addAdditionalSaveData(ValueOutput output) {
+        CompoundTag tag = new CompoundTag();
+        addAdditionalToCompound(tag);
+        output.store(tag);
+    }
+
+    private void addAdditionalToCompound(CompoundTag tag) {
+    *///?} else {
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
+    //?}
         tag.putFloat("Side", entityData.get(SIDE));
         tag.putFloat("TargetSide", entityData.get(TARGET_SIDE));
         tag.putInt("FuelRgb", fuelRgb());
@@ -398,4 +435,12 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
     }
     @Override public boolean isAlwaysTicking() { return true; }
     @Override public boolean fireImmune() { return true; }
+
+    //? if >=1.21.11 {
+    /*@Override
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+        return false;
+    }
+    *///?} else {
+    //?}
 }

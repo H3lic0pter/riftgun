@@ -100,7 +100,7 @@ final class EntityRelocationTree {
         if (entity.level() == targetLevel) {
             boolean ok = entity.teleportTo(targetLevel, position.x, position.y, position.z,
 //? if >=1.21.11 {
-                /*Set.<Relative>of(), yaw, pitch);
+                /*Set.<Relative>of(), yaw, pitch, false);
 *///?} else {
                 Set.<RelativeMovement>of(), yaw, pitch);
 //?}
