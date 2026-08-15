@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [" C ", "RMR", " I "],
+  "key": {
+    "C": "minecraft:compass",
+    "R": "#c:dusts/redstone",
+    "M": "riftgun:basic_module",
+    "I": "#c:ingots/iron"
+  },
+  "result": { "id": "riftgun:player_target_module", "count": 1 }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["PFP", "PMP", "SBS"],
+  "key": {
+    "P": "minecraft:phantom_membrane",
+    "F": "#c:feathers",
+    "M": "riftgun:basic_module",
+    "S": "#c:slime_balls",
+    "B": "minecraft:iron_boots"
+  },
+  "result": { "id": "riftgun:fall_guard_module", "count": 1 }
+}

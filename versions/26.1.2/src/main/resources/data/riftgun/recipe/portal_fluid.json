@@ -1,0 +1,9 @@
+{
+  "type": "riftgun:fluid_transmutation",
+  "ingredients": [
+    "#c:crops/nether_wart",
+    "#c:gems/quartz",
+    "#c:gems/diamond"
+  ],
+  "result": "riftgun:portal_fluid"
+}

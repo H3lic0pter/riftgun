@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["GCG", "IEI", "LCR"],
+  "key": {
+    "G": "#c:glass_blocks/colorless",
+    "C": "#c:ingots/copper",
+    "I": "#c:ingots/iron",
+    "E": "#c:ender_pearls",
+    "L": "#c:storage_blocks/lapis",
+    "R": "#c:storage_blocks/redstone"
+  },
+  "result": { "id": "riftgun:portal_gun", "count": 1 }
+}

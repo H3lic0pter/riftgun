@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["EBE", "DMD", "EOE"],
+  "key": {
+    "E": "minecraft:ender_pearl",
+    "B": "minecraft:enchanted_book",
+    "D": "minecraft:diamond",
+    "M": "riftgun:basic_module",
+    "O": "minecraft:ender_eye"
+  },
+  "result": { "id": "riftgun:entity_relocation_module", "count": 1 }
+}

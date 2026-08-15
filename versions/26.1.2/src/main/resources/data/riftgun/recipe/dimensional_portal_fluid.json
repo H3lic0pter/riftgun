@@ -1,0 +1,9 @@
+{
+  "type": "riftgun:fluid_transmutation",
+  "ingredients": [
+    "minecraft:chorus_fruit",
+    "minecraft:blaze_powder",
+    "minecraft:ender_eye"
+  ],
+  "result": "riftgun:dimensional_portal_fluid"
+}

@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["EDE", "NMN", "OSO"],
+  "key": {
+    "E": "minecraft:echo_shard",
+    "D": "minecraft:deepslate_emerald_ore",
+    "N": "#c:ingots/netherite",
+    "M": "riftgun:advanced_basic_module",
+    "O": "minecraft:crying_obsidian",
+    "S": "minecraft:nether_star"
+  },
+  "result": { "id": "riftgun:duration_eternal_module", "count": 1 }
+}

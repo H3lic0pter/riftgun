@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["IPI", "SMS", "IPI"],
+  "key": {
+    "I": "#c:ingots/iron",
+    "P": "minecraft:piston",
+    "S": "#c:slime_balls",
+    "M": "riftgun:basic_module"
+  },
+  "result": { "id": "riftgun:portal_aperture_module", "count": 1 }
+}

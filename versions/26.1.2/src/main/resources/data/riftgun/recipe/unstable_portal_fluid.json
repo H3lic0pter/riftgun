@@ -1,0 +1,9 @@
+{
+  "type": "riftgun:fluid_transmutation",
+  "ingredients": [
+    "#c:gems/lapis",
+    "#c:ingots/copper",
+    "minecraft:rotten_flesh"
+  ],
+  "result": "riftgun:unstable_portal_fluid"
+}
