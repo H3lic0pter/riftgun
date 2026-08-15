@@ -37,6 +37,8 @@ Do NOT re-research these. If something contradicts them, STOP and report.
 | `GuiGraphics` | prepare/render split (1.21.6); class renamed `GuiGraphicsExtractor` (26.1) | 1.21.6/26.1 | 4 screen classes |
 | Recipe serializers | codec records | 26.1 | `recipe/*` |
 | `net.minecraft.nbt.CompoundTag` | **still exists** — do not preemptively change NBT usages; only save/load signatures changed | — | — |
+| `TicketType<T>` (generic) | `TicketType` non-generic | 26.1.2 | shared relocation/portal files |
+| Entity NBT override | `readAdditionalSaveData(ValueInput)` / `addAdditionalSaveData(ValueOutput)`; bridge pattern: keep legacy `CompoundTag` body as private helper, `output.store(tag)` writes / `keySet()`+`read(key, ExtraCodecs.NBT)` rebuilds | 1.21.6/26.1 | `PortalEntity` (done, Phase 2) |
 
 ### Stonecutter conditional syntax (exact)
 

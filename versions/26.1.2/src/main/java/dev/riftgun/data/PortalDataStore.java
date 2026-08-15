@@ -1,16 +1,16 @@
 package dev.riftgun.data;
 
 import dev.riftgun.core.config.RiftConfigs;
-import dev.riftgun.RiftGun;
+import dev.riftgun.core.RiftConstants;
 import java.util.HashMap;
 import java.util.Map;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
 public final class PortalDataStore {
-    private static final String ROOT_KEY = RiftGun.MOD_ID + ":portal_data";
+    private static final String ROOT_KEY = RiftConstants.MOD_ID + ":portal_data";
 
     public static PortalPlayerData load(Player player) {
         CompoundTag persistent = player.getPersistentData();
@@ -30,8 +30,8 @@ public final class PortalDataStore {
         return load(player).save();
     }
 
-    private static Map<ResourceLocation, PortalPermissionPolicy> permissionDefaults() {
-        Map<ResourceLocation, PortalPermissionPolicy> defaults = new HashMap<>();
+    private static Map<Identifier, PortalPermissionPolicy> permissionDefaults() {
+        Map<Identifier, PortalPermissionPolicy> defaults = new HashMap<>();
         defaults.put(PortalPermissions.PLAYER_PORTAL,
             fromTargetPrivacy(RiftConfigs.server().privacy().defaultTarget()));
         defaults.put(PortalPermissions.ENTITY_RELOCATION_DESTINATION,

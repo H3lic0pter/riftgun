@@ -22,12 +22,15 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -60,7 +63,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Integer> ANCHOR_FACE =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
-    private static final TicketType<BlockPos> PORTAL_TICKET =
+    private static final TicketType PORTAL_TICKET =
         TicketType.create("riftgun_portal", Vec3i::compareTo);
 
     private @Nullable UUID linkedPortalId;
@@ -613,9 +616,24 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag tag) {
+    protected void readAdditionalSaveData(ValueInput input) {
+        CompoundTag tag = new CompoundTag();
+        for (String key : input.keySet()) {
+            input.read(key, ExtraCodecs.NBT).ifPresent(value -> tag.put(key, value));
+        }
+        readAdditionalFromCompound(tag);
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput output) {
+        CompoundTag tag = new CompoundTag();
+        addAdditionalToCompound(tag);
+        output.store(tag);
+    }
+
+    private void readAdditionalFromCompound(CompoundTag tag) {
         if (tag.hasUUID("LinkedPortal")) linkedPortalId = tag.getUUID("LinkedPortal");
-        ResourceLocation linkedDimensionId = ResourceLocation.tryParse(tag.getString("LinkedDimension"));
+        Identifier linkedDimensionId = Identifier.tryParse(tag.getString("LinkedDimension"));
         if (linkedDimensionId != null) {
             linkedDimension = ResourceKey.create(Registries.DIMENSION, linkedDimensionId);
         }
@@ -674,8 +692,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         crisis.load(tag);
     }
 
-    @Override
-    protected void addAdditionalSaveData(CompoundTag tag) {
+    private void addAdditionalToCompound(CompoundTag tag) {
         if (linkedPortalId != null) tag.putUUID("LinkedPortal", linkedPortalId);
         if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
         if (ownerId != null) tag.putUUID("Owner", ownerId);
