@@ -10,9 +10,11 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID)
@@ -25,6 +27,13 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void serverAboutToStart(ServerAboutToStartEvent event) {
         RiftLifecycle.serverStarting(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void tagsUpdated(TagsUpdatedEvent event) {
+        if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
+            RiftLifecycle.tagsUpdated(event.getRegistryAccess());
+        }
     }
 
     @SubscribeEvent
@@ -65,6 +74,11 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void serverTick(ServerTickEvent.Post event) {
         RiftLifecycle.serverTick(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void levelTick(LevelTickEvent.Pre event) {
+        RiftLifecycle.levelTickBeforeEntities(event.getLevel());
     }
 
     @SubscribeEvent

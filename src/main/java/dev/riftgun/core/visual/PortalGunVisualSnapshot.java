@@ -17,6 +17,17 @@ public record PortalGunVisualSnapshot(
     public static final int VARIANT_COUNT = 16;
     public static final int HIDDEN = 0x00000000;
 
+    /**
+     * Core cuboids (tint indices 9/10) sit inside the translucent fuel-tube glass and liquid
+     * columns. Rendering them fully opaque lets their near faces out-sort the surrounding
+     * translucent quads, so when the camera moves the liquid/glass far faces paint over the core
+     * and the gun appears see-through. Thinning the core tint alpha lets it participate in the
+     * same translucent sort as the shell instead of breaking it. The texture at core UVs is fully
+     * opaque, so the tint alpha sets the final quad opacity.
+     */
+    public static final int OUTER_CORE_ALPHA = 0x96; // 150
+    public static final int INNER_CORE_ALPHA = 0x96; // 150
+
     public static PortalGunVisualSnapshot create(int liquidTint, boolean coreVisible, int fuelRgb) {
         int rgb = fuelRgb & 0xFFFFFF;
         return new PortalGunVisualSnapshot(liquidTint, coreVisible, rgb,
@@ -68,7 +79,7 @@ public record PortalGunVisualSnapshot(
     }
 
     public static int outerCoreArgb(int rgb) {
-        return 0xFF000000 | mix(rgb >> 16 & 0xFF) << 16
+        return (OUTER_CORE_ALPHA << 24) | mix(rgb >> 16 & 0xFF) << 16
             | mix(rgb >> 8 & 0xFF) << 8 | mix(rgb & 0xFF);
     }
 
@@ -81,7 +92,7 @@ public record PortalGunVisualSnapshot(
         int green = rgb >> 8 & 0xFF;
         int blue = rgb & 0xFF;
         int maximum = Math.max(red, Math.max(green, blue));
-        if (maximum == 0) return 0xFF000000;
+        if (maximum == 0) return INNER_CORE_ALPHA << 24;
         float brighten = 255.0F / maximum;
         red = Math.round(red * brighten);
         green = Math.round(green * brighten);
@@ -90,7 +101,7 @@ public record PortalGunVisualSnapshot(
         red = saturate(red, brightMaximum);
         green = saturate(green, brightMaximum);
         blue = saturate(blue, brightMaximum);
-        return 0xFF000000 | red << 16 | green << 8 | blue;
+        return (INNER_CORE_ALPHA << 24) | red << 16 | green << 8 | blue;
     }
 
     private static int saturate(int component, int maximum) {

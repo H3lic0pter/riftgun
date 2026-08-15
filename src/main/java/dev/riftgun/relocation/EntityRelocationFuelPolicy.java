@@ -1,6 +1,7 @@
 package dev.riftgun.relocation;
 
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
@@ -30,16 +31,29 @@ final class EntityRelocationFuelPolicy {
     }
 
     static TargetKind classify(Entity target) {
+        return classify(target, false);
+    }
+
+    static TargetKind classify(Entity target, boolean taggedUtility) {
         if (target instanceof ItemEntity || target instanceof VehicleEntity) return TargetKind.UTILITY;
+        if (taggedUtility && !(target instanceof LivingEntity) && !(target instanceof Projectile)) {
+            return TargetKind.UTILITY;
+        }
         return classify(target instanceof Projectile, target instanceof Player,
-            target.getType().is(PortalEntityTags.BOSSES), target instanceof Enemy);
+            target.getType().is(PortalEntityTags.BOSSES), target instanceof Enemy, false);
     }
 
     static TargetKind classify(boolean projectile, boolean player, boolean boss, boolean hostile) {
+        return classify(projectile, player, boss, hostile, false);
+    }
+
+    static TargetKind classify(boolean projectile, boolean player, boolean boss,
+                               boolean hostile, boolean taggedUtility) {
         if (projectile) return TargetKind.PROJECTILE;
         if (player) return TargetKind.PLAYER;
         if (boss) return TargetKind.BOSS;
         if (hostile) return TargetKind.HOSTILE;
+        if (taggedUtility) return TargetKind.UTILITY;
         return TargetKind.PASSIVE;
     }
 

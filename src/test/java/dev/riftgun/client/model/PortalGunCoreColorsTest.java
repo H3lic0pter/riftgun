@@ -3,6 +3,7 @@ package dev.riftgun.client.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 import dev.riftgun.fuel.PortalFuelProfiles;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -16,8 +17,8 @@ final class PortalGunCoreColorsTest {
         int outer = PortalGunCoreColors.outer(fuel);
         int inner = PortalGunCoreColors.inner(fuel);
 
-        assertEquals(0xFF, outer >>> 24);
-        assertEquals(0xFF, inner >>> 24);
+        assertEquals(PortalGunVisualSnapshot.OUTER_CORE_ALPHA, outer >>> 24);
+        assertEquals(PortalGunVisualSnapshot.INNER_CORE_ALPHA, inner >>> 24);
         assertTrue(brightness(outer) > brightness(fuel));
         assertTrue(brightness(inner) > brightness(outer));
         assertTrue(saturation(inner) > saturation(outer));

@@ -323,7 +323,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         entityData.set(PHASE, nextPhase.ordinal());
         entityData.set(PHASE_TICKS, nextPhaseTicks);
 
-        ProjectilePortalIndex.refresh(this);
+        SweptPortalIndex.refresh(this);
 
         if (nextPhase == PortalLifecycle.Phase.CLOSED) {
             releaseChunkTicket();
@@ -385,7 +385,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     @Override
     public void remove(RemovalReason reason) {
-        ProjectilePortalIndex.unregister(this);
+        SweptPortalIndex.unregister(this);
         releaseChunkTicket();
         super.remove(reason);
     }
@@ -535,6 +535,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     boolean trySweptProjectile(Projectile projectile, Vec3 start, Vec3 end) {
         return transit.trySweptProjectile(projectile, start, end);
+    }
+
+    boolean trySweptSpecialEntity(Entity entity, Vec3 start, Vec3 end) {
+        return transit.trySweptSpecialEntity(entity, start, end);
     }
 
     boolean entityFallGuard() {

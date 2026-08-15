@@ -2,12 +2,14 @@ package dev.riftgun.portal;
 
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.core.config.RiftConfigs;
+import dev.riftgun.entity.SpecialEntityTransitPolicy;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.service.PortalPrivacyService;
 import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 record PortalTransitEligibility(
     PortalPlacement placement,
     PortalEntityAccessSnapshot entityAccess,
+    SpecialEntityTransitPolicy<EntityType<?>> specialEntities,
     @Nullable UUID ownerId,
     @Nullable UUID excludedPlayerId,
     boolean exitPortal,
@@ -26,18 +29,26 @@ record PortalTransitEligibility(
     }
 
     boolean allows(Entity root) {
-        return rejectionReason(root) == null;
+        return rejectionReason(root, true) == null;
     }
 
     @Nullable String rejectionReason(Entity root) {
+        return rejectionReason(root, true);
+    }
+
+    boolean allowsSwept(Entity root) {
+        return rejectionReason(root, false) == null;
+    }
+
+    private @Nullable String rejectionReason(Entity root, boolean requireTriggerIntersection) {
         if (root instanceof PortalEntity) return "portal_entity";
         if (root.isPassenger()) return "passenger_not_root";
         if (!allowsPassengerTree(RiftConfigs.server().portal().passengerTreeTransitEnabled(),
             !root.getPassengers().isEmpty())) return "passenger_tree_disabled";
-        if (!RiftRuntime.current().entityEligibility().allowsTree(root, entityAccess::allows)) {
+        if (!allowsTree(root)) {
             return "entity_access_denied";
         }
-        if (!PortalTriggerShape.intersects(
+        if (requireTriggerIntersection && !PortalTriggerShape.intersects(
             placement, root.getBoundingBox(), horizontalTriggerExtend)) return "trigger_shape_miss";
         if (containsExcludedPlayer(root)) return "excluded_player";
         if (exitPortal && EntityRelocationExitImmunity.blocksExit(root)) {
@@ -49,6 +60,17 @@ record PortalTransitEligibility(
 
     static boolean allowsPassengerTree(boolean enabled, boolean hasPassengers) {
         return enabled || !hasPassengers;
+    }
+
+    private boolean allowsTree(Entity root) {
+        var conventional = RiftRuntime.current().entityEligibility();
+        if (!specialEntities.hasPortalDenials()) {
+            return conventional.allowsTree(root, entity ->
+                entityAccess.allows(entity)
+                    || specialEntities.allowsPortal(entity.getType(), false));
+        }
+        return root.getSelfAndPassengers().allMatch(entity -> specialEntities.allowsPortal(
+            entity.getType(), conventional.allows(entity) || entityAccess.allows(entity)));
     }
 
     private boolean containsExcludedPlayer(Entity root) {

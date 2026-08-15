@@ -37,6 +37,8 @@ public final class ServerConfig {
             new RiftConfig.PortalConfig(
                 value.maximumPortalDurationSeconds.get(), value.enablePassengerTreeTransit.get(),
                 value.horizontalTriggerExtend.get()),
+            new RiftConfig.SpecialEntityTransitConfig(
+                value.enableSpecialEntitySweptCollision.get()),
             new RiftConfig.RelocationConfig(
                 value.maximumConcurrentEntityRelocations.get(),
                 value.entityRelocationTargetCooldownTicks.get(),
@@ -125,6 +127,7 @@ public final class ServerConfig {
         public final ModConfigSpec.BooleanValue enableProjectileSweptCollision;
         public final ModConfigSpec.IntValue projectileEffectCooldownTicks;
         public final ModConfigSpec.DoubleValue horizontalTriggerExtend;
+        public final ModConfigSpec.BooleanValue enableSpecialEntitySweptCollision;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultTargetPrivacy;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultEntityRelocationDestinationPrivacy;
         public final ModConfigSpec.EnumValue<dev.riftgun.data.TargetPrivacy> defaultEntityRelocationSubjectPrivacy;
@@ -217,6 +220,14 @@ public final class ServerConfig {
                         + "Catches falling bodies before their feet touch the ground so fall damage "
                         + "is resolved at the exit.")
                 .defineInRange("horizontalTriggerExtend", 0.35, 0.0, 2.0);
+            builder.pop();
+
+            builder.push("specialEntityTransit");
+            enableSpecialEntitySweptCollision = builder.comment(
+                    "Detect fast entities listed in #riftgun:portal_transit_swept by intersecting "
+                        + "their swept path with indexed portal faces. Disable to remove this runtime work; "
+                        + "ordinary trigger-box transit and tag permissions remain available.")
+                .define("enableSweptCollision", true);
             builder.pop();
 
             builder.push("entityRelocation");

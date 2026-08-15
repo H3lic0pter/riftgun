@@ -1,6 +1,7 @@
 package dev.riftgun.portal;
 
 import dev.riftgun.diagnostics.TransitDiagnostics;
+import dev.riftgun.entity.SpecialEntityTransitPolicies;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.sound.PortalSounds;
 import java.util.HashSet;
@@ -35,7 +36,7 @@ final class PortalTransitOrchestrator {
         AABB search = portal.placement().bounds().inflate(0.6, 2.0, 0.6);
         boolean crisisExit = portal.crisis().isReturnExit();
         PortalTransitEligibility eligibility = new PortalTransitEligibility(
-            portal.placement(), portal.entityAccess(), portal.ownerId(),
+            portal.placement(), portal.entityAccess(), SpecialEntityTransitPolicies.current(), portal.ownerId(),
             crisisExit ? null : portal.excludedPlayerId(),
             crisisExit ? false : portal.isExitPortal(), portal.horizontalTriggerExtend());
         List<Entity> touching = portal.level().getEntities(portal, search, entity ->
@@ -146,11 +147,27 @@ final class PortalTransitOrchestrator {
         PortalEntity target = portal.linkedPortal();
         if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return false;
         double radius = Math.max(projectile.getBbWidth(), projectile.getBbHeight()) * 0.5;
-        if (!PortalProjectileIntersection.crosses(
+        if (!PortalSweptIntersection.crosses(
             portal.placement(), start, end, radius)) return false;
         long now = portal.serverTime();
         if (!gate.enter(projectile.getUUID(), now, portal.transitCooldownTicks())) return false;
         return transitNormalTree(projectile, target) != null;
+    }
+
+    boolean trySweptSpecialEntity(Entity entity, Vec3 start, Vec3 end) {
+        var policy = SpecialEntityTransitPolicies.current();
+        if (!policy.isSweptType(entity.getType())) return false;
+        PortalTransitEligibility eligibility = new PortalTransitEligibility(
+            portal.placement(), portal.entityAccess(), policy, portal.ownerId(),
+            portal.excludedPlayerId(), portal.isExitPortal(), portal.horizontalTriggerExtend());
+        if (!eligibility.allowsSwept(entity)) return false;
+        PortalEntity target = portal.linkedPortal();
+        if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return false;
+        double radius = Math.max(entity.getBbWidth(), entity.getBbHeight()) * 0.5;
+        if (!PortalSweptIntersection.crosses(portal.placement(), start, end, radius)) return false;
+        long now = portal.serverTime();
+        if (!gate.enter(entity.getUUID(), now, portal.transitCooldownTicks())) return false;
+        return transitNormalTree(entity, target) != null;
     }
 
     private @Nullable Entity transitNormalTree(Entity root, PortalEntity target) {
