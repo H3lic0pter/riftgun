@@ -5,11 +5,7 @@ import dev.riftgun.lifecycle.RiftLifecycle;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-//? if >=1.21.11 {
-/*import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
-*///?} else {
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
-//?}
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
@@ -24,12 +20,10 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 @EventBusSubscriber(modid = RiftGun.MOD_ID)
 public final class CommonEvents {
     @SubscribeEvent
-//? if >=1.21.11 {
-    /*public static void addReloadListeners(AddServerReloadListenersEvent event) {
-*///?} else {
-    public static void addReloadListeners(AddReloadListenerEvent event) {
-//?}
-        event.addListener(new PortalFuelProfileReloadListener(event.getRegistryAccess()));
+    public static void addReloadListeners(AddServerReloadListenersEvent event) {
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(
+            "riftgun", "portal_fuel_profiles"),
+            new PortalFuelProfileReloadListener(event.getRegistryAccess()));
     }
 
     @SubscribeEvent
@@ -40,7 +34,7 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void tagsUpdated(TagsUpdatedEvent event) {
         if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
-            RiftLifecycle.tagsUpdated(event.getRegistryAccess());
+            RiftLifecycle.tagsUpdated(event.getRegistries());
         }
     }
 

@@ -4,7 +4,6 @@ import dev.riftgun.core.RiftConstants;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -17,7 +16,7 @@ public final class RiftGunRecipes {
 
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<FluidTransmutationRecipe>>
         FLUID_TRANSMUTATION_SERIALIZER = SERIALIZERS.register(
-            "fluid_transmutation", FluidTransmutationRecipe.Serializer::new);
+            "fluid_transmutation", () -> FluidTransmutationRecipe.SERIALIZER);
     public static final DeferredHolder<RecipeType<?>, RecipeType<FluidTransmutationRecipe>>
         FLUID_TRANSMUTATION_TYPE = TYPES.register("fluid_transmutation", () -> new RecipeType<>() {
             @Override
@@ -27,10 +26,10 @@ public final class RiftGunRecipes {
         });
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<AdvancedBasicModuleRecipe>>
         ADVANCED_BASIC_MODULE_SERIALIZER = SERIALIZERS.register(
-            "advanced_basic_module", () -> new SimpleCraftingRecipeSerializer<>(AdvancedBasicModuleRecipe::new));
+            "advanced_basic_module", () -> AdvancedBasicModuleRecipe.SERIALIZER);
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<ZeroPointFuelModuleRecipe>>
         ZERO_POINT_FUEL_MODULE_SERIALIZER = SERIALIZERS.register(
-            "zero_point_fuel_module", () -> new SimpleCraftingRecipeSerializer<>(ZeroPointFuelModuleRecipe::new));
+            "zero_point_fuel_module", () -> ZeroPointFuelModuleRecipe.SERIALIZER);
 
     public static void register(IEventBus bus) {
         SERIALIZERS.register(bus);

@@ -14,8 +14,16 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
 public final class AdvancedBasicModuleRecipe extends CustomRecipe {
-    public AdvancedBasicModuleRecipe(CraftingBookCategory category) {
-        super(category);
+    private static final com.mojang.serialization.MapCodec<AdvancedBasicModuleRecipe> MAP_CODEC =
+        com.mojang.serialization.MapCodec.unit(AdvancedBasicModuleRecipe::new);
+    private static final net.minecraft.network.codec.StreamCodec<
+        net.minecraft.network.RegistryFriendlyByteBuf, AdvancedBasicModuleRecipe> STREAM_CODEC =
+        net.minecraft.network.codec.StreamCodec.unit(new AdvancedBasicModuleRecipe());
+    public static final RecipeSerializer<AdvancedBasicModuleRecipe> SERIALIZER =
+        new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
+
+    public AdvancedBasicModuleRecipe() {
+        super();
     }
 
     @Override
@@ -33,7 +41,7 @@ public final class AdvancedBasicModuleRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
+    public ItemStack assemble(CraftingInput input) {
         return new ItemStack(PortalModules.ADVANCED_BASIC_MODULE.get());
     }
 
@@ -45,37 +53,12 @@ public final class AdvancedBasicModuleRecipe extends CustomRecipe {
     }
 
     @Override
-    public boolean canCraftInDimensions(int width, int height) {
-        return width >= 3 && height >= 3;
-    }
-
-    @Override
-    public NonNullList<Ingredient> getIngredients() {
-        NonNullList<Ingredient> ingredients = NonNullList.create();
-        ingredients.add(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()));
-        ingredients.add(Ingredient.of(Items.DRAGON_EGG));
-        ingredients.add(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()));
-        ingredients.add(Ingredient.of(Items.POWDER_SNOW_BUCKET));
-        ingredients.add(Ingredient.of(PortalModules.BASIC_MODULE.get()));
-        ingredients.add(Ingredient.of(Items.POWDER_SNOW_BUCKET));
-        ingredients.add(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()));
-        ingredients.add(Ingredient.EMPTY);
-        ingredients.add(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()));
-        return ingredients;
-    }
-
-    @Override
-    public ItemStack getResultItem(HolderLookup.Provider registries) {
-        return new ItemStack(PortalModules.ADVANCED_BASIC_MODULE.get());
-    }
-
-    @Override
     public boolean isSpecial() {
         return false;
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
-        return RiftGunRecipes.ADVANCED_BASIC_MODULE_SERIALIZER.get();
+    public RecipeSerializer<? extends CustomRecipe> getSerializer() {
+        return SERIALIZER;
     }
 }

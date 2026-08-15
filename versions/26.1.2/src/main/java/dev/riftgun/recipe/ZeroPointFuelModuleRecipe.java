@@ -14,8 +14,16 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
 public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
-    public ZeroPointFuelModuleRecipe(CraftingBookCategory category) {
-        super(category);
+    private static final com.mojang.serialization.MapCodec<ZeroPointFuelModuleRecipe> MAP_CODEC =
+        com.mojang.serialization.MapCodec.unit(ZeroPointFuelModuleRecipe::new);
+    private static final net.minecraft.network.codec.StreamCodec<
+        net.minecraft.network.RegistryFriendlyByteBuf, ZeroPointFuelModuleRecipe> STREAM_CODEC =
+        net.minecraft.network.codec.StreamCodec.unit(new ZeroPointFuelModuleRecipe());
+    public static final RecipeSerializer<ZeroPointFuelModuleRecipe> SERIALIZER =
+        new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
+
+    public ZeroPointFuelModuleRecipe() {
+        super();
     }
 
     @Override
@@ -34,32 +42,7 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
-        return new ItemStack(PortalModules.ZERO_POINT_FUEL.item().get());
-    }
-
-    @Override
-    public boolean canCraftInDimensions(int width, int height) {
-        return width >= 3 && height >= 3;
-    }
-
-    @Override
-    public NonNullList<Ingredient> getIngredients() {
-        NonNullList<Ingredient> ingredients = NonNullList.create();
-        ingredients.add(Ingredient.of(Items.NETHERITE_INGOT));
-        ingredients.add(Ingredient.of(Items.DEEPSLATE_EMERALD_ORE));
-        ingredients.add(Ingredient.of(Items.NETHERITE_INGOT));
-        ingredients.add(Ingredient.of(Items.HEAVY_CORE));
-        ingredients.add(Ingredient.of(PortalModules.ADVANCED_BASIC_MODULE.get()));
-        ingredients.add(Ingredient.of(Items.HEAVY_CORE));
-        ingredients.add(Ingredient.of(Items.NETHERITE_INGOT));
-        ingredients.add(Ingredient.of(Items.NETHER_STAR));
-        ingredients.add(Ingredient.of(Items.NETHERITE_INGOT));
-        return ingredients;
-    }
-
-    @Override
-    public ItemStack getResultItem(HolderLookup.Provider registries) {
+    public ItemStack assemble(CraftingInput input) {
         return new ItemStack(PortalModules.ZERO_POINT_FUEL.item().get());
     }
 
@@ -69,7 +52,7 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
-        return RiftGunRecipes.ZERO_POINT_FUEL_MODULE_SERIALIZER.get();
+    public RecipeSerializer<? extends CustomRecipe> getSerializer() {
+        return SERIALIZER;
     }
 }

@@ -70,7 +70,11 @@ public final class FluidTransmutationService {
         List<ItemStack> stacks = entities.stream().map(ItemEntity::getItem).toList();
         FluidTransmutationInput input = new FluidTransmutationInput(stacks);
         List<RecipeHolder<FluidTransmutationRecipe>> recipes = new ArrayList<>(
-            level.getRecipeManager().getAllRecipesFor(RiftGunRecipes.FLUID_TRANSMUTATION_TYPE.get()));
+            level.getServer().getRecipeManager().getRecipes().stream()
+                .filter(holder -> holder.value() instanceof FluidTransmutationRecipe recipe
+                    && recipe.getType() == RiftGunRecipes.FLUID_TRANSMUTATION_TYPE.get())
+                .map(holder -> new RecipeHolder<>(holder.id(), (FluidTransmutationRecipe) holder.value()))
+                .toList());
         recipes.sort(PRIORITY);
         for (RecipeHolder<FluidTransmutationRecipe> holder : recipes) {
             FluidTransmutationRecipe recipe = holder.value();
@@ -108,7 +112,7 @@ public final class FluidTransmutationService {
             0.75F, 1.15F);
         int rgb = PortalFuelProfiles.resolve(output)
             .map(PortalFuelProfile::rgb).orElse(0x7FD9E8);
-        level.sendParticles(new DustParticleOptions(Vec3.fromRGB24(rgb).toVector3f(), 0.85F),
+        level.sendParticles(new DustParticleOptions(rgb, 0.85F),
             pos.getX() + 0.5, pos.getY() + 0.55, pos.getZ() + 0.5,
             14, 0.32, 0.22, 0.32, 0.015);
     }

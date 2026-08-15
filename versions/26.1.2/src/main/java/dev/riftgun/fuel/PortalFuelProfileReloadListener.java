@@ -1,6 +1,5 @@
 package dev.riftgun.fuel;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.mojang.logging.LogUtils;
 import java.util.HashMap;
@@ -8,11 +7,8 @@ import java.util.Map;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-//? if >=1.21.11 {
-/*import net.minecraft.resources.Identifier;
-*///?} else {
-import net.minecraft.resources.ResourceLocation;
-//?}
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.tags.TagKey;
@@ -21,31 +17,26 @@ import net.minecraft.world.level.material.Fluid;
 import org.slf4j.Logger;
 
 /** Builds the immutable datapack fuel index after fluid tags are available. */
-public final class PortalFuelProfileReloadListener extends SimpleJsonResourceReloadListener {
+public final class PortalFuelProfileReloadListener extends SimpleJsonResourceReloadListener<JsonElement> {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final Gson GSON = new Gson();
     private final RegistryAccess registries;
 
     public PortalFuelProfileReloadListener(RegistryAccess registries) {
-        super(GSON, "riftgun/portal_fuels");
+        super(net.minecraft.util.ExtraCodecs.JSON, FileToIdConverter.json("riftgun/portal_fuels"));
         this.registries = registries;
     }
 
     @Override
-//? if >=1.21.11 {
-    /*protected void apply(Map<Identifier, JsonElement> resources,
-*///?} else {
-    protected void apply(Map<ResourceLocation, JsonElement> resources,
-//?}
+    protected void apply(Map<Identifier, JsonElement> resources,
                          ResourceManager manager, ProfilerFiller profiler) {
-        Registry<Fluid> fluids = registries.registryOrThrow(Registries.FLUID);
+        Registry<Fluid> fluids = registries.lookupOrThrow(Registries.FLUID);
         Map<Fluid, PortalFuelProfile> index = new HashMap<>();
         resources.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
             try {
                 PortalFuelDefinition definition = PortalFuelDefinition.parse(
                     entry.getKey(), entry.getValue().getAsJsonObject());
                 if (definition.fluid() != null) {
-                    Fluid fluid = fluids.get(definition.fluid());
+                    Fluid fluid = fluids.get(definition.fluid()).map(net.minecraft.core.Holder.Reference::value).orElse(null);
                     if (fluid == null) {
                         LOGGER.warn("Ignoring portal fuel {}: unknown fluid {}",
                             definition.id(), definition.fluid());

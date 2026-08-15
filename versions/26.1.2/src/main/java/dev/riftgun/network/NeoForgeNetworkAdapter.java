@@ -26,7 +26,7 @@ public final class NeoForgeNetworkAdapter implements NetworkTransport {
 
     @Override
     public void sendToServer(CustomPacketPayload payload) {
-        PacketDistributor.sendToServer(payload);
+        net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(payload);
     }
 
     @Override

@@ -83,7 +83,9 @@ public final class RiftGun {
             .sized(1.2F, 2.2F)
             .clientTrackingRange(10)
             .updateInterval(1)
-            .build("portal")
+            .build(net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.ENTITY_TYPE,
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("riftgun", "portal")))
     );
 
     private static final DeferredHolder<EntityType<?>, EntityType<EntityRelocationPortalEntity>>
@@ -94,7 +96,9 @@ public final class RiftGun {
                 .sized(1.0F, 0.05F)
                 .clientTrackingRange(10)
                 .updateInterval(1)
-                .build("entity_relocation_portal")
+                .build(net.minecraft.resources.ResourceKey.create(
+                    net.minecraft.core.registries.Registries.ENTITY_TYPE,
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath("riftgun", "entity_relocation_portal")))
         );
 
     private static final DeferredHolder<ParticleType<?>, SimpleParticleType> PORTAL_SPLASH = PARTICLE_TYPES.register(
@@ -160,10 +164,10 @@ public final class RiftGun {
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
-        event.registerItem(Capabilities.FluidHandler.ITEM,
+        event.registerItem(Capabilities.Fluid.ITEM,
             (stack, ignored) -> PortalGunCapabilityPolicy.allows(
                 PortalGunCapabilityPolicy.Access.CAPABILITY, PortalGunMode.bucketMode(stack))
-                ? new PortalGunTank(stack) : null,
+                ? new dev.riftgun.fuel.LegacyFluidHandlerAdapter(new dev.riftgun.fuel.PortalGunTank(stack)) : null,
             PORTAL_GUN.get());
     }
 }

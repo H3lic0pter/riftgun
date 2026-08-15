@@ -12,6 +12,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
@@ -23,7 +24,7 @@ public record FluidTransmutationRecipe(List<SizedIngredient> ingredients, FluidS
     public static final int SOURCE_AMOUNT = 1000;
     private static final int MAXIMUM_INGREDIENT_UNITS = 64;
     private static final com.mojang.serialization.Codec<List<SizedIngredient>> INGREDIENTS_CODEC =
-        SizedIngredient.FLAT_CODEC.listOf().validate(FluidTransmutationRecipe::validateIngredients);
+        SizedIngredient.NESTED_CODEC.listOf().validate(FluidTransmutationRecipe::validateIngredients);
 
     public FluidTransmutationRecipe {
         ingredients = List.copyOf(ingredients);
@@ -48,30 +49,28 @@ public record FluidTransmutationRecipe(List<SizedIngredient> ingredients, FluidS
     }
 
     @Override
+    public String group() {
+        return "";
+    }
+
+    @Override
+    public boolean showNotification() {
+        return false;
+    }
+
+    @Override
     public boolean matches(FluidTransmutationInput input, Level level) {
         return consumptionPlan(input.items()).isPresent();
     }
 
     @Override
-    public ItemStack assemble(FluidTransmutationInput input, HolderLookup.Provider registries) {
-        return getResultItem(registries);
+    public net.minecraft.world.item.crafting.PlacementInfo placementInfo() {
+        return net.minecraft.world.item.crafting.PlacementInfo.NOT_PLACEABLE;
     }
 
     @Override
-    public boolean canCraftInDimensions(int width, int height) {
-        return false;
-    }
-
-    @Override
-    public ItemStack getResultItem(HolderLookup.Provider registries) {
+    public ItemStack assemble(FluidTransmutationInput input) {
         return new ItemStack(result.getFluid().getBucket());
-    }
-
-    @Override
-    public NonNullList<Ingredient> getIngredients() {
-        NonNullList<Ingredient> result = NonNullList.create();
-        ingredients.forEach(ingredient -> result.add(ingredient.ingredient()));
-        return result;
     }
 
     @Override
@@ -80,12 +79,17 @@ public record FluidTransmutationRecipe(List<SizedIngredient> ingredients, FluidS
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
-        return RiftGunRecipes.FLUID_TRANSMUTATION_SERIALIZER.get();
+    public RecipeBookCategory recipeBookCategory() {
+        return net.minecraft.world.item.crafting.RecipeBookCategories.CRAFTING_MISC;
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public RecipeSerializer<? extends Recipe<FluidTransmutationInput>> getSerializer() {
+        return SERIALIZER;
+    }
+
+    @Override
+    public RecipeType<FluidTransmutationRecipe> getType() {
         return RiftGunRecipes.FLUID_TRANSMUTATION_TYPE.get();
     }
 
@@ -98,47 +102,37 @@ public record FluidTransmutationRecipe(List<SizedIngredient> ingredients, FluidS
         return DataResult.success(ingredients);
     }
 
-    public static final class Serializer implements RecipeSerializer<FluidTransmutationRecipe> {
-        private static final MapCodec<FluidTransmutationRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
-            instance.group(
-                INGREDIENTS_CODEC.fieldOf("ingredients").forGetter(FluidTransmutationRecipe::ingredients),
-                FluidStack.fixedAmountCodec(SOURCE_AMOUNT).fieldOf("result")
-                    .forGetter(FluidTransmutationRecipe::result)
-            ).apply(instance, FluidTransmutationRecipe::new));
+    private static final MapCodec<FluidTransmutationRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+        instance.group(
+            INGREDIENTS_CODEC.fieldOf("ingredients").forGetter(FluidTransmutationRecipe::ingredients),
+            FluidStack.fixedAmountCodec(SOURCE_AMOUNT).fieldOf("result")
+                .forGetter(FluidTransmutationRecipe::result)
+        ).apply(instance, FluidTransmutationRecipe::new));
 
-        private static final StreamCodec<RegistryFriendlyByteBuf, FluidTransmutationRecipe> STREAM_CODEC =
-            new StreamCodec<>() {
-                @Override
-                public FluidTransmutationRecipe decode(RegistryFriendlyByteBuf buffer) {
-                    int size = buffer.readVarInt();
-                    if (size <= 0 || size > MAXIMUM_INGREDIENT_UNITS) {
-                        throw new IllegalArgumentException("invalid fluid transmutation ingredient count: " + size);
-                    }
-                    List<SizedIngredient> ingredients = new java.util.ArrayList<>(size);
-                    for (int index = 0; index < size; index++) {
-                        ingredients.add(SizedIngredient.STREAM_CODEC.decode(buffer));
-                    }
-                    return new FluidTransmutationRecipe(ingredients,
-                        FluidStack.STREAM_CODEC.decode(buffer));
+    private static final StreamCodec<RegistryFriendlyByteBuf, FluidTransmutationRecipe> STREAM_CODEC =
+        new StreamCodec<>() {
+            @Override
+            public FluidTransmutationRecipe decode(RegistryFriendlyByteBuf buffer) {
+                int size = buffer.readVarInt();
+                if (size <= 0 || size > MAXIMUM_INGREDIENT_UNITS) {
+                    throw new IllegalArgumentException("invalid fluid transmutation ingredient count: " + size);
                 }
-
-                @Override
-                public void encode(RegistryFriendlyByteBuf buffer, FluidTransmutationRecipe recipe) {
-                    buffer.writeVarInt(recipe.ingredients.size());
-                    recipe.ingredients.forEach(ingredient ->
-                        SizedIngredient.STREAM_CODEC.encode(buffer, ingredient));
-                    FluidStack.STREAM_CODEC.encode(buffer, recipe.result);
+                List<SizedIngredient> ingredients = new java.util.ArrayList<>(size);
+                for (int index = 0; index < size; index++) {
+                    ingredients.add(SizedIngredient.STREAM_CODEC.decode(buffer));
                 }
-            };
+                return new FluidTransmutationRecipe(ingredients,
+                    FluidStack.STREAM_CODEC.decode(buffer));
+            }
 
-        @Override
-        public MapCodec<FluidTransmutationRecipe> codec() {
-            return CODEC;
-        }
-
-        @Override
-        public StreamCodec<RegistryFriendlyByteBuf, FluidTransmutationRecipe> streamCodec() {
-            return STREAM_CODEC;
-        }
-    }
+            @Override
+            public void encode(RegistryFriendlyByteBuf buffer, FluidTransmutationRecipe recipe) {
+                buffer.writeVarInt(recipe.ingredients.size());
+                recipe.ingredients.forEach(ingredient ->
+                    SizedIngredient.STREAM_CODEC.encode(buffer, ingredient));
+                FluidStack.STREAM_CODEC.encode(buffer, recipe.result);
+            }
+        };
+    public static final RecipeSerializer<FluidTransmutationRecipe> SERIALIZER =
+        new RecipeSerializer<>(CODEC, STREAM_CODEC);
 }
