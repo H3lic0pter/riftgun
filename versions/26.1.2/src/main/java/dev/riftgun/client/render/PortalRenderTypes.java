@@ -7,14 +7,14 @@ import java.util.OptionalDouble;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class PortalRenderTypes extends RenderType {
     private static final long SWIRL_TIME_ORIGIN = System.nanoTime();
-    private static final ResourceLocation SWIRL_TEXTURE =
-        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
-    private static final ResourceLocation WHITE_TEXTURE =
-        ResourceLocation.withDefaultNamespace("textures/misc/white.png");
+    private static final Identifier SWIRL_TEXTURE =
+        Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
+    private static final Identifier WHITE_TEXTURE =
+        Identifier.withDefaultNamespace("textures/misc/white.png");
     private static ShaderInstance portalShader;
     private static ShaderInstance swirlShader;
 

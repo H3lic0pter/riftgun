@@ -9,7 +9,7 @@ import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,7 +25,7 @@ public final class PrivacyPermissionDetailScreen extends Screen {
     private int rowsTop;
     private int rowsBottom;
     private int scroll;
-    private @Nullable ResourceLocation expandedPermission;
+    private @Nullable Identifier expandedPermission;
 
     PrivacyPermissionDetailScreen(PrivacyTerminalState.PlayerRef player, Screen parent) {
         super(Component.translatable("screen.riftgun.privacy_detail", player.name()));
@@ -138,7 +138,7 @@ public final class PrivacyPermissionDetailScreen extends Screen {
         return true;
     }
 
-    private void send(ResourceLocation permission, PortalPermissionPolicy policy) {
+    private void send(Identifier permission, PortalPermissionPolicy policy) {
         PortalNetworking.sendRequest(PortalAction.SET_PRIVACY_OVERRIDE, tag -> {
             tag.putUUID("Target", player.id());
             tag.putString("Permission", permission.toString());
@@ -163,7 +163,7 @@ public final class PrivacyPermissionDetailScreen extends Screen {
     }
 
     private static int indexOf(List<PrivacyTerminalState.PermissionRef> permissions,
-                               ResourceLocation id) {
+                               Identifier id) {
         for (int index = 0; index < permissions.size(); index++) {
             if (permissions.get(index).id().equals(id)) return index;
         }

@@ -1,16 +1,16 @@
 package dev.riftgun.client.render;
 
 import java.util.Objects;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public record PortalVisualType(
-    ResourceLocation id,
+    Identifier id,
     String nameKey,
     String descriptionKey,
     PortalVisualRenderer renderer,
     PortalVisualOptions options
 ) {
-    public PortalVisualType(ResourceLocation id, String nameKey, String descriptionKey,
+    public PortalVisualType(Identifier id, String nameKey, String descriptionKey,
                             PortalVisualRenderer renderer) {
         this(id, nameKey, descriptionKey, renderer, PortalVisualOptions.NONE);
     }

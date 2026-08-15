@@ -40,7 +40,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 
@@ -1592,7 +1592,7 @@ public final class PortalConfigScreen extends Screen {
     private void renderVisualDropdown(GuiGraphics graphics, int mouseX, int mouseY) {
         List<PortalVisualType> types = PortalVisualRegistry.values();
         DropdownBox box = visualDropdownBox(types.size());
-        ResourceLocation selected = PortalVisualPreferences.selectedId();
+        Identifier selected = PortalVisualPreferences.selectedId();
         graphics.pose().pushPose();
         graphics.pose().translate(0.0F, 0.0F, 300.0F);
         graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
@@ -1620,7 +1620,7 @@ public final class PortalConfigScreen extends Screen {
         if (channel == null || selector == null) return;
         List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
         DropdownBox box = selectorDropdownBox(selector, choices.size());
-        ResourceLocation selected = PortalClientState.data().settings().portalSounds().selected(channel);
+        Identifier selected = PortalClientState.data().settings().portalSounds().selected(channel);
         graphics.pose().pushPose();
         graphics.pose().translate(0.0F, 0.0F, 300.0F);
         graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
@@ -1747,7 +1747,7 @@ public final class PortalConfigScreen extends Screen {
             && (button == 0 || button == 1) && mouseX >= visualSelector.getX()
             && mouseX < visualSelector.getX() + visualSelector.getWidth()
             && mouseY >= visualSelector.getY() && mouseY < visualSelector.getY() + visualSelector.getHeight()) {
-            ResourceLocation before = PortalVisualPreferences.selectedId();
+            Identifier before = PortalVisualPreferences.selectedId();
             shiftVisual(button == 0 ? 1 : -1);
             if (!before.equals(PortalVisualPreferences.selectedId()) && minecraft != null) {
                 visualSelector.playDownSound(minecraft.getSoundManager());
@@ -1761,7 +1761,7 @@ public final class PortalConfigScreen extends Screen {
                 if (mouseX < selector.getX() || mouseX >= selector.getX() + selector.getWidth()
                     || mouseY < selector.getY() || mouseY >= selector.getY() + selector.getHeight()) continue;
                 PortalSoundChannel channel = entry.getKey();
-                ResourceLocation before = selectedSound(channel);
+                Identifier before = selectedSound(channel);
                 shiftSound(channel, button == 0 ? 1 : -1);
                 if (!before.equals(selectedSound(channel)) && minecraft != null) {
                     selector.playDownSound(minecraft.getSoundManager());
@@ -2544,7 +2544,7 @@ public final class PortalConfigScreen extends Screen {
     private void openVisualDropdown() {
         visualDropdownOpen = true;
         List<PortalVisualType> types = PortalVisualRegistry.values();
-        ResourceLocation selected = PortalVisualPreferences.selectedId();
+        Identifier selected = PortalVisualPreferences.selectedId();
         visualDropdownIndex = 0;
         for (int index = 0; index < types.size(); index++) {
             if (types.get(index).id().equals(selected)) {
@@ -2558,7 +2558,7 @@ public final class PortalConfigScreen extends Screen {
     private void openSoundDropdown(PortalSoundChannel channel) {
         soundDropdownChannel = channel;
         List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
-        ResourceLocation selected = selectedSound(channel);
+        Identifier selected = selectedSound(channel);
         soundDropdownIndex = 0;
         for (int index = 0; index < choices.size(); index++) {
             if (choices.get(index).id().equals(selected)) {
@@ -2570,11 +2570,11 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void shiftSound(PortalSoundChannel channel, int direction) {
-        ResourceLocation next = PortalSoundRegistry.cycle(channel, selectedSound(channel), direction);
+        Identifier next = PortalSoundRegistry.cycle(channel, selectedSound(channel), direction);
         selectSound(channel, next);
     }
 
-    private void selectSound(PortalSoundChannel channel, ResourceLocation id) {
+    private void selectSound(PortalSoundChannel channel, Identifier id) {
         PortalSoundSettings current = PortalClientState.data().settings().portalSounds();
         updatePortalSounds(current.withSelection(channel, id));
     }
@@ -2591,7 +2591,7 @@ public final class PortalConfigScreen extends Screen {
         rebuildWidgets();
     }
 
-    private ResourceLocation selectedSound(PortalSoundChannel channel) {
+    private Identifier selectedSound(PortalSoundChannel channel) {
         return PortalClientState.data().settings().portalSounds().selected(channel);
     }
 

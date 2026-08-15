@@ -2,23 +2,23 @@ package dev.riftgun.client.render;
 
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.core.config.RiftConfigs;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class PortalVisualPreferences {
     public static PortalVisualType selected() {
         return PortalVisualRegistry.resolve(selectedId());
     }
 
-    public static ResourceLocation selectedId() {
-        ResourceLocation parsed = ResourceLocation.tryParse(RiftConfigs.client().portalVisualType());
-        ResourceLocation resolved = parsed == null ? PortalVisualRegistry.DEFAULT_ID
+    public static Identifier selectedId() {
+        Identifier parsed = Identifier.tryParse(RiftConfigs.client().portalVisualType());
+        Identifier resolved = parsed == null ? PortalVisualRegistry.DEFAULT_ID
             : PortalVisualSelection.resolve(PortalVisualRegistry.values(), parsed, PortalVisualRegistry.DEFAULT_ID);
         if (parsed == null || !parsed.equals(resolved)) save(resolved);
         return resolved;
     }
 
-    public static void select(ResourceLocation id) {
-        ResourceLocation resolved = PortalVisualSelection.resolve(
+    public static void select(Identifier id) {
+        Identifier resolved = PortalVisualSelection.resolve(
             PortalVisualRegistry.values(), id, PortalVisualRegistry.DEFAULT_ID);
         save(resolved);
     }
@@ -32,7 +32,7 @@ public final class PortalVisualPreferences {
         ClientConfig.SPEC.save();
     }
 
-    private static void save(ResourceLocation id) {
+    private static void save(Identifier id) {
         String value = id.toString();
         if (value.equals(RiftConfigs.client().portalVisualType())) return;
         ClientConfig.VALUES.portalVisualType.set(value);

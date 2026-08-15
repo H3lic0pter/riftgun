@@ -2,7 +2,7 @@ package dev.riftgun.client.screen;
 
 import dev.riftgun.data.PortalPlacementMode;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Sprite-backed icon primitives shared by the configuration screen's panes. */
 final class PortalGuiIcons {
@@ -17,7 +17,7 @@ final class PortalGuiIcons {
     }
 
     static void drawPlacementModeIcon(GuiGraphics graphics, int x, int y, PortalPlacementMode mode) {
-        ResourceLocation sprite = switch (mode) {
+        Identifier sprite = switch (mode) {
             case SMART -> PortalGuiSprites.PLACEMENT_SMART;
             case FRONT -> PortalGuiSprites.PLACEMENT_FRONT;
             case SURFACE -> PortalGuiSprites.PLACEMENT_SURFACE;

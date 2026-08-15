@@ -5,13 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class PortalVisualRegistry {
-    public static final ResourceLocation CLASSIC_ID = id("classic");
-    public static final ResourceLocation SWIRL_ID = id("swirl");
-    public static final ResourceLocation DEFAULT_ID = SWIRL_ID;
-    private static final Map<ResourceLocation, PortalVisualType> TYPES = new LinkedHashMap<>();
+    public static final Identifier CLASSIC_ID = id("classic");
+    public static final Identifier SWIRL_ID = id("swirl");
+    public static final Identifier DEFAULT_ID = SWIRL_ID;
+    private static final Map<Identifier, PortalVisualType> TYPES = new LinkedHashMap<>();
 
     static {
         register(new PortalVisualType(CLASSIC_ID, "screen.riftgun.visual.classic",
@@ -29,11 +29,11 @@ public final class PortalVisualRegistry {
         return type;
     }
 
-    public static PortalVisualType resolve(ResourceLocation id) {
+    public static PortalVisualType resolve(Identifier id) {
         return TYPES.getOrDefault(id, TYPES.get(DEFAULT_ID));
     }
 
-    public static boolean contains(ResourceLocation id) {
+    public static boolean contains(Identifier id) {
         return TYPES.containsKey(id);
     }
 
@@ -41,8 +41,8 @@ public final class PortalVisualRegistry {
         return List.copyOf(TYPES.values());
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, path);
+    private static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, path);
     }
 
     private PortalVisualRegistry() {}

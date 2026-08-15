@@ -7,7 +7,7 @@ import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Client-side state backing the Privacy Terminal screen. */
 public final class PrivacyTerminalState {
@@ -47,7 +47,7 @@ public final class PrivacyTerminalState {
             ListTag tags = envelope.getList("Permissions", Tag.TAG_COMPOUND);
             for (Tag raw : tags) {
                 CompoundTag tag = (CompoundTag) raw;
-                ResourceLocation id = ResourceLocation.tryParse(tag.getString("Id"));
+                Identifier id = Identifier.tryParse(tag.getString("Id"));
                 if (id != null) permissions.add(new PermissionRef(
                     id, tag.getBoolean("SupportsAsk"), tag.getString("TranslationKey")));
             }
@@ -55,5 +55,5 @@ public final class PrivacyTerminalState {
     }
 
     public record PlayerRef(UUID id, String name) {}
-    public record PermissionRef(ResourceLocation id, boolean supportsAsk, String translationKey) {}
+    public record PermissionRef(Identifier id, boolean supportsAsk, String translationKey) {}
 }

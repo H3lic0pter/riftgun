@@ -1,16 +1,16 @@
 package dev.riftgun.client.render;
 
 import java.util.List;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 final class PortalVisualSelection {
-    static ResourceLocation resolve(List<PortalVisualType> types, ResourceLocation requested,
-                                    ResourceLocation fallback) {
+    static Identifier resolve(List<PortalVisualType> types, Identifier requested,
+                                    Identifier fallback) {
         return types.stream().anyMatch(type -> type.id().equals(requested)) ? requested : fallback;
     }
 
-    static ResourceLocation cycle(List<PortalVisualType> types, ResourceLocation selected, int direction,
-                                  ResourceLocation fallback) {
+    static Identifier cycle(List<PortalVisualType> types, Identifier selected, int direction,
+                                  Identifier fallback) {
         if (types.isEmpty()) return fallback;
         int current = -1;
         for (int index = 0; index < types.size(); index++) {

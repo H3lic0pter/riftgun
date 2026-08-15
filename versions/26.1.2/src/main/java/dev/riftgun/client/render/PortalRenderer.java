@@ -6,19 +6,19 @@ import dev.riftgun.portal.PortalEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Routes portal body rendering through the client-local visual type registry. */
 public final class PortalRenderer extends EntityRenderer<PortalEntity> {
-    private static final ResourceLocation EMPTY_TEXTURE =
-        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/misc/empty.png");
+    private static final Identifier EMPTY_TEXTURE =
+        Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/misc/empty.png");
 
     public PortalRenderer(EntityRendererProvider.Context context) {
         super(context);
     }
 
     @Override
-    public ResourceLocation getTextureLocation(PortalEntity entity) {
+    public Identifier getTextureLocation(PortalEntity entity) {
         return EMPTY_TEXTURE;
     }
 

@@ -19,8 +19,8 @@ import java.io.IOException;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.entity.EntityRenderers;
-import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.resources.model.ModelIdentifier;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -38,8 +38,8 @@ import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ClientModEvents {
-    private static final ModelResourceLocation PORTAL_GUN_MODEL = ModelResourceLocation.inventory(
-        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "portal_gun"));
+    private static final ModelIdentifier PORTAL_GUN_MODEL = ModelIdentifier.inventory(
+        Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "portal_gun"));
     public static final KeyMapping OPEN_CONFIG = new KeyMapping(
         "key.riftgun.open_config", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.riftgun"
     );
@@ -76,7 +76,7 @@ public final class ClientModEvents {
         event.registerShader(
             new ShaderInstance(
                 event.getResourceProvider(),
-                ResourceLocation.withDefaultNamespace("rendertype_rift_portal"),
+                Identifier.withDefaultNamespace("rendertype_rift_portal"),
                 DefaultVertexFormat.POSITION_COLOR
             ),
             PortalRenderTypes::setPortalShader
@@ -84,7 +84,7 @@ public final class ClientModEvents {
         event.registerShader(
             new ShaderInstance(
                 event.getResourceProvider(),
-                ResourceLocation.withDefaultNamespace("rendertype_rift_portal_swirl"),
+                Identifier.withDefaultNamespace("rendertype_rift_portal_swirl"),
                 DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP
             ),
             PortalRenderTypes::setSwirlShader
@@ -136,18 +136,18 @@ public final class ClientModEvents {
     private static IClientFluidTypeExtensions fluidStyle(int rgb) {
         return new IClientFluidTypeExtensions() {
             @Override
-            public ResourceLocation getStillTexture() {
-                return ResourceLocation.withDefaultNamespace("block/water_still");
+            public Identifier getStillTexture() {
+                return Identifier.withDefaultNamespace("block/water_still");
             }
 
             @Override
-            public ResourceLocation getFlowingTexture() {
-                return ResourceLocation.withDefaultNamespace("block/water_flow");
+            public Identifier getFlowingTexture() {
+                return Identifier.withDefaultNamespace("block/water_flow");
             }
 
             @Override
-            public ResourceLocation getOverlayTexture() {
-                return ResourceLocation.withDefaultNamespace("block/water_overlay");
+            public Identifier getOverlayTexture() {
+                return Identifier.withDefaultNamespace("block/water_overlay");
             }
 
             @Override

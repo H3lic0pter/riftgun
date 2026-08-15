@@ -11,7 +11,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.Util;
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +31,7 @@ public final class PrivacyTerminalScreen extends Screen {
     private int listBottom;
     private int listScroll;
     private int globalScroll;
-    private @Nullable ResourceLocation expandedPermission;
+    private @Nullable Identifier expandedPermission;
     private @Nullable ThemedButton refreshButton;
 
     public PrivacyTerminalScreen() {
@@ -230,7 +230,7 @@ public final class PrivacyTerminalScreen extends Screen {
         });
     }
 
-    private void sendGlobal(ResourceLocation permission, PortalPermissionPolicy policy) {
+    private void sendGlobal(Identifier permission, PortalPermissionPolicy policy) {
         PortalNetworking.sendRequest(PortalAction.SET_PRIVACY, tag -> {
             tag.putString("Permission", permission.toString());
             tag.putString("Policy", policy.name());
@@ -343,7 +343,7 @@ public final class PrivacyTerminalScreen extends Screen {
     }
 
     private static int indexOf(List<PrivacyTerminalState.PermissionRef> permissions,
-                               ResourceLocation id) {
+                               Identifier id) {
         for (int index = 0; index < permissions.size(); index++) {
             if (permissions.get(index).id().equals(id)) return index;
         }
