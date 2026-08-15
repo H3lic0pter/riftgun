@@ -7,8 +7,7 @@
 		"base_white": "riftgun:item/portal_gun/base_white",
 		"details": "riftgun:item/portal_gun/details",
 		"glass": "riftgun:item/portal_gun/glass",
-		"fuel_tube": "riftgun:item/portal_gun/fuel_tube",
-		"zero_core": "riftgun:item/portal_gun/details"
+		"fuel_tube": "riftgun:item/portal_gun/fuel_tube"
 	},
 	"elements": [
 		{
@@ -116,12 +115,12 @@
 			"shade": false,
 			"rotation": {"angle": 0, "axis": "y", "origin": [0.1, 0.9, 0.1]},
 			"faces": {
-				"north": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 9},
-				"east": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 9},
-				"south": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 9},
-				"west": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 9},
-				"up": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 9},
-				"down": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 9}
+				"north": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 9},
+				"east": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 9},
+				"south": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 9},
+				"west": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 9},
+				"up": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 9},
+				"down": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 9}
 			}
 		},
 		{
@@ -131,12 +130,12 @@
 			"shade": false,
 			"rotation": {"angle": 0, "axis": "y", "origin": [0.2, 1, 0.2]},
 			"faces": {
-				"north": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 10},
-				"east": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 10},
-				"south": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 10},
-				"west": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 10},
-				"up": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 10},
-				"down": {"uv": [0, 12, 4, 16], "texture": "#zero_core", "tintindex": 10}
+				"north": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 10},
+				"east": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 10},
+				"south": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 10},
+				"west": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 10},
+				"up": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 10},
+				"down": {"uv": [0, 0, 4, 4], "texture": "#details", "tintindex": 10}
 			}
 		},
 		{
@@ -407,7 +406,6 @@
 				"north": {"uv": [1.5, 5.5, 5.5, 9.5], "texture": "#glass", "tintindex": 1},
 				"east": {"uv": [1.5, 5.5, 5.5, 9.5], "texture": "#glass", "tintindex": 1},
 				"south": {"uv": [1.5, 5.5, 5.5, 9.5], "texture": "#glass", "tintindex": 1},
-				"west": {"uv": [1.5, 5.5, 5.5, 9.5], "texture": "#glass", "tintindex": 1},
 				"up": {"uv": [1.5, 5.5, 5.5, 9.5], "texture": "#glass", "tintindex": 1},
 				"down": {"uv": [1.5, 5.5, 5.5, 9.5], "texture": "#glass", "tintindex": 1}
 			}
@@ -420,7 +418,6 @@
 			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -1]},
 			"faces": {
 				"north": {"uv": [10.5, 4.5, 14.5, 8.5], "texture": "#glass", "tintindex": 1},
-				"east": {"uv": [10.5, 4.5, 14.5, 8.5], "texture": "#glass", "tintindex": 1},
 				"south": {"uv": [10.5, 4.5, 14.5, 8.5], "texture": "#glass", "tintindex": 1},
 				"west": {"uv": [10.5, 4.5, 14.5, 8.5], "texture": "#glass", "tintindex": 1},
 				"up": {"uv": [10.5, 4.5, 14.5, 8.5], "texture": "#glass", "tintindex": 1},
@@ -434,7 +431,6 @@
 			"shade": false,
 			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -1]},
 			"faces": {
-				"north": {"uv": [1.5, 2.5, 5.5, 6.5], "texture": "#glass", "tintindex": 1},
 				"east": {"uv": [1.5, 2.5, 5.5, 6.5], "texture": "#glass", "tintindex": 1},
 				"south": {"uv": [1.5, 2.5, 5.5, 6.5], "texture": "#glass", "tintindex": 1},
 				"west": {"uv": [1.5, 2.5, 5.5, 6.5], "texture": "#glass", "tintindex": 1},
@@ -451,7 +447,6 @@
 			"faces": {
 				"north": {"uv": [1.5, 1.5, 5.5, 5.5], "texture": "#glass", "tintindex": 1},
 				"east": {"uv": [1.5, 1.5, 5.5, 5.5], "texture": "#glass", "tintindex": 1},
-				"south": {"uv": [1.5, 1.5, 5.5, 5.5], "texture": "#glass", "tintindex": 1},
 				"west": {"uv": [1.5, 1.5, 5.5, 5.5], "texture": "#glass", "tintindex": 1},
 				"up": {"uv": [1.5, 1.5, 5.5, 5.5], "texture": "#glass", "tintindex": 1},
 				"down": {"uv": [1.5, 1.5, 5.5, 5.5], "texture": "#glass", "tintindex": 1}
