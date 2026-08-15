@@ -67,12 +67,20 @@ sourceSets.main {
 }
 
 dependencies {
-    // Present only in development runs; optional client integrations are never bundled.
-    optionalClientCompileOnly(
-        "maven.modrinth:${property("ryoamiclights_modrinth_project_id")}:${property("ryoamiclights_modrinth_version_id")}"
-    )
-    optionalClientCompileOnly("mezz.jei:jei-1.21.1-neoforge-api:${property("jei_version")}")
-    optionalClientRuntimeOnly("mezz.jei:jei-1.21.1-neoforge:${property("jei_version")}")
+    // Optional client integrations are never bundled. Each node declares its
+    // own versions; nodes without the properties (e.g. 26.1.2 until JEI/
+    // RyoamicLights ship builds) simply skip the dependency.
+    val ryoamicProject = findProperty("ryoamiclights_modrinth_project_id") as String?
+    val ryoamicVersion = findProperty("ryoamiclights_modrinth_version_id") as String?
+    if (ryoamicProject != null && ryoamicVersion != null) {
+        optionalClientCompileOnly("maven.modrinth:$ryoamicProject:$ryoamicVersion")
+    }
+    val jeiVersion = findProperty("jei_version") as String?
+    if (jeiVersion != null) {
+        // Present only in development runs.
+        optionalClientCompileOnly("mezz.jei:jei-1.21.1-neoforge-api:$jeiVersion")
+        optionalClientRuntimeOnly("mezz.jei:jei-1.21.1-neoforge:$jeiVersion")
+    }
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.9.2")

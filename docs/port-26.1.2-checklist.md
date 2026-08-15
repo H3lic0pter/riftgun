@@ -95,10 +95,25 @@ Build commands (active version = the one in `stonecutter.gradle.kts`
 `stonecutter active "..."`):
 
 ```bash
-./gradlew build        # active node
-./gradlew test         # active node tests
-# build BOTH nodes: find the chiseled task name in Phase 0
+./gradlew :<node>:build          # build ONE node, e.g. :26.1.2:build
+./gradlew :1.21.1:build :26.1.2:build   # build ALL nodes (Phase 0-verified; no chiseled task in 0.9.7)
+./gradlew :<node>:test
 ```
+
+Stonecutter 0.9.7 workflow facts (verified in Phase 0):
+
+- **The active node compiles the shared tree ON DISK directly.** Non-active
+  nodes compile preprocessed copies at `versions/<v>/build/generated/stonecutter/{main,test}/java`.
+- Conditional state is materialized on disk (inactive branches wrapped in
+  `/* */`, markers preserved — reversible).
+- After editing conditionals, run the task **`Refresh active project`** to
+  re-materialize the active state.
+- Switch versions with the task **`Set active project to <version>`**.
+- **Run `Reset active project` (back to 1.21.1) before every commit** — this
+  is the tool's own stated convention and keeps the committed shared tree in
+  the 1.21.1 state.
+- Conditional smoke test passed: `//? if >=1.21.11` resolved to the new branch
+  in the 26.1.2 generated copy and the old branch on disk (1.21.1 active).
 
 ---
 
@@ -135,14 +150,12 @@ Build commands (active version = the one in `stonecutter.gradle.kts`
 - [ ] `./gradlew tasks --all | grep -i chiseled` — record the build-all task
       name in this file (expected something like `chiseledBuild`; verify, don't
       guess). Record it here: `________________`
-- [ ] Verify generated-source layout: after any compile attempt,
-      `ls versions/26.1.2/build/generated` exists (this is what the node
-      actually compiles, preprocessed from shared `src/`).
-- [ ] Conditional smoke test: add to any shared test file temporarily:
-      `//? if >=1.21.11` + a line `String s = "new";` + `//?} else {` + a line
-      `String s = "old";` + `//?}`. Build both nodes; confirm
-      `versions/26.1.2/build/generated/...` contains `"new"` and the 1.21.1
-      generated copy contains `"old"`. **Remove the smoke test after.**
+- [x] Verify generated-source layout: `versions/<v>/build/generated/stonecutter/...`
+      exists for NON-active nodes; the ACTIVE node compiles the on-disk tree.
+- [x] Conditional smoke test: verified `>=1.21.11` resolves correctly per node
+      (26.1.2 generated copy gets the new branch; active 1.21.1 disk state the
+      old branch). Remember: run `Refresh active project` after editing
+      conditionals. Smoke test removed.
 - [ ] Switching versions: to work on 26.1.2 set `stonecutter active "26.1.2"`
       in `stonecutter.gradle.kts`; switch back to `"1.21.1"` before committing
       is NOT required — pick one, note it in the commit body if ambiguous.
