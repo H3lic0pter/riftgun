@@ -207,13 +207,21 @@ Server configuration changes should normally be made while the server is stopped
 
 ## Development
 
+The project uses a Stonecutter multi-version layout: the root source tree is
+shared by every supported Minecraft version, and each version is a node under
+`versions/`. Only the active version (currently `1.21.1`) is built; see
+`stonecutter.gradle.kts` for the active marker and `settings.gradle.kts` for
+the registered versions.
+
 ```powershell
-.\gradlew.bat runClient
-.\gradlew.bat test
-.\gradlew.bat build
+.\gradlew.bat runClient   # runs the client for the active version
+.\gradlew.bat test        # runs the test suite
+.\gradlew.bat build       # builds the jar under versions/<version>/build/libs/
 ```
 
-The project targets Java 21. Source code and issue tracking are hosted at [github.com/H3lic0pter/riftgun](https://github.com/H3lic0pter/riftgun).
+The project targets Java 21 for Minecraft 1.21.1 (newer Minecraft versions may
+require newer JDKs). Source code and issue tracking are hosted at
+[github.com/H3lic0pter/riftgun](https://github.com/H3lic0pter/riftgun).
 
 ## License and attribution
 
