@@ -85,7 +85,8 @@ tasks.named<Test>("test") {
 }
 
 tasks.jar {
-    from(layout.projectDirectory.file("LICENSE")) { into("META-INF") }
+    // Stonecutter nodes run this script from versions/<node>/; the LICENSE lives at the tree root.
+    from(rootProject.layout.projectDirectory.file("LICENSE")) { into("META-INF") }
 }
 
 // NeoGradle expanded these placeholders in mods.toml; ModDevGradle does not.
