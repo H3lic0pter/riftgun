@@ -1,13 +1,15 @@
 package dev.riftgun.client.screen;
 
 import dev.riftgun.client.PrivacyTerminalState;
+import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.data.PlayerPermissionProfile;
 import dev.riftgun.data.PortalPermissionPolicy;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -50,20 +52,20 @@ public final class PrivacyPermissionDetailScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        extractBackground(graphics, mouseX, mouseY, partialTick);
         graphics.fill(0, 0, width, height, PortalTheme.SCRIM);
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PortalTheme.PANEL);
-        graphics.renderOutline(panelX, panelY, panelWidth, panelHeight, PortalTheme.BORDER);
-        graphics.drawString(font, title, panelX + 12, panelY + 10, PortalTheme.TEXT, false);
+        graphics.outline(panelX, panelY, panelWidth, panelHeight, PortalTheme.BORDER);
+        graphics.text(font, title, panelX + 12, panelY + 10, PortalTheme.TEXT, false);
         renderRows(graphics);
         for (net.minecraft.client.gui.components.Renderable renderable : renderables) {
-            renderable.render(graphics, mouseX, mouseY, partialTick);
+            renderable.extractRenderState(graphics, mouseX, mouseY, partialTick);
         }
         renderExpanded(graphics);
     }
 
-    private void renderRows(GuiGraphics graphics) {
+    private void renderRows(GuiGraphicsExtractor graphics) {
         List<PrivacyTerminalState.PermissionRef> permissions = PrivacyTerminalState.permissions();
         int maxScroll = Math.max(0, permissions.size() * ROW_HEIGHT - (rowsBottom - rowsTop));
         scroll = Mth.clamp(scroll, 0, maxScroll);
@@ -74,7 +76,7 @@ public final class PrivacyPermissionDetailScreen extends Screen {
             int y = rowsTop - scroll + index * ROW_HEIGHT;
             if (y + ROW_HEIGHT < rowsTop || y > rowsBottom) continue;
             graphics.fill(panelX + 8, y, panelX + panelWidth - 8, y + ROW_HEIGHT - 2, 0xFF25272D);
-            graphics.drawString(font, Component.translatable(permission.translationKey()),
+            graphics.text(font, Component.translatable(permission.translationKey()),
                 panelX + 14, y + 9, PortalTheme.TEXT, false);
             PortalPermissionPolicy policy = profile.configured(permission.id());
             PrivacyTerminalScreen.drawPolicySelector(graphics,
@@ -84,7 +86,7 @@ public final class PrivacyPermissionDetailScreen extends Screen {
         graphics.disableScissor();
     }
 
-    private void renderExpanded(GuiGraphics graphics) {
+    private void renderExpanded(GuiGraphicsExtractor graphics) {
         if (expandedPermission == null) return;
         List<PrivacyTerminalState.PermissionRef> permissions = PrivacyTerminalState.permissions();
         int index = indexOf(permissions, expandedPermission);
@@ -96,9 +98,9 @@ public final class PrivacyPermissionDetailScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (expandedPermission != null) {
-            if (handleExpanded(mouseX, mouseY, button)) return true;
+            if (handleExpanded(event.x(), event.y(), event.button())) return true;
             expandedPermission = null;
             return true;
         }
@@ -106,20 +108,20 @@ public final class PrivacyPermissionDetailScreen extends Screen {
         for (int index = 0; index < permissions.size(); index++) {
             int y = rowsTop - scroll + index * ROW_HEIGHT + 5;
             int x = panelX + panelWidth - 120;
-            if (!PrivacyTerminalScreen.inside(mouseX, mouseY, x, y, 106, 16)) continue;
+            if (!PrivacyTerminalScreen.inside(event.x(), event.y(), x, y, 106, 16)) continue;
             PrivacyTerminalState.PermissionRef permission = permissions.get(index);
-            if (mouseX >= x + 90) {
+            if (event.x() >= x + 90) {
                 expandedPermission = permission.id().equals(expandedPermission) ? null : permission.id();
             } else {
                 PortalPermissionPolicy current = PrivacyTerminalState.data()
                     .permissionProfile(player.id()).configured(permission.id());
-                PortalPermissionPolicy next = button == 1
+                PortalPermissionPolicy next = event.button() == 1
                     ? current.previous(permission.supportsAsk()) : current.next(permission.supportsAsk());
                 send(permission.id(), next);
             }
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     private boolean handleExpanded(double mouseX, double mouseY, int button) {
@@ -140,7 +142,7 @@ public final class PrivacyPermissionDetailScreen extends Screen {
 
     private void send(Identifier permission, PortalPermissionPolicy policy) {
         PortalNetworking.sendRequest(PortalAction.SET_PRIVACY_OVERRIDE, tag -> {
-            tag.putUUID("Target", player.id());
+            Nbt.putUUID(tag, "Target", player.id());
             tag.putString("Permission", permission.toString());
             tag.putString("Policy", policy.name());
         });

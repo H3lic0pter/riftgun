@@ -3,12 +3,12 @@ package dev.riftgun.client.render;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 final class PortalVisualSelectionTest {
-    private static final ResourceLocation CLASSIC = id("classic");
-    private static final ResourceLocation SWIRL = id("swirl");
+    private static final Identifier CLASSIC = id("classic");
+    private static final Identifier SWIRL = id("swirl");
     private static final List<PortalVisualType> TYPES = List.of(type(CLASSIC), type(SWIRL));
 
     @Test
@@ -30,11 +30,11 @@ final class PortalVisualSelectionTest {
         assertEquals(PortalVisualRegistry.SWIRL_ID, PortalVisualRegistry.DEFAULT_ID);
     }
 
-    private static PortalVisualType type(ResourceLocation id) {
+    private static PortalVisualType type(Identifier id) {
         return new PortalVisualType(id, "name", "description", ignored -> {});
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath("riftgun_test", path);
+    private static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath("riftgun_test", path);
     }
 }

@@ -1,5 +1,6 @@
 package dev.riftgun.client.screen;
 
+import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.data.PortalPlayerData;
@@ -31,8 +32,8 @@ final class PlayerTargetController {
     }
 
     boolean visible() {
-        return PortalClientState.gun().getCompound("Modules").getInt("PLAYER_TARGET") > 0
-            && PortalClientState.gun().getBoolean("PlayerTargetEnabled");
+        return Nbt.getInt(Nbt.getCompound(PortalClientState.gun(), "Modules"), "PLAYER_TARGET") > 0
+            && Nbt.getBoolean(PortalClientState.gun(), "PlayerTargetEnabled");
     }
 
     List<PlayerListState.PlayerEntry> entries(String normalizedQuery) {
@@ -57,7 +58,7 @@ final class PlayerTargetController {
 
     void select(UUID id) {
         selectedId = id;
-        PortalNetworking.sendRequest(PortalAction.SELECT_PLAYER, tag -> tag.putUUID("Target", id));
+        PortalNetworking.sendRequest(PortalAction.SELECT_PLAYER, tag -> Nbt.putUUID(tag, "Target", id));
     }
 
     void clearSelection() {
@@ -66,14 +67,14 @@ final class PlayerTargetController {
 
     void togglePin(UUID id, boolean pinned) {
         PlayerListState.markPinned(id, !pinned);
-        PortalNetworking.sendRequest(PortalAction.TOGGLE_PLAYER_PIN, tag -> tag.putUUID("Target", id));
+        PortalNetworking.sendRequest(PortalAction.TOGGLE_PLAYER_PIN, tag -> Nbt.putUUID(tag, "Target", id));
     }
 
     void toggleExpanded() {
         expanded = !expanded;
         if (expanded) requestList();
         PortalNetworking.sendRequest(PortalAction.SET_GROUP_EXPANDED, tag -> {
-            tag.putUUID("Group", PortalPlayerData.PLAYER_SECTION_ID);
+            Nbt.putUUID(tag, "Group", PortalPlayerData.PLAYER_SECTION_ID);
             tag.putBoolean("Expanded", expanded);
         });
     }
@@ -81,7 +82,7 @@ final class PlayerTargetController {
     void openSelected() {
         if (selectedId == null) return;
         PortalNetworking.sendRequest(PortalAction.OPEN_PLAYER_PORTAL,
-            tag -> tag.putUUID("Target", selectedId));
+            tag -> Nbt.putUUID(tag, "Target", selectedId));
     }
 
     void sync(PortalPlayerData data) {

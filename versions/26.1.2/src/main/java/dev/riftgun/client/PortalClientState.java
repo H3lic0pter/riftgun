@@ -1,5 +1,6 @@
 package dev.riftgun.client;
 
+import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.data.PortalPlayerData;
 import java.util.Set;
 import net.minecraft.client.Minecraft;
@@ -17,15 +18,15 @@ public final class PortalClientState {
     }
 
     public static void handle(CompoundTag envelope) {
-        String kind = envelope.getString("Kind");
+        String kind = Nbt.getString(envelope, "Kind");
         if (kind.equals("Snapshot")) {
-            data = PortalPlayerData.load(envelope.getCompound("Data"));
+            data = PortalPlayerData.load(Nbt.getCompound(envelope, "Data"));
             gunReference = envelope.contains("GunReference")
-                ? envelope.getCompound("GunReference").copy() : new CompoundTag();
-            gun = envelope.contains("Gun") ? envelope.getCompound("Gun").copy() : new CompoundTag();
+                ? Nbt.getCompound(envelope, "GunReference").copy() : new CompoundTag();
+            gun = envelope.contains("Gun") ? Nbt.getCompound(envelope, "Gun").copy() : new CompoundTag();
             moduleRules = envelope.contains("ModuleRules")
-                ? PortalModuleRules.load(envelope.getCompound("ModuleRules")) : PortalModuleRules.defaults();
-            if (envelope.getBoolean("OpenScreen")) {
+                ? PortalModuleRules.load(Nbt.getCompound(envelope, "ModuleRules")) : PortalModuleRules.defaults();
+            if (Nbt.getBoolean(envelope, "OpenScreen")) {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PortalConfigScreen());
             } else if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.refreshFromServer(Set.of());

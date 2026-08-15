@@ -8,12 +8,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.riftgun.sound.PortalSoundRegistry;
 import dev.riftgun.sound.PortalSoundSettings;
 import java.util.UUID;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.world.level.Level;
+//?}
 import org.junit.jupiter.api.Test;
 
 final class PortalPlayerDataTest {
+    //? if >=1.21.11 {
+    /*private static final ResourceKey<net.minecraft.world.level.Level> OVERWORLD = ResourceKey.create(
+        Registries.DIMENSION, Identifier.withDefaultNamespace("overworld"));
+    private static final ResourceKey<net.minecraft.world.level.Level> NETHER = ResourceKey.create(
+        Registries.DIMENSION, Identifier.withDefaultNamespace("the_nether"));
+    *///?} else {
+    private static final ResourceKey<Level> OVERWORLD = Level.OVERWORLD;
+    private static final ResourceKey<Level> NETHER = Level.NETHER;
+    //?}
+
     @Test
     void defaultNamesRemainMonotonicAcrossPersistence() {
         PortalPlayerData data = new PortalPlayerData();
@@ -29,7 +49,7 @@ final class PortalPlayerDataTest {
     void repairsUnknownGroupsWithoutChangingDestinationIdentity() {
         PortalPlayerData data = new PortalPlayerData();
         UUID id = UUID.randomUUID();
-        data.destinations().add(new Destination(id, "Home", UUID.randomUUID(), Level.OVERWORLD,
+        data.destinations().add(new Destination(id, "Home", UUID.randomUUID(), OVERWORLD,
             1.25, 64.0, -8.5, 90.0F, 10L, 0L, true));
         data.selectedDestinationId(id);
 
@@ -90,7 +110,11 @@ final class PortalPlayerDataTest {
     void structuredPermissionsRoundTripAndPreserveUnknownIds() {
         PortalPlayerData data = new PortalPlayerData();
         UUID requester = UUID.randomUUID();
+        //? if >=1.21.11 {
+        /*Identifier unknown = Identifier.fromNamespaceAndPath("addon", "temporary_permission");
+        *///?} else {
         ResourceLocation unknown = ResourceLocation.fromNamespaceAndPath("addon", "temporary_permission");
+        //?}
         data.globalPermission(PortalPermissions.ENTITY_RELOCATION_DESTINATION,
             PortalPermissionPolicy.DENY);
         data.globalPermissions().put(unknown, PortalPermissionPolicy.ALLOW);
@@ -162,9 +186,9 @@ final class PortalPlayerDataTest {
         UUID unsafe = UUID.randomUUID();
         UUID safe = UUID.randomUUID();
         data.destinations().add(new Destination(unsafe, "Unsafe", PortalPlayerData.DEFAULT_GROUP_ID,
-            Level.OVERWORLD, 1, 64, 1, 0, 0, 0, false));
+            OVERWORLD, 1, 64, 1, 0, 0, 0, false));
         data.destinations().add(new Destination(safe, "Safe", PortalPlayerData.DEFAULT_GROUP_ID,
-            Level.OVERWORLD, 2, 64, 2, 0, 0, 0, false));
+            OVERWORLD, 2, 64, 2, 0, 0, 0, false));
         data.recordSafetyResult(unsafe, false);
         data.recordSafetyResult(safe, true);
 
@@ -182,16 +206,16 @@ final class PortalPlayerDataTest {
         PortalPlayerData data = new PortalPlayerData();
         UUID id = UUID.randomUUID();
         Destination original = new Destination(id, "Original", PortalPlayerData.DEFAULT_GROUP_ID,
-            Level.OVERWORLD, 1, 64, 1, 0, 0, 0, false);
+            OVERWORLD, 1, 64, 1, 0, 0, 0, false);
         data.destinations().add(original);
         data.recordSafetyResult(id, false);
 
-        data.replaceDestination(original.withDetails("Renamed", UUID.randomUUID(), Level.OVERWORLD,
+        data.replaceDestination(original.withDetails("Renamed", UUID.randomUUID(), OVERWORLD,
             1, 64, 1, 90));
         assertEquals(DestinationSafetyResult.UNSAFE, data.safetyResult(id));
 
         Destination renamed = data.destination(id).orElseThrow();
-        data.replaceDestination(renamed.withDetails(renamed.name(), renamed.groupId(), Level.NETHER,
+        data.replaceDestination(renamed.withDetails(renamed.name(), renamed.groupId(), NETHER,
             1, 64, 1, renamed.yaw()));
         assertEquals(DestinationSafetyResult.UNKNOWN, data.safetyResult(id));
     }
@@ -202,7 +226,7 @@ final class PortalPlayerDataTest {
         UUID id = UUID.randomUUID();
         UUID targetGroup = UUID.randomUUID();
         Destination original = new Destination(id, "Pinned", PortalPlayerData.DEFAULT_GROUP_ID,
-            Level.NETHER, 12.5, 70, -4.25, 135, 10, 20, true);
+            NETHER, 12.5, 70, -4.25, 135, 10, 20, true);
         data.destinations().add(original);
         data.recordSafetyResult(id, false);
 

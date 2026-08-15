@@ -4,37 +4,35 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalVisualSource;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 final class ClassicPortalVisualRenderer implements PortalVisualRenderer {
     @Override
-    public void render(PortalVisualRenderContext context) {
+    public void submit(PortalVisualRenderContext context) {
         float progress = context.visibleProgress();
         if (progress <= 0.0F) return;
 
         PortalVisualSource portal = context.portal();
         PortalRenderBasis basis = PortalRenderBasis.from(portal);
-        Matrix4f matrix = context.poseStack().last().pose();
         float eased = Mth.sin(progress * Mth.HALF_PI);
         float width = portal.portalWidth() * eased;
         float height = portal.portalHeight() * eased;
         float shimmer = 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F;
         PortalSurfaceRenderPath path = PortalShaderCompatibility.currentPath();
         if (path == PortalSurfaceRenderPath.CUSTOM) {
-            drawVolume(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.portal()), width, height,
-                PortalEntity.DEPTH, context.style().surfaceColor(), shimmer);
+            context.submit(PortalRenderTypes.portal(), (pose, vertices) -> drawVolume(pose.pose(), basis, vertices,
+                width, height, PortalEntity.DEPTH, context.style().surfaceColor(), shimmer));
         } else if (path == PortalSurfaceRenderPath.VANILLA_FALLBACK) {
-            drawFallbackVolume(matrix, basis,
-                context.buffers().getBuffer(PortalRenderTypes.classicFallback()), width, height,
-                PortalEntity.DEPTH, context.style().surfaceColor(), shimmer);
+            context.submit(PortalRenderTypes.classicFallback(), (pose, vertices) -> drawFallbackVolume(
+                pose.pose(), basis, vertices, width, height, PortalEntity.DEPTH,
+                context.style().surfaceColor(), shimmer));
         }
-        drawBorder(matrix, context.poseStack().last(), basis,
-            context.buffers().getBuffer(PortalRenderTypes.border()), width, height,
-            PortalEntity.DEPTH, context.style().borderColor());
+        context.submit(PortalRenderTypes.border(), (pose, vertices) -> drawBorder(pose.pose(), pose, basis, vertices,
+            width, height, PortalEntity.DEPTH, context.style().borderColor()));
     }
 
     private static void drawVolume(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
@@ -118,7 +116,7 @@ final class ClassicPortalVisualRenderer implements PortalVisualRenderer {
             .setColor(red, green, blue, 0.72F)
             .setUv(u, v)
             .setOverlay(OverlayTexture.NO_OVERLAY)
-            .setLight(LightTexture.FULL_BRIGHT)
+            .setLight(LightCoordsUtil.FULL_BRIGHT)
             .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
     }
 
@@ -142,9 +140,11 @@ final class ClassicPortalVisualRenderer implements PortalVisualRenderer {
                              Vec3 from, Vec3 to, int color) {
         Vec3 direction = to.subtract(from).normalize();
         vertices.addVertex(matrix, (float) from.x, (float) from.y, (float) from.z)
-            .setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
+            .setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z)
+            .setLineWidth(3.0F);
         vertices.addVertex(matrix, (float) to.x, (float) to.y, (float) to.z)
-            .setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
+            .setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z)
+            .setLineWidth(3.0F);
     }
 
     private static float red(int color) { return ((color >> 16) & 255) / 255.0F; }

@@ -1,5 +1,6 @@
 package dev.riftgun.client;
 
+import dev.riftgun.core.nbt.Nbt;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,17 +19,17 @@ public final class PlayerListState {
     public static void handle(CompoundTag envelope) {
         players.clear();
         byId.clear();
-        ListTag tags = envelope.getList("Players", net.minecraft.nbt.Tag.TAG_COMPOUND);
+        ListTag tags = Nbt.getList(envelope, "Players");
         for (net.minecraft.nbt.Tag raw : tags) {
             CompoundTag tag = (CompoundTag) raw;
             PlayerEntry entry = new PlayerEntry(
-                tag.getUUID("Id"),
-                tag.getString("Name"),
-                tag.getString("Dimension"),
-                tag.getBoolean("Pinned"),
-                tag.getLong("LastUse"),
-                tag.getBoolean("Self"),
-                tag.getInt("Order")
+                Nbt.getUUID(tag, "Id"),
+                Nbt.getString(tag, "Name"),
+                Nbt.getString(tag, "Dimension"),
+                Nbt.getBoolean(tag, "Pinned"),
+                Nbt.getLong(tag, "LastUse"),
+                Nbt.getBoolean(tag, "Self"),
+                Nbt.getInt(tag, "Order")
             );
             players.add(entry);
             byId.put(entry.id(), entry);

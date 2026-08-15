@@ -1,5 +1,6 @@
 package dev.riftgun.client;
 
+import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.data.PortalPlayerData;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,25 +32,25 @@ public final class PrivacyTerminalState {
 
     public static void handle(CompoundTag envelope) {
         if (envelope.contains("Data")) {
-            data = PortalPlayerData.load(envelope.getCompound("Data"));
+            data = PortalPlayerData.load(Nbt.getCompound(envelope, "Data"));
         }
         if (envelope.contains("Players")) {
             players.clear();
-            ListTag tags = envelope.getList("Players", Tag.TAG_COMPOUND);
+            ListTag tags = Nbt.getList(envelope, "Players");
             for (Tag raw : tags) {
                 CompoundTag tag = (CompoundTag) raw;
-                players.add(new PlayerRef(tag.getUUID("Id"), tag.getString("Name")));
+                players.add(new PlayerRef(Nbt.getUUID(tag, "Id"), Nbt.getString(tag, "Name")));
             }
             players.sort(java.util.Comparator.comparing(PlayerRef::name));
         }
         if (envelope.contains("Permissions")) {
             permissions.clear();
-            ListTag tags = envelope.getList("Permissions", Tag.TAG_COMPOUND);
+            ListTag tags = Nbt.getList(envelope, "Permissions");
             for (Tag raw : tags) {
                 CompoundTag tag = (CompoundTag) raw;
-                Identifier id = Identifier.tryParse(tag.getString("Id"));
+                Identifier id = Identifier.tryParse(Nbt.getString(tag, "Id"));
                 if (id != null) permissions.add(new PermissionRef(
-                    id, tag.getBoolean("SupportsAsk"), tag.getString("TranslationKey")));
+                    id, Nbt.getBoolean(tag, "SupportsAsk"), Nbt.getString(tag, "TranslationKey")));
             }
         }
     }

@@ -3,9 +3,10 @@ package dev.riftgun.client.screen;
 import dev.riftgun.client.PortalClientState;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -23,12 +24,12 @@ final class ThemedButton extends AbstractButton {
     }
 
     @Override
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         press.accept(this);
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         float target = isHoveredOrFocused() && active ? 1.0F : 0.0F;
         float speed = PortalClientState.data().settings().animationsEnabled() ? 0.22F : 1.0F;
         hoverProgress = Mth.lerp(speed, hoverProgress, target);
@@ -36,9 +37,10 @@ final class ThemedButton extends AbstractButton {
         int hover = portalAction ? PortalTheme.PORTAL : PortalTheme.PANEL_HOVER;
         int color = active ? lerpColor(base, hover, hoverProgress) : 0xFF202126;
         graphics.fill(getX(), getY(), getX() + width, getY() + height, color);
-        graphics.renderOutline(getX(), getY(), width, height, PortalTheme.BORDER);
+        graphics.outline(getX(), getY(), width, height, PortalTheme.BORDER);
         int textColor = active ? PortalTheme.TEXT : 0xFF777777;
-        renderString(graphics, Minecraft.getInstance().font, textColor);
+        graphics.centeredText(Minecraft.getInstance().font, getMessage(),
+            getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, textColor);
     }
 
     @Override

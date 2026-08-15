@@ -6,15 +6,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 import java.util.UUID;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class PortalCrisisTestOverridesTest {
+    //? if >=1.21.11 {
+    /*private static final Identifier FALL = Identifier.fromNamespaceAndPath(
+        "riftgun", "high_altitude_fall");
+    private static final Identifier LAVA = Identifier.fromNamespaceAndPath(
+        "riftgun", "lava_hazard");
+    *///?} else {
     private static final ResourceLocation FALL = ResourceLocation.fromNamespaceAndPath(
         "riftgun", "high_altitude_fall");
     private static final ResourceLocation LAVA = ResourceLocation.fromNamespaceAndPath(
         "riftgun", "lava_hazard");
+    //?}
 
     @AfterEach
     void resetOverrides() {

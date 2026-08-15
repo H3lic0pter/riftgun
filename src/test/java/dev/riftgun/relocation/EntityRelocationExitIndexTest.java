@@ -6,7 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import org.junit.jupiter.api.Test;
 
 final class EntityRelocationExitIndexTest {
@@ -46,13 +50,23 @@ final class EntityRelocationExitIndexTest {
     }
 
     private static EntityRelocationExitIndex.DestinationKey destination(double x) {
+        //? if >=1.21.11 {
+        /*return new EntityRelocationExitIndex.DestinationKey(
+            new UUID(1L, 2L), Identifier.withDefaultNamespace("overworld"), x, 64.0, 8.0);
+        *///?} else {
         return new EntityRelocationExitIndex.DestinationKey(
             new UUID(1L, 2L), ResourceLocation.withDefaultNamespace("overworld"), x, 64.0, 8.0);
+        //?}
     }
 
     private static EntityRelocationExitIndex.ExitReference reference() {
+        //? if >=1.21.11 {
+        /*return new EntityRelocationExitIndex.ExitReference(
+            UUID.randomUUID(), Identifier.withDefaultNamespace("overworld"));
+        *///?} else {
         return new EntityRelocationExitIndex.ExitReference(
             UUID.randomUUID(), ResourceLocation.withDefaultNamespace("overworld"));
+        //?}
     }
 
     private static final class FakeAccess implements EntityRelocationExitIndex.CandidateAccess {

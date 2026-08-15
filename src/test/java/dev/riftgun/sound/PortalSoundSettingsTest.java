@@ -5,7 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.minecraft.nbt.CompoundTag;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import org.junit.jupiter.api.Test;
 
 final class PortalSoundSettingsTest {
@@ -22,7 +26,11 @@ final class PortalSoundSettingsTest {
 
     @Test
     void unknownChoiceFallsBackToRiftAndCyclingWraps() {
+        //? if >=1.21.11 {
+        /*Identifier missing = Identifier.fromNamespaceAndPath("example", "missing");
+        *///?} else {
         ResourceLocation missing = ResourceLocation.fromNamespaceAndPath("example", "missing");
+        //?}
         assertEquals(PortalSoundRegistry.RIFT_ID,
             PortalSoundRegistry.normalize(PortalSoundChannel.SHOT, missing));
         assertEquals(PortalSoundRegistry.NONE_ID,

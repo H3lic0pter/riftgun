@@ -62,7 +62,7 @@ public final class PortalSplashEmitter {
 
         PortalVisualStyle style = PortalVisualStyles.resolve(portal);
         float scale = PortalSplashPattern.edgeScale(phase, phaseTicks);
-        RandomSource random = level.random;
+        RandomSource random = level.getRandom();
         double offset = random.nextDouble();
         for (int index = 0; index < count; index++) {
             PortalSplashPattern.EdgePoint point = PortalSplashPattern.sampleEdge(
@@ -95,7 +95,7 @@ public final class PortalSplashEmitter {
         );
         double speed = 0.025 + random.nextDouble() * 0.04;
 
-        Particle particle = minecraft.particleEngine.createParticle(
+        TintableSplashParticle particle = (TintableSplashParticle) minecraft.particleEngine.createParticle(
             RiftContent.PORTAL_SPLASH.get(),
             position.x, position.y, position.z,
             horizontal.x * speed, 0.0, horizontal.z * speed

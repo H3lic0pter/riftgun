@@ -11,7 +11,11 @@ import java.util.UUID;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
@@ -60,8 +64,13 @@ final class PortalCrisisSessionTest {
     void returnLinkageRoundTripRetainsOnlyTheAssignedPlayer() {
         UUID playerId = UUID.randomUUID();
         UUID parentId = UUID.randomUUID();
+        //? if >=1.21.11 {
+        /*ResourceKey<Level> dimension = ResourceKey.create(
+            Registries.DIMENSION, Identifier.fromNamespaceAndPath("riftgun", "test"));
+        *///?} else {
         ResourceKey<Level> dimension = ResourceKey.create(
             Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath("riftgun", "test"));
+        //?}
         PortalCrisisSession source = new PortalCrisisSession();
         source.configureReturn(playerId,
             new PortalExitTarget(UUID.randomUUID(), dimension, new Vec3(1.5, 64.0, -2.5), 90.0F),

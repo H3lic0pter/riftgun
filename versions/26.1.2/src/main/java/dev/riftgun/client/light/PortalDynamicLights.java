@@ -1,10 +1,14 @@
 package dev.riftgun.client.light;
 
 import com.mojang.logging.LogUtils;
-import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 
-/** Optional dynamic-light integration boundary; safe to load without provider mods. */
+/**
+ * Dynamic-light integration boundary.
+ *
+ * <p>RyoamicLights (the 1.21.x provider) does not exist for 26.1.2, so portal environment
+ * lighting is currently a no-op kept as a single seam for a future provider.
+ */
 public final class PortalDynamicLights {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static boolean initialized;
@@ -12,18 +16,7 @@ public final class PortalDynamicLights {
     public static synchronized void initialize() {
         if (initialized) return;
         initialized = true;
-
-        if (!ModList.get().isLoaded("ryoamiclights")) {
-            LOGGER.info("RyoamicLights is not installed; portal environment lighting is disabled");
-            return;
-        }
-
-        try {
-            RyoamicLightsPortalCompat.register();
-            LOGGER.info("RyoamicLights portal environment lighting enabled");
-        } catch (LinkageError | RuntimeException error) {
-            LOGGER.warn("RyoamicLights portal integration could not be initialized", error);
-        }
+        LOGGER.info("No 26.1.2 dynamic-light provider installed; portal environment lighting is disabled");
     }
 
     private PortalDynamicLights() {}

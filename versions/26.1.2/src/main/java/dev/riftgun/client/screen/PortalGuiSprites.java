@@ -1,7 +1,8 @@
 package dev.riftgun.client.screen;
 
 import dev.riftgun.RiftGun;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 
 /**
@@ -73,8 +74,8 @@ final class PortalGuiSprites {
 
     private PortalGuiSprites() {}
 
-    static void draw(GuiGraphics graphics, Identifier sprite, int x, int y) {
-        graphics.blitSprite(sprite, x, y, SIZE, SIZE);
+    static void draw(GuiGraphicsExtractor graphics, Identifier sprite, int x, int y) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, SIZE, SIZE);
     }
 
     private static Identifier icon(String name) {

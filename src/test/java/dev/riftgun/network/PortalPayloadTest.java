@@ -1,5 +1,6 @@
 package dev.riftgun.network;
 
+import dev.riftgun.core.nbt.Nbt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.netty.buffer.Unpooled;
@@ -21,8 +22,8 @@ final class PortalPayloadTest {
         PortalRequestPayload.STREAM_CODEC.encode(buffer, new PortalRequestPayload(data));
         PortalRequestPayload decoded = PortalRequestPayload.STREAM_CODEC.decode(buffer);
 
-        assertEquals(PortalAction.CREATE_COORDINATE.name(), decoded.data().getString("Action"));
-        assertEquals("~12.5", decoded.data().getString("X"));
+        assertEquals(PortalAction.CREATE_COORDINATE.name(), Nbt.getString(decoded.data(), "Action"));
+        assertEquals("~12.5", Nbt.getString(decoded.data(), "X"));
         buffer.release();
     }
 }

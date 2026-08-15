@@ -22,13 +22,11 @@ final class GuiCaptureHarness {
             int scale = Integer.getInteger("riftgun.guiCaptureScale", 0);
             if (scale > 0) {
                 minecraft.options.guiScale().set(scale);
-                minecraft.resizeDisplay();
             }
         }
         if (ticks == 40) openRepresentativeScreen();
         if (ticks == 70) {
-            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui"), minecraft.getMainRenderTarget(),
-                message -> {});
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui"), minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 74 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             for (int step = 0; step < 8; step++) {
@@ -37,7 +35,7 @@ final class GuiCaptureHarness {
         }
         if (ticks == 76) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-details-bottom"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 82 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openCoordinateEditorForQa();
@@ -47,25 +45,24 @@ final class GuiCaptureHarness {
         }
         if (ticks == 94) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-group-dropdown"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 96 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.closeGroupDropdownForQa();
         }
         if (ticks == 100) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-coordinate"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 126) {
-            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-safety-history"), minecraft.getMainRenderTarget(),
-                message -> {});
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-safety-history"), minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 134 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openPlacementSettingsForQa();
         }
         if (ticks == 150) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-placement-settings"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 156 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openVisualSettingsForQa();
@@ -75,14 +72,14 @@ final class GuiCaptureHarness {
         }
         if (ticks == 164) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-visual-settings"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 166 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openSwirlAnimationSettingsForQa();
         }
         if (ticks == 174) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-swirl-animation-settings"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 178 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openVisualSettingsForQa();
@@ -90,42 +87,42 @@ final class GuiCaptureHarness {
         }
         if (ticks == 186) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-visual-dropdown"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 192 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openGunSettingsForQa();
         }
         if (ticks == 198) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-gun-settings"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 202 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openPortalDurationSettingsForQa();
         }
         if (ticks == 208) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-portal-duration"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 212 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openSurfaceRangeSettingsForQa();
         }
         if (ticks == 218) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-surface-range"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 222 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openEntityTransitSettingsForQa();
         }
         if (ticks == 228) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-entity-transit"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 232 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
             screen.openApertureSettingsForQa();
         }
         if (ticks == 238) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-aperture"),
-                minecraft.getMainRenderTarget(), message -> {});
+                minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 250) {
             completed = true;

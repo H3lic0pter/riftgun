@@ -82,7 +82,7 @@ public final class ClientGameEvents {
         }
         var module = PortalModuleRegistry.find(event.getItemStack());
         if (module.isPresent()) {
-            if (!Screen.hasShiftDown()) {
+            if (!Minecraft.getInstance().hasShiftDown()) {
                 event.getToolTip().add(Component.translatable("tooltip.riftgun.module.hold_shift")
                     .withStyle(ChatFormatting.GRAY));
                 return;
@@ -113,7 +113,7 @@ public final class ClientGameEvents {
             return;
         }
         if (event.getItemStack().is(RiftContent.PRIVACY_TERMINAL_ITEM.get())) {
-            if (!Screen.hasShiftDown()) {
+            if (!Minecraft.getInstance().hasShiftDown()) {
                 event.getToolTip().add(Component.translatable("tooltip.riftgun.module.hold_shift")
                     .withStyle(ChatFormatting.GRAY));
                 return;
@@ -160,7 +160,7 @@ public final class ClientGameEvents {
             : data.group(destination.groupId()).map(value -> value.name()).orElse("Default");
         event.getToolTip().add(Component.translatable("tooltip.riftgun.target", destination.name()).withStyle(ChatFormatting.AQUA));
         event.getToolTip().add(Component.translatable("tooltip.riftgun.group", group).withStyle(ChatFormatting.GRAY));
-        event.getToolTip().add(Component.translatable("tooltip.riftgun.dimension", destination.dimension().location()).withStyle(ChatFormatting.GRAY));
+        event.getToolTip().add(Component.translatable("tooltip.riftgun.dimension", destination.dimension().identifier()).withStyle(ChatFormatting.GRAY));
     }
 
     private ClientGameEvents() {}

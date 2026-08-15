@@ -1,109 +1,109 @@
 package dev.riftgun.client.render;
 
+import com.mojang.blaze3d.pipeline.BlendFunction;
+import com.mojang.blaze3d.pipeline.ColorTargetState;
+import com.mojang.blaze3d.pipeline.DepthStencilState;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.riftgun.RiftGun;
-import java.util.OptionalDouble;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.LayeringTransform;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 
-public final class PortalRenderTypes extends RenderType {
-    private static final long SWIRL_TIME_ORIGIN = System.nanoTime();
+/**
+ * 26.1.2 render pipelines and render types for portal surfaces.
+ *
+ * <p>The 1.21.x composite-state shaders were replaced by declarative render pipelines. The
+ * portal pixelation shader survives as a custom pipeline ({@link Pipelines#PORTAL}); the swirl
+ * animation, which previously lived in a custom fragment shader driven by scalar uniforms, is
+ * now computed on the CPU (the 26.1.2 renderer has no per-draw scalar uniform API), so the
+ * swirl faces reuse the standard cutout pipeline and the edge/glow layers use custom pipelines.
+ */
+public final class PortalRenderTypes {
     private static final Identifier SWIRL_TEXTURE =
         Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
     private static final Identifier WHITE_TEXTURE =
         Identifier.withDefaultNamespace("textures/misc/white.png");
-    private static ShaderInstance portalShader;
-    private static ShaderInstance swirlShader;
 
-    private static final RenderType PORTAL = create(
-        "rift_portal",
-        DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP,
-        VertexFormat.Mode.QUADS,
-        256,
-        false,
-        true,
-        CompositeState.builder()
-            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-            .setCullState(NO_CULL)
-            .setLayeringState(NO_LAYERING)
-            .setShaderState(new ShaderStateShard(() -> portalShader))
-            .setOutputState(PARTICLES_TARGET)
-            .createCompositeState(true)
-    );
+    private PortalRenderTypes() {}
 
-    private static final RenderType BORDER = create(
-        "rift_portal_border",
-        DefaultVertexFormat.POSITION_COLOR_NORMAL,
-        VertexFormat.Mode.LINES,
-        256,
-        false,
-        true,
-        CompositeState.builder()
-            .setShaderState(RENDERTYPE_LINES_SHADER)
-            .setLineState(new LineStateShard(OptionalDouble.of(3.0)))
-            .setLayeringState(VIEW_OFFSET_Z_LAYERING)
-            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-            .setOutputState(ITEM_ENTITY_TARGET)
-            .createCompositeState(false)
-    );
+    /** Registered into {@code RegisterRenderPipelinesEvent} by {@code ClientModEvents}. */
+    public static final class Pipelines {
+        public static final RenderPipeline PORTAL = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal"))
+            .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal"))
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .build();
 
-    private static final RenderType SWIRL = create(
-        "rift_portal_swirl",
-        DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP,
-        VertexFormat.Mode.QUADS,
-        256,
-        false,
-        true,
-        CompositeState.builder()
-            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-            .setCullState(CULL)
-            .setLayeringState(NO_LAYERING)
-            .setShaderState(new ShaderStateShard(PortalRenderTypes::configuredSwirlShader))
-            .setTextureState(new TextureStateShard(SWIRL_TEXTURE, false, false))
-            .setOutputState(PARTICLES_TARGET)
-            .createCompositeState(true)
-    );
+        /** Translucent position-color quads for the swirl rim, replacing the 1.21.x shader state. */
+        public static final RenderPipeline SWIRL_EDGE = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal_swirl_edge"))
+            .withVertexShader("core/position_color")
+            .withFragmentShader("core/position_color")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .build();
 
-    private static final RenderType SWIRL_EDGE = create(
-        "rift_portal_swirl_edge",
-        DefaultVertexFormat.POSITION_COLOR,
-        VertexFormat.Mode.QUADS,
-        4096,
-        false,
-        true,
-        CompositeState.builder()
-            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-            .setCullState(NO_CULL)
-            .setLayeringState(NO_LAYERING)
-            .setShaderState(POSITION_COLOR_SHADER)
-            .setOutputState(PARTICLES_TARGET)
-            .createCompositeState(true)
-    );
+        /** Additive emissive swirl texture, matching the 1.21.x fallback glow layer. */
+        public static final RenderPipeline SWIRL_FALLBACK_GLOW = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal_swirl_fallback_glow"))
+            .withVertexShader("core/entity")
+            .withFragmentShader("core/entity")
+            .withShaderDefine("EMISSIVE")
+            .withShaderDefine("NO_OVERLAY")
+            .withShaderDefine("NO_CARDINAL_LIGHTING")
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(BlendFunction.ADDITIVE))
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .build();
 
-    private static final RenderType SWIRL_FALLBACK_GLOW = create(
-        "rift_portal_swirl_fallback_glow",
-        DefaultVertexFormat.NEW_ENTITY,
-        VertexFormat.Mode.QUADS,
-        4096,
-        false,
-        true,
-        CompositeState.builder()
-            .setShaderState(RENDERTYPE_EYES_SHADER)
-            .setTextureState(new TextureStateShard(SWIRL_TEXTURE, false, false))
-            .setTransparencyState(ADDITIVE_TRANSPARENCY)
-            .setCullState(NO_CULL)
-            .setWriteMaskState(COLOR_WRITE)
-            .createCompositeState(false)
-    );
-
-    private PortalRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
-                              boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState,
-                              Runnable clearState) {
-        super(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, setupState, clearState);
+        private Pipelines() {}
     }
+
+    private static final RenderType PORTAL = RenderType.create(
+        "rift_portal",
+        RenderSetup.builder(Pipelines.PORTAL)
+            .sortOnUpload()
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
+    private static final RenderType BORDER = RenderType.create(
+        "rift_portal_border",
+        RenderSetup.builder(RenderPipelines.LINES_TRANSLUCENT)
+            .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
+    private static final RenderType SWIRL_EDGE = RenderType.create(
+        "rift_portal_swirl_edge",
+        RenderSetup.builder(Pipelines.SWIRL_EDGE)
+            .sortOnUpload()
+            .bufferSize(4096)
+            .createRenderSetup()
+    );
+
+    private static final RenderType SWIRL_FALLBACK_GLOW = RenderType.create(
+        "rift_portal_swirl_fallback_glow",
+        RenderSetup.builder(Pipelines.SWIRL_FALLBACK_GLOW)
+            .withTexture("Sampler0", SWIRL_TEXTURE)
+            .bufferSize(4096)
+            .createRenderSetup()
+    );
 
     public static RenderType portal() {
         return PORTAL;
@@ -113,44 +113,19 @@ public final class PortalRenderTypes extends RenderType {
         return BORDER;
     }
 
-    public static RenderType swirl() {
-        return SWIRL;
-    }
-
     public static RenderType swirlEdge() {
         return SWIRL_EDGE;
     }
 
     public static RenderType classicFallback() {
-        return RenderType.entityTranslucent(WHITE_TEXTURE);
+        return RenderTypes.entityTranslucent(WHITE_TEXTURE);
     }
 
     public static RenderType swirlFallback() {
-        return RenderType.entityCutoutNoCull(SWIRL_TEXTURE);
+        return RenderTypes.entityCutout(SWIRL_TEXTURE);
     }
 
     public static RenderType swirlFallbackGlow() {
         return SWIRL_FALLBACK_GLOW;
-    }
-
-    public static void setPortalShader(ShaderInstance shader) {
-        portalShader = shader;
-    }
-
-    public static void setSwirlShader(ShaderInstance shader) {
-        swirlShader = shader;
-    }
-
-    private static ShaderInstance configuredSwirlShader() {
-        if (swirlShader == null) return null;
-        SwirlVisualOptions.Snapshot settings = SwirlVisualOptions.snapshot();
-        float elapsedSeconds = (System.nanoTime() - SWIRL_TIME_ORIGIN) / 1_000_000_000.0F;
-        swirlShader.safeGetUniform("AnimationEnabled").set(settings.animationEnabled() ? 1 : 0);
-        swirlShader.safeGetUniform("ElapsedSeconds").set(elapsedSeconds);
-        swirlShader.safeGetUniform("OuterPeriod").set(settings.outerPeriod());
-        swirlShader.safeGetUniform("InnerPeriod").set(settings.innerPeriod());
-        swirlShader.safeGetUniform("InwardPeriod").set(settings.inwardPeriod());
-        swirlShader.safeGetUniform("InwardDirection").set((int) settings.inwardDirection());
-        return swirlShader;
     }
 }

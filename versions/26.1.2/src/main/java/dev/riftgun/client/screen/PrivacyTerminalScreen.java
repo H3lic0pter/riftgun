@@ -1,19 +1,21 @@
 package dev.riftgun.client.screen;
 
 import dev.riftgun.client.PrivacyTerminalState;
+import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.data.PlayerPermissionProfileMode;
 import dev.riftgun.data.PortalPermissionPolicy;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 
 /** Privacy overview: requester profiles on the left and the owner's global defaults on the right. */
@@ -64,30 +66,30 @@ public final class PrivacyTerminalScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        extractBackground(graphics, mouseX, mouseY, partialTick);
         graphics.fill(0, 0, width, height, PortalTheme.SCRIM);
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PortalTheme.PANEL);
-        graphics.renderOutline(panelX, panelY, panelWidth, panelHeight, PortalTheme.BORDER);
+        graphics.outline(panelX, panelY, panelWidth, panelHeight, PortalTheme.BORDER);
         graphics.fill(panelX, panelY + HEADER_HEIGHT - 1, panelX + panelWidth,
             panelY + HEADER_HEIGHT, PortalTheme.BORDER);
         graphics.fill(panelX + listWidth, panelY + HEADER_HEIGHT, panelX + listWidth + 1,
             panelY + panelHeight - 12, PortalTheme.BORDER);
-        graphics.drawString(font, title, panelX + 12, panelY + 10, PortalTheme.TEXT, false);
-        graphics.drawString(font, Component.translatable("screen.riftgun.privacy_override_header"),
+        graphics.text(font, title, panelX + 12, panelY + 10, PortalTheme.TEXT, false);
+        graphics.text(font, Component.translatable("screen.riftgun.privacy_override_header"),
             panelX + 16, listTop + 6, PortalTheme.TEXT_MUTED, false);
-        graphics.drawString(font, Component.translatable("screen.riftgun.privacy_global_header"),
+        graphics.text(font, Component.translatable("screen.riftgun.privacy_global_header"),
             panelX + listWidth + 10, listTop + 6, PortalTheme.TEXT_MUTED, false);
 
         renderPlayerRows(graphics, mouseX, mouseY);
         renderGlobalRows(graphics, mouseX, mouseY);
-        for (Renderable renderable : renderables) renderable.render(graphics, mouseX, mouseY, partialTick);
+        for (Renderable renderable : renderables) renderable.extractRenderState(graphics, mouseX, mouseY, partialTick);
         if (refreshButton != null) PortalGuiSprites.draw(graphics, PortalGuiSprites.PLAYER_REFRESH,
             refreshButton.getX(), refreshButton.getY());
         renderExpandedGlobal(graphics, mouseX, mouseY);
     }
 
-    private void renderPlayerRows(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderPlayerRows(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int rowsTop = listTop + 20;
         List<PrivacyTerminalState.PlayerRef> players = PrivacyTerminalState.players();
         int maxScroll = Math.max(0, players.size() * ROW_HEIGHT - (listBottom - rowsTop));
@@ -101,19 +103,19 @@ public final class PrivacyTerminalScreen extends Screen {
             boolean hover = inside(mouseX, mouseY, panelX + 8, y, listWidth - 16, ROW_HEIGHT);
             graphics.fill(panelX + 8, y, panelX + listWidth - 8, y + ROW_HEIGHT,
                 hover ? 0xFF30333A : 0xFF25272D);
-            graphics.drawString(font, Component.literal(player.name()), panelX + 16, y + 6,
+            graphics.text(font, Component.literal(player.name()), panelX + 16, y + 6,
                 PortalTheme.TEXT, false);
             PlayerPermissionProfileMode mode = data.permissionProfile(player.id()).mode();
             Component label = profileLabel(mode);
             int detailX = panelX + listWidth - 28;
-            graphics.drawString(font, label, detailX - 6 - font.width(label), y + 6,
+            graphics.text(font, label, detailX - 6 - font.width(label), y + 6,
                 profileColor(mode), false);
             drawDetailIcon(graphics, detailX, y + 2, hover);
         }
         graphics.disableScissor();
     }
 
-    private void renderGlobalRows(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderGlobalRows(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int x = panelX + listWidth + 8;
         int top = listTop + 20;
         int width = panelX + panelWidth - 8 - x;
@@ -134,7 +136,7 @@ public final class PrivacyTerminalScreen extends Screen {
             int titleOffset = GuiTextMarquee.offset(font.width(title), textRight - textLeft,
                 Util.getMillis());
             graphics.enableScissor(textLeft, y + 2, textRight, y + 14);
-            graphics.drawString(font, title, textLeft - titleOffset, y + 4,
+            graphics.text(font, title, textLeft - titleOffset, y + 4,
                 PortalTheme.TEXT, false);
             graphics.disableScissor();
             drawPolicySelector(graphics, selectorX, y + 15, 100,
@@ -144,7 +146,7 @@ public final class PrivacyTerminalScreen extends Screen {
         graphics.disableScissor();
     }
 
-    private void renderExpandedGlobal(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderExpandedGlobal(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (expandedPermission == null) return;
         List<PrivacyTerminalState.PermissionRef> permissions = PrivacyTerminalState.permissions();
         int index = indexOf(permissions, expandedPermission);
@@ -155,30 +157,30 @@ public final class PrivacyTerminalScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (expandedPermission != null) {
-            if (handleExpandedGlobal(mouseX, mouseY, button)) return true;
+            if (handleExpandedGlobal(event.x(), event.y(), event.button())) return true;
             expandedPermission = null;
             return true;
         }
         int rowsTop = listTop + 20;
-        if (inside(mouseX, mouseY, panelX + 8, rowsTop, listWidth - 16, listBottom - rowsTop)) {
-            int index = (int) (mouseY - rowsTop + listScroll) / ROW_HEIGHT;
+        if (inside(event.x(), event.y(), panelX + 8, rowsTop, listWidth - 16, listBottom - rowsTop)) {
+            int index = (int) (event.y() - rowsTop + listScroll) / ROW_HEIGHT;
             List<PrivacyTerminalState.PlayerRef> players = PrivacyTerminalState.players();
             if (index >= 0 && index < players.size()) {
                 PrivacyTerminalState.PlayerRef player = players.get(index);
                 int detailX = panelX + listWidth - 28;
                 int rowY = rowsTop - listScroll + index * ROW_HEIGHT;
-                if (inside(mouseX, mouseY, detailX, rowY + 2, 16, 16)) {
+                if (inside(event.x(), event.y(), detailX, rowY + 2, 16, 16)) {
                     minecraft.setScreen(new PrivacyPermissionDetailScreen(player, this));
-                } else if (button == 0) {
+                } else if (event.button() == 0) {
                     cycleProfile(player);
                 }
                 return true;
             }
         }
-        if (handleGlobalSelector(mouseX, mouseY, button)) return true;
-        return super.mouseClicked(mouseX, mouseY, button);
+        if (handleGlobalSelector(event.x(), event.y(), event.button())) return true;
+        return super.mouseClicked(event, doubleClick);
     }
 
     private boolean handleGlobalSelector(double mouseX, double mouseY, int button) {
@@ -225,7 +227,7 @@ public final class PrivacyTerminalScreen extends Screen {
         PlayerPermissionProfileMode next = PrivacyTerminalState.data()
             .permissionProfile(player.id()).mode().nextPreset();
         PortalNetworking.sendRequest(PortalAction.SET_PRIVACY_OVERRIDE, tag -> {
-            tag.putUUID("Target", player.id());
+            Nbt.putUUID(tag, "Target", player.id());
             tag.putString("ProfileMode", next.name());
         });
     }
@@ -250,7 +252,7 @@ public final class PrivacyTerminalScreen extends Screen {
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-    private void drawDetailIcon(GuiGraphics graphics, int x, int y, boolean hovered) {
+    private void drawDetailIcon(GuiGraphicsExtractor graphics, int x, int y, boolean hovered) {
         graphics.fill(x, y, x + 16, y + 16, hovered ? 0xFF454951 : 0xFF353840);
         int color = PortalTheme.TEXT_MUTED;
         graphics.fill(x + 4, y + 4, x + 12, y + 6, color);
@@ -258,13 +260,13 @@ public final class PrivacyTerminalScreen extends Screen {
         graphics.fill(x + 4, y + 10, x + 12, y + 12, color);
     }
 
-    static void drawPolicySelector(GuiGraphics graphics, int x, int y, int width,
+    static void drawPolicySelector(GuiGraphicsExtractor graphics, int x, int y, int width,
                                    PortalPermissionPolicy policy, boolean inherited,
                                    boolean expanded) {
         graphics.fill(x, y, x + width, y + 16, expanded ? 0xFF3A3E47 : 0xFF30333A);
-        graphics.renderOutline(x, y, width, 16, PortalTheme.BORDER);
+        graphics.outline(x, y, width, 16, PortalTheme.BORDER);
         Component label = policyLabel(policy, inherited);
-        graphics.drawString(net.minecraft.client.Minecraft.getInstance().font, label,
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, label,
             x + 5, y + 4, policyColor(policy), false);
         graphics.fill(x + width - 16, y, x + width - 15, y + 16, PortalTheme.BORDER);
         int arrow = PortalTheme.TEXT_MUTED;
@@ -273,7 +275,7 @@ public final class PrivacyTerminalScreen extends Screen {
         graphics.fill(x + width - 9, y + 8, x + width - 7, y + 9, arrow);
     }
 
-    static void drawPolicyMenu(GuiGraphics graphics, int x, int y, int width,
+    static void drawPolicyMenu(GuiGraphicsExtractor graphics, int x, int y, int width,
                                boolean supportsAsk, boolean includeFollow) {
         List<PortalPermissionPolicy> options = policyOptions(supportsAsk, includeFollow);
         graphics.fill(x - 1, y - 1, x + width + 1, y + options.size() * 18 + 1, PortalTheme.BORDER);
@@ -281,7 +283,7 @@ public final class PrivacyTerminalScreen extends Screen {
             PortalPermissionPolicy option = options.get(index);
             int rowY = y + index * 18;
             graphics.fill(x, rowY, x + width, rowY + 18, 0xFF25272D);
-            graphics.drawString(net.minecraft.client.Minecraft.getInstance().font,
+            graphics.text(net.minecraft.client.Minecraft.getInstance().font,
                 policyLabel(option, false), x + 5, rowY + 5, policyColor(option), false);
         }
     }
