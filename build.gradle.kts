@@ -53,6 +53,18 @@ neoForge {
     }
 }
 
+// Per-version private sources (versions/<node>/src): same-FQCN files here
+// override the shared tree. Only mounted when the directory exists.
+val node = sc.current.project
+sourceSets.main {
+    if (file("versions/$node/src/main/java").isDirectory) {
+        java.srcDir("versions/$node/src/main/java")
+    }
+    if (file("versions/$node/src/main/resources").isDirectory) {
+        resources.srcDir("versions/$node/src/main/resources")
+    }
+}
+
 dependencies {
     // Present only in development runs; optional client integrations are never bundled.
     optionalClientCompileOnly(
@@ -67,6 +79,9 @@ dependencies {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    // Tests reference root-relative paths (src/main/java, src/main/resources);
+    // node builds run from versions/<node>/, so anchor the working dir at the tree root.
+    workingDir(rootProject.projectDir)
 }
 
 tasks.jar {
@@ -77,11 +92,11 @@ tasks.jar {
 tasks.processResources {
     filesMatching("META-INF/neoforge.mods.toml") {
         expand(
-            "mod_id" to providers.gradleProperty("mod_id").get(),
-            "mod_version" to providers.gradleProperty("mod_version").get(),
-            "mod_name" to providers.gradleProperty("mod_name").get(),
-            "neoforge_version" to providers.gradleProperty("neoforge_version").get(),
-            "minecraft_version" to providers.gradleProperty("minecraft_version").get(),
+            "mod_id" to project.property("mod_id") as String,
+            "mod_version" to project.property("mod_version") as String,
+            "mod_name" to project.property("mod_name") as String,
+            "neoforge_version" to project.property("neoforge_version") as String,
+            "minecraft_version" to project.property("minecraft_version") as String,
         )
     }
 }
