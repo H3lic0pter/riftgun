@@ -25,7 +25,7 @@ final class EndgameModuleRecipeResourceTest {
     void eternalDurationNowRequiresTheAdvancedBase() throws Exception {
         var recipe = recipe("duration_eternal_module");
         assertEquals("riftgun:advanced_basic_module",
-            recipe.getAsJsonObject("key").getAsJsonObject("M").get("item").getAsString());
+            recipe.getAsJsonObject("key").get("M").getAsString());
         assertTrue(recipe.getAsJsonArray("pattern").asList().stream()
             .anyMatch(element -> element.getAsString().contains("M")));
     }
