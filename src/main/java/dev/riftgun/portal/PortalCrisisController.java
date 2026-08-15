@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.crisis.ForcedCrisisPreparation;
@@ -11,7 +12,11 @@ import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -111,7 +116,11 @@ final class PortalCrisisController {
         session.save(tag);
     }
 
+//? if >=1.21.11 {
+    /*private @Nullable Prepared prepareForced(Identifier crisisId, ServerPlayer player,
+*///?} else {
     private @Nullable Prepared prepareForced(ResourceLocation crisisId, ServerPlayer player,
+//?}
                                              ServerLevel targetLevel, Vec3 normalDestination,
                                              Vec3 normalMomentum, float destinationYaw,
                                              boolean mountedTransit) {
@@ -133,7 +142,11 @@ final class PortalCrisisController {
         return new Prepared(plan, crisisExit, crisisId);
     }
 
+//? if >=1.21.11 {
+    /*private void warnForcedFailure(ServerPlayer player, Identifier crisisId,
+*///?} else {
     private void warnForcedFailure(ServerPlayer player, ResourceLocation crisisId,
+//?}
                                    ForcedCrisisPreparation.Failure failure) {
         String reasonKey = switch (failure) {
             case SPECTATOR -> "message.riftgun.crisis_test.failure.spectator";
@@ -206,10 +219,18 @@ final class PortalCrisisController {
     final class Prepared {
         private final PortalCrisisPlan plan;
         private final @Nullable PortalEntity crisisExit;
+//? if >=1.21.11 {
+        /*private final @Nullable Identifier forcedCrisisId;
+*///?} else {
         private final @Nullable ResourceLocation forcedCrisisId;
+//?}
 
         private Prepared(PortalCrisisPlan plan, @Nullable PortalEntity crisisExit,
+//? if >=1.21.11 {
+                         /*@Nullable Identifier forcedCrisisId) {
+*///?} else {
                          @Nullable ResourceLocation forcedCrisisId) {
+//?}
             this.plan = plan;
             this.crisisExit = crisisExit;
             this.forcedCrisisId = forcedCrisisId;

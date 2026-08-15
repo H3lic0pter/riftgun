@@ -7,8 +7,16 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.Relative;
+*///?} else {
 import net.minecraft.world.entity.RelativeMovement;
+//?}
+//? if >=1.21.11 {
+/*import net.minecraft.world.level.portal.TeleportTransition;
+*///?} else {
 import net.minecraft.world.level.portal.DimensionTransition;
+//?}
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -91,13 +99,25 @@ final class EntityRelocationTree {
         float pitch = entity.getXRot();
         if (entity.level() == targetLevel) {
             boolean ok = entity.teleportTo(targetLevel, position.x, position.y, position.z,
+//? if >=1.21.11 {
+                /*Set.<Relative>of(), yaw, pitch);
+*///?} else {
                 Set.<RelativeMovement>of(), yaw, pitch);
+//?}
             if (!ok) return null;
             entity.setDeltaMovement(momentum);
             return entity;
         }
+//? if >=1.21.11 {
+        /*return entity.changeDimension(new TeleportTransition(
+*///?} else {
         return entity.changeDimension(new DimensionTransition(
+//?}
+//? if >=1.21.11 {
+            /*targetLevel, position, momentum, yaw, pitch, TeleportTransition.DO_NOTHING));
+*///?} else {
             targetLevel, position, momentum, yaw, pitch, DimensionTransition.DO_NOTHING));
+//?}
     }
 
     static Entity promotedRoot(Entity entity) {

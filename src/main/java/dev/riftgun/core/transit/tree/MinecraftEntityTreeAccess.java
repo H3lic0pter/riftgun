@@ -1,4 +1,5 @@
 package dev.riftgun.core.transit.tree;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.List;
 import java.util.UUID;

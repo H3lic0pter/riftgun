@@ -1,4 +1,5 @@
 package dev.riftgun.module;
+import dev.riftgun.core.nbt.Nbt;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -37,8 +38,8 @@ public record PortalEntityAccessSnapshot(boolean passive, boolean hostile, boole
     public static PortalEntityAccessSnapshot load(CompoundTag tag) {
         if (tag.isEmpty()) return NONE;
         return new PortalEntityAccessSnapshot(
-            tag.getBoolean("Passive"), tag.getBoolean("Hostile"), tag.getBoolean("Boss"),
-            tag.getBoolean("Projectile"));
+            Nbt.getBoolean(tag, "Passive"), Nbt.getBoolean(tag, "Hostile"), Nbt.getBoolean(tag, "Boss"),
+            Nbt.getBoolean(tag, "Projectile"));
     }
 
     public int mask() {

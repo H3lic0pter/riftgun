@@ -1,4 +1,5 @@
 package dev.riftgun.network;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.data.DestinationSort;
@@ -53,23 +54,23 @@ final class PortalGunActions {
     static boolean updatePlayerSettings(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
         DestinationSort sort;
         try {
-            sort = DestinationSort.valueOf(request.getString("Sort"));
+            sort = DestinationSort.valueOf(Nbt.getString(request, "Sort"));
         } catch (IllegalArgumentException ignored) {
             sort = DestinationSort.RECENT;
         }
         PortalPlayerSettings settings = new PortalPlayerSettings(
-            request.getBoolean("SafetyCheck"),
-            request.getBoolean("ConfirmDeletion"),
-            request.getBoolean("ConfirmDiscardedChanges"),
-            request.getBoolean("ConfirmClearFluid"),
-            request.getBoolean("Animations"),
-            request.getBoolean("Sounds"),
+            Nbt.getBoolean(request, "SafetyCheck"),
+            Nbt.getBoolean(request, "ConfirmDeletion"),
+            Nbt.getBoolean(request, "ConfirmDiscardedChanges"),
+            Nbt.getBoolean(request, "ConfirmClearFluid"),
+            Nbt.getBoolean(request, "Animations"),
+            Nbt.getBoolean(request, "Sounds"),
             sort,
-            PortalPlacementMode.parse(request.getString("PlacementMode")),
+            PortalPlacementMode.parse(Nbt.getString(request, "PlacementMode")),
             data.settings().smartDistance(),
-            PortalPredictionMode.parse(request.getString("MotionPrediction"), PortalPredictionMode.OFF),
-            request.contains("PortalSounds", Tag.TAG_COMPOUND)
-                ? PortalSoundSettings.load(request.getCompound("PortalSounds"))
+            PortalPredictionMode.parse(Nbt.getString(request, "MotionPrediction"), PortalPredictionMode.OFF),
+            Nbt.contains(request, "PortalSounds")
+                ? PortalSoundSettings.load(Nbt.getCompound(request, "PortalSounds"))
                 : data.settings().portalSounds()
         );
         data.settings(settings);
@@ -81,12 +82,12 @@ final class PortalGunActions {
     static boolean updateModuleSettings(PortalPlayerData data, CompoundTag request, ItemStack gun) {
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, data.settings().smartDistance());
         PortalModuleRules rules = PortalModuleRules.current();
-        String setting = request.getString("Setting");
+        String setting = Nbt.getString(request, "Setting");
         switch (setting) {
             case "SmartDistance" -> {
                 int maximum = PortalGunCapabilities.resolve(
                     gun, data.settings().smartDistance()).configuredSurfaceRange();
-                settings = settings.withSmartDistance(Math.clamp(request.getInt("Value"), 1, maximum));
+                settings = settings.withSmartDistance(Math.clamp(Nbt.getInt(request, "Value"), 1, maximum));
             }
             case "SurfaceRange" -> {
                 requireModule(gun, PortalModuleKind.SURFACE_RANGE, rules,
@@ -94,15 +95,15 @@ final class PortalGunActions {
                 int maximum = rules.maximumSurfaceRangeFor(
                     PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules));
                 settings = settings.withDesiredSurfaceRange(
-                    Math.clamp(request.getInt("Value"), rules.baseSurfaceRange(), maximum));
+                    Math.clamp(Nbt.getInt(request, "Value"), rules.baseSurfaceRange(), maximum));
             }
             case "PortalDuration" -> settings = settings.withPortalDurationSeconds(
-                PortalGunCapabilities.configuredDurationSeconds(gun, request.getInt("Value")));
-            case "TransitCooldown" -> settings = settings.withTransitCooldownTenths(request.getInt("Value"));
+                PortalGunCapabilities.configuredDurationSeconds(gun, Nbt.getInt(request, "Value")));
+            case "TransitCooldown" -> settings = settings.withTransitCooldownTenths(Nbt.getInt(request, "Value"));
             case "ExpandedAperture" -> {
                 requireModule(gun, PortalModuleKind.APERTURE_EXPANSION, rules,
                     "message.riftgun.aperture_module_required");
-                settings = settings.withExpandedApertureEnabled(request.getBoolean("Enabled"));
+                settings = settings.withExpandedApertureEnabled(Nbt.getBoolean(request, "Enabled"));
             }
             case "PassiveTransit", "HostileTransit", "BossTransit", "ProjectileTransit" -> {
                 PortalModuleKind kind = switch (setting) {
@@ -112,33 +113,33 @@ final class PortalGunActions {
                     default -> PortalModuleKind.PROJECTILE_TRANSIT;
                 };
                 requireModule(gun, kind, rules, "message.riftgun.entity_module_required");
-                settings = settings.withTransit(kind, request.getBoolean("Enabled"));
+                settings = settings.withTransit(kind, Nbt.getBoolean(request, "Enabled"));
             }
             case "PlayerTarget" -> {
                 requireModule(gun, PortalModuleKind.PLAYER_TARGET, rules,
                     "message.riftgun.player_target_module_required");
-                settings = settings.withPlayerTargetEnabled(request.getBoolean("Enabled"));
+                settings = settings.withPlayerTargetEnabled(Nbt.getBoolean(request, "Enabled"));
             }
             case "PlayerExclude" -> {
                 requireModule(gun, PortalModuleKind.PLAYER_TARGET, rules,
                     "message.riftgun.player_target_module_required");
                 settings = settings.withPlayerExcludeMode(
-                    settings.playerExcludeMode().step(request.getInt("Step")));
+                    settings.playerExcludeMode().step(Nbt.getInt(request, "Step")));
             }
             case "FallGuard" -> {
                 requireModule(gun, PortalModuleKind.FALL_GUARD, rules,
                     "message.riftgun.fall_guard_module_required");
-                settings = settings.withFallGuardEnabled(request.getBoolean("Enabled"));
+                settings = settings.withFallGuardEnabled(Nbt.getBoolean(request, "Enabled"));
             }
             case "FallGuardEntities" -> {
                 requireModule(gun, PortalModuleKind.FALL_GUARD, rules,
                     "message.riftgun.fall_guard_module_required");
-                settings = settings.withFallGuardEntitiesEnabled(request.getBoolean("Enabled"));
+                settings = settings.withFallGuardEntitiesEnabled(Nbt.getBoolean(request, "Enabled"));
             }
             case "EntityRelocation" -> {
                 requireModule(gun, PortalModuleKind.ENTITY_RELOCATION, rules,
                     "message.riftgun.entity_relocation_module_required");
-                boolean enabled = request.getBoolean("Enabled");
+                boolean enabled = Nbt.getBoolean(request, "Enabled");
                 settings = settings.withEntityRelocationEnabled(enabled);
                 PortalPlacementMode normalized = EntityRelocationRouting.normalizePlacementMode(
                     data.settings().placementMode(), enabled);
@@ -149,7 +150,7 @@ final class PortalGunActions {
             case "EntityRelocationSmartRouting" -> {
                 requireModule(gun, PortalModuleKind.ENTITY_RELOCATION, rules,
                     "message.riftgun.entity_relocation_module_required");
-                settings = settings.withEntityRelocationSmartRouting(request.getBoolean("Enabled"));
+                settings = settings.withEntityRelocationSmartRouting(Nbt.getBoolean(request, "Enabled"));
             }
             default -> throw PortalRequestFields.error("message.riftgun.invalid_request");
         }

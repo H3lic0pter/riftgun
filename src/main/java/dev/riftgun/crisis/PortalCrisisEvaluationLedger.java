@@ -1,4 +1,5 @@
 package dev.riftgun.crisis;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.LinkedHashMap;
 import java.util.UUID;
@@ -39,7 +40,7 @@ public final class PortalCrisisEvaluationLedger {
         ListTag players = new ListTag();
         for (UUID playerId : evaluated.keySet()) {
             CompoundTag entry = new CompoundTag();
-            entry.putUUID("Id", playerId);
+            Nbt.putUUID(entry, "Id", playerId);
             players.add(entry);
         }
         tag.put("Players", players);
@@ -49,9 +50,9 @@ public final class PortalCrisisEvaluationLedger {
     public void load(CompoundTag tag, int capacity) {
         requireCapacity(capacity);
         evaluated.clear();
-        for (Tag raw : tag.getList("Players", Tag.TAG_COMPOUND)) {
+        for (Tag raw : Nbt.getList(tag, "Players")) {
             CompoundTag entry = (CompoundTag) raw;
-            if (entry.hasUUID("Id")) record(entry.getUUID("Id"), capacity);
+            if (Nbt.hasUUID(entry, "Id")) record(Nbt.getUUID(entry, "Id"), capacity);
         }
     }
 

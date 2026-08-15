@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
@@ -57,7 +58,7 @@ public record PortalAttachment(@Nullable BlockPos anchor, @Nullable Direction fa
     public static PortalAttachment load(CompoundTag tag) {
         if (!tag.contains(ANCHOR) || !tag.contains(FACE)) return NONE;
         try {
-            return of(BlockPos.of(tag.getLong(ANCHOR)), Direction.valueOf(tag.getString(FACE)));
+            return of(BlockPos.of(Nbt.getLong(tag, ANCHOR)), Direction.valueOf(Nbt.getString(tag, FACE)));
         } catch (IllegalArgumentException ignored) {
             return NONE;
         }

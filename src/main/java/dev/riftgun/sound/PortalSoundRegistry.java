@@ -6,7 +6,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.sounds.SoundSource;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,11 +19,27 @@ import org.jetbrains.annotations.Nullable;
  * Saved settings only retain stable choice IDs; playback details remain local to this module.
  */
 public final class PortalSoundRegistry {
+//? if >=1.21.11 {
+    /*public static final Identifier NONE_ID = id("none");
+*///?} else {
     public static final ResourceLocation NONE_ID = id("none");
+//?}
+//? if >=1.21.11 {
+    /*public static final Identifier RIFT_ID = id("rift");
+*///?} else {
     public static final ResourceLocation RIFT_ID = id("rift");
+//?}
+//? if >=1.21.11 {
+    /*public static final Identifier ENDER_ID = id("ender");
+*///?} else {
     public static final ResourceLocation ENDER_ID = id("ender");
+//?}
 
+//? if >=1.21.11 {
+    /*private static final Map<PortalSoundChannel, LinkedHashMap<Identifier, Definition>> DEFINITIONS =
+*///?} else {
     private static final Map<PortalSoundChannel, LinkedHashMap<ResourceLocation, Definition>> DEFINITIONS =
+//?}
         new EnumMap<>(PortalSoundChannel.class);
 
     static {
@@ -66,18 +86,34 @@ public final class PortalSoundRegistry {
         return DEFINITIONS.get(channel).values().stream().map(Definition::choice).toList();
     }
 
+//? if >=1.21.11 {
+    /*public static PortalSoundChoice resolve(PortalSoundChannel channel, Identifier requested) {
+*///?} else {
     public static PortalSoundChoice resolve(PortalSoundChannel channel, ResourceLocation requested) {
+//?}
         return definition(channel, requested).choice();
     }
 
+//? if >=1.21.11 {
+    /*public static Identifier normalize(PortalSoundChannel channel, Identifier requested) {
+*///?} else {
     public static ResourceLocation normalize(PortalSoundChannel channel, ResourceLocation requested) {
+//?}
         return resolve(channel, requested).id();
     }
 
+//? if >=1.21.11 {
+    /*public static Identifier cycle(PortalSoundChannel channel, Identifier selected, int direction) {
+*///?} else {
     public static ResourceLocation cycle(PortalSoundChannel channel, ResourceLocation selected, int direction) {
+//?}
         List<PortalSoundChoice> choices = values(channel);
         if (choices.isEmpty()) return defaultId(channel);
+//? if >=1.21.11 {
+        /*Identifier normalized = normalize(channel, selected);
+*///?} else {
         ResourceLocation normalized = normalize(channel, selected);
+//?}
         int index = 0;
         for (int candidate = 0; candidate < choices.size(); candidate++) {
             if (choices.get(candidate).id().equals(normalized)) {
@@ -88,11 +124,19 @@ public final class PortalSoundRegistry {
         return choices.get(Math.floorMod(index + direction, choices.size())).id();
     }
 
+//? if >=1.21.11 {
+    /*static @Nullable PortalSoundCue primaryCue(PortalSoundChannel channel, Identifier id) {
+*///?} else {
     static @Nullable PortalSoundCue primaryCue(PortalSoundChannel channel, ResourceLocation id) {
+//?}
         return definition(channel, id).primary();
     }
 
+//? if >=1.21.11 {
+    /*static @Nullable PortalSoundCue closingCue(Identifier id) {
+*///?} else {
     static @Nullable PortalSoundCue closingCue(ResourceLocation id) {
+//?}
         return definition(PortalSoundChannel.PORTAL, id).secondary();
     }
 
@@ -107,8 +151,16 @@ public final class PortalSoundRegistry {
         return definition.choice();
     }
 
+//? if >=1.21.11 {
+    /*private static Definition definition(PortalSoundChannel channel, Identifier requested) {
+*///?} else {
     private static Definition definition(PortalSoundChannel channel, ResourceLocation requested) {
+//?}
+//? if >=1.21.11 {
+        /*Map<Identifier, Definition> definitions = DEFINITIONS.get(channel);
+*///?} else {
         Map<ResourceLocation, Definition> definitions = DEFINITIONS.get(channel);
+//?}
         Definition resolved = definitions.get(requested);
         if (resolved != null) return resolved;
         resolved = definitions.get(defaultId(channel));
@@ -116,12 +168,24 @@ public final class PortalSoundRegistry {
         return definitions.values().iterator().next();
     }
 
+//? if >=1.21.11 {
+    /*private static Identifier defaultId(PortalSoundChannel channel) {
+*///?} else {
     private static ResourceLocation defaultId(PortalSoundChannel channel) {
+//?}
         return RIFT_ID;
     }
 
+//? if >=1.21.11 {
+    /*private static Identifier id(String path) {
+*///?} else {
     private static ResourceLocation id(String path) {
+//?}
+//? if >=1.21.11 {
+        /*return Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
+*///?} else {
         return ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
+//?}
     }
 
     private record Definition(

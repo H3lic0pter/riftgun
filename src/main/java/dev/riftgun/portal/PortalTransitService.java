@@ -11,9 +11,17 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
 import dev.riftgun.core.runtime.RiftRuntime;
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.Relative;
+*///?} else {
 import net.minecraft.world.entity.RelativeMovement;
+//?}
 import net.minecraft.world.entity.projectile.Projectile;
+//? if >=1.21.11 {
+/*import net.minecraft.world.level.portal.TeleportTransition;
+*///?} else {
 import net.minecraft.world.level.portal.DimensionTransition;
+//?}
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,11 +54,23 @@ final class PortalTransitService {
         if (entity.level() == targetLevel) {
             boolean successful = entity.teleportTo(targetLevel,
                 plan.destination().x, plan.destination().y, plan.destination().z,
+//? if >=1.21.11 {
+                /*Set.<Relative>of(), plan.yaw(), plan.pitch());
+*///?} else {
                 Set.<RelativeMovement>of(), plan.yaw(), plan.pitch());
+//?}
             moved = successful ? entity : null;
         } else {
+//? if >=1.21.11 {
+            /*moved = entity.changeDimension(new TeleportTransition(targetLevel, plan.destination(),
+*///?} else {
             moved = entity.changeDimension(new DimensionTransition(targetLevel, plan.destination(),
+//?}
+//? if >=1.21.11 {
+                /*plan.momentum(), plan.yaw(), plan.pitch(), TeleportTransition.DO_NOTHING));
+*///?} else {
                 plan.momentum(), plan.yaw(), plan.pitch(), DimensionTransition.DO_NOTHING));
+//?}
         }
         if (moved == null) return null;
 

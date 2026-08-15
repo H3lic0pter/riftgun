@@ -1,4 +1,5 @@
 package dev.riftgun.relocation;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.HashMap;
 import java.util.Map;

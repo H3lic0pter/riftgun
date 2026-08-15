@@ -7,7 +7,11 @@ import dev.riftgun.relocation.EntityRelocationPortalEntity;
 import java.util.Objects;
 import java.util.function.Supplier;
 import net.minecraft.core.particles.SimpleParticleType;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.BlockItem;
 
@@ -60,7 +64,11 @@ public final class RiftContent {
     }
 
     private static <T> RegistrySlot<T> slot(String path) {
+//? if >=1.21.11 {
+        /*return new RegistrySlot<>(Identifier.fromNamespaceAndPath("riftgun", path));
+*///?} else {
         return new RegistrySlot<>(ResourceLocation.fromNamespaceAndPath("riftgun", path));
+//?}
     }
 
     private RiftContent() {}

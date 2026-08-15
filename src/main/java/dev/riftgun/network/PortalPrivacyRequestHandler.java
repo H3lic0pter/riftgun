@@ -1,9 +1,14 @@
 package dev.riftgun.network;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.data.PlayerPermissionProfileMode;
 import dev.riftgun.data.PortalPermissionPolicy;
 import dev.riftgun.service.PortalPrivacyService;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -12,27 +17,35 @@ final class PortalPrivacyRequestHandler {
     static void handle(ServerPlayer player, PortalAction action, CompoundTag request) {
         switch (action) {
             case SET_PRIVACY -> {
-                ResourceLocation permission = ResourceLocation.tryParse(request.getString("Permission"));
+//? if >=1.21.11 {
+                /*Identifier permission = Identifier.tryParse(Nbt.getString(request, "Permission"));
+*///?} else {
+                ResourceLocation permission = ResourceLocation.tryParse(Nbt.getString(request, "Permission"));
+//?}
                 if (permission == null) return;
                 PortalPermissionPolicy policy = PortalPermissionPolicy.parse(
-                    request.getString("Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
+                    Nbt.getString(request, "Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
                 PortalPrivacyService.applyGlobalPermission(player, permission, policy);
                 PortalNetworking.sendPrivacyTerminal(player);
             }
             case SET_PRIVACY_OVERRIDE -> {
-                if (!request.hasUUID("Target")) return;
+                if (!Nbt.hasUUID(request, "Target")) return;
                 if (request.contains("ProfileMode")) {
                     PlayerPermissionProfileMode mode = PlayerPermissionProfileMode.parse(
-                        request.getString("ProfileMode"), PlayerPermissionProfileMode.FOLLOW_GLOBAL);
-                    PortalPrivacyService.applyProfileMode(player, request.getUUID("Target"), mode);
+                        Nbt.getString(request, "ProfileMode"), PlayerPermissionProfileMode.FOLLOW_GLOBAL);
+                    PortalPrivacyService.applyProfileMode(player, Nbt.getUUID(request, "Target"), mode);
                 } else {
+//? if >=1.21.11 {
+                    /*Identifier permission = Identifier.tryParse(
+*///?} else {
                     ResourceLocation permission = ResourceLocation.tryParse(
-                        request.getString("Permission"));
+//?}
+                        Nbt.getString(request, "Permission"));
                     if (permission == null) return;
                     PortalPermissionPolicy policy = PortalPermissionPolicy.parse(
-                        request.getString("Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
+                        Nbt.getString(request, "Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
                     PortalPrivacyService.applyPermissionOverride(
-                        player, request.getUUID("Target"), permission, policy);
+                        player, Nbt.getUUID(request, "Target"), permission, policy);
                 }
                 PortalNetworking.sendPrivacyTerminal(player);
             }

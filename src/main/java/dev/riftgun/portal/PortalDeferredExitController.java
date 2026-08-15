@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.sound.PortalSounds;
@@ -131,14 +132,14 @@ final class PortalDeferredExitController {
 
     void load(CompoundTag tag) {
         target = tag.contains("DeferredTarget")
-            ? PortalExitTarget.load(tag.getCompound("DeferredTarget")) : null;
-        excludedPlayer = tag.hasUUID("DeferredExitExclude")
-            ? tag.getUUID("DeferredExitExclude") : null;
+            ? PortalExitTarget.load(Nbt.getCompound(tag, "DeferredTarget")) : null;
+        excludedPlayer = Nbt.hasUUID(tag, "DeferredExitExclude")
+            ? Nbt.getUUID(tag, "DeferredExitExclude") : null;
         creatingExit = false;
     }
 
     void save(CompoundTag tag) {
         if (target != null) tag.put("DeferredTarget", target.save());
-        if (excludedPlayer != null) tag.putUUID("DeferredExitExclude", excludedPlayer);
+        if (excludedPlayer != null) Nbt.putUUID(tag, "DeferredExitExclude", excludedPlayer);
     }
 }

@@ -1,13 +1,30 @@
 package dev.riftgun.sound;
+import dev.riftgun.core.nbt.Nbt;
 
 import net.minecraft.nbt.CompoundTag;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 
 /** Immutable lifecycle/transit sound selection captured when one portal pair opens. */
 public record PortalSoundSnapshot(
+//? if >=1.21.11 {
+    /*Identifier shot,
+*///?} else {
     ResourceLocation shot,
+//?}
+//? if >=1.21.11 {
+    /*Identifier portal,
+*///?} else {
     ResourceLocation portal,
+//?}
+//? if >=1.21.11 {
+    /*Identifier transit,
+*///?} else {
     ResourceLocation transit,
+//?}
     boolean splashEnabled
 ) {
     public PortalSoundSnapshot {
@@ -36,13 +53,25 @@ public record PortalSoundSnapshot(
 
     public static PortalSoundSnapshot load(CompoundTag tag) {
         PortalSoundSnapshot defaults = defaults();
-        ResourceLocation shot = ResourceLocation.tryParse(tag.getString("Shot"));
-        ResourceLocation portal = ResourceLocation.tryParse(tag.getString("Portal"));
-        ResourceLocation transit = ResourceLocation.tryParse(tag.getString("Transit"));
+//? if >=1.21.11 {
+        /*Identifier shot = Identifier.tryParse(Nbt.getString(tag, "Shot"));
+*///?} else {
+        ResourceLocation shot = ResourceLocation.tryParse(Nbt.getString(tag, "Shot"));
+//?}
+//? if >=1.21.11 {
+        /*Identifier portal = Identifier.tryParse(Nbt.getString(tag, "Portal"));
+*///?} else {
+        ResourceLocation portal = ResourceLocation.tryParse(Nbt.getString(tag, "Portal"));
+//?}
+//? if >=1.21.11 {
+        /*Identifier transit = Identifier.tryParse(Nbt.getString(tag, "Transit"));
+*///?} else {
+        ResourceLocation transit = ResourceLocation.tryParse(Nbt.getString(tag, "Transit"));
+//?}
         return new PortalSoundSnapshot(
             shot == null ? defaults.shot : shot,
             portal == null ? defaults.portal : portal,
             transit == null ? defaults.transit : transit,
-            tag.contains("Splash") && tag.getBoolean("Splash"));
+            tag.contains("Splash") && Nbt.getBoolean(tag, "Splash"));
     }
 }

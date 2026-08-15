@@ -1,4 +1,5 @@
 package dev.riftgun.network;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.network.RiftNetwork;
 import java.util.function.Consumer;
@@ -71,7 +72,7 @@ public final class PortalNetworking {
     public static void sendSelectionAccepted(ServerPlayer player, java.util.UUID destinationId) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Selection");
-        envelope.putUUID("Destination", destinationId);
+        Nbt.putUUID(envelope, "Destination", destinationId);
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
@@ -99,7 +100,7 @@ public final class PortalNetworking {
         int order = 0;
         for (ServerPlayer candidate : online) {
             CompoundTag entry = new CompoundTag();
-            entry.putUUID("Id", candidate.getUUID());
+            Nbt.putUUID(entry, "Id", candidate.getUUID());
             entry.putString("Name", candidate.getGameProfile().getName());
             entry.putString("Dimension", candidate.level().dimension().location().toString());
             entry.putBoolean("Pinned", data.isPlayerPinned(candidate.getUUID()));
@@ -175,7 +176,7 @@ public final class PortalNetworking {
         online.sort(Comparator.comparing(value -> value.getGameProfile().getName()));
         for (ServerPlayer candidate : online) {
             CompoundTag entry = new CompoundTag();
-            entry.putUUID("Id", candidate.getUUID());
+            Nbt.putUUID(entry, "Id", candidate.getUUID());
             entry.putString("Name", candidate.getGameProfile().getName());
             entries.add(entry);
         }

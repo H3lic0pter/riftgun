@@ -1,11 +1,19 @@
 package dev.riftgun.crisis;
 
 import java.util.Optional;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 
 /** Extension seam for one independently registered unstable-transit crisis. */
 public interface PortalCrisis {
+//? if >=1.21.11 {
+    /*Identifier id();
+*///?} else {
     ResourceLocation id();
+//?}
 
     int defaultWeight();
 

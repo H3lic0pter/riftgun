@@ -1,9 +1,17 @@
 package dev.riftgun.fuel;
 
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 
 public record PortalFuelProfile(
+//? if >=1.21.11 {
+    /*Identifier id,
+*///?} else {
     ResourceLocation id,
+//?}
     int rgb,
     boolean crossDimension,
     int minimumConsumption,

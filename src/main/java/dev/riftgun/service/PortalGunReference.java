@@ -1,4 +1,5 @@
 package dev.riftgun.service;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
@@ -13,20 +14,20 @@ public final class PortalGunReference {
         CompoundTag reference = new CompoundTag();
         reference.putString(LOCATOR, locatorId);
         reference.put(TOKEN, token.copy());
-        reference.putUUID(INSTANCE_ID, instanceId);
+        Nbt.putUUID(reference, INSTANCE_ID, instanceId);
         return reference;
     }
 
     public static String locatorId(CompoundTag reference) {
-        return reference.getString(LOCATOR);
+        return Nbt.getString(reference, LOCATOR);
     }
 
     public static CompoundTag token(CompoundTag reference) {
-        return reference.getCompound(TOKEN).copy();
+        return Nbt.getCompound(reference, TOKEN).copy();
     }
 
     public static boolean matches(CompoundTag reference, UUID instanceId) {
-        return reference.hasUUID(INSTANCE_ID) && reference.getUUID(INSTANCE_ID).equals(instanceId);
+        return Nbt.hasUUID(reference, INSTANCE_ID) && Nbt.getUUID(reference, INSTANCE_ID).equals(instanceId);
     }
 
     private PortalGunReference() {}

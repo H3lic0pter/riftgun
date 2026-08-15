@@ -1,4 +1,5 @@
 package dev.riftgun.service;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.RiftConstants;
@@ -43,7 +44,7 @@ public final class VanillaInventoryPortalGunLocator implements PortalGunLocator 
     @Override
     public Optional<ItemStack> resolve(ServerPlayer player, CompoundTag token) {
         if (!token.contains("Slot")) return Optional.empty();
-        int slot = token.getInt("Slot");
+        int slot = Nbt.getInt(token, "Slot");
         Inventory inventory = player.getInventory();
         if (slot < 0 || slot >= inventory.getContainerSize()) return Optional.empty();
         ItemStack stack = inventory.getItem(slot);

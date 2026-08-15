@@ -1,10 +1,18 @@
 package dev.riftgun.data;
 
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 
 /** Metadata used by authority checks, persistence and the data-driven Privacy Terminal. */
 public record PortalPermissionDefinition(
+//? if >=1.21.11 {
+    /*Identifier id,
+*///?} else {
     ResourceLocation id,
+//?}
     boolean supportsAsk,
     String translationKey,
     PortalPermissionPolicy fallbackGlobalPolicy

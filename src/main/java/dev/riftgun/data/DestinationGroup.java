@@ -1,4 +1,5 @@
 package dev.riftgun.data;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
@@ -14,7 +15,7 @@ public record DestinationGroup(UUID id, String name, int order) {
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
-        tag.putUUID("Id", id);
+        Nbt.putUUID(tag, "Id", id);
         tag.putString("Name", name);
         tag.putInt("Order", order);
         return tag;
@@ -22,9 +23,9 @@ public record DestinationGroup(UUID id, String name, int order) {
 
     public static DestinationGroup load(CompoundTag tag) {
         return new DestinationGroup(
-            tag.hasUUID("Id") ? tag.getUUID("Id") : UUID.randomUUID(),
-            tag.getString("Name"),
-            tag.getInt("Order")
+            Nbt.hasUUID(tag, "Id") ? Nbt.getUUID(tag, "Id") : UUID.randomUUID(),
+            Nbt.getString(tag, "Name"),
+            Nbt.getInt(tag, "Order")
         );
     }
 }

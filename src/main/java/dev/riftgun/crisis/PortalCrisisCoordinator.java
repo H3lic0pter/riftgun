@@ -9,7 +9,11 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -46,7 +50,11 @@ public final class PortalCrisisCoordinator {
         }
     }
 
+//? if >=1.21.11 {
+    /*public static ForcedCrisisPreparation prepareForced(Identifier crisisId,
+*///?} else {
     public static ForcedCrisisPreparation prepareForced(ResourceLocation crisisId,
+//?}
                                                         ServerPlayer player, ServerLevel targetLevel,
                                                         Vec3 normalDestination, Vec3 normalMomentum,
                                                         float destinationYaw, boolean mountedTransit,

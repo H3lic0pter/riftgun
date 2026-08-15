@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.crisis.PortalCrisisEvaluationLedger;
@@ -7,7 +8,11 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -91,21 +96,25 @@ final class PortalCrisisSession {
 
     void load(CompoundTag tag, int maximumTrackedPlayers) {
         configuration = tag.contains("PortalCrises")
-            ? PortalCrisisConfigurationSnapshot.load(tag.getCompound("PortalCrises"))
+            ? PortalCrisisConfigurationSnapshot.load(Nbt.getCompound(tag, "PortalCrises"))
             : PortalCrisisConfigurationSnapshot.stable();
-        if (tag.contains("CrisisEvaluations", Tag.TAG_COMPOUND)) {
-            evaluations.load(tag.getCompound("CrisisEvaluations"), maximumTrackedPlayers);
+        if (Nbt.contains(tag, "CrisisEvaluations")) {
+            evaluations.load(Nbt.getCompound(tag, "CrisisEvaluations"), maximumTrackedPlayers);
         } else {
             CompoundTag legacy = new CompoundTag();
-            legacy.put("Players", tag.getList("CrisisEvaluatedPlayers", Tag.TAG_COMPOUND));
+            legacy.put("Players", Nbt.getList(tag, "CrisisEvaluatedPlayers"));
             evaluations.load(legacy, maximumTrackedPlayers);
         }
-        exitCount = Math.max(0, tag.getInt("CrisisExitCount"));
-        playerId = tag.hasUUID("CrisisPlayer") ? tag.getUUID("CrisisPlayer") : null;
+        exitCount = Math.max(0, Nbt.getInt(tag, "CrisisExitCount"));
+        playerId = Nbt.hasUUID(tag, "CrisisPlayer") ? Nbt.getUUID(tag, "CrisisPlayer") : null;
         returnTarget = tag.contains("CrisisReturnTarget")
-            ? PortalExitTarget.load(tag.getCompound("CrisisReturnTarget")) : null;
-        parentId = tag.hasUUID("CrisisParent") ? tag.getUUID("CrisisParent") : null;
-        ResourceLocation dimensionId = ResourceLocation.tryParse(tag.getString("CrisisParentDimension"));
+            ? PortalExitTarget.load(Nbt.getCompound(tag, "CrisisReturnTarget")) : null;
+        parentId = Nbt.hasUUID(tag, "CrisisParent") ? Nbt.getUUID(tag, "CrisisParent") : null;
+//? if >=1.21.11 {
+        /*Identifier dimensionId = Identifier.tryParse(Nbt.getString(tag, "CrisisParentDimension"));
+*///?} else {
+        ResourceLocation dimensionId = ResourceLocation.tryParse(Nbt.getString(tag, "CrisisParentDimension"));
+//?}
         parentDimension = dimensionId == null ? null
             : ResourceKey.create(Registries.DIMENSION, dimensionId);
     }
@@ -114,9 +123,9 @@ final class PortalCrisisSession {
         tag.put("PortalCrises", configuration.save());
         tag.put("CrisisEvaluations", evaluations.save());
         tag.putInt("CrisisExitCount", exitCount);
-        if (playerId != null) tag.putUUID("CrisisPlayer", playerId);
+        if (playerId != null) Nbt.putUUID(tag, "CrisisPlayer", playerId);
         if (returnTarget != null) tag.put("CrisisReturnTarget", returnTarget.save());
-        if (parentId != null) tag.putUUID("CrisisParent", parentId);
+        if (parentId != null) Nbt.putUUID(tag, "CrisisParent", parentId);
         if (parentDimension != null) {
             tag.putString("CrisisParentDimension", parentDimension.location().toString());
         }

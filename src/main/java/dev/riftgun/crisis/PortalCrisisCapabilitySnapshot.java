@@ -11,7 +11,11 @@ import java.util.stream.Stream;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffects;
@@ -32,7 +36,11 @@ public record PortalCrisisCapabilitySnapshot(
     boolean spatialTearReady
 ) {
     public static final TagKey<net.minecraft.world.item.Item> FALL_RESCUE_ITEMS = TagKey.create(
+//? if >=1.21.11 {
+        /*Registries.ITEM, Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, "fall_rescue_items"));
+*///?} else {
         Registries.ITEM, ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "fall_rescue_items"));
+//?}
     private static final List<PortalCrisisInventorySource> INVENTORY_SOURCES = new CopyOnWriteArrayList<>();
 
     static {

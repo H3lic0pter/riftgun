@@ -15,7 +15,11 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+//? if >=1.21.11 {
+/*import net.minecraft.world.InteractionResult;
+*///?} else {
 import net.minecraft.world.InteractionResultHolder;
+//?}
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
@@ -56,13 +60,21 @@ public final class PortalGunItem extends Item {
     }
 
     @Override
+    //? if >=1.21.11 {
+    /*public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    *///?} else {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    //?}
         ItemStack stack = player.getItemInHand(hand);
         if (player instanceof ServerPlayer serverPlayer) {
             if (PortalGunMode.bucketMode(stack)) PortalGunWorldScoop.tryScoop(serverPlayer, hand);
             else PortalRequestHandler.openSelectedFromItem(serverPlayer, hand);
         }
+        //? if >=1.21.11 {
+        /*return InteractionResult.SUCCESS;
+        *///?} else {
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+        //?}
     }
 
     @Override

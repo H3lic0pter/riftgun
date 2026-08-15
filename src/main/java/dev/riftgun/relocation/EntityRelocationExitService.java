@@ -1,4 +1,5 @@
 package dev.riftgun.relocation;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.portal.PortalLifecycle;
 import dev.riftgun.portal.PortalOrientation;

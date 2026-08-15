@@ -1,4 +1,5 @@
 package dev.riftgun.data;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.sound.PortalSoundSettings;
 import net.minecraft.nbt.CompoundTag;
@@ -61,33 +62,33 @@ public record PortalPlayerSettings(
         if (tag.isEmpty()) return defaults();
         DestinationSort sort;
         try {
-            sort = DestinationSort.valueOf(tag.getString("Sort"));
+            sort = DestinationSort.valueOf(Nbt.getString(tag, "Sort"));
         } catch (IllegalArgumentException ignored) {
             sort = DestinationSort.RECENT;
         }
         PortalPredictionMode predictionMode;
-        if (tag.contains("MotionPrediction", Tag.TAG_STRING)) {
-            predictionMode = PortalPredictionMode.parse(tag.getString("MotionPrediction"),
+        if (Nbt.contains(tag, "MotionPrediction")) {
+            predictionMode = PortalPredictionMode.parse(Nbt.getString(tag, "MotionPrediction"),
                 PortalPredictionMode.PROJECTION);
         } else if (tag.contains("MotionPrediction")) {
-            predictionMode = tag.getBoolean("MotionPrediction")
+            predictionMode = Nbt.getBoolean(tag, "MotionPrediction")
                 ? PortalPredictionMode.TRAJECTORY : PortalPredictionMode.OFF;
         } else {
             predictionMode = PortalPredictionMode.PROJECTION;
         }
         return new PortalPlayerSettings(
-            !tag.contains("SafetyCheck") || tag.getBoolean("SafetyCheck"),
-            !tag.contains("ConfirmDeletion") || tag.getBoolean("ConfirmDeletion"),
-            !tag.contains("ConfirmDiscardedChanges") || tag.getBoolean("ConfirmDiscardedChanges"),
-            !tag.contains("ConfirmClearFluid") || tag.getBoolean("ConfirmClearFluid"),
-            !tag.contains("Animations") || tag.getBoolean("Animations"),
-            !tag.contains("Sounds") || tag.getBoolean("Sounds"),
+            !tag.contains("SafetyCheck") || Nbt.getBoolean(tag, "SafetyCheck"),
+            !tag.contains("ConfirmDeletion") || Nbt.getBoolean(tag, "ConfirmDeletion"),
+            !tag.contains("ConfirmDiscardedChanges") || Nbt.getBoolean(tag, "ConfirmDiscardedChanges"),
+            !tag.contains("ConfirmClearFluid") || Nbt.getBoolean(tag, "ConfirmClearFluid"),
+            !tag.contains("Animations") || Nbt.getBoolean(tag, "Animations"),
+            !tag.contains("Sounds") || Nbt.getBoolean(tag, "Sounds"),
             sort,
-            PortalPlacementMode.parse(tag.getString("PlacementMode")),
-            tag.contains("SmartDistance") ? Math.max(1, tag.getInt("SmartDistance")) : DEFAULT_SMART_DISTANCE,
+            PortalPlacementMode.parse(Nbt.getString(tag, "PlacementMode")),
+            tag.contains("SmartDistance") ? Math.max(1, Nbt.getInt(tag, "SmartDistance")) : DEFAULT_SMART_DISTANCE,
             predictionMode,
-            tag.contains("PortalSounds", Tag.TAG_COMPOUND)
-                ? PortalSoundSettings.load(tag.getCompound("PortalSounds"))
+            Nbt.contains(tag, "PortalSounds")
+                ? PortalSoundSettings.load(Nbt.getCompound(tag, "PortalSounds"))
                 : PortalSoundSettings.defaults()
         );
     }

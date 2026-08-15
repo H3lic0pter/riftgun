@@ -8,7 +8,11 @@ import java.util.Map;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.tags.TagKey;
@@ -28,7 +32,11 @@ public final class PortalFuelProfileReloadListener extends SimpleJsonResourceRel
     }
 
     @Override
+//? if >=1.21.11 {
+    /*protected void apply(Map<Identifier, JsonElement> resources,
+*///?} else {
     protected void apply(Map<ResourceLocation, JsonElement> resources,
+//?}
                          ResourceManager manager, ProfilerFiller profiler) {
         Registry<Fluid> fluids = registries.registryOrThrow(Registries.FLUID);
         Map<Fluid, PortalFuelProfile> index = new HashMap<>();

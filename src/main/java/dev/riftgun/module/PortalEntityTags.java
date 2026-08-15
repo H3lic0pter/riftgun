@@ -1,7 +1,11 @@
 package dev.riftgun.module;
 
 import dev.riftgun.core.RiftConstants;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
@@ -9,10 +13,18 @@ import net.minecraft.world.entity.EntityType;
 public final class PortalEntityTags {
     public static final TagKey<EntityType<?>> BOSSES = TagKey.create(
         Registries.ENTITY_TYPE,
+//? if >=1.21.11 {
+        /*Identifier.fromNamespaceAndPath("c", "bosses"));
+*///?} else {
         ResourceLocation.fromNamespaceAndPath("c", "bosses"));
+//?}
     public static final TagKey<EntityType<?>> PROJECTILE_TRANSIT_EXCLUDED = TagKey.create(
         Registries.ENTITY_TYPE,
+//? if >=1.21.11 {
+        /*Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, "projectile_transit_excluded"));
+*///?} else {
         ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "projectile_transit_excluded"));
+//?}
     public static final TagKey<EntityType<?>> PORTAL_TRANSIT_ALLOWED = riftgun("portal_transit_allowed");
     public static final TagKey<EntityType<?>> PORTAL_TRANSIT_DENIED = riftgun("portal_transit_denied");
     public static final TagKey<EntityType<?>> PORTAL_TRANSIT_SWEPT = riftgun("portal_transit_swept");
@@ -21,7 +33,11 @@ public final class PortalEntityTags {
 
     private static TagKey<EntityType<?>> riftgun(String path) {
         return TagKey.create(Registries.ENTITY_TYPE,
+//? if >=1.21.11 {
+            /*Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, path));
+*///?} else {
             ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path));
+//?}
     }
 
     private PortalEntityTags() {}

@@ -1,10 +1,15 @@
 package dev.riftgun.data;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.UUID;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -45,10 +50,14 @@ public record Destination(
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
-        tag.putUUID("Id", id);
+        Nbt.putUUID(tag, "Id", id);
         tag.putString("Name", name);
-        tag.putUUID("Group", groupId);
+        Nbt.putUUID(tag, "Group", groupId);
+                //? if >=1.21.11 {
+        /*tag.putString("Dimension", dimension.identifier().toString());
+        *///?} else {
         tag.putString("Dimension", dimension.location().toString());
+        //?}
         tag.putDouble("X", x);
         tag.putDouble("Y", y);
         tag.putDouble("Z", z);
@@ -60,20 +69,28 @@ public record Destination(
     }
 
     public static Destination load(CompoundTag tag) {
-        ResourceLocation dimensionId = ResourceLocation.tryParse(tag.getString("Dimension"));
+//? if >=1.21.11 {
+        /*Identifier dimensionId = Identifier.tryParse(Nbt.getString(tag, "Dimension"));
+*///?} else {
+        ResourceLocation dimensionId = ResourceLocation.tryParse(Nbt.getString(tag, "Dimension"));
+//?}
+                //? if >=1.21.11 {
+        /*if (dimensionId == null) dimensionId = Level.OVERWORLD.identifier();
+        *///?} else {
         if (dimensionId == null) dimensionId = Level.OVERWORLD.location();
+        //?}
         return new Destination(
-            tag.hasUUID("Id") ? tag.getUUID("Id") : UUID.randomUUID(),
-            tag.getString("Name"),
-            tag.hasUUID("Group") ? tag.getUUID("Group") : PortalPlayerData.DEFAULT_GROUP_ID,
+            Nbt.hasUUID(tag, "Id") ? Nbt.getUUID(tag, "Id") : UUID.randomUUID(),
+            Nbt.getString(tag, "Name"),
+            Nbt.hasUUID(tag, "Group") ? Nbt.getUUID(tag, "Group") : PortalPlayerData.DEFAULT_GROUP_ID,
             ResourceKey.create(Registries.DIMENSION, dimensionId),
-            tag.getDouble("X"),
-            tag.getDouble("Y"),
-            tag.getDouble("Z"),
-            tag.getFloat("Yaw"),
-            tag.getLong("CreatedAt"),
-            tag.getLong("LastUsedAt"),
-            tag.getBoolean("Pinned")
+            Nbt.getDouble(tag, "X"),
+            Nbt.getDouble(tag, "Y"),
+            Nbt.getDouble(tag, "Z"),
+            Nbt.getFloat(tag, "Yaw"),
+            Nbt.getLong(tag, "CreatedAt"),
+            Nbt.getLong(tag, "LastUsedAt"),
+            Nbt.getBoolean(tag, "Pinned")
         );
     }
 }

@@ -1,5 +1,7 @@
 package dev.riftgun.data;
 
+import dev.riftgun.core.nbt.Nbt;
+
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.core.RiftConstants;
 import java.util.HashMap;
@@ -14,7 +16,7 @@ public final class PortalDataStore {
 
     public static PortalPlayerData load(Player player) {
         CompoundTag persistent = player.getPersistentData();
-        return PortalPlayerData.load(persistent.getCompound(ROOT_KEY), permissionDefaults());
+        return PortalPlayerData.load(Nbt.getCompound(persistent, ROOT_KEY), permissionDefaults());
     }
 
     public static void save(Player player, PortalPlayerData data) {
@@ -22,7 +24,7 @@ public final class PortalDataStore {
     }
 
     public static void copy(Player original, Player replacement) {
-        CompoundTag source = original.getPersistentData().getCompound(ROOT_KEY);
+        CompoundTag source = Nbt.getCompound(original.getPersistentData(), ROOT_KEY);
         replacement.getPersistentData().put(ROOT_KEY, source.copy());
     }
 

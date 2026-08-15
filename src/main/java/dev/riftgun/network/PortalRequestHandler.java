@@ -1,4 +1,5 @@
 package dev.riftgun.network;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
@@ -132,7 +133,7 @@ public final class PortalRequestHandler {
                 yield false;
             }
             case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(
-                player, data, gun.stack(), request.getBoolean("Reverse"));
+                player, data, gun.stack(), Nbt.getBoolean(request, "Reverse"));
             case CREATE_GROUP -> PortalDestinationActions.createGroup(data, request);
             case RENAME_GROUP -> PortalDestinationActions.renameGroup(data, request);
             case DELETE_GROUP -> PortalDestinationActions.deleteGroup(data, request);
@@ -193,13 +194,13 @@ public final class PortalRequestHandler {
     }
 
     private static PortalPlacementMode requestedPlacement(CompoundTag request) {
-        PortalPlacementMode mode = PortalPlacementMode.parse(request.getString("PlacementMode"));
+        PortalPlacementMode mode = PortalPlacementMode.parse(Nbt.getString(request, "PlacementMode"));
         return mode == PortalPlacementMode.SMART ? PortalPlacementMode.FRONT : mode;
     }
 
     private static PortalAction parseAction(CompoundTag request) {
         try {
-            return PortalAction.valueOf(request.getString("Action"));
+            return PortalAction.valueOf(Nbt.getString(request, "Action"));
         } catch (IllegalArgumentException ignored) {
             return null;
         }
@@ -207,13 +208,13 @@ public final class PortalRequestHandler {
 
     private static PortalGunLocator.LocatedGun locateGun(ServerPlayer player, CompoundTag request) {
         return (request.contains("GunReference")
-            ? PortalGunLocator.resolveReference(player, request.getCompound("GunReference"))
+            ? PortalGunLocator.resolveReference(player, Nbt.getCompound(request, "GunReference"))
             : PortalGunLocator.first(player)).orElse(null);
     }
 
     private static boolean isKeyboardShortcut(PortalAction action, CompoundTag request) {
         return action.isExclusiveKeyboardShortcut()
-            || action == PortalAction.OPEN_GUI && request.getBoolean("KeyboardShortcut");
+            || action == PortalAction.OPEN_GUI && Nbt.getBoolean(request, "KeyboardShortcut");
     }
 
     private PortalRequestHandler() {}

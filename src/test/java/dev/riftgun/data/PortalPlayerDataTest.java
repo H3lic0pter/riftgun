@@ -1,4 +1,5 @@
 package dev.riftgun.data;
+import dev.riftgun.core.nbt.Nbt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -118,7 +119,7 @@ final class PortalPlayerDataTest {
         legacy.putBoolean("TransitPrivacy", true);
         net.minecraft.nbt.ListTag overrides = new net.minecraft.nbt.ListTag();
         CompoundTag override = new CompoundTag();
-        override.putUUID("Id", requester);
+        Nbt.putUUID(override, "Id", requester);
         override.putString("Mode", PlayerPermissionOverride.ALLOW.name());
         overrides.add(override);
         legacy.put("PrivacyOverrides", overrides);

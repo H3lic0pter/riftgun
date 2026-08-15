@@ -13,7 +13,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -26,11 +30,31 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 final class BuiltinPortalCrises {
+//? if >=1.21.11 {
+    /*private static final Identifier HIGH_FALL = id("high_altitude_fall");
+*///?} else {
     private static final ResourceLocation HIGH_FALL = id("high_altitude_fall");
+//?}
+//? if >=1.21.11 {
+    /*private static final Identifier LAVA = id("lava_hazard");
+*///?} else {
     private static final ResourceLocation LAVA = id("lava_hazard");
+//?}
+//? if >=1.21.11 {
+    /*private static final Identifier SPATIAL_TEAR = id("spatial_tear");
+*///?} else {
     private static final ResourceLocation SPATIAL_TEAR = id("spatial_tear");
+//?}
+//? if >=1.21.11 {
+    /*private static final Identifier WEAKNESS = id("weakness");
+*///?} else {
     private static final ResourceLocation WEAKNESS = id("weakness");
+//?}
+//? if >=1.21.11 {
+    /*private static final Identifier NAUSEA = id("nausea");
+*///?} else {
     private static final ResourceLocation NAUSEA = id("nausea");
+//?}
 
     static void registerAll() {
         PortalCrisisRegistry.register(new Definition(HIGH_FALL, 8, false, true,
@@ -170,11 +194,23 @@ final class BuiltinPortalCrises {
         return new PortalPlacement(center, PortalOrientation.VERTICAL, geometry, yaw, null, null);
     }
 
+//? if >=1.21.11 {
+    /*private static Identifier id(String path) {
+*///?} else {
     private static ResourceLocation id(String path) {
+//?}
+//? if >=1.21.11 {
+        /*return Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
+*///?} else {
         return ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
+//?}
     }
 
+//? if >=1.21.11 {
+    /*private record Definition(Identifier id, int defaultWeight,
+*///?} else {
     private record Definition(ResourceLocation id, int defaultWeight,
+//?}
                               boolean supportsForcedMountedTransit,
                               boolean requiresRelocation,
                               Predicate<PortalCrisisCapabilitySnapshot> eligibility,

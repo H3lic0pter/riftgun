@@ -1,4 +1,5 @@
 package dev.riftgun.service;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.data.PlayerPermissionProfile;
@@ -9,7 +10,11 @@ import dev.riftgun.data.PortalPermissions;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import java.util.UUID;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
@@ -137,7 +142,11 @@ public final class PortalPrivacyService {
     }
 
     public static void applyPermissionOverride(ServerPlayer target, UUID requesterId,
+//? if >=1.21.11 {
+                                               /*Identifier permissionId,
+*///?} else {
                                                ResourceLocation permissionId,
+//?}
                                                PortalPermissionPolicy policy) {
         PortalPermissionDefinition definition = PortalPermissions.definition(permissionId);
         if (definition == null || policy == PortalPermissionPolicy.ASK && !definition.supportsAsk()) return;
@@ -147,7 +156,11 @@ public final class PortalPrivacyService {
         clearTransient(target.getUUID(), requesterId, permissionId);
     }
 
+//? if >=1.21.11 {
+    /*public static void applyGlobalPermission(ServerPlayer target, Identifier permissionId,
+*///?} else {
     public static void applyGlobalPermission(ServerPlayer target, ResourceLocation permissionId,
+//?}
                                              PortalPermissionPolicy policy) {
         PortalPermissionDefinition definition = PortalPermissions.definition(permissionId);
         if (definition == null || policy == PortalPermissionPolicy.FOLLOW_GLOBAL
@@ -197,7 +210,11 @@ public final class PortalPrivacyService {
 
     private static PortalPermissionPolicy effectivePolicy(PortalPlayerData data,
                                                           UUID requesterId,
+//? if >=1.21.11 {
+                                                          /*Identifier permissionId) {
+*///?} else {
                                                           ResourceLocation permissionId) {
+//?}
         if (requesterId == null) return data.globalPermission(permissionId);
         PlayerPermissionProfile profile = data.permissionProfile(requesterId);
         PortalPermissionPolicy configured = profile.configured(permissionId);
@@ -206,7 +223,11 @@ public final class PortalPrivacyService {
     }
 
     private static void clearTransient(UUID targetId, UUID requesterId,
+//? if >=1.21.11 {
+                                       /*Identifier permissionId) {
+*///?} else {
                                        ResourceLocation permissionId) {
+//?}
         for (PortalRequestPurpose purpose : PortalRequestPurpose.values()) {
             if (purpose.permissionId().equals(permissionId)) {
                 LEDGER.clearTransient(new PortalPrivacyLedger.RequestKey(targetId, requesterId, purpose));

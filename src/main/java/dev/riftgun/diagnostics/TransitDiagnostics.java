@@ -1,4 +1,5 @@
 package dev.riftgun.diagnostics;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
 import com.mojang.logging.LogUtils;

@@ -3,7 +3,11 @@ package dev.riftgun.module;
 import dev.riftgun.core.RiftConstants;
 import java.util.function.ToIntFunction;
 import net.minecraft.core.registries.Registries;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -60,7 +64,11 @@ public final class PortalModules {
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {
         DeferredHolder<Item, Item> item = ITEMS.register(name, () -> new Item(new Item.Properties().stacksTo(1)));
         PortalModuleDefinition definition = PortalModuleRegistry.register(new PortalModuleDefinition(
+//? if >=1.21.11 {
+            /*Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, name), kind, item, maximumCount, accentRgb));
+*///?} else {
             ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, name), kind, item, maximumCount, accentRgb));
+//?}
         return new ModuleEntry(item, definition);
     }
 

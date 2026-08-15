@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.entity.SpecialEntityTransitPolicies;

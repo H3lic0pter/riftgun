@@ -1,4 +1,5 @@
 package dev.riftgun.module;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.portal.PortalOpenDuration;
@@ -104,17 +105,17 @@ public record PortalModuleRules(
     public static PortalModuleRules load(CompoundTag tag) {
         if (tag.isEmpty()) return defaults();
         return new PortalModuleRules(
-            tag.getInt("BaseCapacity"),
-            tag.getInt("ReservoirBonus"),
-            tag.getInt("MaximumReservoirModules"),
-            tag.getInt("BaseSurfaceRange"),
-            tag.getInt("SurfaceRangeBonus"),
-            tag.getInt("MaximumSurfaceRangeModules"),
-            tag.getInt("MaximumDurationExtensionModules"),
-            tag.getInt("DurationExtensionSecondsPerModule"),
+            Nbt.getInt(tag, "BaseCapacity"),
+            Nbt.getInt(tag, "ReservoirBonus"),
+            Nbt.getInt(tag, "MaximumReservoirModules"),
+            Nbt.getInt(tag, "BaseSurfaceRange"),
+            Nbt.getInt(tag, "SurfaceRangeBonus"),
+            Nbt.getInt(tag, "MaximumSurfaceRangeModules"),
+            Nbt.getInt(tag, "MaximumDurationExtensionModules"),
+            Nbt.getInt(tag, "DurationExtensionSecondsPerModule"),
             tag.contains("BasePortalDurationSeconds")
-                ? tag.getInt("BasePortalDurationSeconds") : DEFAULT_BASE_PORTAL_DURATION_SECONDS,
-            !tag.contains("MatterAnchorPreventsDespawn") || tag.getBoolean("MatterAnchorPreventsDespawn")
+                ? Nbt.getInt(tag, "BasePortalDurationSeconds") : DEFAULT_BASE_PORTAL_DURATION_SECONDS,
+            !tag.contains("MatterAnchorPreventsDespawn") || Nbt.getBoolean(tag, "MatterAnchorPreventsDespawn")
         );
     }
 }

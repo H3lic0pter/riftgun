@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.core.RiftConstants;
@@ -20,7 +21,7 @@ public final class PortalProjectileState {
 
     public static void recordSuccessfulTransit(Projectile projectile) {
         CompoundTag root = projectile.getPersistentData().getCompound(ROOT);
-        root.putInt(COUNT, Math.min(Integer.MAX_VALUE, root.getInt(COUNT) + 1));
+        root.putInt(COUNT, Math.min(Integer.MAX_VALUE, Nbt.getInt(root, COUNT) + 1));
         projectile.getPersistentData().put(ROOT, root);
     }
 

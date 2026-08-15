@@ -1,4 +1,5 @@
 package dev.riftgun.data;
+import dev.riftgun.core.nbt.Nbt;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -12,7 +13,11 @@ import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
@@ -27,7 +32,11 @@ public final class PortalPlayerData {
     private final Map<UUID, DestinationSafetyResult> safetyResults = new HashMap<>();
     private final Set<UUID> pinnedPlayers = new HashSet<>();
     private final Map<UUID, Long> playerLastUseAt = new HashMap<>();
+//? if >=1.21.11 {
+    /*private final Map<Identifier, PortalPermissionPolicy> globalPermissions = new HashMap<>();
+*///?} else {
     private final Map<ResourceLocation, PortalPermissionPolicy> globalPermissions = new HashMap<>();
+//?}
     private final Map<UUID, PlayerPermissionProfile> permissionProfiles = new HashMap<>();
     private @Nullable UUID selectedDestinationId;
     private @Nullable UUID lastViewedDestinationId;
@@ -111,21 +120,33 @@ public final class PortalPlayerData {
             value ? PortalPermissionPolicy.DENY : PortalPermissionPolicy.ALLOW);
     }
 
+//? if >=1.21.11 {
+    /*public PortalPermissionPolicy globalPermission(Identifier permissionId) {
+*///?} else {
     public PortalPermissionPolicy globalPermission(ResourceLocation permissionId) {
+//?}
         PortalPermissionDefinition definition = PortalPermissions.definition(permissionId);
         PortalPermissionPolicy fallback = definition == null
             ? PortalPermissionPolicy.DENY : definition.fallbackGlobalPolicy();
         return globalPermissions.getOrDefault(permissionId, fallback);
     }
 
+//? if >=1.21.11 {
+    /*public void globalPermission(Identifier permissionId, PortalPermissionPolicy policy) {
+*///?} else {
     public void globalPermission(ResourceLocation permissionId, PortalPermissionPolicy policy) {
+//?}
         PortalPermissionDefinition definition = PortalPermissions.definition(permissionId);
         if (policy == null || policy == PortalPermissionPolicy.FOLLOW_GLOBAL
             || definition != null && !definition.supportsAsk() && policy == PortalPermissionPolicy.ASK) return;
         globalPermissions.put(permissionId, policy);
     }
 
+//? if >=1.21.11 {
+    /*public Map<Identifier, PortalPermissionPolicy> globalPermissions() {
+*///?} else {
     public Map<ResourceLocation, PortalPermissionPolicy> globalPermissions() {
+//?}
         return globalPermissions;
     }
 
@@ -216,9 +237,9 @@ public final class PortalPlayerData {
         CompoundTag root = new CompoundTag();
         root.putInt("Version", CURRENT_VERSION);
         root.putLong("NextLocationNumber", nextLocationNumber);
-        if (selectedDestinationId != null) root.putUUID("Selected", selectedDestinationId);
-        if (lastViewedDestinationId != null) root.putUUID("LastViewed", lastViewedDestinationId);
-        if (selectedPlayerId != null) root.putUUID("SelectedPlayer", selectedPlayerId);
+        if (selectedDestinationId != null) Nbt.putUUID(root, "Selected", selectedDestinationId);
+        if (lastViewedDestinationId != null) Nbt.putUUID(root, "LastViewed", lastViewedDestinationId);
+        if (selectedPlayerId != null) Nbt.putUUID(root, "SelectedPlayer", selectedPlayerId);
         root.put("Settings", settings.save());
         ListTag globalPermissionTags = new ListTag();
         globalPermissions.forEach((id, policy) -> {
@@ -232,7 +253,7 @@ public final class PortalPlayerData {
         ListTag profileTags = new ListTag();
         permissionProfiles.forEach((playerId, profile) -> {
             CompoundTag profileTag = new CompoundTag();
-            profileTag.putUUID("Player", playerId);
+            Nbt.putUUID(profileTag, "Player", playerId);
             profileTag.putString("Mode", profile.mode().name());
             ListTag values = new ListTag();
             profile.values().forEach((permissionId, policy) -> {
@@ -257,7 +278,7 @@ public final class PortalPlayerData {
         ListTag safetyTags = new ListTag();
         safetyResults.forEach((id, result) -> {
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("Id", id);
+            Nbt.putUUID(tag, "Id", id);
             tag.putString("Result", result.name());
             safetyTags.add(tag);
         });
@@ -266,7 +287,7 @@ public final class PortalPlayerData {
         ListTag expandedTags = new ListTag();
         expandedGroups.forEach(id -> {
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("Id", id);
+            Nbt.putUUID(tag, "Id", id);
             expandedTags.add(tag);
         });
         root.put("ExpandedGroups", expandedTags);
@@ -274,7 +295,7 @@ public final class PortalPlayerData {
         ListTag pinnedTags = new ListTag();
         pinnedPlayers.forEach(id -> {
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("Id", id);
+            Nbt.putUUID(tag, "Id", id);
             pinnedTags.add(tag);
         });
         root.put("PinnedPlayers", pinnedTags);
@@ -282,7 +303,7 @@ public final class PortalPlayerData {
         ListTag lastUseTags = new ListTag();
         playerLastUseAt.forEach((id, time) -> {
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("Id", id);
+            Nbt.putUUID(tag, "Id", id);
             tag.putLong("Time", time);
             lastUseTags.add(tag);
         });
@@ -303,22 +324,30 @@ public final class PortalPlayerData {
     }
 
     public static PortalPlayerData load(
+//? if >=1.21.11 {
+            /*CompoundTag root, Map<Identifier, PortalPermissionPolicy> permissionDefaults) {
+*///?} else {
             CompoundTag root, Map<ResourceLocation, PortalPermissionPolicy> permissionDefaults) {
+//?}
         PortalPlayerData data = new PortalPlayerData();
         permissionDefaults.forEach(data::globalPermission);
-        data.nextLocationNumber = Math.max(1L, root.getLong("NextLocationNumber"));
-        if (root.hasUUID("Selected")) data.selectedDestinationId = root.getUUID("Selected");
-        if (root.hasUUID("LastViewed")) data.lastViewedDestinationId = root.getUUID("LastViewed");
-        if (root.hasUUID("SelectedPlayer")) data.selectedPlayerId = root.getUUID("SelectedPlayer");
-        data.settings = PortalPlayerSettings.load(root.getCompound("Settings"));
-        boolean structuredPermissions = root.contains("GlobalPermissions", Tag.TAG_LIST);
+        data.nextLocationNumber = Math.max(1L, Nbt.getLong(root, "NextLocationNumber"));
+        if (Nbt.hasUUID(root, "Selected")) data.selectedDestinationId = Nbt.getUUID(root, "Selected");
+        if (Nbt.hasUUID(root, "LastViewed")) data.lastViewedDestinationId = Nbt.getUUID(root, "LastViewed");
+        if (Nbt.hasUUID(root, "SelectedPlayer")) data.selectedPlayerId = Nbt.getUUID(root, "SelectedPlayer");
+        data.settings = PortalPlayerSettings.load(Nbt.getCompound(root, "Settings"));
+        boolean structuredPermissions = Nbt.contains(root, "GlobalPermissions");
         if (structuredPermissions) {
-            ListTag globals = root.getList("GlobalPermissions", Tag.TAG_COMPOUND);
+            ListTag globals = Nbt.getList(root, "GlobalPermissions");
             globals.forEach(raw -> {
                 CompoundTag tag = (CompoundTag) raw;
-                ResourceLocation id = ResourceLocation.tryParse(tag.getString("Id"));
+//? if >=1.21.11 {
+                /*Identifier id = Identifier.tryParse(Nbt.getString(tag, "Id"));
+*///?} else {
+                ResourceLocation id = ResourceLocation.tryParse(Nbt.getString(tag, "Id"));
+//?}
                 PortalPermissionPolicy policy = PortalPermissionPolicy.parse(
-                    tag.getString("Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
+                    Nbt.getString(tag, "Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
                 if (id != null && policy != PortalPermissionPolicy.FOLLOW_GLOBAL) {
                     PortalPermissionDefinition definition = PortalPermissions.definition(id);
                     if (definition == null) data.globalPermissions.put(id, policy);
@@ -326,43 +355,47 @@ public final class PortalPlayerData {
                 }
             });
         } else {
-            if (root.contains("TargetPrivacy", Tag.TAG_STRING)) {
-                data.targetPrivacy(TargetPrivacy.parse(root.getString("TargetPrivacy"), data.targetPrivacy()));
+            if (Nbt.contains(root, "TargetPrivacy")) {
+                data.targetPrivacy(TargetPrivacy.parse(Nbt.getString(root, "TargetPrivacy"), data.targetPrivacy()));
             }
-            data.transitPrivacyEnabled(root.getBoolean("TransitPrivacy"));
+            data.transitPrivacyEnabled(Nbt.getBoolean(root, "TransitPrivacy"));
         }
-        if (root.contains("PermissionProfiles", Tag.TAG_LIST)) {
-            ListTag profiles = root.getList("PermissionProfiles", Tag.TAG_COMPOUND);
+        if (Nbt.contains(root, "PermissionProfiles")) {
+            ListTag profiles = Nbt.getList(root, "PermissionProfiles");
             profiles.forEach(raw -> {
                 CompoundTag tag = (CompoundTag) raw;
-                if (!tag.hasUUID("Player")) return;
+                if (!Nbt.hasUUID(tag, "Player")) return;
                 PlayerPermissionProfile profile = new PlayerPermissionProfile();
                 PlayerPermissionProfileMode mode = PlayerPermissionProfileMode.parse(
-                    tag.getString("Mode"), PlayerPermissionProfileMode.FOLLOW_GLOBAL);
+                    Nbt.getString(tag, "Mode"), PlayerPermissionProfileMode.FOLLOW_GLOBAL);
                 profile.mode(mode);
-                ListTag values = tag.getList("Values", Tag.TAG_COMPOUND);
+                ListTag values = Nbt.getList(tag, "Values");
                 values.forEach(valueRaw -> {
                     CompoundTag value = (CompoundTag) valueRaw;
-                    ResourceLocation id = ResourceLocation.tryParse(value.getString("Id"));
+//? if >=1.21.11 {
+                    /*Identifier id = Identifier.tryParse(Nbt.getString(value, "Id"));
+*///?} else {
+                    ResourceLocation id = ResourceLocation.tryParse(Nbt.getString(value, "Id"));
+//?}
                     PortalPermissionPolicy policy = PortalPermissionPolicy.parse(
-                        value.getString("Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
+                        Nbt.getString(value, "Policy"), PortalPermissionPolicy.FOLLOW_GLOBAL);
                     if (id != null && policy != PortalPermissionPolicy.FOLLOW_GLOBAL) {
                         profile.values().put(id, policy);
                     }
                 });
                 if (mode != PlayerPermissionProfileMode.FOLLOW_GLOBAL) {
-                    data.permissionProfiles.put(tag.getUUID("Player"), profile);
+                    data.permissionProfiles.put(Nbt.getUUID(tag, "Player"), profile);
                 }
             });
         } else if (root.contains("PrivacyOverrides")) {
-            ListTag overrides = root.getList("PrivacyOverrides", Tag.TAG_COMPOUND);
+            ListTag overrides = Nbt.getList(root, "PrivacyOverrides");
             overrides.forEach(tag -> {
                 CompoundTag compound = (CompoundTag) tag;
-                if (!compound.hasUUID("Id")) return;
+                if (!Nbt.hasUUID(compound, "Id")) return;
                 PlayerPermissionOverride mode = PlayerPermissionOverride.parse(
-                    compound.getString("Mode"), PlayerPermissionOverride.DEFAULT);
+                    Nbt.getString(compound, "Mode"), PlayerPermissionOverride.DEFAULT);
                 if (mode != PlayerPermissionOverride.DEFAULT) {
-                    PlayerPermissionProfile profile = data.permissionProfile(compound.getUUID("Id"));
+                    PlayerPermissionProfile profile = data.permissionProfile(Nbt.getUUID(compound, "Id"));
                     PortalPermissionPolicy policy = mode == PlayerPermissionOverride.ALLOW
                         ? PortalPermissionPolicy.ALLOW : PortalPermissionPolicy.DENY;
                     profile.customize(PortalPermissions.PLAYER_PORTAL, policy);
@@ -371,43 +404,43 @@ public final class PortalPlayerData {
             });
         }
 
-        ListTag groups = root.getList("Groups", Tag.TAG_COMPOUND);
+        ListTag groups = Nbt.getList(root, "Groups");
         groups.forEach(tag -> data.groups.add(DestinationGroup.load((CompoundTag) tag)));
-        ListTag destinations = root.getList("Destinations", Tag.TAG_COMPOUND);
+        ListTag destinations = Nbt.getList(root, "Destinations");
         destinations.forEach(tag -> data.destinations.add(Destination.load((CompoundTag) tag)));
-        ListTag safetyResults = root.getList("SafetyResults", Tag.TAG_COMPOUND);
+        ListTag safetyResults = Nbt.getList(root, "SafetyResults");
         safetyResults.forEach(tag -> {
             CompoundTag compound = (CompoundTag) tag;
-            if (!compound.hasUUID("Id")) return;
-            DestinationSafetyResult result = DestinationSafetyResult.parse(compound.getString("Result"));
+            if (!Nbt.hasUUID(compound, "Id")) return;
+            DestinationSafetyResult result = DestinationSafetyResult.parse(Nbt.getString(compound, "Result"));
             if (result != DestinationSafetyResult.UNKNOWN) {
-                data.safetyResults.put(compound.getUUID("Id"), result);
+                data.safetyResults.put(Nbt.getUUID(compound, "Id"), result);
             }
         });
         if (root.contains("ExpandedGroups")) {
             data.expandedGroups.clear();
-            ListTag expanded = root.getList("ExpandedGroups", Tag.TAG_COMPOUND);
+            ListTag expanded = Nbt.getList(root, "ExpandedGroups");
             expanded.forEach(tag -> {
                 CompoundTag compound = (CompoundTag) tag;
-                if (compound.hasUUID("Id")) data.expandedGroups.add(compound.getUUID("Id"));
+                if (Nbt.hasUUID(compound, "Id")) data.expandedGroups.add(Nbt.getUUID(compound, "Id"));
             });
         }
         if (root.contains("PinnedPlayers")) {
-            ListTag pinned = root.getList("PinnedPlayers", Tag.TAG_COMPOUND);
+            ListTag pinned = Nbt.getList(root, "PinnedPlayers");
             pinned.forEach(tag -> {
                 CompoundTag compound = (CompoundTag) tag;
-                if (compound.hasUUID("Id")) data.pinnedPlayers.add(compound.getUUID("Id"));
+                if (Nbt.hasUUID(compound, "Id")) data.pinnedPlayers.add(Nbt.getUUID(compound, "Id"));
             });
         }
         if (root.contains("PlayerLastUse")) {
-            ListTag lastUse = root.getList("PlayerLastUse", Tag.TAG_COMPOUND);
+            ListTag lastUse = Nbt.getList(root, "PlayerLastUse");
             lastUse.forEach(tag -> {
                 CompoundTag compound = (CompoundTag) tag;
-                if (compound.hasUUID("Id")) data.playerLastUseAt.put(compound.getUUID("Id"), compound.getLong("Time"));
+                if (Nbt.hasUUID(compound, "Id")) data.playerLastUseAt.put(Nbt.getUUID(compound, "Id"), Nbt.getLong(compound, "Time"));
             });
         }
 
-        data.migrate(root.getInt("Version"));
+        data.migrate(Nbt.getInt(root, "Version"));
         data.repairReferences();
         return data;
     }

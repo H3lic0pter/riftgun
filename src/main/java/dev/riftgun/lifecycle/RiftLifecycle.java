@@ -1,4 +1,5 @@
 package dev.riftgun.lifecycle;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.crisis.PortalCrisisRegistry;

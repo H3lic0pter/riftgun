@@ -1,4 +1,5 @@
 package dev.riftgun.module;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.service.PortalGunLocator;
@@ -128,9 +129,9 @@ public final class PortalModuleMenu extends AbstractContainerMenu {
     }
 
     private boolean isLockedInventorySlot(int slot) {
-        return "vanilla_inventory".equals(gunReference.getString("Locator"))
-            && gunReference.getCompound("Token").contains("Slot")
-            && gunReference.getCompound("Token").getInt("Slot") == slot;
+        return "vanilla_inventory".equals(Nbt.getString(gunReference, "Locator"))
+            && Nbt.getCompound(gunReference, "Token").contains("Slot")
+            && Nbt.getInt(Nbt.getCompound(gunReference, "Token"), "Slot") == slot;
     }
 
     private static ContainerData serverData(ItemStack gun) {

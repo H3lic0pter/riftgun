@@ -2,7 +2,11 @@ package dev.riftgun.sound;
 
 import dev.riftgun.core.RiftConstants;
 import net.minecraft.core.registries.Registries;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -94,7 +98,11 @@ public final class PortalSounds {
     }
 
     private static DeferredHolder<SoundEvent, SoundEvent> fixed(String path, float range) {
+//? if >=1.21.11 {
+        /*Identifier id = Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
+*///?} else {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path);
+//?}
         return SOUND_EVENTS.register(path, () -> SoundEvent.createFixedRangeEvent(id, range));
     }
 

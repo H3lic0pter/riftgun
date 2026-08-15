@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.entity.SpecialEntityTransitPolicies;

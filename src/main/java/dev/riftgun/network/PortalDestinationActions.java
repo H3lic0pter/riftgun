@@ -1,4 +1,5 @@
 package dev.riftgun.network;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.data.Destination;
@@ -20,7 +21,7 @@ final class PortalDestinationActions {
     static boolean createCurrent(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
         requireDestinationCapacity(data);
         UUID group = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
-        String name = destinationName(data, request.getString("Name"), true);
+        String name = destinationName(data, Nbt.getString(request, "Name"), true);
         long time = player.level().getGameTime();
         UUID destinationId = UUID.randomUUID();
         data.destinations().add(new Destination(
@@ -39,11 +40,11 @@ final class PortalDestinationActions {
         requireDestinationCapacity(data);
         requireCoordinateLengths(request);
         UUID group = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
-        String name = destinationName(data, request.getString("Name"), true);
-        double x = CoordinateParser.parse(request.getString("X"), player.getX());
-        double y = CoordinateParser.parse(request.getString("Y"), player.getY());
-        double z = CoordinateParser.parse(request.getString("Z"), player.getZ());
-        float yaw = CoordinateParser.parseYaw(request.getString("Yaw"), player.getYRot());
+        String name = destinationName(data, Nbt.getString(request, "Name"), true);
+        double x = CoordinateParser.parse(Nbt.getString(request, "X"), player.getX());
+        double y = CoordinateParser.parse(Nbt.getString(request, "Y"), player.getY());
+        double z = CoordinateParser.parse(Nbt.getString(request, "Z"), player.getZ());
+        float yaw = CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot());
         long time = player.level().getGameTime();
         UUID destinationId = UUID.randomUUID();
         data.destinations().add(new Destination(
@@ -59,15 +60,15 @@ final class PortalDestinationActions {
         Destination current = data.destination(destinationId).orElseThrow(
             () -> PortalRequestFields.error("message.riftgun.destination_missing"));
         UUID group = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
-        String name = destinationName(data, request.getString("Name"), false);
+        String name = destinationName(data, Nbt.getString(request, "Name"), false);
         boolean coordinateOverride = PortalGunCapabilities.resolve(
             gun, data.settings().smartDistance()).coordinateOverride();
         if (coordinateOverride) requireCoordinateLengths(request);
-        double x = coordinateOverride ? CoordinateParser.parse(request.getString("X"), player.getX()) : current.x();
-        double y = coordinateOverride ? CoordinateParser.parse(request.getString("Y"), player.getY()) : current.y();
-        double z = coordinateOverride ? CoordinateParser.parse(request.getString("Z"), player.getZ()) : current.z();
+        double x = coordinateOverride ? CoordinateParser.parse(Nbt.getString(request, "X"), player.getX()) : current.x();
+        double y = coordinateOverride ? CoordinateParser.parse(Nbt.getString(request, "Y"), player.getY()) : current.y();
+        double z = coordinateOverride ? CoordinateParser.parse(Nbt.getString(request, "Z"), player.getZ()) : current.z();
         float yaw = coordinateOverride
-            ? CoordinateParser.parseYaw(request.getString("Yaw"), player.getYRot()) : current.yaw();
+            ? CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot()) : current.yaw();
         data.replaceDestination(current.withDetails(name, group, current.dimension(), x, y, z, yaw));
         return true;
     }
@@ -112,7 +113,7 @@ final class PortalDestinationActions {
         if (data.groups().size() >= RiftConfigs.server().destinations().maximumGroups()) {
             throw PortalRequestFields.error("message.riftgun.group_limit");
         }
-        String name = groupName(data, request.getString("Name"), null);
+        String name = groupName(data, Nbt.getString(request, "Name"), null);
         int order = data.groups().stream().mapToInt(DestinationGroup::order).max().orElse(-1) + 1;
         DestinationGroup group = new DestinationGroup(UUID.randomUUID(), name, order);
         data.groups().add(group);
@@ -127,7 +128,7 @@ final class PortalDestinationActions {
         }
         DestinationGroup group = data.group(groupId).orElseThrow(
             () -> PortalRequestFields.error("message.riftgun.group_missing"));
-        data.replaceGroup(group.withName(groupName(data, request.getString("Name"), groupId)));
+        data.replaceGroup(group.withName(groupName(data, Nbt.getString(request, "Name"), groupId)));
         return true;
     }
 
@@ -162,8 +163,8 @@ final class PortalDestinationActions {
         }
         if (from < 0) throw PortalRequestFields.error("message.riftgun.group_missing");
         int to = request.contains("TargetIndex")
-            ? Math.clamp(request.getInt("TargetIndex"), 0, ordered.size() - 1)
-            : Math.clamp(from + Math.clamp(request.getInt("Delta"), -1, 1), 0, ordered.size() - 1);
+            ? Math.clamp(Nbt.getInt(request, "TargetIndex"), 0, ordered.size() - 1)
+            : Math.clamp(from + Math.clamp(Nbt.getInt(request, "Delta"), -1, 1), 0, ordered.size() - 1);
         if (to == from) return false;
         DestinationGroup moved = ordered.remove(from);
         ordered.add(to, moved);
@@ -190,7 +191,7 @@ final class PortalDestinationActions {
             && data.group(groupId).isEmpty()) {
             throw PortalRequestFields.error("message.riftgun.group_missing");
         }
-        if (request.getBoolean("Expanded")) data.expandedGroups().add(groupId);
+        if (Nbt.getBoolean(request, "Expanded")) data.expandedGroups().add(groupId);
         else data.expandedGroups().remove(groupId);
         return true;
     }
@@ -208,7 +209,7 @@ final class PortalDestinationActions {
 
     private static void requireCoordinateLengths(CompoundTag request) {
         for (String key : List.of("X", "Y", "Z", "Yaw")) {
-            if (request.getString(key).length() > 64) {
+            if (Nbt.getString(request, key).length() > 64) {
                 throw PortalRequestFields.error("message.riftgun.invalid_coordinate");
             }
         }

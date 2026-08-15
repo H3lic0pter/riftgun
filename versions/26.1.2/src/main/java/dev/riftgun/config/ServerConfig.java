@@ -390,13 +390,13 @@ public final class ServerConfig {
     }
 
     private static boolean validId(Object value) {
-        return value instanceof String text && net.minecraft.resources.ResourceLocation.tryParse(text) != null;
+        return value instanceof String text && net.minecraft.resources.Identifier.tryParse(text) != null;
     }
 
     private static boolean validWeightEntry(Object value) {
         if (!(value instanceof String text)) return false;
         int separator = text.lastIndexOf('=');
-        if (separator <= 0 || net.minecraft.resources.ResourceLocation.tryParse(text.substring(0, separator)) == null) {
+        if (separator <= 0 || net.minecraft.resources.Identifier.tryParse(text.substring(0, separator)) == null) {
             return false;
         }
         try {

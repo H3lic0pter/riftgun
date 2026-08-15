@@ -7,7 +7,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
 
@@ -17,7 +21,11 @@ public final class PortalFuelProfiles {
     public static final int DIMENSIONAL_RGB = 0x4FCB72;
     public static final TagKey<Fluid> PORTAL_GUN_FUELS = TagKey.create(
         net.minecraft.core.registries.Registries.FLUID,
+//? if >=1.21.11 {
+        /*Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, "portal_gun_fuels")
+*///?} else {
         ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "portal_gun_fuels")
+//?}
     );
     private static final List<PortalFuelProfileResolver> RESOLVERS = new CopyOnWriteArrayList<>();
     private static volatile Map<Fluid, PortalFuelProfile> dataProfiles = Map.of();
@@ -70,7 +78,11 @@ public final class PortalFuelProfiles {
     }
 
     private static PortalFuelProfile profile(String path, int rgb, boolean crossDimension, int min, int max) {
+//? if >=1.21.11 {
+        /*return new PortalFuelProfile(Identifier.fromNamespaceAndPath(RiftConstants.MOD_ID, path), rgb,
+*///?} else {
         return new PortalFuelProfile(ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, path), rgb,
+//?}
             crossDimension, Math.max(1, min), Math.max(Math.max(1, min), max));
     }
 

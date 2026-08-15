@@ -1,5 +1,7 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.core.nbt.Nbt;
+
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
@@ -22,9 +24,6 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.util.ExtraCodecs;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -36,6 +35,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ChunkPos;
@@ -64,7 +64,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     private static final EntityDataAccessor<Integer> ANCHOR_FACE =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final TicketType PORTAL_TICKET =
-        TicketType.create("riftgun_portal", Vec3i::compareTo);
+        new TicketType(TicketType.NO_TIMEOUT, 0);
 
     private @Nullable UUID linkedPortalId;
     private @Nullable ResourceKey<Level> linkedDimension;
@@ -99,9 +99,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     public static boolean openPair(ServerPlayer player, PortalPairPlacement pair,
                                    PortalFuelProfile fuel, PortalRuntimeOptions options,
                                    PortalExclusions exclusions, BooleanSupplier commitFuel) {
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         if (server == null) return false;
-        ServerLevel entryLevel = player.serverLevel();
+        ServerLevel entryLevel = (ServerLevel) player.level();
         ServerLevel exitLevel = server.getLevel(pair.exitDimension());
         if (exitLevel == null) return false;
 
@@ -135,9 +135,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
                                            PortalFuelProfile fuel, PortalExitTarget target,
                                            PortalRuntimeOptions options, PortalExclusions exclusions,
                                            BooleanSupplier commitFuel) {
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         if (server == null) return false;
-        ServerLevel entryLevel = player.serverLevel();
+        ServerLevel entryLevel = (ServerLevel) player.level();
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
             fuel.rgb(), fuel.id().toString(), options, server.overworld().getGameTime(),
             exclusions.entryPlayerId(), false);
@@ -616,49 +616,34 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     @Override
-    protected void readAdditionalSaveData(ValueInput input) {
-        CompoundTag tag = new CompoundTag();
-        for (String key : input.keySet()) {
-            input.read(key, ExtraCodecs.NBT).ifPresent(value -> tag.put(key, value));
-        }
-        readAdditionalFromCompound(tag);
-    }
-
-    @Override
-    protected void addAdditionalSaveData(ValueOutput output) {
-        CompoundTag tag = new CompoundTag();
-        addAdditionalToCompound(tag);
-        output.store(tag);
-    }
-
-    private void readAdditionalFromCompound(CompoundTag tag) {
-        if (tag.hasUUID("LinkedPortal")) linkedPortalId = tag.getUUID("LinkedPortal");
-        Identifier linkedDimensionId = Identifier.tryParse(tag.getString("LinkedDimension"));
+    protected void readAdditionalSaveData(CompoundTag tag) {
+        if (Nbt.hasUUID(tag, "LinkedPortal")) linkedPortalId = Nbt.getUUID(tag, "LinkedPortal");
+        Identifier linkedDimensionId = Identifier.tryParse(Nbt.getString(tag, "LinkedDimension"));
         if (linkedDimensionId != null) {
             linkedDimension = ResourceKey.create(Registries.DIMENSION, linkedDimensionId);
         }
-        if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
-        if (tag.hasUUID("ExcludedPlayer")) excludedPlayerId = tag.getUUID("ExcludedPlayer");
-        exitPortal = tag.getBoolean("ExitPortal");
+        if (Nbt.hasUUID(tag, "Owner")) ownerId = Nbt.getUUID(tag, "Owner");
+        if (Nbt.hasUUID(tag, "ExcludedPlayer")) excludedPlayerId = Nbt.getUUID(tag, "ExcludedPlayer");
+        exitPortal = Nbt.getBoolean(tag, "ExitPortal");
         horizontalTriggerExtend = tag.contains("HorizontalTriggerExtend")
-            ? Math.max(0.0, tag.getDouble("HorizontalTriggerExtend")) : 0.0;
-        if (tag.contains("Attachment", Tag.TAG_COMPOUND)) {
-            setAttachment(PortalAttachment.load(tag.getCompound("Attachment")));
+            ? Math.max(0.0, Nbt.getDouble(tag, "HorizontalTriggerExtend")) : 0.0;
+        if (Nbt.contains(tag, "Attachment")) {
+            setAttachment(PortalAttachment.load(Nbt.getCompound(tag, "Attachment")));
         } else {
             CompoundTag legacyAttachment = new CompoundTag();
-            if (tag.contains("Anchor")) legacyAttachment.putLong("Anchor", tag.getLong("Anchor"));
-            if (tag.contains("AnchorFace")) legacyAttachment.putString("Face", tag.getString("AnchorFace"));
+            if (tag.contains("Anchor")) legacyAttachment.putLong("Anchor", Nbt.getLong(tag, "Anchor"));
+            if (tag.contains("AnchorFace")) legacyAttachment.putString("Face", Nbt.getString(tag, "AnchorFace"));
             setAttachment(PortalAttachment.load(legacyAttachment));
         }
         deferredExit.load(tag);
 
-        entityData.set(PHASE, tag.getInt("Phase"));
-        entityData.set(PHASE_TICKS, tag.getInt("PhaseTicks"));
+        entityData.set(PHASE, Nbt.getInt(tag, "Phase"));
+        entityData.set(PHASE_TICKS, Nbt.getInt(tag, "PhaseTicks"));
         long now = serverTime();
         int savedTicks = entityData.get(PHASE_TICKS);
         PortalLifecycle.Phase savedPhase = phase();
         lifecycleStartedAt = tag.contains("LifecycleStartedAt")
-            ? tag.getLong("LifecycleStartedAt")
+            ? Nbt.getLong(tag, "LifecycleStartedAt")
             : switch (savedPhase) {
                 case CHARGING -> now - savedTicks;
                 case OPENING -> now - PortalLifecycle.CHARGE_TICKS - savedTicks;
@@ -666,37 +651,38 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
                     - PortalLifecycle.ANIMATION_TICKS - savedTicks;
             };
         closeStartedAt = tag.contains("CloseStartedAt")
-            ? tag.getLong("CloseStartedAt")
+            ? Nbt.getLong(tag, "CloseStartedAt")
             : savedPhase == PortalLifecycle.Phase.CLOSING ? now - savedTicks : -1L;
-        waitingForLinkedOpen = tag.getBoolean("WaitingForLinkedOpen");
-        synchronizePairOnOpen = tag.getBoolean("SynchronizePairOnOpen");
-        entityData.set(ORIENTATION, tag.getInt("Orientation"));
-        entityData.set(GEOMETRY, tag.getInt("Geometry"));
-        if (tag.contains("FuelRgb")) entityData.set(FUEL_RGB, tag.getInt("FuelRgb"));
-        if (tag.contains("FuelId")) entityData.set(FUEL_ID, tag.getString("FuelId"));
+        waitingForLinkedOpen = Nbt.getBoolean(tag, "WaitingForLinkedOpen");
+        synchronizePairOnOpen = Nbt.getBoolean(tag, "SynchronizePairOnOpen");
+        entityData.set(ORIENTATION, Nbt.getInt(tag, "Orientation"));
+        entityData.set(GEOMETRY, Nbt.getInt(tag, "Geometry"));
+        if (tag.contains("FuelRgb")) entityData.set(FUEL_RGB, Nbt.getInt(tag, "FuelRgb"));
+        if (tag.contains("FuelId")) entityData.set(FUEL_ID, Nbt.getString(tag, "FuelId"));
         if (tag.contains("EntityAccess")) {
-            entityAccess = PortalEntityAccessSnapshot.load(tag.getCompound("EntityAccess"));
+            entityAccess = PortalEntityAccessSnapshot.load(Nbt.getCompound(tag, "EntityAccess"));
         }
         openDurationTicks = tag.contains("OpenDurationTicks")
-            ? Math.max(1, tag.getInt("OpenDurationTicks"))
+            ? Math.max(1, Nbt.getInt(tag, "OpenDurationTicks"))
             : PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
         transitCooldownTicks = tag.contains("TransitCooldownTicks")
-            ? Math.max(0, tag.getInt("TransitCooldownTicks")) : 20;
-        fallGuard = tag.getBoolean("FallGuard");
-        entityFallGuard = tag.getBoolean("EntityFallGuard");
+            ? Math.max(0, Nbt.getInt(tag, "TransitCooldownTicks")) : 20;
+        fallGuard = Nbt.getBoolean(tag, "FallGuard");
+        entityFallGuard = Nbt.getBoolean(tag, "EntityFallGuard");
         aperture = tag.contains("Aperture")
-            ? PortalAperture.byOrdinal(tag.getInt("Aperture")) : PortalAperture.STANDARD;
+            ? PortalAperture.byOrdinal(Nbt.getInt(tag, "Aperture")) : PortalAperture.STANDARD;
         sounds = tag.contains("PortalSounds")
-            ? PortalSoundSnapshot.load(tag.getCompound("PortalSounds"))
+            ? PortalSoundSnapshot.load(Nbt.getCompound(tag, "PortalSounds"))
             : PortalSoundSnapshot.defaults();
         crisis.load(tag);
     }
 
-    private void addAdditionalToCompound(CompoundTag tag) {
-        if (linkedPortalId != null) tag.putUUID("LinkedPortal", linkedPortalId);
+    @Override
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        if (linkedPortalId != null) Nbt.putUUID(tag, "LinkedPortal", linkedPortalId);
         if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
-        if (ownerId != null) tag.putUUID("Owner", ownerId);
-        if (excludedPlayerId != null) tag.putUUID("ExcludedPlayer", excludedPlayerId);
+        if (ownerId != null) Nbt.putUUID(tag, "Owner", ownerId);
+        if (excludedPlayerId != null) Nbt.putUUID(tag, "ExcludedPlayer", excludedPlayerId);
         tag.putBoolean("ExitPortal", exitPortal);
         tag.putDouble("HorizontalTriggerExtend", horizontalTriggerExtend);
         tag.put("Attachment", attachment().save());

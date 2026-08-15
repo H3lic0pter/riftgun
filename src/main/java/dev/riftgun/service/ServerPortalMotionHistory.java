@@ -1,4 +1,5 @@
 package dev.riftgun.service;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.runtime.RiftRuntime;
 import java.util.HashMap;

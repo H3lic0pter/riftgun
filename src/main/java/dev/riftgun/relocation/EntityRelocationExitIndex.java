@@ -9,7 +9,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
 import net.minecraft.resources.ResourceLocation;
+//?}
 
 /** Indexed directory of visual exits that may be leased by later saved-destination relocations. */
 public final class EntityRelocationExitIndex {
@@ -105,10 +109,18 @@ public final class EntityRelocationExitIndex {
         }
     }
 
+//? if >=1.21.11 {
+    /*public record DestinationKey(UUID destinationId, Identifier dimension,
+*///?} else {
     public record DestinationKey(UUID destinationId, ResourceLocation dimension,
+//?}
                                  double x, double y, double z) {}
 
+//? if >=1.21.11 {
+    /*public record ExitReference(UUID portalId, Identifier dimension) {}
+*///?} else {
     public record ExitReference(UUID portalId, ResourceLocation dimension) {}
+//?}
 
     public record Lease(DestinationKey destination, ExitReference exit) {}
 

@@ -1,4 +1,5 @@
 package dev.riftgun.relocation;
+import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.config.RiftConfigs;
@@ -30,8 +31,11 @@ import net.minecraft.world.phys.Vec3;
 
 /** Visual-only TOP gate used by Entity Relocation entrances and reusable saved-destination exits. */
 public final class EntityRelocationPortalEntity extends Entity implements PortalVisualSource {
-    private static final TicketType<UUID> EXIT_TICKET =
-        TicketType.create("riftgun_entity_relocation_exit", UUID::compareTo);
+    //? if >=1.21.11 {
+/*private static final TicketType EXIT_TICKET = new TicketType(TicketType.NO_TIMEOUT, 0);
+*///?} else {
+private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_entity_relocation_exit", UUID::compareTo);
+//?}
     private static final EntityDataAccessor<Float> SIDE = SynchedEntityData.defineId(
         EntityRelocationPortalEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> TARGET_SIDE = SynchedEntityData.defineId(
@@ -313,24 +317,24 @@ public final class EntityRelocationPortalEntity extends Entity implements Portal
 
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
-        entityData.set(SIDE, EntityRelocationGeometry.normalizeSide(tag.getFloat("Side")));
-        entityData.set(TARGET_SIDE, Math.max(entityData.get(SIDE), tag.getFloat("TargetSide")));
-        entityData.set(FUEL_RGB, tag.getInt("FuelRgb"));
-        entityData.set(EXIT, tag.getBoolean("Exit"));
+        entityData.set(SIDE, EntityRelocationGeometry.normalizeSide(Nbt.getFloat(tag, "Side")));
+        entityData.set(TARGET_SIDE, Math.max(entityData.get(SIDE), Nbt.getFloat(tag, "TargetSide")));
+        entityData.set(FUEL_RGB, Nbt.getInt(tag, "FuelRgb"));
+        entityData.set(EXIT, Nbt.getBoolean(tag, "Exit"));
         entityData.set(ORIENTATION, tag.contains("Orientation")
-            ? tag.getInt("Orientation")
-            : tag.getBoolean("Bottom") ? PortalOrientation.BOTTOM.ordinal()
+            ? Nbt.getInt(tag, "Orientation")
+            : Nbt.getBoolean(tag, "Bottom") ? PortalOrientation.BOTTOM.ordinal()
             : PortalOrientation.TOP.ordinal());
-        entityData.set(YAW, tag.getFloat("Yaw"));
-        openDurationTicks = Math.max(1, tag.getInt("OpenDurationTicks"));
+        entityData.set(YAW, Nbt.getFloat(tag, "Yaw"));
+        openDurationTicks = Math.max(1, Nbt.getInt(tag, "OpenDurationTicks"));
         entityData.set(OPENING_TICKS, tag.contains("OpeningTicks")
-            ? Math.max(1, tag.getInt("OpeningTicks"))
+            ? Math.max(1, Nbt.getInt(tag, "OpeningTicks"))
             : EntityRelocationLifecycle.OPENING_TICKS);
         sounds = tag.contains("Sounds")
-            ? PortalSoundSnapshot.load(tag.getCompound("Sounds")) : PortalSoundSnapshot.defaults();
-        PortalLifecycle.Phase saved = PortalLifecycle.Phase.byOrdinal(tag.getInt("Phase"));
+            ? PortalSoundSnapshot.load(Nbt.getCompound(tag, "Sounds")) : PortalSoundSnapshot.defaults();
+        PortalLifecycle.Phase saved = PortalLifecycle.Phase.byOrdinal(Nbt.getInt(tag, "Phase"));
         if (!isExit() && saved != PortalLifecycle.Phase.CLOSED) saved = PortalLifecycle.Phase.CLOSING;
-        setPhase(saved, tag.getInt("PhaseTicks"));
+        setPhase(saved, Nbt.getInt(tag, "PhaseTicks"));
         entityData.set(FOLLOW_TARGET, Optional.empty());
         reservations = 0;
     }
