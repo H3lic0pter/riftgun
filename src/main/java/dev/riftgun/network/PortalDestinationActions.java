@@ -24,12 +24,22 @@ final class PortalDestinationActions {
         String name = destinationName(data, Nbt.getString(request, "Name"), true);
         long time = player.level().getGameTime();
         UUID destinationId = UUID.randomUUID();
+        double x = player.getX();
+        double y = player.getY();
+        double z = player.getZ();
+        requireInWorldBounds(player, x, y, z);
         data.destinations().add(new Destination(
-            destinationId, name, group, player.level().dimension(),
-            player.getX(), player.getY(), player.getZ(), player.getYRot(), time, 0L, false
+            destinationId, name, group, player.level().dimension(), x, y, z, player.getYRot(), time, 0L, false
         ));
         select(data, destinationId);
         return true;
+    }
+
+    private static void requireInWorldBounds(ServerPlayer player, double x, double y, double z) {
+        if (!player.level().isInWorldBounds(new net.minecraft.core.BlockPos(
+            net.minecraft.util.Mth.floor(x), net.minecraft.util.Mth.floor(y), net.minecraft.util.Mth.floor(z)))) {
+            throw PortalRequestFields.error("message.riftgun.coordinate_out_of_bounds");
+        }
     }
 
     static boolean createCoordinate(ServerPlayer player, PortalPlayerData data,
@@ -45,6 +55,7 @@ final class PortalDestinationActions {
         double y = CoordinateParser.parse(Nbt.getString(request, "Y"), player.getY());
         double z = CoordinateParser.parse(Nbt.getString(request, "Z"), player.getZ());
         float yaw = CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot());
+        requireInWorldBounds(player, x, y, z);
         long time = player.level().getGameTime();
         UUID destinationId = UUID.randomUUID();
         data.destinations().add(new Destination(
@@ -69,6 +80,7 @@ final class PortalDestinationActions {
         double z = coordinateOverride ? CoordinateParser.parse(Nbt.getString(request, "Z"), player.getZ()) : current.z();
         float yaw = coordinateOverride
             ? CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot()) : current.yaw();
+        if (coordinateOverride) requireInWorldBounds(player, x, y, z);
         data.replaceDestination(current.withDetails(name, group, current.dimension(), x, y, z, yaw));
         return true;
     }

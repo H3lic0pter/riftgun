@@ -179,6 +179,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     void acquireChunkTicket() {
         if (ticketHeld || !(level() instanceof ServerLevel serverLevel)) return;
         BlockPos position = blockPosition();
+        // 26.1.2 rejects chunk creation outside the world bounds; bail out
+        // instead of crashing when a placement carries a corrupt position.
+        if (!serverLevel.isInWorldBounds(position)) return;
         serverLevel.getChunk(position.getX() >> 4, position.getZ() >> 4);
         serverLevel.getChunkSource().addTicketAndLoadWithRadius(
             PORTAL_TICKET, new ChunkPos(position.getX(), position.getZ()), 3);

@@ -257,6 +257,7 @@
   "message.riftgun.aperture_module_required": "Portal Aperture Module required"
   ,"message.riftgun.fall_guard_module_required": "A Fall Guard Module is required",
   "message.riftgun.coordinate_module_required": "A Coordinate Override Module is required",
+  "message.riftgun.coordinate_out_of_bounds": "Coordinate is outside the world border",
   "message.riftgun.surface_range_module_required": "A Surface Range Amplifier is required",
   "message.riftgun.entity_module_required": "The corresponding entity transit module is required",
   "message.riftgun.player_target_module_required": "A Player Target Module is required",
