@@ -23,6 +23,8 @@ public final class PortalChunkTickets {
         "portal", () -> new TicketType(TicketType.NO_TIMEOUT, PORTAL_FLAGS));
     public static final DeferredHolder<TicketType, TicketType> RELOCATION_EXIT = TICKET_TYPES.register(
         "entity_relocation_exit", () -> new TicketType(TicketType.NO_TIMEOUT, PORTAL_FLAGS));
+    public static final DeferredHolder<TicketType, TicketType> RELOCATION_PREPARATION = TICKET_TYPES.register(
+        "entity_relocation_preparation", () -> new TicketType(TicketType.NO_TIMEOUT, PORTAL_FLAGS));
 
     private PortalChunkTickets() {}
 

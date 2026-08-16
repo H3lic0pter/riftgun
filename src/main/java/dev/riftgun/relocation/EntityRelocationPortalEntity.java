@@ -22,9 +22,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 *///?} else {
-//?} else {
- /*26.1.2-only ValueIO imports live in the branch above 
-*///?}
+//?}
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;

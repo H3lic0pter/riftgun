@@ -106,7 +106,7 @@ public final class Nbt {
 
     public static boolean hasUUID(CompoundTag tag, String key) {
         //? if >=1.21.11 {
-        /*return tag.contains(key);
+        /*return tag.getIntArray(key).isPresent() || tag.getLongArray(key).isPresent();
         *///?} else {
         return tag.hasUUID(key);
         //?}
@@ -114,7 +114,16 @@ public final class Nbt {
 
     public static UUID getUUID(CompoundTag tag, String key) {
         //? if >=1.21.11 {
-        /*return UUIDUtil.uuidFromIntArray(tag.getIntArray(key).orElse(new int[0]));
+        /*var ints = tag.getIntArray(key);
+        if (ints.isPresent()) {
+            return UUIDUtil.uuidFromIntArray(ints.get());
+        }
+        long[] longs = tag.getLongArray(key).orElse(null);
+        if (longs != null && longs.length == 2) {
+            // 26.x stores UUIDs as 4-int arrays; 1.21.1 wrote 2-long arrays.
+            return new UUID(longs[0], longs[1]);
+        }
+        throw new IllegalArgumentException("Invalid UUID tag for " + key);
         *///?} else {
         return tag.getUUID(key);
         //?}

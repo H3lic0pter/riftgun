@@ -63,7 +63,8 @@ import org.jetbrains.annotations.Nullable;
 /** Server-authoritative five-tick relocation transactions, independent of normal portal pairs. */
 public final class EntityRelocationManager {
     //? if >=1.21.11 {
-/*private static final TicketType PREPARATION_TICKET = new TicketType(TicketType.NO_TIMEOUT, 0);
+/*private static final TicketType PREPARATION_TICKET =
+    dev.riftgun.portal.PortalChunkTickets.RELOCATION_PREPARATION.get();
 *///?} else {
 private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("riftgun_entity_relocation_preparation", UUID::compareTo);
 //?}
