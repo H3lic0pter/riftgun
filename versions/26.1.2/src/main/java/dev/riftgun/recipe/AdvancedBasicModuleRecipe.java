@@ -56,7 +56,7 @@ public final class AdvancedBasicModuleRecipe extends CustomRecipe {
 
     @Override
     public boolean isSpecial() {
-        return false;
+        return true;
     }
 
     @Override

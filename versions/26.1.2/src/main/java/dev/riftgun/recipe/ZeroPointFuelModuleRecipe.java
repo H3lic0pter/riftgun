@@ -50,7 +50,7 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
 
     @Override
     public boolean isSpecial() {
-        return false;
+        return true;
     }
 
     @Override
