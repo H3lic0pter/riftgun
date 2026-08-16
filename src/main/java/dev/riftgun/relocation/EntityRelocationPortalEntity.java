@@ -66,7 +66,7 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         EntityRelocationPortalEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Optional<UUID>> FOLLOW_TARGET = SynchedEntityData.defineId(
 //? if >=1.21.11 {
-        /*EntityRelocationPortalEntity.class, net.minecraft.network.syncher.EntityDataSerializer.forValueType(net.minecraft.network.codec.ByteBufCodecs.optional(net.minecraft.core.UUIDUtil.STREAM_CODEC)));
+        /*EntityRelocationPortalEntity.class, dev.riftgun.portal.PortalEntityDataSerializers.OPTIONAL_UUID.get());
 *///?} else {
         EntityRelocationPortalEntity.class, EntityDataSerializers.OPTIONAL_UUID);
 //?}
