@@ -23,10 +23,17 @@ final class EntityRelocationRecipeResourceTest {
             var pattern = recipe.getAsJsonArray("pattern").asList().stream()
                 .map(element -> element.getAsString())
                 .toList();
-            var bindingBook = recipe.getAsJsonObject("key").get("B").getAsString();
+            var bindingBook = recipe.getAsJsonObject("key").get("B").getAsJsonObject();
+            var storedEnchantments = bindingBook.getAsJsonObject("components")
+                .getAsJsonObject("minecraft:stored_enchantments");
 
             assertEquals(List.of("EBE", "DMD", "EOE"), pattern);
-            assertEquals("minecraft:enchanted_book", bindingBook);
+            assertEquals("neoforge:components",
+                bindingBook.get("neoforge:ingredient_type").getAsString());
+            assertEquals("minecraft:enchanted_book",
+                bindingBook.get("items").getAsString());
+            assertEquals(1, storedEnchantments.get("minecraft:binding_curse").getAsInt());
+            assertEquals(false, bindingBook.get("strict").getAsBoolean());
         }
     }
 }

@@ -4,7 +4,16 @@
   "pattern": ["EBE", "DMD", "EOE"],
   "key": {
     "E": "minecraft:ender_pearl",
-    "B": "minecraft:enchanted_book",
+    "B": {
+      "neoforge:ingredient_type": "neoforge:components",
+      "items": "minecraft:enchanted_book",
+      "components": {
+        "minecraft:stored_enchantments": {
+          "minecraft:binding_curse": 1
+        }
+      },
+      "strict": false
+    },
     "D": "minecraft:diamond",
     "M": "riftgun:basic_module",
     "O": "minecraft:ender_eye"

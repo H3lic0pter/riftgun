@@ -10,15 +10,17 @@ import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CustomRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.PlacementInfo;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
 public final class AdvancedBasicModuleRecipe extends CustomRecipe {
+    private static final AdvancedBasicModuleRecipe INSTANCE = new AdvancedBasicModuleRecipe();
     private static final com.mojang.serialization.MapCodec<AdvancedBasicModuleRecipe> MAP_CODEC =
-        com.mojang.serialization.MapCodec.unit(AdvancedBasicModuleRecipe::new);
+        com.mojang.serialization.MapCodec.unit(() -> INSTANCE);
     private static final net.minecraft.network.codec.StreamCodec<
         net.minecraft.network.RegistryFriendlyByteBuf, AdvancedBasicModuleRecipe> STREAM_CODEC =
-        net.minecraft.network.codec.StreamCodec.unit(new AdvancedBasicModuleRecipe());
+        net.minecraft.network.codec.StreamCodec.unit(INSTANCE);
     public static final RecipeSerializer<AdvancedBasicModuleRecipe> SERIALIZER =
         new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
 
@@ -55,6 +57,15 @@ public final class AdvancedBasicModuleRecipe extends CustomRecipe {
     @Override
     public boolean isSpecial() {
         return false;
+    }
+
+    @Override
+    public PlacementInfo placementInfo() {
+        return PlacementInfo.create(java.util.List.of(
+            Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()),
+            Ingredient.of(Items.DRAGON_EGG),
+            Ingredient.of(Items.POWDER_SNOW_BUCKET),
+            Ingredient.of(PortalModules.BASIC_MODULE.get())));
     }
 
     @Override

@@ -10,15 +10,17 @@ import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CustomRecipe;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.PlacementInfo;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
 public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
+    private static final ZeroPointFuelModuleRecipe INSTANCE = new ZeroPointFuelModuleRecipe();
     private static final com.mojang.serialization.MapCodec<ZeroPointFuelModuleRecipe> MAP_CODEC =
-        com.mojang.serialization.MapCodec.unit(ZeroPointFuelModuleRecipe::new);
+        com.mojang.serialization.MapCodec.unit(() -> INSTANCE);
     private static final net.minecraft.network.codec.StreamCodec<
         net.minecraft.network.RegistryFriendlyByteBuf, ZeroPointFuelModuleRecipe> STREAM_CODEC =
-        net.minecraft.network.codec.StreamCodec.unit(new ZeroPointFuelModuleRecipe());
+        net.minecraft.network.codec.StreamCodec.unit(INSTANCE);
     public static final RecipeSerializer<ZeroPointFuelModuleRecipe> SERIALIZER =
         new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
 
@@ -49,6 +51,16 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
     @Override
     public boolean isSpecial() {
         return false;
+    }
+
+    @Override
+    public PlacementInfo placementInfo() {
+        return PlacementInfo.create(java.util.List.of(
+            Ingredient.of(Items.NETHERITE_INGOT),
+            Ingredient.of(Items.DEEPSLATE_EMERALD_ORE),
+            Ingredient.of(Items.HEAVY_CORE),
+            Ingredient.of(PortalModules.ADVANCED_BASIC_MODULE.get()),
+            Ingredient.of(Items.NETHER_STAR)));
     }
 
     @Override
