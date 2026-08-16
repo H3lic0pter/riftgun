@@ -305,8 +305,7 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         ticketChunk = chunkPosition();
         // 26.1.2 rejects chunk creation outside the world bounds; bail out
         // instead of crashing when a placement carries a corrupt position.
-        if (!serverLevel.isInWorldBounds(new net.minecraft.core.BlockPos(
-            ticketChunk.getMinBlockX(), 0, ticketChunk.getMinBlockZ()))) {
+        if (!dev.riftgun.portal.PortalChunkGuard.inWorldBounds(serverLevel, ticketChunk)) {
             ticketReservations--;
             return;
         }

@@ -1,6 +1,7 @@
 package dev.riftgun.relocation;
 import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.portal.PortalChunkGuard;
 
 import dev.riftgun.core.config.RiftConfig;
 import dev.riftgun.core.config.RiftConfigs;
@@ -254,6 +255,11 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         *///?} else {
         ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()));
         //?}
+        if (!PortalChunkGuard.inWorldBounds(destinationLevel, chunk)) {
+            TransitDiagnostics.relocation("prepare abort reservation={} chunk={} outside world bounds",
+                reservation.id(), chunk);
+            return;
+        }
         TransitDiagnostics.relocation("prepare begin reservation={} owner={} target={} source={} destination={} chunk={} timeoutTicks={} tickingBeforeTicket={}",
             reservation.id(), owner.getUUID(), target.getUUID(),
 //? if >=1.21.11 {
