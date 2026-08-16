@@ -1,5 +1,6 @@
 package dev.riftgun.client.screen;
 
+import net.minecraft.client.Minecraft;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
@@ -48,6 +49,7 @@ final class PlayerTargetController {
 
     void requestListIfNeeded() {
         if (!visible() || listRequested) return;
+        if (Minecraft.getInstance().getConnection() == null) return;
         listRequested = true;
         requestList();
     }
