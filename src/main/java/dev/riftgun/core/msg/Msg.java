@@ -20,7 +20,7 @@ public final class Msg {
             player.sendSystemMessage(message);
         }
         *///?} else {
-        Msg.displayClientMessage(player, message, actionBar);
+        player.displayClientMessage(message, actionBar);
         //?}
     }
 
