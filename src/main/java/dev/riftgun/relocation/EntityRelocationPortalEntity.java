@@ -310,7 +310,7 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
             return;
         }
         //? if >=1.21.11 {
-        /*serverLevel.getChunkSource().addTicketAndLoadWithRadius(
+        /*serverLevel.getChunkSource().addTicketWithRadius(
             EXIT_TICKET, ticketChunk, 3);
         *///?} else {
         serverLevel.getChunkSource().addRegionTicket(

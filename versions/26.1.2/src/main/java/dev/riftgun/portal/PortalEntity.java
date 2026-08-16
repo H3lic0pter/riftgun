@@ -183,7 +183,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         // instead of crashing when a placement carries a corrupt position.
         if (!PortalChunkGuard.inWorldBounds(serverLevel, position)) return;
         serverLevel.getChunk(position.getX() >> 4, position.getZ() >> 4);
-        serverLevel.getChunkSource().addTicketAndLoadWithRadius(
+        // addTicketWithRadius instead of addTicketAndLoadWithRadius: the
+        // latter requires the chunk holder to be immediately visible, which
+        // fails for distant unloaded chunks.
+        serverLevel.getChunkSource().addTicketWithRadius(
             PORTAL_TICKET, new ChunkPos(position.getX(), position.getZ()), 3);
         ticketPosition = position;
         ticketHeld = true;

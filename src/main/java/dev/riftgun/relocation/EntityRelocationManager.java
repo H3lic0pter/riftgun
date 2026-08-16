@@ -272,7 +272,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             relocationConfig.destinationReadinessTimeoutTicks(),
             destinationLevel.isPositionEntityTicking(BlockPos.containing(destination.position())));
         //? if >=1.21.11 {
-        /*destinationLevel.getChunkSource().addTicketAndLoadWithRadius(
+        /*destinationLevel.getChunkSource().addTicketWithRadius(
             PREPARATION_TICKET, chunk, 3);
         *///?} else {
         destinationLevel.getChunkSource().addRegionTicket(
