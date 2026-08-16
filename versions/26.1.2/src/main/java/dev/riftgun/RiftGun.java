@@ -16,6 +16,7 @@ import dev.riftgun.network.NeoForgeNetworkAdapter;
 import dev.riftgun.module.PortalModules;
 import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModuleMenus;
+import dev.riftgun.portal.PortalChunkTickets;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.relocation.EntityRelocationPortalEntity;
@@ -128,6 +129,7 @@ public final class RiftGun {
         PortalFluids.register(modBus);
         RiftGunRecipes.register(modBus);
         PortalSounds.register(modBus);
+        PortalChunkTickets.register(modBus);
         modBus.addListener(this::addCreativeTabContents);
         modBus.addListener(this::registerCapabilities);
         modBus.addListener(NeoForgeNetworkAdapter::register);

@@ -7,6 +7,7 @@
   "fluid.riftgun.portal_fluid": "传送液",
   "fluid.riftgun.dimensional_portal_fluid": "维度传送液",
   "key.categories.riftgun": "Rift Gun",
+  "key.category.riftgun.riftgun": "Rift Gun",
   "key.riftgun.open_config": "打开传送配置",
   "key.riftgun.cycle_placement": "切换传送门放置模式",
   "key.riftgun.force_front": "在面前开启传送门",

@@ -68,8 +68,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Integer> ANCHOR_FACE =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
-    private static final TicketType PORTAL_TICKET =
-        new TicketType(TicketType.NO_TIMEOUT, 0);
+    private static final TicketType PORTAL_TICKET = PortalChunkTickets.PORTAL.get();
 
     private @Nullable UUID linkedPortalId;
     private @Nullable ResourceKey<Level> linkedDimension;

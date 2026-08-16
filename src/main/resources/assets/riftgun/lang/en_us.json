@@ -7,6 +7,7 @@
   "fluid.riftgun.portal_fluid": "Portal Fluid",
   "fluid.riftgun.dimensional_portal_fluid": "Dimensional Portal Fluid",
   "key.categories.riftgun": "Rift Gun",
+  "key.category.riftgun.riftgun": "Rift Gun",
   "key.riftgun.open_config": "Open portal configuration",
   "key.riftgun.cycle_placement": "Cycle portal placement mode",
   "key.riftgun.force_front": "Open portal in front",

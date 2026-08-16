@@ -41,7 +41,8 @@ import net.minecraft.world.phys.Vec3;
 /** Visual-only TOP gate used by Entity Relocation entrances and reusable saved-destination exits. */
 public final class EntityRelocationPortalEntity extends Entity implements PortalVisualSource {
     //? if >=1.21.11 {
-/*private static final TicketType EXIT_TICKET = new TicketType(TicketType.NO_TIMEOUT, 0);
+/*private static final TicketType EXIT_TICKET =
+    dev.riftgun.portal.PortalChunkTickets.RELOCATION_EXIT.get();
 *///?} else {
 private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_entity_relocation_exit", UUID::compareTo);
 //?}
