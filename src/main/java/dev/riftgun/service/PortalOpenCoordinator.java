@@ -160,6 +160,14 @@ public final class PortalOpenCoordinator {
             failMessage(player, entry.errorKey());
             return false;
         }
+        if (!PortalChunkGuard.inWorldBounds((ServerLevel) player.level(),
+            BlockPos.containing(entry.placement().center()))) {
+            com.mojang.logging.LogUtils.getLogger().warn(
+                "Portal open rejected: entry placement out of bounds center={}",
+                entry.placement().center());
+            failMessage(player, "message.riftgun.coordinate_out_of_bounds");
+            return false;
+        }
 
         PortalFuelManager.Plan fuelPlan = PortalFuelManager.plan(
             player, locatedGun.stack(), destination.dimension());
@@ -203,6 +211,14 @@ public final class PortalOpenCoordinator {
                 targetLevel, PortalExitTarget.from(resolved), entry.placement(), gunCapabilities.aperture());
             if (!placement.successful()) {
                 failMessage(player, placement.errorKey());
+                return false;
+            }
+            if (!PortalChunkGuard.inWorldBounds(targetLevel,
+                BlockPos.containing(placement.pair().exit().center()))) {
+                com.mojang.logging.LogUtils.getLogger().warn(
+                    "Portal open rejected: exit placement out of bounds center={}",
+                    placement.pair().exit().center());
+                failMessage(player, "message.riftgun.coordinate_out_of_bounds");
                 return false;
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),

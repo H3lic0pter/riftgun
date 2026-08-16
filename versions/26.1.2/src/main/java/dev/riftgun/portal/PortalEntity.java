@@ -108,6 +108,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         ServerLevel entryLevel = (ServerLevel) player.level();
         ServerLevel exitLevel = server.getLevel(pair.exitDimension());
         if (exitLevel == null) return false;
+        if (!PortalChunkGuard.inWorldBounds(entryLevel, BlockPos.containing(pair.entry().center()))
+            || !PortalChunkGuard.inWorldBounds(exitLevel, BlockPos.containing(pair.exit().center()))) {
+            return false;
+        }
 
         long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
@@ -142,6 +146,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         MinecraftServer server = player.level().getServer();
         if (server == null) return false;
         ServerLevel entryLevel = (ServerLevel) player.level();
+        if (!PortalChunkGuard.inWorldBounds(entryLevel, BlockPos.containing(placement.center()))) {
+            return false;
+        }
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
             fuel.rgb(), fuel.id().toString(), options, server.overworld().getGameTime(),
             exclusions.entryPlayerId(), false);
