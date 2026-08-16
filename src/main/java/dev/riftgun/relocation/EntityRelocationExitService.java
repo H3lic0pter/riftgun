@@ -21,6 +21,15 @@ final class EntityRelocationExitService {
     private static final EntityRelocationExitIndex INDEX = new EntityRelocationExitIndex();
 
     static @Nullable Handle open(MinecraftServer server, OpenRequest request) {
+        Vec3 center = request.center() != null
+            ? request.center()
+            : request.followPlayer() != null ? request.followPlayer().position() : null;
+        if (center != null && !dev.riftgun.portal.PortalChunkGuard.inWorldBounds(
+            request.level(), net.minecraft.core.BlockPos.containing(center))) {
+            com.mojang.logging.LogUtils.getLogger().warn(
+                "Relocation exit rejected: center out of bounds center={}", center);
+            return null;
+        }
         EntityRelocationExitIndex.Lease shared = request.sharedKey() == null ? null
             : reserveShared(server, request.sharedKey(), request.side());
         if (shared != null) {
