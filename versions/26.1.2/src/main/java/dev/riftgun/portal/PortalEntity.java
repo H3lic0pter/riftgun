@@ -121,6 +121,13 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
             fuel.rgb(), fuel.id().toString(), options, startedAt,
             exclusions.exitPlayerId(), true);
         link(entry, exit);
+        // 26.1.2 loads distant exit chunks asynchronously, so the exit entity
+        // ticks (and advances its phase) late. Start both clocks already open
+        // so the entry's linked-target check passes immediately, matching the
+        // synchronous 1.21.1 behaviour.
+        long openStartedAt = PortalPairClock.openPhaseStartedAt(startedAt);
+        resetOpenClock(entry, openStartedAt);
+        resetOpenClock(exit, openStartedAt);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
 
@@ -149,9 +156,11 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         if (!PortalChunkGuard.inWorldBounds(entryLevel, BlockPos.containing(placement.center()))) {
             return false;
         }
+        long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
-            fuel.rgb(), fuel.id().toString(), options, server.overworld().getGameTime(),
+            fuel.rgb(), fuel.id().toString(), options, startedAt,
             exclusions.entryPlayerId(), false);
+        resetOpenClock(entry, PortalPairClock.openPhaseStartedAt(startedAt));
         entry.deferredExit.configure(target, exclusions.exitPlayerId());
         entry.acquireChunkTicket();
         boolean added = entryLevel.addFreshEntity(entry);
@@ -431,6 +440,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         long now = serverTime();
         PortalEntity exit = create(targetLevel, ownerId, result.pair().exit(),
             fuelRgb(), fuelId(), runtimeOptions(), now, deferredExitExclude, true);
+        resetOpenClock(exit, PortalPairClock.openPhaseStartedAt(now));
         crisis.copyPairStateTo(exit.crisis);
         exit.acquireChunkTicket();
         if (!targetLevel.addFreshEntity(exit)) {
