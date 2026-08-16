@@ -258,6 +258,8 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         if (!PortalChunkGuard.inWorldBounds(destinationLevel, chunk)) {
             TransitDiagnostics.relocation("prepare abort reservation={} chunk={} outside world bounds",
                 reservation.id(), chunk);
+            Msg.displayClientMessage(owner,
+                net.minecraft.network.chat.Component.translatable("message.riftgun.coordinate_out_of_bounds"), true);
             return;
         }
         TransitDiagnostics.relocation("prepare begin reservation={} owner={} target={} source={} destination={} chunk={} timeoutTicks={} tickingBeforeTicket={}",

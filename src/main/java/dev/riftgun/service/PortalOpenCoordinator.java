@@ -1,6 +1,7 @@
 package dev.riftgun.service;
 import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.portal.PortalChunkGuard;
 
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.core.fuel.RiftFuelStores;
@@ -133,6 +134,10 @@ public final class PortalOpenCoordinator {
         ServerLevel targetLevel = server == null ? null : server.getLevel(destination.dimension());
         if (targetLevel == null) {
             failMessage(player, "message.riftgun.dimension_unavailable");
+            return false;
+        }
+        if (!PortalChunkGuard.inWorldBounds(targetLevel, BlockPos.containing(destination.position()))) {
+            failMessage(player, "message.riftgun.coordinate_out_of_bounds");
             return false;
         }
 
