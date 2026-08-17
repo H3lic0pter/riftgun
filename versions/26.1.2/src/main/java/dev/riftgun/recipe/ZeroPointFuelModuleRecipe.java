@@ -58,12 +58,18 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
 
     @Override
     public PlacementInfo placementInfo() {
-        return PlacementInfo.create(java.util.List.of(
-            Ingredient.of(Items.NETHERITE_INGOT),
-            Ingredient.of(Items.DEEPSLATE_EMERALD_ORE),
-            Ingredient.of(Items.HEAVY_CORE),
-            Ingredient.of(PortalModules.ADVANCED_BASIC_MODULE.get()),
-            Ingredient.of(Items.NETHER_STAR)));
+        // createFromOptionals maps each ingredient to its true 3x3 grid slot so
+        // the recipe book's auto-place fills the correct positions.
+        return PlacementInfo.createFromOptionals(java.util.List.of(
+            java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT)),
+            java.util.Optional.of(Ingredient.of(Items.DEEPSLATE_EMERALD_ORE)),
+            java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT)),
+            java.util.Optional.of(Ingredient.of(Items.HEAVY_CORE)),
+            java.util.Optional.of(Ingredient.of(PortalModules.ADVANCED_BASIC_MODULE.get())),
+            java.util.Optional.of(Ingredient.of(Items.HEAVY_CORE)),
+            java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT)),
+            java.util.Optional.of(Ingredient.of(Items.NETHER_STAR)),
+            java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT))));
     }
 
     @Override

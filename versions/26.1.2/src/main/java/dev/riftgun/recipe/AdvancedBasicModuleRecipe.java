@@ -65,11 +65,19 @@ public final class AdvancedBasicModuleRecipe extends CustomRecipe {
 
     @Override
     public PlacementInfo placementInfo() {
-        return PlacementInfo.create(java.util.List.of(
-            Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()),
-            Ingredient.of(Items.DRAGON_EGG),
-            Ingredient.of(Items.POWDER_SNOW_BUCKET),
-            Ingredient.of(PortalModules.BASIC_MODULE.get())));
+        // createFromOptionals maps each ingredient to its true 3x3 grid slot
+        // (empty Optional for the gap), so the recipe book's auto-place fills
+        // the correct positions instead of a linear row.
+        return PlacementInfo.createFromOptionals(java.util.List.of(
+            java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get())),
+            java.util.Optional.of(Ingredient.of(Items.DRAGON_EGG)),
+            java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get())),
+            java.util.Optional.of(Ingredient.of(Items.POWDER_SNOW_BUCKET)),
+            java.util.Optional.of(Ingredient.of(PortalModules.BASIC_MODULE.get())),
+            java.util.Optional.of(Ingredient.of(Items.POWDER_SNOW_BUCKET)),
+            java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get())),
+            java.util.Optional.empty(),
+            java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()))));
     }
 
     @Override
