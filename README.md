@@ -1,31 +1,33 @@
 # Rift Gun
 
-Rift Gun is a NeoForge portal-gun mod for Minecraft 1.21.1. It creates linked,
-walk-through portals for local and cross-dimensional travel, with saved
-destinations, modular gun upgrades, configurable placement, player privacy,
-three portal-fluid tiers, and client-local visual and sound themes.
+Rift Gun is a NeoForge portal-gun mod for Minecraft 1.21.1 and 26.1.2. It
+creates linked, walk-through portals for local and cross-dimensional travel,
+with saved destinations, modular gun upgrades, configurable placement, player
+privacy, three portal-fluid tiers, and client-local visual and sound themes.
 
-The project is currently in beta. Back up worlds before updating and expect
-configuration or save-data migration requirements before `1.0.0`.
-
+The project is currently in beta on both supported versions. The 26.1.2 port
+is newer and has seen less testing than the 1.21.1 build. Back up worlds
+before updating and expect configuration or save-data migration requirements
+before `1.0.0`.
 
 ## Requirements
 
-| Component | Version | Required |
+| Component | 1.21.1 build | 26.1.2 build |
 | --- | --- | --- |
-| Minecraft | `1.21.1` | Yes |
-| NeoForge | `21.1.140` or newer for Minecraft 1.21.1 | Yes |
-| Java | `21` | Yes |
-| RyoamicLights | `0.2.11+` | No; adds portal light to nearby blocks |
+| Minecraft | `1.21.1` | `26.1.2` |
+| NeoForge | `21.1.140` or newer | `26.1.2.95` or newer |
+| Java | `21` | `25` |
+| RyoamicLights | `0.2.11+` | Not yet available |
 
-Rift Gun has no required runtime dependency besides NeoForge. 
+Rift Gun has no required runtime dependency besides NeoForge. RyoamicLights is
+optional; it adds portal light to nearby blocks on the 1.21.1 build.
 
 ## Installation
 
-1. Install Minecraft 1.21.1 with a compatible NeoForge 21.1 release.
-2. Put the Rift Gun JAR in the instance's `mods` directory.
+1. Install the matching Minecraft version with a compatible NeoForge release.
+2. Put the Rift Gun JAR for that Minecraft version in the instance's `mods` directory.
 3. Install the same Rift Gun version on both the server and every connecting client.
-4. Optionally install JEI and/or RyoamicLights on the client.
+4. Optionally install JEI and/or RyoamicLights on the client (1.21.1 build only).
 
 Back up the world before changing mod versions. Rift Gun stores destinations and privacy preferences as server-side player data, while visual preferences remain client-local.
 
@@ -198,7 +200,9 @@ Server configuration changes should normally be made while the server is stopped
 
 ## Known limitations
 
-- Only Minecraft 1.21.1 with NeoForge is currently supported; Fabric and Forge builds are not provided.
+- Minecraft 1.21.1 and 26.1.2 with NeoForge are supported; Fabric and Forge builds are not provided.
+- The 26.1.2 build is newer and receives the same shared fixes as the 1.21.1 build, but has seen less real-world testing.
+- A faint light rim can appear around the portal surface on both builds; this is a known cosmetic issue.
 - Portal placement never breaks or moves blocks, so cramped destinations may be difficult or impossible to enter.
 - Cross-dimensional destinations that are not loaded use a deferred exit path; the exit may appear immediately after the first traveler reaches the destination.
 - Shader compatibility uses a conservative fallback. Unlisted shader packs may render portal brightness or transparency differently.
@@ -209,18 +213,19 @@ Server configuration changes should normally be made while the server is stopped
 
 The project uses a Stonecutter multi-version layout: the root source tree is
 shared by every supported Minecraft version, and each version is a node under
-`versions/`. Only the active version (currently `1.21.1`) is built; see
-`stonecutter.gradle.kts` for the active marker and `settings.gradle.kts` for
-the registered versions.
+`versions/`. Node builds are independent; see `settings.gradle.kts` for the
+registered versions.
 
 ```powershell
-.\gradlew.bat runClient   # runs the client for the active version
-.\gradlew.bat test        # runs the test suite
-.\gradlew.bat build       # builds the jar under versions/<version>/build/libs/
+.\gradlew.bat :1.21.1:runClient    # runs the 1.21.1 client
+.\gradlew.bat :26.1.2:runClient    # runs the 26.1.2 client
+.\gradlew.bat :1.21.1:test         # runs the 1.21.1 test suite
+.\gradlew.bat :1.21.1:build :26.1.2:build   # builds both jars
 ```
 
-The project targets Java 21 for Minecraft 1.21.1 (newer Minecraft versions may
-require newer JDKs). Source code and issue tracking are hosted at
+Built jars land under `versions/<version>/build/libs/`. The project targets
+Java 21 for Minecraft 1.21.1 and Java 25 for Minecraft 26.1.2. Source code and
+issue tracking are hosted at
 [github.com/H3lic0pter/riftgun](https://github.com/H3lic0pter/riftgun).
 
 ## License and attribution
