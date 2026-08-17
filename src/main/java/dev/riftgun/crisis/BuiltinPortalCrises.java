@@ -22,7 +22,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -117,50 +116,49 @@ final class BuiltinPortalCrises {
             int x = normal.getX() + (attempt == 0 ? 0 : context.player().getRandom().nextInt(-radius, radius + 1));
             int z = normal.getZ() + (attempt == 0 ? 0 : context.player().getRandom().nextInt(-radius, radius + 1));
             if (!level.getChunkSource().hasChunk(x >> 4, z >> 4)) continue;
-            int y = (attempt & 1) == 0
-                ? normal.getY() + context.player().getRandom().nextInt(-6, 7)
-                : level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-//? if >=1.21.11 {
-            /*BlockPos feet = new BlockPos(x, Mth.clamp(y, level.dimensionType().minY() + 1,
-*///?} else {
-            BlockPos feet = new BlockPos(x, Mth.clamp(y, level.getMinBuildHeight() + 1,
-//?}
-//? if >=1.21.11 {
-                /*level.dimensionType().minY() + level.dimensionType().height() - 2), z);
-*///?} else {
-                level.getMaxBuildHeight() - 2), z);
-//?}
-            Optional<PortalCrisisPlan> plan = lavaCandidate(context, feet);
+            Optional<PortalCrisisPlan> plan = searchLavaPool(context, x, z);
             if (plan.isPresent()) return plan;
         }
         return Optional.empty();
     }
 
-    private static Optional<PortalCrisisPlan> lavaCandidate(PortalCrisisContext context, BlockPos feet) {
-        Vec3 destination = Vec3.atBottomCenterOf(feet);
-        if (!safe(context, destination)) return Optional.empty();
-        for (Direction lavaDirection : Direction.Plane.HORIZONTAL) {
-            if (!context.targetLevel().getFluidState(feet.relative(lavaDirection)).is(FluidTags.LAVA)
-                || !context.targetLevel().getFluidState(feet.relative(lavaDirection)).isSource()) continue;
-            if (!hasTwoStepEscape(context, feet, lavaDirection)) continue;
-            float yaw = lavaDirection.toYRot();
-            PortalPlacement exit = floatingExit(destination, yaw);
-            if (!context.targetLevel().noCollision(exit.bounds().deflate(0.002))) continue;
+    /**
+     * Scans one column downward from the surface for a still lava source that the traveler
+     * is dropped into: the arrival box must not collide with solid blocks and there must be
+     * room for the floating return portal. The destination is inside the lava itself.
+     */
+    private static Optional<PortalCrisisPlan> searchLavaPool(PortalCrisisContext context, int x, int z) {
+        ServerLevel level = context.targetLevel();
+        int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+//? if >=1.21.11 {
+        /*int bottom = level.dimensionType().minY();
+*///?} else {
+        int bottom = level.getMinBuildHeight();
+//?}
+        for (int y = top; y > bottom; y--) {
+            BlockPos block = new BlockPos(x, y, z);
+            if (!level.getBlockState(block).getFluidState().is(FluidTags.LAVA)) continue;
+            Optional<PortalCrisisPlan> plan = lavaCandidate(context, block);
+            if (plan.isPresent()) return plan;
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<PortalCrisisPlan> lavaCandidate(PortalCrisisContext context, BlockPos lava) {
+        ServerLevel level = context.targetLevel();
+        if (!level.getFluidState(lava).isSource()) return Optional.empty();
+        Vec3 destination = Vec3.atBottomCenterOf(lava);
+        AABB playerSpace = context.player().getBoundingBox().move(
+            destination.subtract(context.player().position()));
+        if (!level.noCollision(playerSpace)) return Optional.empty();
+        for (Direction exitYaw : Direction.Plane.HORIZONTAL) {
+            PortalPlacement exit = floatingExit(destination, exitYaw.toYRot());
+            if (!level.noCollision(exit.bounds().deflate(0.002))) continue;
             return Optional.of(new PortalCrisisPlan(LAVA,
                 new PortalCrisisPlan.Relocation(destination, Vec3.ZERO, exit),
                 PortalCrisisPlan.Effect.NONE, 0));
         }
         return Optional.empty();
-    }
-
-    private static boolean hasTwoStepEscape(PortalCrisisContext context, BlockPos feet,
-                                            Direction lavaDirection) {
-        for (Direction direction : Direction.Plane.HORIZONTAL) {
-            if (direction == lavaDirection) continue;
-            if (safe(context, Vec3.atBottomCenterOf(feet.relative(direction)))
-                && safe(context, Vec3.atBottomCenterOf(feet.relative(direction, 2)))) return true;
-        }
-        return false;
     }
 
     private static boolean safe(PortalCrisisContext context, Vec3 position) {

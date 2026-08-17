@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 //? if >=1.21.11 {
 /*import net.minecraft.resources.Identifier;
@@ -18,10 +17,8 @@ import net.minecraft.resources.ResourceLocation;
 //?}
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.server.level.ServerLevel;
@@ -41,6 +38,8 @@ public record PortalCrisisCapabilitySnapshot(
 *///?} else {
         Registries.ITEM, ResourceLocation.fromNamespaceAndPath(RiftConstants.MOD_ID, "fall_rescue_items"));
 //?}
+    private static final float LAVA_MINIMUM_MAX_HEALTH = 20.0F;
+    private static final float LAVA_MINIMUM_SATURATION = 2.0F;
     private static final List<PortalCrisisInventorySource> INVENTORY_SOURCES = new CopyOnWriteArrayList<>();
 
     static {
@@ -70,17 +69,18 @@ public record PortalCrisisCapabilitySnapshot(
         boolean guard = items.stream().anyMatch(stack -> stack.is(RiftContent.PORTAL_GUN.get())
             && PortalGunCapabilities.resolve(stack, smartDistance).fallGuard());
 
-        boolean firePotion = items.stream().anyMatch(PortalCrisisCapabilitySnapshot::providesFireResistance);
         Holder<Enchantment> fireProtection = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
             .getOrThrow(Enchantments.FIRE_PROTECTION);
         int fireProtectionLevel = 0;
         for (ItemStack armor : java.util.stream.Stream.of(net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET).map(player::getItemBySlot).toList()) {
             fireProtectionLevel += armor.getEnchantmentLevel(fireProtection);
         }
-        boolean lava = player.hasEffect(MobEffects.FIRE_RESISTANCE)
-            || firePotion
-            || player.getArmorValue() >= RiftConfigs.server().crises().lavaMinimumArmor()
+        boolean lavaProtected = player.getArmorValue() >= RiftConfigs.server().crises().lavaMinimumArmor()
             || fireProtectionLevel >= RiftConfigs.server().crises().lavaMinimumFireProtection();
+        boolean lava = lavaProtected
+            && player.getHealth() >= player.getMaxHealth()
+            && player.getMaxHealth() >= LAVA_MINIMUM_MAX_HEALTH
+            && player.getFoodData().getSaturationLevel() >= LAVA_MINIMUM_SATURATION;
 
         boolean harmful = player.getActiveEffects().stream().anyMatch(effect ->
             effect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL);
@@ -93,14 +93,5 @@ public record PortalCrisisCapabilitySnapshot(
             lava,
             !harmful && player.getHealth() >= minimumHealth
         );
-    }
-
-    private static boolean providesFireResistance(ItemStack stack) {
-        if (!stack.is(Items.POTION) && !stack.is(Items.SPLASH_POTION)) return false;
-        PotionContents contents = stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
-        for (var effect : contents.getAllEffects()) {
-            if (effect.getEffect().equals(MobEffects.FIRE_RESISTANCE)) return true;
-        }
-        return false;
     }
 }

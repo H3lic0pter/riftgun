@@ -39,7 +39,7 @@ public record RiftConfig(
                 "riftgun:spatial_tear=2",
                 "riftgun:weakness=30",
                 "riftgun:nausea=55"
-            ), 4, 1024, 192, 128, 30, 15, 24, 96, 16, 4,
+            ), 4, 1024, 192, 128, 30, 15, 24, 96, 20, 4,
                 16, 0.8, 30, 40, 1000, 0, 160, 0, 0.45, 1.35),
             new DiagnosticsConfig(false)
         );

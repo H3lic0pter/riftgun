@@ -358,7 +358,7 @@ public final class ServerConfig {
             guardedHighFallCooldownTicks = builder.defineInRange("guardedHighFallCooldownTicks", 15, 0, 1200);
             lavaSearchRadius = builder.defineInRange("lavaSearchRadius", 24, 1, 64);
             lavaCandidateChecks = builder.defineInRange("lavaCandidateChecks", 96, 1, 1024);
-            lavaMinimumArmor = builder.defineInRange("lavaMinimumArmor", 16, 0, 100);
+            lavaMinimumArmor = builder.defineInRange("lavaMinimumArmor", 20, 0, 100);
             lavaMinimumFireProtection = builder.defineInRange("lavaMinimumFireProtection", 4, 0, 100);
             spatialTearMinimumHealth = builder.defineInRange("spatialTearMinimumHealth", 16, 1, 2048);
             spatialTearMinimumHealthRatio = builder.defineInRange("spatialTearMinimumHealthRatio", 0.8, 0.0, 1.0);
