@@ -4,10 +4,10 @@ plugins {
 }
 
 group = property("mod_group_id") as String
-// Jar name carries the Minecraft version so the two nodes never collide
-// (riftgun-1.21.1-0.1.0-rc.1.jar vs riftgun-26.1.2-0.1.0-beta.6.jar);
-// mods.toml still expands the bare mod_version.
-version = "${property("minecraft_version")}-${property("mod_version")}"
+// Jar name carries the Minecraft version and a v-prefixed mod version so the
+// two nodes never collide (riftgun-1.21.1-v0.1.0-rc.1.jar vs
+// riftgun-26.1.2-v0.1.0-beta.6.jar); mods.toml still expands the bare mod_version.
+version = "${property("minecraft_version")}-v${property("mod_version")}"
 
 base {
     archivesName = property("mod_id") as String
