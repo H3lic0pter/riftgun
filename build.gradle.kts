@@ -88,9 +88,13 @@ dependencies {
     }
     val jeiVersion = findProperty("jei_version") as String?
     if (jeiVersion != null) {
+        val jeiApi = "mezz.jei:jei-${property("minecraft_version")}-neoforge-api:$jeiVersion"
+        val jeiFull = "mezz.jei:jei-${property("minecraft_version")}-neoforge:$jeiVersion"
         // Present only in development runs.
-        optionalClientCompileOnly("mezz.jei:jei-1.21.1-neoforge-api:$jeiVersion")
-        optionalClientRuntimeOnly("mezz.jei:jei-1.21.1-neoforge:$jeiVersion")
+        optionalClientCompileOnly(jeiApi)
+        optionalClientRuntimeOnly(jeiFull)
+        // The JEI bridge and its registration tests compile against the API.
+        testImplementation(jeiApi)
     }
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")

@@ -2,16 +2,17 @@ package dev.riftgun.recipe;
 
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.module.PortalModules;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CustomRecipe;
-import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.PlacementInfo;
 import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.ShapedCraftingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.level.Level;
 
 public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
@@ -50,7 +51,9 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
 
     @Override
     public boolean isSpecial() {
-        return true;
+        // Non-special with a placeable placementInfo: the recipe book collects
+        // the recipe and JEI displays it automatically, matching the 1.21.1 build.
+        return false;
     }
 
     @Override
@@ -61,6 +64,25 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
             Ingredient.of(Items.HEAVY_CORE),
             Ingredient.of(PortalModules.ADVANCED_BASIC_MODULE.get()),
             Ingredient.of(Items.NETHER_STAR)));
+    }
+
+    @Override
+    public java.util.List<RecipeDisplay> display() {
+        // JEI 26's crafting category only renders recipes that expose a shaped or
+        // shapeless display; without this the recipe was hidden even when non-special.
+        return java.util.List.of(new ShapedCraftingRecipeDisplay(3, 3, java.util.List.of(
+            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT),
+            new SlotDisplay.ItemSlotDisplay(Items.DEEPSLATE_EMERALD_ORE),
+            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT),
+            new SlotDisplay.ItemSlotDisplay(Items.HEAVY_CORE),
+            new SlotDisplay.ItemSlotDisplay(PortalModules.ADVANCED_BASIC_MODULE.get()),
+            new SlotDisplay.ItemSlotDisplay(Items.HEAVY_CORE),
+            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT),
+            new SlotDisplay.ItemSlotDisplay(Items.NETHER_STAR),
+            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT)
+        ), new SlotDisplay.ItemStackSlotDisplay(
+            ItemStackTemplate.fromNonEmptyStack(new ItemStack(PortalModules.ZERO_POINT_FUEL.item().get()))),
+            new SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)));
     }
 
     @Override
