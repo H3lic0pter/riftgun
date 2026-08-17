@@ -60,7 +60,26 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
     public PlacementInfo placementInfo() {
         // createFromOptionals maps each ingredient to its true 3x3 grid slot so
         // the recipe book's auto-place fills the correct positions.
-        return PlacementInfo.createFromOptionals(java.util.List.of(
+        return PlacementInfo.createFromOptionals(gridIngredients());
+    }
+
+    @Override
+    public java.util.List<RecipeDisplay> display() {
+        // JEI 26's crafting category only renders recipes that expose a shaped or
+        // shapeless display; without this the recipe was hidden even when non-special.
+        return java.util.List.of(new ShapedCraftingRecipeDisplay(3, 3,
+            gridIngredients().stream()
+                .map(ingredient -> ingredient.map(Ingredient::display)
+                    .orElse(SlotDisplay.Empty.INSTANCE))
+                .toList(),
+            new SlotDisplay.ItemStackSlotDisplay(
+                ItemStackTemplate.fromNonEmptyStack(new ItemStack(PortalModules.ZERO_POINT_FUEL.item().get()))),
+            new SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)));
+    }
+
+    /** Single source for the 3x3 grid shared by the recipe book and the JEI display. */
+    private static java.util.List<java.util.Optional<Ingredient>> gridIngredients() {
+        return java.util.List.of(
             java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT)),
             java.util.Optional.of(Ingredient.of(Items.DEEPSLATE_EMERALD_ORE)),
             java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT)),
@@ -69,26 +88,7 @@ public final class ZeroPointFuelModuleRecipe extends CustomRecipe {
             java.util.Optional.of(Ingredient.of(Items.HEAVY_CORE)),
             java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT)),
             java.util.Optional.of(Ingredient.of(Items.NETHER_STAR)),
-            java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT))));
-    }
-
-    @Override
-    public java.util.List<RecipeDisplay> display() {
-        // JEI 26's crafting category only renders recipes that expose a shaped or
-        // shapeless display; without this the recipe was hidden even when non-special.
-        return java.util.List.of(new ShapedCraftingRecipeDisplay(3, 3, java.util.List.of(
-            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT),
-            new SlotDisplay.ItemSlotDisplay(Items.DEEPSLATE_EMERALD_ORE),
-            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT),
-            new SlotDisplay.ItemSlotDisplay(Items.HEAVY_CORE),
-            new SlotDisplay.ItemSlotDisplay(PortalModules.ADVANCED_BASIC_MODULE.get()),
-            new SlotDisplay.ItemSlotDisplay(Items.HEAVY_CORE),
-            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT),
-            new SlotDisplay.ItemSlotDisplay(Items.NETHER_STAR),
-            new SlotDisplay.ItemSlotDisplay(Items.NETHERITE_INGOT)
-        ), new SlotDisplay.ItemStackSlotDisplay(
-            ItemStackTemplate.fromNonEmptyStack(new ItemStack(PortalModules.ZERO_POINT_FUEL.item().get()))),
-            new SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)));
+            java.util.Optional.of(Ingredient.of(Items.NETHERITE_INGOT)));
     }
 
     @Override

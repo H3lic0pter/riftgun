@@ -1,5 +1,4 @@
 package dev.riftgun.core.nbt;
-import dev.riftgun.core.nbt.Nbt;
 
 import java.util.UUID;
 import net.minecraft.core.UUIDUtil;

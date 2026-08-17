@@ -100,6 +100,14 @@ public final class RiftGunJeiPlugin implements IModPlugin {
         implements IRecipeCategory<RecipeHolder<FluidTransmutationRecipe>> {
         private static final int WIDTH = 134;
         private static final int HEIGHT = 56;
+        private static final int FLUID_SLOT_X = 2;
+        private static final int SLOT_ROW_Y = 7;
+        private static final int INPUT_GRID_X = 30;
+        private static final int INPUT_GRID_Y = 2;
+        private static final int INPUT_SLOT_SPACING = 18;
+        private static final int OUTPUT_SLOT_X = 112;
+        private static final int ARROW_X = 78;
+        private static final int ARROW_Y = 20;
         private final IDrawable icon;
         private final IDrawable arrow;
 
@@ -143,7 +151,7 @@ public final class RiftGunJeiPlugin implements IModPlugin {
         public void setRecipe(IRecipeLayoutBuilder builder,
                               RecipeHolder<FluidTransmutationRecipe> holder,
                               IFocusGroup focuses) {
-            builder.addInputSlot(2, 7)
+            builder.addInputSlot(FLUID_SLOT_X, SLOT_ROW_Y)
                 .addIngredient(NeoForgeTypes.FLUID_STACK, new FluidStack(Fluids.WATER, 1000))
                 .setFluidRenderer(1000, true, 16, 40)
                 .addRichTooltipCallback((slot, tooltip) -> tooltip.add(
@@ -151,8 +159,8 @@ public final class RiftGunJeiPlugin implements IModPlugin {
 
             var ingredients = holder.value().ingredients();
             for (int index = 0; index < ingredients.size(); index++) {
-                int x = 30 + (index % 2) * 18;
-                int y = 2 + (index / 2) * 18;
+                int x = INPUT_GRID_X + (index % 2) * INPUT_SLOT_SPACING;
+                int y = INPUT_GRID_Y + (index / 2) * INPUT_SLOT_SPACING;
                 builder.addInputSlot(x, y)
                     .addItemStacks(ingredients.get(index).ingredient().items()
                         .map(holder2 -> new ItemStack(holder2.value()))
@@ -160,7 +168,7 @@ public final class RiftGunJeiPlugin implements IModPlugin {
                     .setStandardSlotBackground();
             }
 
-            builder.addOutputSlot(112, 7)
+            builder.addOutputSlot(OUTPUT_SLOT_X, SLOT_ROW_Y)
                 .addIngredient(NeoForgeTypes.FLUID_STACK, holder.value().result())
                 .setFluidRenderer(1000, true, 16, 40);
         }
@@ -169,7 +177,7 @@ public final class RiftGunJeiPlugin implements IModPlugin {
         public void createRecipeExtras(IRecipeExtrasBuilder extras,
                                        RecipeHolder<FluidTransmutationRecipe> recipe,
                                        IFocusGroup focuses) {
-            extras.addDrawable(arrow, 78, 20);
+            extras.addDrawable(arrow, ARROW_X, ARROW_Y);
         }
     }
 }

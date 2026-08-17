@@ -17,18 +17,17 @@ import net.minecraft.world.item.crafting.RecipeType;
 public final class FluidRecipeCache {
     private static volatile List<RecipeHolder<FluidTransmutationRecipe>> recipes;
 
-    /** @return number of fluid recipes found in the synced map. */
-    public static int setFrom(RecipeMap recipeMap, Set<RecipeType<?>> recipeTypes) {
+    /** Stores the fluid recipes found in the synced map, gated on the advertised type. */
+    public static void setFrom(RecipeMap recipeMap, Set<RecipeType<?>> recipeTypes) {
         if (!recipeTypes.contains(RiftGunRecipes.FLUID_TRANSMUTATION_TYPE.get())) {
             recipes = null;
-            return 0;
+            return;
         }
         List<RecipeHolder<FluidTransmutationRecipe>> matched = recipeMap.values().stream()
             .filter(holder -> holder.value() instanceof FluidTransmutationRecipe)
             .map(holder -> (RecipeHolder<FluidTransmutationRecipe>) (RecipeHolder<?>) holder)
             .toList();
         recipes = List.copyOf(matched);
-        return matched.size();
     }
 
     /** @return the synced recipes, or null before the server has synced them. */

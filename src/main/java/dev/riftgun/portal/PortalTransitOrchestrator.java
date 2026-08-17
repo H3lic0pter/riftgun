@@ -28,7 +28,7 @@ final class PortalTransitOrchestrator {
 
     private final PortalEntity portal;
     private final PortalTransitGate gate = new PortalTransitGate();
-    private long lastBlockedRouteDiagnosticAt = Long.MIN_VALUE;
+    private long lastBlockedRouteNotifiedAt = Long.MIN_VALUE;
 
     PortalTransitOrchestrator(PortalEntity portal) {
         this.portal = portal;
@@ -47,7 +47,7 @@ final class PortalTransitOrchestrator {
                 && (!crisisExit || entity instanceof ServerPlayer
                 && portal.crisis().allowsReturn(entity)));
         if (TransitDiagnostics.enabled() && touching.isEmpty()
-            && now - lastBlockedRouteDiagnosticAt >= 20L) {
+            && now - lastBlockedRouteNotifiedAt >= 20L) {
             List<Entity> nearby = portal.level().getEntities(portal, search, entity ->
                 !(entity instanceof PortalEntity) && !entity.isPassenger()
                     && PortalTriggerShape.intersects(portal.placement(), entity.getBoundingBox(),
@@ -57,7 +57,7 @@ final class PortalTransitOrchestrator {
                 String reason = eligibility.rejectionReason(first);
                 if (reason == null && !projectileBudgetAllows(first)) reason = "projectile_budget";
                 if (reason == null && crisisExit) reason = "crisis_return_denied";
-                lastBlockedRouteDiagnosticAt = now;
+                lastBlockedRouteNotifiedAt = now;
                 long immunityRemaining = "relocation_exit_immunity".equals(reason)
                     ? EntityRelocationExitImmunity.remainingTicks(first) : 0L;
                 TransitDiagnostics.portal("nearby entity rejected portal={} root={} type={} dimension={} reason={} remainingTicks={}",
@@ -92,12 +92,12 @@ final class PortalTransitOrchestrator {
             boolean targetTicking = target.level() instanceof ServerLevel serverLevel
                 && serverLevel.isPositionEntityTicking(target.blockPosition());
             if (target.phase() != PortalLifecycle.Phase.OPEN && targetTicking) {
-                logBlockedRoute(touching, now, "linked_target_" + target.phase(), target);
+                notifyBlockedRoute(touching, now, "linked_target_" + target.phase(), target);
                 return;
             }
             *///?} else {
             if (target.phase() != PortalLifecycle.Phase.OPEN) {
-                logBlockedRoute(touching, now, "linked_target_" + target.phase(), target);
+                notifyBlockedRoute(touching, now, "linked_target_" + target.phase(), target);
                 return;
             }
             //?}
@@ -110,7 +110,7 @@ final class PortalTransitOrchestrator {
 
         PortalDeferredExitController deferred = portal.deferredExit();
         if (!deferred.active() || deferred.busy()) {
-            logBlockedRoute(touching, now,
+            notifyBlockedRoute(touching, now,
                 deferred.busy() ? "deferred_busy" : "linked_target_missing_and_no_deferred_target", null);
             return;
         }
@@ -146,10 +146,10 @@ final class PortalTransitOrchestrator {
         gate.markInside(entityId, now, portal.transitCooldownTicks());
     }
 
-    private void logBlockedRoute(List<Entity> touching, long now, String reason,
+    private void notifyBlockedRoute(List<Entity> touching, long now, String reason,
                                  @Nullable PortalEntity target) {
-        if (touching.isEmpty() || now - lastBlockedRouteDiagnosticAt < 20L) return;
-        lastBlockedRouteDiagnosticAt = now;
+        if (touching.isEmpty() || now - lastBlockedRouteNotifiedAt < 20L) return;
+        lastBlockedRouteNotifiedAt = now;
         Entity first = touching.getFirst();
         TransitDiagnostics.portal("contact blocked portal={} root={} type={} dimension={} reason={} target={} targetDimension={}",
             portal.getUUID(), first.getUUID(), first.getType(),

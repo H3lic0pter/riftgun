@@ -68,7 +68,26 @@ public final class AdvancedBasicModuleRecipe extends CustomRecipe {
         // createFromOptionals maps each ingredient to its true 3x3 grid slot
         // (empty Optional for the gap), so the recipe book's auto-place fills
         // the correct positions instead of a linear row.
-        return PlacementInfo.createFromOptionals(java.util.List.of(
+        return PlacementInfo.createFromOptionals(gridIngredients());
+    }
+
+    @Override
+    public java.util.List<RecipeDisplay> display() {
+        // JEI 26's crafting category only renders recipes that expose a shaped or
+        // shapeless display; without this the recipe was hidden even when non-special.
+        return java.util.List.of(new ShapedCraftingRecipeDisplay(3, 3,
+            gridIngredients().stream()
+                .map(ingredient -> ingredient.map(Ingredient::display)
+                    .orElse(SlotDisplay.Empty.INSTANCE))
+                .toList(),
+            new SlotDisplay.ItemStackSlotDisplay(
+                ItemStackTemplate.fromNonEmptyStack(new ItemStack(PortalModules.ADVANCED_BASIC_MODULE.get()))),
+            new SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)));
+    }
+
+    /** Single source for the 3x3 grid shared by the recipe book and the JEI display. */
+    private static java.util.List<java.util.Optional<Ingredient>> gridIngredients() {
+        return java.util.List.of(
             java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get())),
             java.util.Optional.of(Ingredient.of(Items.DRAGON_EGG)),
             java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get())),
@@ -77,26 +96,7 @@ public final class AdvancedBasicModuleRecipe extends CustomRecipe {
             java.util.Optional.of(Ingredient.of(Items.POWDER_SNOW_BUCKET)),
             java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get())),
             java.util.Optional.empty(),
-            java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get()))));
-    }
-
-    @Override
-    public java.util.List<RecipeDisplay> display() {
-        // JEI 26's crafting category only renders recipes that expose a shaped or
-        // shapeless display; without this the recipe was hidden even when non-special.
-        return java.util.List.of(new ShapedCraftingRecipeDisplay(3, 3, java.util.List.of(
-            new SlotDisplay.ItemSlotDisplay(PortalFluids.DIMENSIONAL_BUCKET.get()),
-            new SlotDisplay.ItemSlotDisplay(Items.DRAGON_EGG),
-            new SlotDisplay.ItemSlotDisplay(PortalFluids.DIMENSIONAL_BUCKET.get()),
-            new SlotDisplay.ItemSlotDisplay(Items.POWDER_SNOW_BUCKET),
-            new SlotDisplay.ItemSlotDisplay(PortalModules.BASIC_MODULE.get()),
-            new SlotDisplay.ItemSlotDisplay(Items.POWDER_SNOW_BUCKET),
-            new SlotDisplay.ItemSlotDisplay(PortalFluids.DIMENSIONAL_BUCKET.get()),
-            SlotDisplay.Empty.INSTANCE,
-            new SlotDisplay.ItemSlotDisplay(PortalFluids.DIMENSIONAL_BUCKET.get())
-        ), new SlotDisplay.ItemStackSlotDisplay(
-            ItemStackTemplate.fromNonEmptyStack(new ItemStack(PortalModules.ADVANCED_BASIC_MODULE.get()))),
-            new SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)));
+            java.util.Optional.of(Ingredient.of(PortalFluids.DIMENSIONAL_BUCKET.get())));
     }
 
     @Override
