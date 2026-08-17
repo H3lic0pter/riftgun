@@ -70,7 +70,10 @@ sourceSets.main {
         java.srcDir("versions/$node/src/main/java")
     }
     if (file("versions/$node/src/main/resources").isDirectory) {
-        resources.srcDir("versions/$node/src/main/resources")
+        // Node resources shadow shared ones (e.g. version-specific item
+        // models), so mount them first and let processResources exclude
+        // duplicates in favour of the node copy.
+        resources.setSrcDirs(listOf(file("versions/$node/src/main/resources")) + resources.srcDirs)
     }
 }
 
@@ -108,6 +111,8 @@ tasks.jar {
 
 // NeoGradle expanded these placeholders in mods.toml; ModDevGradle does not.
 tasks.processResources {
+    // Node resource dirs shadow shared ones per version (see sourceSets above).
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     filesMatching("META-INF/neoforge.mods.toml") {
         expand(
             "mod_id" to project.property("mod_id") as String,

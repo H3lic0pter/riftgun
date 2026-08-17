@@ -192,9 +192,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         serverLevel.getChunk(position.getX() >> 4, position.getZ() >> 4);
         // addTicketWithRadius instead of addTicketAndLoadWithRadius: the
         // latter requires the chunk holder to be immediately visible, which
-        // fails for distant unloaded chunks.
+        // fails for distant unloaded chunks. ChunkPos(int, int) takes chunk
+        // coordinates, not the block coordinates of the placement position.
         serverLevel.getChunkSource().addTicketWithRadius(
-            PORTAL_TICKET, new ChunkPos(position.getX(), position.getZ()), 3);
+            PORTAL_TICKET, new ChunkPos(position.getX() >> 4, position.getZ() >> 4), 3);
         ticketPosition = position;
         ticketHeld = true;
     }
@@ -399,7 +400,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     void releaseChunkTicket() {
         if (!ticketHeld || ticketPosition == null || !(level() instanceof ServerLevel serverLevel)) return;
         serverLevel.getChunkSource().removeTicketWithRadius(
-            PORTAL_TICKET, new ChunkPos(ticketPosition.getX(), ticketPosition.getZ()), 3);
+            PORTAL_TICKET, new ChunkPos(ticketPosition.getX() >> 4, ticketPosition.getZ() >> 4), 3);
         ticketHeld = false;
     }
 

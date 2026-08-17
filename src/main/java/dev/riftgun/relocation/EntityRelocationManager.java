@@ -251,7 +251,8 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             RiftConfig.FuelConfig fuelConfig, long now) {
         UUID ticketId = reservation.id();
         //? if >=1.21.11 {
-        /*ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()).getX(), BlockPos.containing(destination.position()).getZ());
+        /*// ChunkPos(int, int) takes chunk coordinates; the destination is in block coordinates.
+        ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()).getX() >> 4, BlockPos.containing(destination.position()).getZ() >> 4);
         *///?} else {
         ChunkPos chunk = new ChunkPos(BlockPos.containing(destination.position()));
         //?}

@@ -270,6 +270,8 @@ final class PortalTransitOrchestrator {
         return movedRoot;
     }
 
+    private static final int MAX_RAISE_STEPS = 32;
+
     private @Nullable Vec3 treeDestination(Entity root, PortalEntity target) {
         Vec3 destination = target.outputPosition(root);
         Vec3 translation = destination.subtract(root.position());
@@ -282,9 +284,33 @@ final class PortalTransitOrchestrator {
         ServerLevel targetLevel = (ServerLevel) target.level();
         for (AABB bounds : predicted) {
             AABB corrected = bounds.move(correctionVector).deflate(0.001);
-            if (targetLevel.getBlockCollisions(null, corrected).iterator().hasNext()) return null;
+            if (targetLevel.getBlockCollisions(null, corrected).iterator().hasNext()) {
+                return raisedClearance(targetLevel, destination, correctionVector, predicted);
+            }
         }
         return destination.add(correctionVector);
+    }
+
+    /**
+     * Exit placements are resolved before distant chunks generate, so the real
+     * terrain can bury an exit. Raise the landing spot until the whole tree
+     * clears the blocks instead of refusing the transit.
+     */
+    private @Nullable Vec3 raisedClearance(ServerLevel targetLevel, Vec3 destination,
+                                           Vec3 correctionVector, List<AABB> predicted) {
+        for (int steps = 1; steps <= MAX_RAISE_STEPS; steps++) {
+            Vec3 lift = new Vec3(0.0, steps, 0.0);
+            boolean clear = true;
+            for (AABB bounds : predicted) {
+                AABB moved = bounds.move(correctionVector).move(lift).deflate(0.001);
+                if (targetLevel.getBlockCollisions(null, moved).iterator().hasNext()) {
+                    clear = false;
+                    break;
+                }
+            }
+            if (clear) return destination.add(correctionVector).add(lift);
+        }
+        return null;
     }
 
     private boolean projectileBudgetAllows(Entity entity) {
