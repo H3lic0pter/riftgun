@@ -336,7 +336,7 @@ public final class PortalPlayerData {
         if (Nbt.hasUUID(root, "LastViewed")) data.lastViewedDestinationId = Nbt.getUUID(root, "LastViewed");
         if (Nbt.hasUUID(root, "SelectedPlayer")) data.selectedPlayerId = Nbt.getUUID(root, "SelectedPlayer");
         data.settings = PortalPlayerSettings.load(Nbt.getCompound(root, "Settings"));
-        boolean structuredPermissions = Nbt.contains(root, "GlobalPermissions");
+        boolean structuredPermissions = Nbt.contains(root, "GlobalPermissions", Tag.TAG_LIST);
         if (structuredPermissions) {
             ListTag globals = Nbt.getList(root, "GlobalPermissions");
             globals.forEach(raw -> {
@@ -355,12 +355,12 @@ public final class PortalPlayerData {
                 }
             });
         } else {
-            if (Nbt.contains(root, "TargetPrivacy")) {
+            if (Nbt.contains(root, "TargetPrivacy", Tag.TAG_STRING)) {
                 data.targetPrivacy(TargetPrivacy.parse(Nbt.getString(root, "TargetPrivacy"), data.targetPrivacy()));
             }
             data.transitPrivacyEnabled(Nbt.getBoolean(root, "TransitPrivacy"));
         }
-        if (Nbt.contains(root, "PermissionProfiles")) {
+        if (Nbt.contains(root, "PermissionProfiles", Tag.TAG_LIST)) {
             ListTag profiles = Nbt.getList(root, "PermissionProfiles");
             profiles.forEach(raw -> {
                 CompoundTag tag = (CompoundTag) raw;

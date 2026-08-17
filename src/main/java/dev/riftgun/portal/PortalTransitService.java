@@ -77,8 +77,8 @@ final class PortalTransitService {
         moved.setDeltaMovement(plan.momentum());
 //? if >=1.21.11 {
         //?} else {
-/*        moved.hasImpulse = true;
-*///?}
+        moved.hasImpulse = true;
+//?}
         if (moved instanceof Projectile projectile) {
             ProjectileMotion.alignToVelocity(projectile, plan.momentum());
         }

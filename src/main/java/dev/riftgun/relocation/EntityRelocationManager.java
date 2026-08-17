@@ -259,6 +259,8 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         if (!PortalChunkGuard.inWorldBounds(destinationLevel, chunk)) {
             TransitDiagnostics.relocation("prepare abort reservation={} chunk={} outside world bounds",
                 reservation.id(), chunk);
+            registry().fail(reservation);
+            releasePrivacyGrants(destinationLevel.getServer(), privacyReservations);
             Msg.displayClientMessage(owner,
                 net.minecraft.network.chat.Component.translatable("message.riftgun.coordinate_out_of_bounds"), true);
             return;
@@ -727,11 +729,8 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         moved.setDeltaMovement(momentum);
 //? if >=1.21.11 {
-//?} else {
-//? if >=1.21.11 {
         //?} else {
-/*        moved.hasImpulse = true;
-*///?}
+        moved.hasImpulse = true;
 //?}
         for (Entity member : movedMembers) {
             if (member != moved) member.setDeltaMovement(Vec3.ZERO);

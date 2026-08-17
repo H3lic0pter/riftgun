@@ -111,11 +111,8 @@ final class PortalDeferredExitController {
                         projectile.setDeltaMovement(portal.transformVector(
                             projectile.getDeltaMovement(), exit));
 //? if >=1.21.11 {
-//?} else {
-//? if >=1.21.11 {
-                        //?} else {
-/*                        projectile.hasImpulse = true;
-*///?}
+        //?} else {
+                        projectile.hasImpulse = true;
 //?}
                         ProjectileMotion.alignToVelocity(projectile, projectile.getDeltaMovement());
                         PortalProjectileState.recordSuccessfulTransit(projectile);

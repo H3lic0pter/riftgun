@@ -98,7 +98,7 @@ final class PortalCrisisSession {
         configuration = tag.contains("PortalCrises")
             ? PortalCrisisConfigurationSnapshot.load(Nbt.getCompound(tag, "PortalCrises"))
             : PortalCrisisConfigurationSnapshot.stable();
-        if (Nbt.contains(tag, "CrisisEvaluations")) {
+        if (Nbt.contains(tag, "CrisisEvaluations", Tag.TAG_COMPOUND)) {
             evaluations.load(Nbt.getCompound(tag, "CrisisEvaluations"), maximumTrackedPlayers);
         } else {
             CompoundTag legacy = new CompoundTag();

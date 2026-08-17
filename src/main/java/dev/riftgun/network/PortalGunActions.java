@@ -70,7 +70,7 @@ final class PortalGunActions {
             PortalPlacementMode.parse(Nbt.getString(request, "PlacementMode")),
             data.settings().smartDistance(),
             PortalPredictionMode.parse(Nbt.getString(request, "MotionPrediction"), PortalPredictionMode.OFF),
-            Nbt.contains(request, "PortalSounds")
+            Nbt.contains(request, "PortalSounds", Tag.TAG_COMPOUND)
                 ? PortalSoundSettings.load(Nbt.getCompound(request, "PortalSounds"))
                 : data.settings().portalSounds()
         );

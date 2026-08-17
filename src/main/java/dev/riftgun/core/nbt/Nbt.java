@@ -104,6 +104,16 @@ public final class Nbt {
         return tag.contains(key);
     }
 
+    /** Typed presence check; 26.x only has the untyped form, so compare tag ids. */
+    public static boolean contains(CompoundTag tag, String key, int type) {
+        //? if >=1.21.11 {
+        /*Tag value = tag.get(key);
+        return value != null && value.getId() == type;
+        *///?} else {
+        return tag.contains(key, type);
+        //?}
+    }
+
     public static boolean hasUUID(CompoundTag tag, String key) {
         //? if >=1.21.11 {
         /*return tag.getIntArray(key).isPresent() || tag.getLongArray(key).isPresent();

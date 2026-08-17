@@ -67,7 +67,7 @@ public record PortalPlayerSettings(
             sort = DestinationSort.RECENT;
         }
         PortalPredictionMode predictionMode;
-        if (Nbt.contains(tag, "MotionPrediction")) {
+        if (Nbt.contains(tag, "MotionPrediction", Tag.TAG_STRING)) {
             predictionMode = PortalPredictionMode.parse(Nbt.getString(tag, "MotionPrediction"),
                 PortalPredictionMode.PROJECTION);
         } else if (tag.contains("MotionPrediction")) {
@@ -87,7 +87,7 @@ public record PortalPlayerSettings(
             PortalPlacementMode.parse(Nbt.getString(tag, "PlacementMode")),
             tag.contains("SmartDistance") ? Math.max(1, Nbt.getInt(tag, "SmartDistance")) : DEFAULT_SMART_DISTANCE,
             predictionMode,
-            Nbt.contains(tag, "PortalSounds")
+            Nbt.contains(tag, "PortalSounds", Tag.TAG_COMPOUND)
                 ? PortalSoundSettings.load(Nbt.getCompound(tag, "PortalSounds"))
                 : PortalSoundSettings.defaults()
         );
