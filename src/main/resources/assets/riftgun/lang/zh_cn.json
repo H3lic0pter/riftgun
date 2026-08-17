@@ -6,6 +6,8 @@
   "fluid.riftgun.unstable_portal_fluid": "不稳定传送液",
   "fluid.riftgun.portal_fluid": "传送液",
   "fluid.riftgun.dimensional_portal_fluid": "维度传送液",
+  "entity.riftgun.portal": "裂隙传送门",
+  "entity.riftgun.entity_relocation_portal": "裂隙实体转移门",
   "key.categories.riftgun": "Rift Gun",
   "key.category.riftgun.riftgun": "Rift Gun",
   "key.riftgun.open_config": "打开传送配置",
