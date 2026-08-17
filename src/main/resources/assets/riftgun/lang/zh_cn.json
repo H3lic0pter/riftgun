@@ -348,6 +348,8 @@
   "message.riftgun.entity_relocation_preparing": "正在为实体转移准备目的地区块……",
   "message.riftgun.entity_relocation_preparing_busy": "该实体正在等待目的地区块加载",
   "message.riftgun.entity_relocation_preparation_timeout": "目的地区块加载超时，实体转移已取消",
+  "message.riftgun.exit_blocked": "传送出口被阻挡",
+  "message.riftgun.exit_not_ready": "出口传送门尚未就绪",
   "chat.riftgun.privacy_request_received.entity_relocation": "%s 请求将您通过裂隙转移",
   "chat.riftgun.privacy_request_sent.entity_relocation": "已向 %s 发送实体转移请求",
   "chat.riftgun.privacy_request_pending.entity_relocation": "向 %s 发送的实体转移请求仍在等待回应",

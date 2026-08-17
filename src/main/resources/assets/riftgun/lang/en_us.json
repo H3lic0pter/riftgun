@@ -348,6 +348,8 @@
   "message.riftgun.entity_relocation_preparing": "Preparing the destination chunk for entity relocation...",
   "message.riftgun.entity_relocation_preparing_busy": "That entity is waiting for its destination chunk to load",
   "message.riftgun.entity_relocation_preparation_timeout": "Destination chunk loading timed out; entity relocation canceled",
+  "message.riftgun.exit_blocked": "Portal exit is blocked",
+  "message.riftgun.exit_not_ready": "Exit portal is not ready",
   "chat.riftgun.privacy_request_received.entity_relocation": "%s wants to relocate you through a rift",
   "chat.riftgun.privacy_request_sent.entity_relocation": "Entity relocation request sent to %s",
   "chat.riftgun.privacy_request_pending.entity_relocation": "Your entity relocation request to %s is still awaiting a response",

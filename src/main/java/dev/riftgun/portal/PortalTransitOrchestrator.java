@@ -1,4 +1,5 @@
 package dev.riftgun.portal;
+import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 
 import dev.riftgun.diagnostics.TransitDiagnostics;
@@ -9,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -162,6 +164,22 @@ final class PortalTransitOrchestrator {
 *///?} else {
             target == null ? "null" : target.level().dimension().location());
 //?}
+        for (Entity entity : touching) {
+            notifyRefusal(entity, Component.translatable("message.riftgun.exit_not_ready"));
+        }
+    }
+
+    /** Tells the touching player (or the riders of the touched mount) why the transit was refused. */
+    private static void notifyRefusal(Entity root, Component message) {
+        if (root instanceof ServerPlayer player) {
+            Msg.displayClientMessage(player, message, true);
+            return;
+        }
+        for (Entity passenger : root.getPassengers()) {
+            if (passenger instanceof ServerPlayer player) {
+                Msg.displayClientMessage(player, message, true);
+            }
+        }
     }
 
     void leave(UUID entityId) {
@@ -215,6 +233,7 @@ final class PortalTransitOrchestrator {
             leave(root.getUUID());
             logTreeFailure(root, root, (ServerLevel) target.level(),
                 PortalTransitService.FailureStage.PREFLIGHT_CLEARANCE, 0);
+            notifyRefusal(root, Component.translatable("message.riftgun.exit_blocked"));
             return null;
         }
         PortalTransitService.TransitPlan[] rootPlan = new PortalTransitService.TransitPlan[1];
@@ -270,8 +289,6 @@ final class PortalTransitOrchestrator {
         return movedRoot;
     }
 
-    private static final int MAX_RAISE_STEPS = 32;
-
     private @Nullable Vec3 treeDestination(Entity root, PortalEntity target) {
         Vec3 destination = target.outputPosition(root);
         Vec3 translation = destination.subtract(root.position());
@@ -284,33 +301,9 @@ final class PortalTransitOrchestrator {
         ServerLevel targetLevel = (ServerLevel) target.level();
         for (AABB bounds : predicted) {
             AABB corrected = bounds.move(correctionVector).deflate(0.001);
-            if (targetLevel.getBlockCollisions(null, corrected).iterator().hasNext()) {
-                return raisedClearance(targetLevel, destination, correctionVector, predicted);
-            }
+            if (targetLevel.getBlockCollisions(null, corrected).iterator().hasNext()) return null;
         }
         return destination.add(correctionVector);
-    }
-
-    /**
-     * Exit placements are resolved before distant chunks generate, so the real
-     * terrain can bury an exit. Raise the landing spot until the whole tree
-     * clears the blocks instead of refusing the transit.
-     */
-    private @Nullable Vec3 raisedClearance(ServerLevel targetLevel, Vec3 destination,
-                                           Vec3 correctionVector, List<AABB> predicted) {
-        for (int steps = 1; steps <= MAX_RAISE_STEPS; steps++) {
-            Vec3 lift = new Vec3(0.0, steps, 0.0);
-            boolean clear = true;
-            for (AABB bounds : predicted) {
-                AABB moved = bounds.move(correctionVector).move(lift).deflate(0.001);
-                if (targetLevel.getBlockCollisions(null, moved).iterator().hasNext()) {
-                    clear = false;
-                    break;
-                }
-            }
-            if (clear) return destination.add(correctionVector).add(lift);
-        }
-        return null;
     }
 
     private boolean projectileBudgetAllows(Entity entity) {
