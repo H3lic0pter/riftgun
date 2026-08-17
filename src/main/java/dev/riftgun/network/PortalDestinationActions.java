@@ -209,6 +209,10 @@ final class PortalDestinationActions {
     }
 
     private static void select(PortalPlayerData data, UUID destinationId) {
+        // Selecting a destination always deselects the player target; without
+        // this, creating a destination while a player was selected left the
+        // stale player selection in place and every open went to the player.
+        data.selectedPlayerId(null);
         data.selectedDestinationId(destinationId);
         data.lastViewedDestinationId(destinationId);
     }
