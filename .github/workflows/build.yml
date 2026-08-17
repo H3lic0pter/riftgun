@@ -15,12 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # One entry per supported Minecraft version. Uncomment and add a
-          # Java version when a new node is enabled in versions/.
+          # One entry per supported Minecraft version. Add a Java version
+          # when a new node is enabled in versions/.
           - version: 1.21.1
             java: '21'
-          # - version: 26.1.2
-          #   java: '25'
+          - version: 26.1.2
+            java: '25'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
       - name: Build and verify release JAR (${{ matrix.version }})
         run: |
           chmod +x gradlew
-          ./gradlew clean build --warning-mode all
+          ./gradlew :${{ matrix.version }}:build --warning-mode all
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:

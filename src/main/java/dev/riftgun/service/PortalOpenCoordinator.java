@@ -200,7 +200,7 @@ public final class PortalOpenCoordinator {
             if (!crossDimension && data.settings().safetyCheckEnabled()) {
                 safetyReport = RiftRuntime.current().safetyInspector().inspect(targetLevel, destination);
                 if (!safetyReport.safe()) {
-                    Msg.displayClientMessage(player, 
+                    Msg.displayClientMessage(player,
                         Component.translatable("message.riftgun.destination_unsafe"), true);
                 }
                 resolved = RiftRuntime.current().safeDestinationResolver().resolve(

@@ -461,14 +461,14 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         boolean warned = false;
         for (Entity entity : movedEntities) {
             if (entity instanceof ServerPlayer player) {
-                Msg.displayClientMessage(player, 
+                Msg.displayClientMessage(player,
                     Component.translatable("message.riftgun.exit_generation_failed"), true);
                 warned = true;
             }
         }
         if (!warned && ownerId != null) {
             ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
-            if (owner != null) Msg.displayClientMessage(owner, 
+            if (owner != null) Msg.displayClientMessage(owner,
                 Component.translatable("message.riftgun.exit_generation_failed"), true);
         }
     }
@@ -477,14 +477,14 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         boolean warned = false;
         for (Entity entity : root.getSelfAndPassengers().toList()) {
             if (entity instanceof ServerPlayer player) {
-                Msg.displayClientMessage(player, 
+                Msg.displayClientMessage(player,
                     Component.translatable("message.riftgun.destination_teleport_failed"), true);
                 warned = true;
             }
         }
         if (!warned && ownerId != null) {
             ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
-            if (owner != null) Msg.displayClientMessage(owner, 
+            if (owner != null) Msg.displayClientMessage(owner,
                 Component.translatable("message.riftgun.destination_teleport_failed"), true);
         }
     }
