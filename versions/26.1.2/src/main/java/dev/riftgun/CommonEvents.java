@@ -2,10 +2,12 @@ package dev.riftgun;
 
 import dev.riftgun.fuel.PortalFuelProfileReloadListener;
 import dev.riftgun.lifecycle.RiftLifecycle;
+import dev.riftgun.recipe.RiftGunRecipes;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
@@ -43,6 +45,15 @@ public final class CommonEvents {
         if (event.getOriginal() instanceof ServerPlayer original && event.getEntity() instanceof ServerPlayer replacement) {
             RiftLifecycle.playerCloned(original, replacement);
         }
+    }
+
+    @SubscribeEvent
+    public static void datapackSync(OnDatapackSyncEvent event) {
+        // Advertise the fluid recipe type so the server includes it (and its
+        // recipes) in the RecipeContentPayload sent to NeoForge clients; without
+        // this the synced recipe map on the client never carries our recipes and
+        // JEI cannot display the fluid transmutations.
+        event.sendRecipes(RiftGunRecipes.FLUID_TRANSMUTATION_TYPE.get());
     }
 
     @SubscribeEvent

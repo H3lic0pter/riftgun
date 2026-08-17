@@ -1,5 +1,6 @@
 package dev.riftgun.client;
 
+import dev.riftgun.client.recipe.FluidRecipeCache;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalSplashEmitter;
@@ -19,13 +20,22 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
 public final class ClientGameEvents {
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void recipesReceived(RecipesReceivedEvent event) {
+        // Mirror AE2: keep the server-synced recipe map and advertised types,
+        // gated on our type, before JEI (ListenerPriority.LOWEST) registers.
+        FluidRecipeCache.setFrom(event.getRecipeMap(), event.getRecipeTypes());
+    }
+
     @SubscribeEvent
     public static void clientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();

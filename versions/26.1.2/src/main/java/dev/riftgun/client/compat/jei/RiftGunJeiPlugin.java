@@ -1,6 +1,7 @@
 package dev.riftgun.client.compat.jei;
 
 import dev.riftgun.core.RiftConstants;
+import dev.riftgun.client.recipe.FluidRecipeCache;
 import dev.riftgun.recipe.FluidTransmutationRecipe;
 import java.util.List;
 import mezz.jei.api.IModPlugin;
@@ -60,9 +61,7 @@ public final class RiftGunJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        RecipeManager manager = recipeManager();
-        if (manager == null) return;
-        registerTransmutationRecipes(registration, fluidRecipes(manager));
+        registerTransmutationRecipes(registration, fluidRecipeSource());
     }
 
     @Override
@@ -76,10 +75,16 @@ public final class RiftGunJeiPlugin implements IModPlugin {
         if (!recipes.isEmpty()) registration.addRecipes(TRANSMUTATION, recipes);
     }
 
-    private static RecipeManager recipeManager() {
-        // The 26.1.2 client no longer carries a full recipe map; the integrated
-        // server's manager is authoritative in singleplayer. Multiplayer still
-        // needs a server -> client recipe sync, which JEI 26 performs itself.
+    private static List<RecipeHolder<FluidTransmutationRecipe>> fluidRecipeSource() {
+        List<RecipeHolder<FluidTransmutationRecipe>> synced = FluidRecipeCache.get();
+        if (synced != null) return synced;
+        // Before a server sent its recipe map, the integrated server's manager
+        // is authoritative (singleplayer).
+        RecipeManager manager = singleplayerRecipeManager();
+        return manager == null ? List.of() : fluidRecipes(manager);
+    }
+
+    private static RecipeManager singleplayerRecipeManager() {
         IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
         return server == null ? null : server.getRecipeManager();
     }
