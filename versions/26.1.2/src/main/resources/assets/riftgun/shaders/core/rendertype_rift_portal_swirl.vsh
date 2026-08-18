@@ -21,7 +21,7 @@ void main() {
     // The CPU bakes the per-frame rotation angle (0..TAU) and the alpha-region
     // remap flag into the lightmap attribute every frame, so the surface and glow
     // shaders need no per-draw uniforms and the animation settings take effect live.
-    rotation = (float(UV2.x) / 65535.0) * TAU;
+    rotation = (float(UV2.x & 0xFFFF) / 65535.0) * TAU;
     mapped = UV2.y;
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 }

@@ -20,7 +20,9 @@ import org.joml.Matrix4f;
 final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
     private static final int EDGE_SEGMENTS = 48;
     private static final int FALLBACK_SURFACE_SEGMENTS = 48;
-    private static final float FALLBACK_BRIGHTNESS_BOOST = 0.80F;
+    private static final float TICKS_PER_SECOND = 20.0F;
+    // The additive glow layer tints slightly dimmer than the opaque surface.
+    private static final float GLOW_BRIGHTNESS_MULTIPLIER = 0.80F;
     private static final float TAU = (float) (Math.PI * 2.0);
 
     @Override
@@ -69,7 +71,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
                 context.style().surfaceColor(), shimmer, rotation, mapped));
             context.submit(PortalRenderTypes.swirlGlow(), (pose, vertices) -> drawSurface(
                 pose.pose(), basis, vertices, width, height, depth, normalOffset,
-                context.style().surfaceColor(), shimmer * FALLBACK_BRIGHTNESS_BOOST, rotation, mapped));
+                context.style().surfaceColor(), shimmer * GLOW_BRIGHTNESS_MULTIPLIER, rotation, mapped));
         } else if (path == PortalSurfaceRenderPath.VANILLA_FALLBACK) {
             float period = animated ? (float) SwirlVisualOptions.outerPeriod() : 0.0F;
             context.submit(PortalRenderTypes.swirlFallback(), (pose, vertices) -> drawFallbackFace(
@@ -78,7 +80,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
                 context.age(), period, animated));
             context.submit(PortalRenderTypes.swirlFallbackGlow(), (pose, vertices) -> drawFallbackFace(
                 pose.pose(), basis, vertices, width, height, depth, normalOffset,
-                context.style().surfaceColor(), shimmer * FALLBACK_BRIGHTNESS_BOOST,
+                context.style().surfaceColor(), shimmer * GLOW_BRIGHTNESS_MULTIPLIER,
                 phase, mapped, context.age(), period, animated));
         }
         context.submit(PortalRenderTypes.swirlEdge(), (pose, vertices) -> drawEdge(pose.pose(), basis,
@@ -86,9 +88,20 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
     }
 
     static float swirlRotation(float ageTicks, float periodSeconds, float phase) {
-        float turns = ageTicks / (Math.max(periodSeconds, 0.1F) * 20.0F) + phase;
+        float turns = ageTicks / (Math.max(periodSeconds, 0.1F) * TICKS_PER_SECOND) + phase;
         float fraction = turns - (float) Math.floor(turns);
         return fraction * TAU;
+    }
+
+    /**
+     * Encodes a rotation angle onto the 0..65535 range carried by the UV2 lightmap attribute.
+     * The attribute is stored as a signed 16-bit value, so the vertex shader reads it back
+     * unsigned ({@code UV2.x & 0xFFFF}) to recover the full 0..TAU circle.
+     */
+    static int encodeRotation(float radians) {
+        float turns = radians / TAU;
+        turns -= (float) Math.floor(turns);
+        return (int) (turns * 65535.0F);
     }
 
     private static void drawSurface(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
@@ -100,21 +113,24 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         float hw = width * 0.5F;
         float hh = height * 0.5F;
         float hd = depth * 0.5F;
-        float front = normalOffset + hd;
-        float back = normalOffset - hd;
-        int encoded = (int) (rotation / TAU * 65535.0F);
+        float frontOffset = normalOffset + hd;
+        float backOffset = normalOffset - hd;
+        int front = encodeRotation(rotation);
+        // The back face mirrors the swirl (like the fallback's rotationDirection) so it keeps
+        // spinning the same way when viewed from the other side.
+        int back = encodeRotation(-rotation);
         int mappedFlag = mapped ? 1 : 0;
 
         // Opposite winding plus viewer-relative UVs prevents the two opaque faces from overlapping.
-        vertex(vertices, matrix, basis.at(-hw, -hh, front), red, green, blue, encoded, mappedFlag, 0, 0);
-        vertex(vertices, matrix, basis.at(hw, -hh, front), red, green, blue, encoded, mappedFlag, 1, 0);
-        vertex(vertices, matrix, basis.at(hw, hh, front), red, green, blue, encoded, mappedFlag, 1, 1);
-        vertex(vertices, matrix, basis.at(-hw, hh, front), red, green, blue, encoded, mappedFlag, 0, 1);
+        vertex(vertices, matrix, basis.at(-hw, -hh, frontOffset), red, green, blue, front, mappedFlag, 0, 0);
+        vertex(vertices, matrix, basis.at(hw, -hh, frontOffset), red, green, blue, front, mappedFlag, 1, 0);
+        vertex(vertices, matrix, basis.at(hw, hh, frontOffset), red, green, blue, front, mappedFlag, 1, 1);
+        vertex(vertices, matrix, basis.at(-hw, hh, frontOffset), red, green, blue, front, mappedFlag, 0, 1);
 
-        vertex(vertices, matrix, basis.at(hw, -hh, back), red, green, blue, encoded, mappedFlag, 0, 0);
-        vertex(vertices, matrix, basis.at(-hw, -hh, back), red, green, blue, encoded, mappedFlag, 1, 0);
-        vertex(vertices, matrix, basis.at(-hw, hh, back), red, green, blue, encoded, mappedFlag, 1, 1);
-        vertex(vertices, matrix, basis.at(hw, hh, back), red, green, blue, encoded, mappedFlag, 0, 1);
+        vertex(vertices, matrix, basis.at(hw, -hh, backOffset), red, green, blue, back, mappedFlag, 0, 0);
+        vertex(vertices, matrix, basis.at(-hw, -hh, backOffset), red, green, blue, back, mappedFlag, 1, 0);
+        vertex(vertices, matrix, basis.at(-hw, hh, backOffset), red, green, blue, back, mappedFlag, 1, 1);
+        vertex(vertices, matrix, basis.at(hw, hh, backOffset), red, green, blue, back, mappedFlag, 0, 1);
     }
 
     private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,

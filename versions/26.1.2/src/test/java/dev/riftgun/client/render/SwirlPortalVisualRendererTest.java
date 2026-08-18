@@ -30,4 +30,14 @@ class SwirlPortalVisualRendererTest {
                 "angle out of range at ticks=" + ticks);
         }
     }
+
+    @Test
+    void rotationEncodingWrapsIntoTheUnsignedLightmapRange() {
+        assertEquals(0, SwirlPortalVisualRenderer.encodeRotation(0.0F));
+        assertEquals(0, SwirlPortalVisualRenderer.encodeRotation(TAU));
+        assertEquals(32767, SwirlPortalVisualRenderer.encodeRotation(TAU * 0.5F));
+
+        int wrapped = SwirlPortalVisualRenderer.encodeRotation(-0.5F);
+        assertEquals(true, wrapped >= 0 && wrapped < 65536, "encoded out of range: " + wrapped);
+    }
 }

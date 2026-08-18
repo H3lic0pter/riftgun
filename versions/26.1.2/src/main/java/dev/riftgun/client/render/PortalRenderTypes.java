@@ -132,7 +132,6 @@ public final class PortalRenderTypes {
         RenderSetup.builder(Pipelines.SWIRL)
             .withTexture("Sampler0", SWIRL_TEXTURE,
                 () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
-            .sortOnUpload()
             .bufferSize(256)
             .createRenderSetup()
     );
