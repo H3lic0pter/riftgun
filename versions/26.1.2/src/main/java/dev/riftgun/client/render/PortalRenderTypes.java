@@ -32,6 +32,12 @@ public final class PortalRenderTypes {
         Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
     private static final Identifier WHITE_TEXTURE =
         Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/misc/white.png");
+    private static final Identifier ENDFRAME_FRAME_TEXTURE =
+        Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_frame.png");
+    private static final Identifier END_SKY_LOCATION =
+        Identifier.withDefaultNamespace("textures/environment/end_sky.png");
+    private static final Identifier END_PORTAL_LOCATION =
+        Identifier.withDefaultNamespace("textures/entity/end_portal/end_portal.png");
 
     private PortalRenderTypes() {}
 
@@ -100,6 +106,23 @@ public final class PortalRenderTypes {
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .build();
 
+        /** Vanilla end-portal star without face culling, so both portal faces
+         *  render regardless of vertex winding (the vanilla end portal culls). */
+        public static final RenderPipeline ENDFRAME_STAR = RenderPipeline.builder(
+                RenderPipelines.MATRICES_PROJECTION_SNIPPET,
+                RenderPipelines.FOG_SNIPPET,
+                RenderPipelines.GLOBALS_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/riftgun_endframe_star"))
+            .withVertexShader("core/rendertype_end_portal")
+            .withFragmentShader("core/rendertype_end_portal")
+            .withSampler("Sampler0")
+            .withSampler("Sampler1")
+            .withVertexFormat(DefaultVertexFormat.POSITION, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(DepthStencilState.DEFAULT)
+            .withCull(false)
+            .withShaderDefine("PORTAL_LAYERS", 15)
+            .build();
+
         private Pipelines() {}
     }
 
@@ -154,6 +177,15 @@ public final class PortalRenderTypes {
             .createRenderSetup()
     );
 
+    private static final RenderType ENDFRAME_STAR = RenderType.create(
+        "riftgun_endframe_star",
+        RenderSetup.builder(Pipelines.ENDFRAME_STAR)
+            .withTexture("Sampler0", END_SKY_LOCATION)
+            .withTexture("Sampler1", END_PORTAL_LOCATION)
+            .bufferSize(1536)
+            .createRenderSetup()
+    );
+
     public static RenderType portal() {
         return PORTAL;
     }
@@ -180,6 +212,14 @@ public final class PortalRenderTypes {
 
     public static RenderType swirlFallback() {
         return RenderTypes.entityCutout(SWIRL_TEXTURE);
+    }
+
+    public static RenderType endframeFrame() {
+        return RenderTypes.entityTranslucent(ENDFRAME_FRAME_TEXTURE);
+    }
+
+    public static RenderType endframeStar() {
+        return ENDFRAME_STAR;
     }
 
     public static RenderType swirlFallbackGlow() {

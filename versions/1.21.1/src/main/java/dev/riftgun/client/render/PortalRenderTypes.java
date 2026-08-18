@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.riftgun.RiftGun;
 import java.util.OptionalDouble;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
@@ -15,6 +16,12 @@ public final class PortalRenderTypes extends RenderType {
         ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
     private static final ResourceLocation WHITE_TEXTURE =
         ResourceLocation.withDefaultNamespace("textures/misc/white.png");
+    private static final ResourceLocation ENDFRAME_FRAME_TEXTURE =
+        ResourceLocation.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_frame.png");
+    private static final ResourceLocation END_SKY_LOCATION =
+        ResourceLocation.withDefaultNamespace("textures/environment/end_sky.png");
+    private static final ResourceLocation END_PORTAL_LOCATION =
+        ResourceLocation.withDefaultNamespace("textures/entity/end_portal.png");
     private static ShaderInstance portalShader;
     private static ShaderInstance swirlShader;
 
@@ -99,6 +106,25 @@ public final class PortalRenderTypes extends RenderType {
             .createCompositeState(false)
     );
 
+    /** The vanilla end-portal star without face culling, so both portal faces
+     *  render regardless of vertex winding (the vanilla endPortal type culls). */
+    private static final RenderType ENDFRAME_STAR = create(
+        "riftgun_endframe_star",
+        DefaultVertexFormat.POSITION,
+        VertexFormat.Mode.QUADS,
+        1536,
+        false,
+        false,
+        CompositeState.builder()
+            .setShaderState(new ShaderStateShard(GameRenderer::getRendertypeEndPortalShader))
+            .setTextureState(RenderStateShard.MultiTextureStateShard.builder()
+                .add(END_SKY_LOCATION, false, false)
+                .add(END_PORTAL_LOCATION, false, false)
+                .build())
+            .setCullState(NO_CULL)
+            .createCompositeState(false)
+    );
+
     private PortalRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
                               boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState,
                               Runnable clearState) {
@@ -127,6 +153,14 @@ public final class PortalRenderTypes extends RenderType {
 
     public static RenderType swirlFallback() {
         return RenderType.entityCutoutNoCull(SWIRL_TEXTURE);
+    }
+
+    public static RenderType endframeFrame() {
+        return RenderType.entityTranslucent(ENDFRAME_FRAME_TEXTURE);
+    }
+
+    public static RenderType endframeStar() {
+        return ENDFRAME_STAR;
     }
 
     public static RenderType swirlFallbackGlow() {

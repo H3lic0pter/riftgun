@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 public final class PortalVisualRegistry {
     public static final ResourceLocation CLASSIC_ID = id("classic");
     public static final ResourceLocation SWIRL_ID = id("swirl");
+    public static final ResourceLocation ENDFRAME_ID = id("endframe");
     public static final ResourceLocation DEFAULT_ID = SWIRL_ID;
     private static final Map<ResourceLocation, PortalVisualType> TYPES = new LinkedHashMap<>();
 
@@ -19,6 +20,8 @@ public final class PortalVisualRegistry {
         register(new PortalVisualType(SWIRL_ID, "screen.riftgun.visual.swirl",
             "screen.riftgun.visual.swirl_description", new SwirlPortalVisualRenderer(),
             SwirlVisualOptions.DESCRIPTOR));
+        register(new PortalVisualType(ENDFRAME_ID, "screen.riftgun.visual.endframe",
+            "screen.riftgun.visual.endframe_description", new EndframePortalVisualRenderer()));
     }
 
     public static PortalVisualType register(PortalVisualType type) {

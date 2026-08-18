@@ -67,6 +67,8 @@
   "screen.riftgun.visual.classic_description": "原有的程序化传送门门体",
   "screen.riftgun.visual.swirl": "漩涡",
   "screen.riftgun.visual.swirl_description": "不透明的双面漩涡贴图",
+  "screen.riftgun.visual.endframe": "末地之环",
+  "screen.riftgun.visual.endframe_description": "末地传送门星空盘面外衔传送液色圆环，全程静态",
   "screen.riftgun.visual.swirl_animation_settings": "漩涡动画",
   "screen.riftgun.visual.swirl_outer_period": "外圈周期：%s 秒",
   "screen.riftgun.visual.swirl_inner_period": "内圈周期：%s 秒",
