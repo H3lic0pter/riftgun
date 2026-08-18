@@ -31,7 +31,7 @@ public final class PortalRenderTypes {
     private static final Identifier SWIRL_TEXTURE =
         Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/entity/portal_surface.png");
     private static final Identifier WHITE_TEXTURE =
-        Identifier.withDefaultNamespace("textures/misc/white.png");
+        Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "textures/misc/white.png");
 
     private PortalRenderTypes() {}
 

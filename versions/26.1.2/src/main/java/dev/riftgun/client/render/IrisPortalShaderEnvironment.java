@@ -2,6 +2,7 @@ package dev.riftgun.client.render;
 
 import com.mojang.logging.LogUtils;
 import java.lang.reflect.Method;
+import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 
 /** Optional Iris bridge. No Iris type is linked unless the mod is actually present. */
@@ -21,19 +22,30 @@ final class IrisPortalShaderEnvironment implements PortalShaderEnvironment {
     }
 
     static PortalShaderEnvironment detect() {
+        boolean irisModLoaded = ModList.get().isLoaded("iris");
+        Class<?> apiType;
         try {
-            Class<?> apiType = Class.forName(IRIS_API, false,
+            apiType = Class.forName(IRIS_API, false,
                 IrisPortalShaderEnvironment.class.getClassLoader());
+        } catch (ClassNotFoundException | LinkageError error) {
+            apiType = null;
+        }
+        if (apiType == null && !irisModLoaded) {
+            // No Iris at all: plain vanilla rendering, use the custom pipelines.
+            return () -> State.INACTIVE;
+        }
+        if (apiType == null) {
+            // Iris mod present but the 26.x API moved away from the v0 class: stay on the safe
+            // vanilla-fallback path so shader packs never meet the custom pipelines.
+            LOGGER.warn("Iris mod present but its v0 API class is unavailable; using the safe portal fallback");
+            return () -> State.COMPATIBILITY_FALLBACK;
+        }
+        try {
             Object api = apiType.getMethod("getInstance").invoke(null);
             return new IrisPortalShaderEnvironment(api,
                 apiType.getMethod("isShaderPackInUse"),
                 apiType.getMethod("isRenderingShadowPass"));
-        } catch (ClassNotFoundException error) {
-            // No Iris (or the 26.x API moved packages): plain vanilla rendering, use custom pipelines.
-            return () -> State.INACTIVE;
         } catch (ReflectiveOperationException | LinkageError error) {
-            // The API class exists but could not be linked (e.g. a 26.x Iris with a changed
-            // interface); route through the safe vanilla-fallback path instead of custom shaders.
             LOGGER.warn("Iris API present but could not be linked; using the safe portal fallback", error);
             return () -> State.COMPATIBILITY_FALLBACK;
         }
