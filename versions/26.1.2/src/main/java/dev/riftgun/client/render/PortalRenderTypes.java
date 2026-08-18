@@ -82,6 +82,24 @@ public final class PortalRenderTypes {
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .build();
 
+        /**
+         * Additive emissive swirl glow for the shader-pack fallback: vanilla core/entity is
+         * rewritten by shader packs, so this layer stays visible (unlike the custom pipelines).
+         */
+        public static final RenderPipeline SWIRL_FALLBACK_GLOW = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal_swirl_fallback_glow"))
+            .withVertexShader("core/entity")
+            .withFragmentShader("core/entity")
+            .withShaderDefine("EMISSIVE")
+            .withShaderDefine("NO_OVERLAY")
+            .withShaderDefine("NO_CARDINAL_LIGHTING")
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(BlendFunction.ADDITIVE))
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .build();
+
         private Pipelines() {}
     }
 
@@ -129,6 +147,14 @@ public final class PortalRenderTypes {
             .createRenderSetup()
     );
 
+    private static final RenderType SWIRL_FALLBACK_GLOW = RenderType.create(
+        "rift_portal_swirl_fallback_glow",
+        RenderSetup.builder(Pipelines.SWIRL_FALLBACK_GLOW)
+            .withTexture("Sampler0", SWIRL_TEXTURE)
+            .bufferSize(4096)
+            .createRenderSetup()
+    );
+
     public static RenderType portal() {
         return PORTAL;
     }
@@ -151,5 +177,13 @@ public final class PortalRenderTypes {
 
     public static RenderType swirlGlow() {
         return SWIRL_GLOW;
+    }
+
+    public static RenderType swirlFallback() {
+        return RenderTypes.entityCutout(SWIRL_TEXTURE);
+    }
+
+    public static RenderType swirlFallbackGlow() {
+        return SWIRL_FALLBACK_GLOW;
     }
 }

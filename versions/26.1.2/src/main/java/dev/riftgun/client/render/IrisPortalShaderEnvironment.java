@@ -2,7 +2,6 @@ package dev.riftgun.client.render;
 
 import com.mojang.logging.LogUtils;
 import java.lang.reflect.Method;
-import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 
 /** Optional Iris bridge. No Iris type is linked unless the mod is actually present. */
@@ -22,8 +21,6 @@ final class IrisPortalShaderEnvironment implements PortalShaderEnvironment {
     }
 
     static PortalShaderEnvironment detect() {
-        if (!ModList.get().isLoaded("iris")) return () -> State.INACTIVE;
-
         try {
             Class<?> apiType = Class.forName(IRIS_API, false,
                 IrisPortalShaderEnvironment.class.getClassLoader());
@@ -31,8 +28,13 @@ final class IrisPortalShaderEnvironment implements PortalShaderEnvironment {
             return new IrisPortalShaderEnvironment(api,
                 apiType.getMethod("isShaderPackInUse"),
                 apiType.getMethod("isRenderingShadowPass"));
+        } catch (ClassNotFoundException error) {
+            // No Iris (or the 26.x API moved packages): plain vanilla rendering, use custom pipelines.
+            return () -> State.INACTIVE;
         } catch (ReflectiveOperationException | LinkageError error) {
-            LOGGER.warn("Iris is present but its API could not be linked; using the safe portal fallback", error);
+            // The API class exists but could not be linked (e.g. a 26.x Iris with a changed
+            // interface); route through the safe vanilla-fallback path instead of custom shaders.
+            LOGGER.warn("Iris API present but could not be linked; using the safe portal fallback", error);
             return () -> State.COMPATIBILITY_FALLBACK;
         }
     }
