@@ -20,6 +20,8 @@ public final class ClientConfig {
             VALUES.portalVisualType.get(), VALUES.swirlAnimationEnabled.get(),
             VALUES.swirlOuterPeriod.get(), VALUES.swirlInnerPeriod.get(),
             VALUES.swirlInwardPeriod.get(), VALUES.swirlInwardDirection.get(),
+            VALUES.endframeRotationEnabled.get(), VALUES.endframeRotationPeriod.get(),
+            VALUES.endframeRotationReverse.get(),
             VALUES.portalDynamicLightLevel.get()));
     }
 
@@ -30,6 +32,9 @@ public final class ClientConfig {
         public final ModConfigSpec.DoubleValue swirlInnerPeriod;
         public final ModConfigSpec.DoubleValue swirlInwardPeriod;
         public final ModConfigSpec.BooleanValue swirlInwardDirection;
+        public final ModConfigSpec.BooleanValue endframeRotationEnabled;
+        public final ModConfigSpec.DoubleValue endframeRotationPeriod;
+        public final ModConfigSpec.BooleanValue endframeRotationReverse;
         public final ModConfigSpec.IntValue portalDynamicLightLevel;
 
         private Values(ModConfigSpec.Builder builder) {
@@ -47,6 +52,15 @@ public final class ClientConfig {
                 .defineInRange("inwardPeriod", 2.5, 0.8, 10.0);
             swirlInwardDirection = builder.comment("Inward flow direction of the swirl animation; true flows toward the center")
                 .define("inwardDirection", true);
+            builder.pop(2);
+
+            builder.push("visuals").push("endframe");
+            endframeRotationEnabled = builder.comment("Rotate the endframe portal frame texture like a vortex")
+                .define("rotationEnabled", true);
+            endframeRotationPeriod = builder.comment("Endframe frame rotation period in seconds per full turn")
+                .defineInRange("rotationPeriod", 20.0, 2.0, 60.0);
+            endframeRotationReverse = builder.comment("Reverse the endframe frame rotation direction")
+                .define("rotationReverse", false);
             builder.pop(2);
 
             builder.push("visuals").push("dynamicLighting");

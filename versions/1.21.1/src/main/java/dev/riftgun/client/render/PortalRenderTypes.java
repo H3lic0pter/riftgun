@@ -24,6 +24,7 @@ public final class PortalRenderTypes extends RenderType {
         ResourceLocation.withDefaultNamespace("textures/entity/end_portal.png");
     private static ShaderInstance portalShader;
     private static ShaderInstance swirlShader;
+    private static ShaderInstance endframeShader;
 
     private static final RenderType PORTAL = create(
         "rift_portal",
@@ -125,6 +126,24 @@ public final class PortalRenderTypes extends RenderType {
             .createCompositeState(false)
     );
 
+    /** GPU-rotated end-frame liquid frame; the fragment shader spins the UV
+     *  around the texture centre from {@link #configuredEndframeShader()}. */
+    private static final RenderType ENDFRAME_FRAME_ROTATING = create(
+        "riftgun_endframe_frame",
+        DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP,
+        VertexFormat.Mode.QUADS,
+        256,
+        false,
+        true,
+        CompositeState.builder()
+            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+            .setCullState(NO_CULL)
+            .setLayeringState(NO_LAYERING)
+            .setShaderState(new ShaderStateShard(PortalRenderTypes::configuredEndframeShader))
+            .setTextureState(new TextureStateShard(ENDFRAME_FRAME_TEXTURE, false, false))
+            .createCompositeState(true)
+    );
+
     private PortalRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
                               boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState,
                               Runnable clearState) {
@@ -163,6 +182,10 @@ public final class PortalRenderTypes extends RenderType {
         return ENDFRAME_STAR;
     }
 
+    public static RenderType endframeFrameRotating() {
+        return ENDFRAME_FRAME_ROTATING;
+    }
+
     public static RenderType swirlFallbackGlow() {
         return SWIRL_FALLBACK_GLOW;
     }
@@ -173,6 +196,16 @@ public final class PortalRenderTypes extends RenderType {
 
     public static void setSwirlShader(ShaderInstance shader) {
         swirlShader = shader;
+    }
+
+    public static void setEndframeShader(ShaderInstance shader) {
+        endframeShader = shader;
+    }
+
+    /** The endframe fragment shader is uniform-free; the rotation angle arrives
+     *  baked into the lightmap attribute by the renderer. */
+    private static ShaderInstance configuredEndframeShader() {
+        return endframeShader;
     }
 
     private static ShaderInstance configuredSwirlShader() {

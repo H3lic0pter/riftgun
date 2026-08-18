@@ -89,6 +89,14 @@ public final class ClientModEvents {
             ),
             PortalRenderTypes::setSwirlShader
         );
+        event.registerShader(
+            new ShaderInstance(
+                event.getResourceProvider(),
+                ResourceLocation.withDefaultNamespace("rendertype_rift_endframe"),
+                DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP
+            ),
+            PortalRenderTypes::setEndframeShader
+        );
     }
 
     @SubscribeEvent

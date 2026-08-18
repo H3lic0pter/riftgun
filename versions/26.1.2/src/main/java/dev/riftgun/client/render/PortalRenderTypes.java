@@ -123,6 +123,20 @@ public final class PortalRenderTypes {
             .withShaderDefine("PORTAL_LAYERS", 15)
             .build();
 
+        /** Translucent, unculled end-frame liquid frame; the GPU spins its UV from
+         *  the rotation angle baked into the lightmap attribute each frame. */
+        public static final RenderPipeline ENDFRAME_FRAME = RenderPipeline.builder(
+                RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/riftgun_endframe_frame"))
+            .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_endframe"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_endframe"))
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .build();
+
         private Pipelines() {}
     }
 
@@ -186,6 +200,14 @@ public final class PortalRenderTypes {
             .createRenderSetup()
     );
 
+    private static final RenderType ENDFRAME_FRAME = RenderType.create(
+        "riftgun_endframe_frame",
+        RenderSetup.builder(Pipelines.ENDFRAME_FRAME)
+            .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE)
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
     public static RenderType portal() {
         return PORTAL;
     }
@@ -216,6 +238,10 @@ public final class PortalRenderTypes {
 
     public static RenderType endframeFrame() {
         return RenderTypes.entityTranslucent(ENDFRAME_FRAME_TEXTURE);
+    }
+
+    public static RenderType endframeFrameRotating() {
+        return ENDFRAME_FRAME;
     }
 
     public static RenderType endframeStar() {
