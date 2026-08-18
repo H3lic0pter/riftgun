@@ -20,9 +20,9 @@ import net.minecraft.resources.Identifier;
  *
  * <p>The 1.21.x composite-state shaders were replaced by declarative render pipelines. The
  * portal pixelation shader survives as a custom pipeline ({@link Pipelines#PORTAL}); the swirl
- * animation, which previously lived in a custom fragment shader driven by scalar uniforms, is
- * now computed on the CPU (the 26.1.2 renderer has no per-draw scalar uniform API), so the
- * swirl faces reuse the standard cutout pipeline and the edge/glow layers use custom pipelines.
+ * animation lives in a custom fragment shader ({@link Pipelines#SWIRL}) whose clock comes from
+ * the built-in Globals.GameTime block instead of the 1.21.x per-draw scalar uniforms, and the
+ * edge/glow/fallback layers use the pipelines below.
  */
 public final class PortalRenderTypes {
     private static final Identifier SWIRL_TEXTURE =
@@ -40,6 +40,23 @@ public final class PortalRenderTypes {
             .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal"))
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .build();
+
+        /**
+         * Custom swirl surface pipeline, re-creating the 1.21.x rendertype_rift_portal_swirl
+         * shader. The animation clock comes from the built-in Globals.GameTime block; portal
+         * phase and the horizontal material mapping travel through the Color.a and UV2.x vertex
+         * attributes, exactly like the 1.21.x vertex shader.
+         */
+        public static final RenderPipeline SWIRL = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal_swirl"))
+            .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal_swirl"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal_swirl"))
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withCull(true)
             .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .build();
@@ -77,6 +94,17 @@ public final class PortalRenderTypes {
         "rift_portal",
         RenderSetup.builder(Pipelines.PORTAL)
             .sortOnUpload()
+            .setOutline(RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
+    private static final RenderType SWIRL = RenderType.create(
+        "rift_portal_swirl",
+        RenderSetup.builder(Pipelines.SWIRL)
+            .withTexture("Sampler0", SWIRL_TEXTURE)
+            .sortOnUpload()
+            .setOutline(RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
             .bufferSize(256)
             .createRenderSetup()
     );
@@ -93,6 +121,7 @@ public final class PortalRenderTypes {
         "rift_portal_swirl_edge",
         RenderSetup.builder(Pipelines.SWIRL_EDGE)
             .sortOnUpload()
+            .setOutline(RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
             .bufferSize(4096)
             .createRenderSetup()
     );
@@ -107,6 +136,10 @@ public final class PortalRenderTypes {
 
     public static RenderType portal() {
         return PORTAL;
+    }
+
+    public static RenderType swirl() {
+        return SWIRL;
     }
 
     public static RenderType border() {

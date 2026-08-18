@@ -46,10 +46,15 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
             normalOffset = 0.0F;
         }
         float phase = phase(portal);
-        // 26.1.2 has no per-draw scalar uniform API, so the custom swirl shader is gone and
-        // both surface paths run the CPU animation; the shadow pass keeps skipping the surface.
+        // The custom swirl shader is back on its own pipeline (rendertype_rift_portal_swirl),
+        // driven by the built-in Globals.GameTime block; shader-pack environments keep the CPU
+        // fallback and the shadow pass keeps skipping the surface.
         PortalSurfaceRenderPath path = PortalShaderCompatibility.currentPath();
-        if (path != PortalSurfaceRenderPath.SKIP_SURFACE) {
+        if (path == PortalSurfaceRenderPath.CUSTOM) {
+            context.submit(PortalRenderTypes.swirl(), (pose, vertices) -> drawFaces(pose.pose(), basis,
+                vertices, width, height, depth, normalOffset, context.style().surfaceColor(),
+                shimmer, phase, mapped));
+        } else if (path == PortalSurfaceRenderPath.VANILLA_FALLBACK) {
             context.submit(PortalRenderTypes.swirlFallback(), (pose, vertices) -> drawFallbackFace(
                 pose.pose(), basis, vertices, width, height, depth, normalOffset,
                 context.style().surfaceColor(), shimmer, phase, mapped,
@@ -62,6 +67,37 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         }
         context.submit(PortalRenderTypes.swirlEdge(), (pose, vertices) -> drawEdge(pose.pose(), basis,
             vertices, width, height, depth, normalOffset, context.style().surfaceColor(), shimmer));
+    }
+
+    private static void drawFaces(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
+                                  float width, float height, float depth, float normalOffset,
+                                  int color, float shimmer, float phase, boolean mapped) {
+        float red = red(color) * shimmer;
+        float green = green(color) * shimmer;
+        float blue = blue(color) * shimmer;
+        float hw = width * 0.5F;
+        float hh = height * 0.5F;
+        float hd = depth * 0.5F;
+        float front = normalOffset + hd;
+        float back = normalOffset - hd;
+
+        // Opposite winding plus viewer-relative UVs prevents the two opaque faces from overlapping.
+        vertex(vertices, matrix, basis.at(-hw, -hh, front), red, green, blue, phase, mapped, 0, 0);
+        vertex(vertices, matrix, basis.at(hw, -hh, front), red, green, blue, phase, mapped, 1, 0);
+        vertex(vertices, matrix, basis.at(hw, hh, front), red, green, blue, phase, mapped, 1, 1);
+        vertex(vertices, matrix, basis.at(-hw, hh, front), red, green, blue, phase, mapped, 0, 1);
+
+        vertex(vertices, matrix, basis.at(hw, -hh, back), red, green, blue, phase, mapped, 0, 0);
+        vertex(vertices, matrix, basis.at(-hw, -hh, back), red, green, blue, phase, mapped, 1, 0);
+        vertex(vertices, matrix, basis.at(-hw, hh, back), red, green, blue, phase, mapped, 1, 1);
+        vertex(vertices, matrix, basis.at(hw, hh, back), red, green, blue, phase, mapped, 0, 1);
+    }
+
+    private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
+                               float red, float green, float blue, float phase,
+                               boolean mapped, float u, float v) {
+        vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+            .setColor(red, green, blue, phase).setUv(u, v).setUv2(mapped ? 1 : 0, 0);
     }
 
     private static void drawFallbackFace(Matrix4f matrix, PortalRenderBasis basis,

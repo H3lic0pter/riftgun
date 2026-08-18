@@ -72,6 +72,7 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void registerRenderPipelines(RegisterRenderPipelinesEvent event) {
         event.registerPipeline(PortalRenderTypes.Pipelines.PORTAL);
+        event.registerPipeline(PortalRenderTypes.Pipelines.SWIRL);
         event.registerPipeline(PortalRenderTypes.Pipelines.SWIRL_EDGE);
         event.registerPipeline(PortalRenderTypes.Pipelines.SWIRL_FALLBACK_GLOW);
     }
