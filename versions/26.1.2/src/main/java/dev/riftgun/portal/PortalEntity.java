@@ -258,6 +258,11 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         return PortalLifecycle.Phase.byOrdinal(entityData.get(PHASE));
     }
 
+    /** Returns the authoritative clock-derived phase even when this entity is not ticking. */
+    public PortalLifecycle.Phase lifecyclePhaseAt(long now) {
+        return PortalPairClock.phase(lifecycleStartedAt, closeStartedAt, now);
+    }
+
     public int phaseTicks() {
         return entityData.get(PHASE_TICKS);
     }

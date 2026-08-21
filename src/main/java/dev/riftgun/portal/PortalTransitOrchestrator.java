@@ -84,29 +84,11 @@ final class PortalTransitOrchestrator {
 
         PortalEntity target = portal.linkedPortal();
         if (target != null) {
-            //? if >=1.21.11 {
-            /*// 26.1.2 loads distant exit chunks asynchronously, so an exit whose
-            // chunk is not ticking yet keeps a stale pre-open phase. Treat it as
-            // open so transit proceeds while the chunk loads; a ticking exit
-            // keeps the strict open-phase requirement (full opening animation).
-            boolean targetTicking = target.level() instanceof ServerLevel serverLevel
-                && serverLevel.isPositionEntityTicking(target.blockPosition());
-            if (target.phase() != PortalLifecycle.Phase.OPEN && targetTicking) {
-                notifyBlockedRoute(touching, now, "linked_target_" + target.phase(), target);
+            PortalLifecycle.Phase targetPhase = target.lifecyclePhaseAt(now);
+            if (targetPhase != PortalLifecycle.Phase.OPEN) {
+                notifyBlockedRoute(touching, now, "linked_target_" + targetPhase, target);
                 return;
             }
-            *///?} else {
-            // 1.21.1 loads distant exit chunks synchronously, but an exit in a
-            // chunk that is not entity-ticking yet keeps a stale pre-open phase.
-            // Treat it as open so transit proceeds while the chunk ticks; a
-            // ticking exit keeps the strict open-phase requirement.
-            boolean targetTicking = target.level() instanceof ServerLevel serverLevel
-                && serverLevel.isPositionEntityTicking(target.blockPosition());
-            if (target.phase() != PortalLifecycle.Phase.OPEN && targetTicking) {
-                notifyBlockedRoute(touching, now, "linked_target_" + target.phase(), target);
-                return;
-            }
-            //?}
             for (Entity entity : touching) {
                 if (!gate.enter(entity.getUUID(), now, portal.transitCooldownTicks())) continue;
                 transitNormalTree(entity, target);
