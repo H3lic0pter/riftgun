@@ -177,11 +177,11 @@ final class PortalTransitOrchestrator {
     boolean trySweptProjectile(Projectile projectile, Vec3 start, Vec3 end) {
         if (!portal.allowsProjectile(projectile)) return false;
         PortalEntity target = portal.linkedPortal();
-        if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return false;
+        long now = portal.serverTime();
+        if (target == null || target.lifecyclePhaseAt(now) != PortalLifecycle.Phase.OPEN) return false;
         double radius = Math.max(projectile.getBbWidth(), projectile.getBbHeight()) * 0.5;
         if (!PortalSweptIntersection.crosses(
             portal.placement(), start, end, radius)) return false;
-        long now = portal.serverTime();
         if (!gate.enter(projectile.getUUID(), now, portal.transitCooldownTicks())) return false;
         return transitNormalTree(projectile, target) != null;
     }
@@ -194,10 +194,10 @@ final class PortalTransitOrchestrator {
             portal.excludedPlayerId(), portal.isExitPortal(), portal.horizontalTriggerExtend());
         if (!eligibility.allowsSwept(entity)) return false;
         PortalEntity target = portal.linkedPortal();
-        if (target == null || target.phase() != PortalLifecycle.Phase.OPEN) return false;
+        long now = portal.serverTime();
+        if (target == null || target.lifecyclePhaseAt(now) != PortalLifecycle.Phase.OPEN) return false;
         double radius = Math.max(entity.getBbWidth(), entity.getBbHeight()) * 0.5;
         if (!PortalSweptIntersection.crosses(portal.placement(), start, end, radius)) return false;
-        long now = portal.serverTime();
         if (!gate.enter(entity.getUUID(), now, portal.transitCooldownTicks())) return false;
         return transitNormalTree(entity, target) != null;
     }

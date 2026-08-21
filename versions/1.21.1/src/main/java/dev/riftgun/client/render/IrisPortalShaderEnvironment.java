@@ -42,12 +42,24 @@ final class IrisPortalShaderEnvironment implements PortalShaderEnvironment {
         if (failed) return State.COMPATIBILITY_FALLBACK;
 
         try {
-            return new State((boolean) shaderPackInUse.invoke(api),
-                (boolean) renderingShadowPass.invoke(api));
+            return new State((boolean) shaderPackInUse.invoke(api), false);
         } catch (ReflectiveOperationException | RuntimeException error) {
             failed = true;
             LOGGER.warn("Iris portal compatibility query failed; using the safe portal fallback", error);
             return State.COMPATIBILITY_FALLBACK;
+        }
+    }
+
+    @Override
+    public boolean shadowPass() {
+        if (failed) return false;
+
+        try {
+            return (boolean) renderingShadowPass.invoke(api);
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            failed = true;
+            LOGGER.warn("Iris shadow-pass query failed; using the safe portal fallback", error);
+            return false;
         }
     }
 }

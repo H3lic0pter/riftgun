@@ -14,6 +14,7 @@ final class PortalTransitReadinessSourceTest {
         String orchestrator = read("src/main/java/dev/riftgun/portal/PortalTransitOrchestrator.java");
 
         assertTrue(orchestrator.contains("target.lifecyclePhaseAt(now)"));
+        assertFalse(orchestrator.contains("target.phase()"));
         assertFalse(orchestrator.contains("targetTicking"));
     }
 

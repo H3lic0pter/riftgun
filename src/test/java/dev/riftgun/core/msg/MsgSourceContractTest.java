@@ -15,8 +15,9 @@ final class MsgSourceContractTest {
     void modernBranchUsesPolymorphicPlayerMessaging() throws IOException {
         String source = Files.readString(SOURCE);
 
-        assertTrue(source.contains("player.sendOverlayMessage(message);"));
-        assertTrue(source.contains("player.sendSystemMessage(message);"));
+        assertTrue(source.contains("player::sendOverlayMessage"));
+        assertTrue(source.contains("player::sendSystemMessage"));
+        assertTrue(source.contains("dispatch(message, actionBar"));
         assertFalse(source.contains("(ServerPlayer) player"));
         assertFalse(source.contains("ClientboundSystemChatPacket"));
     }

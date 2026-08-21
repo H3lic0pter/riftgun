@@ -3,6 +3,7 @@ package dev.riftgun.client.render;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
 class PortalShaderCompatibilityTest {
@@ -25,11 +26,21 @@ class PortalShaderCompatibilityTest {
     }
 
     @Test
-    void samplesEnvironmentOnlyWhenFrameStateRefreshes() {
-        AtomicInteger snapshots = new AtomicInteger();
-        PortalShaderEnvironment environment = () -> {
-            snapshots.incrementAndGet();
-            return PortalShaderEnvironment.State.COMPATIBILITY_FALLBACK;
+    void snapshotsActivationOnceAndResolvesPassStateOnUse() {
+        AtomicInteger frameSnapshots = new AtomicInteger();
+        AtomicInteger shadowPassQueries = new AtomicInteger();
+        PortalShaderEnvironment environment = new PortalShaderEnvironment() {
+            @Override
+            public State snapshot() {
+                frameSnapshots.incrementAndGet();
+                return State.COMPATIBILITY_FALLBACK;
+            }
+
+            @Override
+            public boolean shadowPass() {
+                shadowPassQueries.incrementAndGet();
+                return false;
+            }
         };
         try {
             PortalRenderFrameState.refresh(environment);
@@ -37,10 +48,38 @@ class PortalShaderCompatibilityTest {
                 assertEquals(PortalSurfaceRenderPath.VANILLA_FALLBACK,
                     PortalShaderCompatibility.currentPath());
             }
-            assertEquals(1, snapshots.get());
+            assertEquals(1, frameSnapshots.get());
+            assertEquals(30, shadowPassQueries.get());
 
             PortalRenderFrameState.refresh(environment);
-            assertEquals(2, snapshots.get());
+            assertEquals(2, frameSnapshots.get());
+        } finally {
+            PortalRenderFrameState.refresh(() -> PortalShaderEnvironment.State.INACTIVE);
+        }
+    }
+
+    @Test
+    void observesShadowPassChangesWithinTheFrame() {
+        AtomicBoolean shadowPass = new AtomicBoolean();
+        PortalShaderEnvironment environment = new PortalShaderEnvironment() {
+            @Override
+            public State snapshot() {
+                return State.COMPATIBILITY_FALLBACK;
+            }
+
+            @Override
+            public boolean shadowPass() {
+                return shadowPass.get();
+            }
+        };
+        try {
+            PortalRenderFrameState.refresh(environment);
+            assertEquals(PortalSurfaceRenderPath.VANILLA_FALLBACK,
+                PortalShaderCompatibility.currentPath());
+
+            shadowPass.set(true);
+            assertEquals(PortalSurfaceRenderPath.SKIP_SURFACE,
+                PortalShaderCompatibility.currentPath());
         } finally {
             PortalRenderFrameState.refresh(() -> PortalShaderEnvironment.State.INACTIVE);
         }

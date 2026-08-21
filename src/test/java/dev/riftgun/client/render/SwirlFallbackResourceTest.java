@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +64,14 @@ class SwirlFallbackResourceTest {
         int glow = source.indexOf("private static final RenderType SWIRL_FALLBACK_GLOW =");
         String glowType = source.substring(glow, fallback);
         assertEquals(1, count(glowType, "getClampToEdge(FilterMode.LINEAR)"));
+    }
+
+    @Test
+    void legacyFallbackTextureExplicitlyClampsToEdge() throws IOException {
+        Path metadata = Path.of(TEXTURE + ".mcmeta");
+        assertTrue(Files.isRegularFile(metadata));
+        assertTrue(Pattern.compile("\\\"clamp\\\"\\s*:\\s*true")
+            .matcher(Files.readString(metadata)).find());
     }
 
     private static int alpha(BufferedImage image, int x, int y) {

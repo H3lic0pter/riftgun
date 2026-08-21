@@ -1,9 +1,17 @@
 package dev.riftgun.client.render;
 
-/** Immutable shader-compatibility state sampled exactly once before each render frame. */
-public record PortalRenderFrameState(PortalSurfaceRenderPath surfaceRenderPath) {
+/** Shader-pack activation sampled once per frame, with pass-local shadow state resolved on use. */
+public final class PortalRenderFrameState {
     private static volatile PortalRenderFrameState current =
-        new PortalRenderFrameState(PortalSurfaceRenderPath.CUSTOM);
+        new PortalRenderFrameState(false, () -> PortalShaderEnvironment.State.INACTIVE);
+
+    private final boolean shaderPackActive;
+    private final PortalShaderEnvironment environment;
+
+    private PortalRenderFrameState(boolean shaderPackActive, PortalShaderEnvironment environment) {
+        this.shaderPackActive = shaderPackActive;
+        this.environment = environment;
+    }
 
     public static PortalRenderFrameState current() {
         return current;
@@ -15,8 +23,12 @@ public record PortalRenderFrameState(PortalSurfaceRenderPath surfaceRenderPath) 
 
     static void refresh(PortalShaderEnvironment environment) {
         PortalShaderEnvironment.State snapshot = environment.snapshot();
-        current = new PortalRenderFrameState(PortalShaderCompatibility.selectPath(
-            snapshot.shaderPackActive(), snapshot.shadowPass()));
+        current = new PortalRenderFrameState(snapshot.shaderPackActive(), environment);
+    }
+
+    public PortalSurfaceRenderPath surfaceRenderPath() {
+        return PortalShaderCompatibility.selectPath(
+            shaderPackActive, shaderPackActive && environment.shadowPass());
     }
 
     private static final class EnvironmentHolder {
