@@ -67,6 +67,39 @@ class SwirlFallbackResourceTest {
     }
 
     @Test
+    void modernCustomVisualsUseCrispSamplersAndAFixedSwirlAperture() throws IOException {
+        String renderTypes = Files.readString(Path.of(
+            "versions/26.1.2/src/main/java/dev/riftgun/client/render/PortalRenderTypes.java"));
+        int swirl = renderTypes.indexOf("private static final RenderType SWIRL =");
+        int fallbackGlow = renderTypes.indexOf(
+            "private static final RenderType SWIRL_FALLBACK_GLOW =", swirl);
+        String customSwirl = renderTypes.substring(swirl, fallbackGlow);
+        assertEquals(2, count(customSwirl, "getClampToEdge(FilterMode.NEAREST)"));
+
+        int swirlPipeline = renderTypes.indexOf("public static final RenderPipeline SWIRL =");
+        int glowPipeline = renderTypes.indexOf(
+            "public static final RenderPipeline SWIRL_GLOW =", swirlPipeline);
+        String swirlPipelineSource = renderTypes.substring(swirlPipeline, glowPipeline);
+        assertTrue(swirlPipelineSource.contains("ColorTargetState(BlendFunction.TRANSLUCENT)"));
+        assertTrue(swirlPipelineSource.contains("CompareOp.LESS_THAN_OR_EQUAL, true"));
+
+        int frame = renderTypes.indexOf("private static final RenderType ENDFRAME_FRAME =");
+        int accessors = renderTypes.indexOf("public static RenderType portal()", frame);
+        assertEquals(1, count(renderTypes.substring(frame, accessors),
+            "getClampToEdge(FilterMode.NEAREST)"));
+
+        int framePipeline = renderTypes.indexOf("public static final RenderPipeline ENDFRAME_FRAME =");
+        int pipelineConstructor = renderTypes.indexOf("private Pipelines()", framePipeline);
+        assertTrue(renderTypes.substring(framePipeline, pipelineConstructor)
+            .contains("withColorTargetState(ColorTargetState.DEFAULT)"));
+
+        String fragment = Files.readString(Path.of("versions/26.1.2/src/main/resources/"
+            + "assets/riftgun/shaders/core/rendertype_rift_portal_swirl.fsh"));
+        assertTrue(fragment.contains("smoothstep(0.484375, 0.5, radius)"));
+        assertTrue(fragment.contains("vec4(tex.rgb * tintColor, apertureAlpha)"));
+    }
+
+    @Test
     void legacyFallbackTextureExplicitlyClampsToEdge() throws IOException {
         Path metadata = Path.of(TEXTURE + ".mcmeta");
         assertTrue(Files.isRegularFile(metadata));

@@ -11,6 +11,11 @@ uniform sampler2D Sampler0;
 
 void main() {
     vec2 centered = texCoord - 0.5;
+    float radius = length(centered);
+    // Keep the aperture fixed while the material rotates underneath it. A
+    // two-pixel feather avoids the moving flat spot from the source alpha edge.
+    float apertureAlpha = 1.0 - smoothstep(0.484375, 0.5, radius);
+    if (apertureAlpha < 0.01) discard;
     float c = cos(rotation);
     float s = sin(rotation);
     vec2 rotated = vec2(centered.x * c - centered.y * s, centered.x * s + centered.y * c) + 0.5;
@@ -25,7 +30,7 @@ void main() {
 
     vec4 tex = texture(Sampler0, sampleUV);
     if (tex.a < 0.1) discard;
-    // Cutout surface: the texture's own circular alpha keeps the disc opaque while the
-    // glow variant differs only by the additive pipeline blend, so both share this shader.
-    fragColor = vec4(tex.rgb * tintColor, tex.a);
+    // The fixed aperture hides the rotating texture silhouette. The surface is opaque
+    // inside its feathered rim; the glow variant differs only by its additive pipeline.
+    fragColor = vec4(tex.rgb * tintColor, apertureAlpha);
 }

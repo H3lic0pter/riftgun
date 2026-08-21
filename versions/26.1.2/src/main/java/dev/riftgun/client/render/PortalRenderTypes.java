@@ -64,13 +64,13 @@ public final class PortalRenderTypes {
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .build();
 
-        /** Rotating cutout swirl disc: opaque, texture alpha trims the circle. */
+        /** Rotating swirl material under a fixed aperture: opaque inside, feathered at the rim. */
         public static final RenderPipeline SWIRL = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
             .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal_swirl"))
             .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal_swirl"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal_swirl"))
             .withSampler("Sampler0")
-            .withColorTargetState(ColorTargetState.DEFAULT)
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withCull(true)
             .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
@@ -168,7 +168,7 @@ public final class PortalRenderTypes {
         "rift_portal_swirl",
         RenderSetup.builder(Pipelines.SWIRL)
             .withTexture("Sampler0", SWIRL_TEXTURE,
-                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))
             .bufferSize(256)
             .createRenderSetup()
     );
@@ -177,7 +177,7 @@ public final class PortalRenderTypes {
         "rift_portal_swirl_glow",
         RenderSetup.builder(Pipelines.SWIRL_GLOW)
             .withTexture("Sampler0", SWIRL_TEXTURE,
-                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))
             .sortOnUpload()
             .bufferSize(256)
             .createRenderSetup()
@@ -231,7 +231,8 @@ public final class PortalRenderTypes {
     private static final RenderType ENDFRAME_FRAME = RenderType.create(
         "riftgun_endframe_frame",
         RenderSetup.builder(Pipelines.ENDFRAME_FRAME)
-            .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE)
+            .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE,
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))
             .bufferSize(256)
             .createRenderSetup()
     );
