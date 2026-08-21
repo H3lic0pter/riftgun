@@ -59,11 +59,13 @@ class SwirlFallbackResourceTest {
         int endframe = source.indexOf("private static final RenderType ENDFRAME_FALLBACK =");
         String fallbackTypes = source.substring(fallback, endframe);
 
-        assertEquals(1, count(fallbackTypes, "getClampToEdge(FilterMode.LINEAR)"));
+        assertEquals(1, count(fallbackTypes, "getClampToEdge(FilterMode.NEAREST)"));
+        assertEquals(1, count(fallbackTypes, "SWIRL_TEXTURE"));
 
         int glow = source.indexOf("private static final RenderType SWIRL_FALLBACK_GLOW =");
         String glowType = source.substring(glow, fallback);
-        assertEquals(1, count(glowType, "getClampToEdge(FilterMode.LINEAR)"));
+        assertEquals(1, count(glowType, "getClampToEdge(FilterMode.NEAREST)"));
+        assertEquals(1, count(glowType, "SWIRL_TEXTURE"));
     }
 
     @Test
@@ -74,12 +76,12 @@ class SwirlFallbackResourceTest {
         int fallbackGlow = renderTypes.indexOf(
             "private static final RenderType SWIRL_FALLBACK_GLOW =", swirl);
         String customSwirl = renderTypes.substring(swirl, fallbackGlow);
-        assertEquals(2, count(customSwirl, "getClampToEdge(FilterMode.NEAREST)"));
+        assertEquals(1, count(customSwirl, "getClampToEdge(FilterMode.NEAREST)"));
 
         int swirlPipeline = renderTypes.indexOf("public static final RenderPipeline SWIRL =");
-        int glowPipeline = renderTypes.indexOf(
-            "public static final RenderPipeline SWIRL_GLOW =", swirlPipeline);
-        String swirlPipelineSource = renderTypes.substring(swirlPipeline, glowPipeline);
+        int fallbackGlowPipeline = renderTypes.indexOf(
+            "public static final RenderPipeline SWIRL_FALLBACK_GLOW =", swirlPipeline);
+        String swirlPipelineSource = renderTypes.substring(swirlPipeline, fallbackGlowPipeline);
         assertTrue(swirlPipelineSource.contains("ColorTargetState(BlendFunction.TRANSLUCENT)"));
         assertTrue(swirlPipelineSource.contains("CompareOp.LESS_THAN_OR_EQUAL, true"));
 
@@ -97,6 +99,10 @@ class SwirlFallbackResourceTest {
             + "assets/riftgun/shaders/core/rendertype_rift_portal_swirl.fsh"));
         assertTrue(fragment.contains("smoothstep(0.484375, 0.5, radius)"));
         assertTrue(fragment.contains("vec4(tex.rgb * tintColor, apertureAlpha)"));
+
+        String renderer = Files.readString(Path.of(
+            "versions/26.1.2/src/main/java/dev/riftgun/client/render/SwirlPortalVisualRenderer.java"));
+        assertFalse(renderer.contains("PortalRenderTypes.swirlGlow()"));
     }
 
     @Test

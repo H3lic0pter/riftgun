@@ -40,4 +40,11 @@ class SwirlPortalVisualRendererTest {
         int wrapped = SwirlPortalVisualRenderer.encodeRotation(-0.5F);
         assertEquals(true, wrapped >= 0 && wrapped < 65536, "encoded out of range: " + wrapped);
     }
+
+    @Test
+    void shaderFallbackLeavesFourPixelsOfRotationMargin() {
+        assertEquals(-0.0319149F, SwirlPortalVisualRenderer.fallbackTextureUv(0.0F), EPSILON);
+        assertEquals(0.5F, SwirlPortalVisualRenderer.fallbackTextureUv(0.5F), EPSILON);
+        assertEquals(1.0319149F, SwirlPortalVisualRenderer.fallbackTextureUv(1.0F), EPSILON);
+    }
 }

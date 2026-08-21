@@ -18,6 +18,6 @@ void main() {
     float s = sin(rotation);
     vec2 rotated = vec2(centered.x * c - centered.y * s, centered.x * s + centered.y * c) + 0.5;
     vec4 tex = texture(Sampler0, rotated);
-    if (tex.a < 0.01) discard;
+    if (tex.a < 0.1) discard;
     fragColor = vec4(tex.rgb * tintColor, 1.0);
 }

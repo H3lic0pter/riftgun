@@ -20,7 +20,8 @@ import org.joml.Matrix4f;
 final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
     private static final int EDGE_SEGMENTS = 48;
     private static final float TICKS_PER_SECOND = 20.0F;
-    // The additive glow layer tints slightly dimmer than the opaque surface.
+    private static final float FALLBACK_UV_SCALE = 1.0F / 0.94F;
+    // Shader-pack fallback keeps a restrained glow; the custom path matches 1.21.1's surface-only brightness.
     private static final float GLOW_BRIGHTNESS_MULTIPLIER = 0.45F;
     private static final float TAU = (float) (Math.PI * 2.0);
 
@@ -68,9 +69,6 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
             context.submit(PortalRenderTypes.swirl(), (pose, vertices) -> drawSurface(
                 pose.pose(), basis, vertices, width, height, depth, normalOffset,
                 context.style().surfaceColor(), shimmer, rotation, mapped));
-            context.submit(PortalRenderTypes.swirlGlow(), (pose, vertices) -> drawSurface(
-                pose.pose(), basis, vertices, width, height, depth, normalOffset,
-                context.style().surfaceColor(), shimmer * GLOW_BRIGHTNESS_MULTIPLIER, rotation, mapped));
         } else if (path == PortalSurfaceRenderPath.VANILLA_FALLBACK) {
             float period = animated ? (float) SwirlVisualOptions.outerPeriod() : 0.0F;
             context.submit(PortalRenderTypes.swirlFallback(), (pose, vertices) -> drawFallbackFace(
@@ -208,6 +206,8 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         float centeredV = v - 0.5F;
         float rotatedU = (float) (centeredU * cosine - centeredV * sine) + 0.5F;
         float rotatedV = (float) (centeredU * sine + centeredV * cosine) + 0.5F;
+        rotatedU = fallbackTextureUv(rotatedU);
+        rotatedV = fallbackTextureUv(rotatedV);
         if (mapped) {
             rotatedU = 63.5F / 128.0F + (rotatedU - 0.5F) * (110.0F / 128.0F);
             rotatedV = 62.5F / 128.0F + (rotatedV - 0.5F) * (104.0F / 128.0F);
@@ -218,6 +218,10 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
             .setOverlay(OverlayTexture.NO_OVERLAY)
             .setLight(LightCoordsUtil.FULL_BRIGHT)
             .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+    }
+
+    static float fallbackTextureUv(float uv) {
+        return 0.5F + (uv - 0.5F) * FALLBACK_UV_SCALE;
     }
 
     private static void drawEdge(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,

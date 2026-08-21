@@ -29,6 +29,10 @@ final class EndframeShaderFallbackSourceTest {
             assertEquals(1, count(source, "Math.cos(rotation)"));
             assertEquals(1, count(source, "Math.sin(rotation)"));
         }
+
+        String modern = read(
+            "versions/26.1.2/src/main/java/dev/riftgun/client/render/EndframePortalVisualRenderer.java");
+        assertTrue(modern.contains("gpuRotating, !gpuRotating"));
     }
 
     @Test
@@ -70,7 +74,7 @@ final class EndframeShaderFallbackSourceTest {
         assertFalse(legacyFragment.contains("if (tex.a < 0.01) discard;"));
         String modernFragment = read("versions/26.1.2/src/main/resources/assets/riftgun/shaders/"
             + "core/rendertype_rift_endframe.fsh");
-        assertTrue(modernFragment.contains("if (tex.a < 0.01) discard;"));
+        assertTrue(modernFragment.contains("if (tex.a < 0.1) discard;"));
         assertTrue(modernFragment.contains("vec4(tex.rgb * tintColor, 1.0)"));
     }
 

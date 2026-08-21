@@ -35,5 +35,9 @@ final class EndframeVisualGeometry {
         return (float) (0.5 + (u - 0.5) * sine + (v - 0.5) * cosine);
     }
 
+    static float alignedFaceU(float windingU, boolean mirrored) {
+        return mirrored ? 1.0F - windingU : windingU;
+    }
+
     private EndframeVisualGeometry() {}
 }

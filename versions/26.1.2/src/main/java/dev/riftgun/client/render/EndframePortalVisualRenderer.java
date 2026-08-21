@@ -140,33 +140,35 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
         float frontZ = slabHalf + offset;
         quad(vertices, matrix, basis, frontNormal,
             -hw, hh, frontZ, hw, hh, frontZ, hw, -hh, frontZ, -hw, -hh, frontZ,
-            red, green, blue, gpuRotating, frontEncoded, cosine, sine);
+            red, green, blue, gpuRotating, false, frontEncoded, cosine, sine);
 
         Vec3 backNormal = basis.normal().scale(-1.0F);
         float backZ = -slabHalf - offset;
         quad(vertices, matrix, basis, backNormal,
             hw, hh, backZ, -hw, hh, backZ, -hw, -hh, backZ, hw, -hh, backZ,
-            red, green, blue, gpuRotating, backEncoded, cosine, -sine);
+            red, green, blue, gpuRotating, !gpuRotating, backEncoded, cosine, sine);
     }
 
     private static void quad(VertexConsumer vertices, Matrix4f matrix, PortalRenderBasis basis,
                              Vec3 normal, float x1, float y1, float z1, float x2, float y2, float z2,
                               float x3, float y3, float z3, float x4, float y4, float z4,
-                              float red, float green, float blue, boolean gpuRotating, int encoded,
+                              float red, float green, float blue, boolean gpuRotating,
+                              boolean mirrorU, int encoded,
                               double cosine, double sine) {
-        frameVertex(vertices, matrix, basis, normal, x1, y1, z1, 0.0F, 0.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
-        frameVertex(vertices, matrix, basis, normal, x2, y2, z2, 1.0F, 0.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
-        frameVertex(vertices, matrix, basis, normal, x3, y3, z3, 1.0F, 1.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
-        frameVertex(vertices, matrix, basis, normal, x4, y4, z4, 0.0F, 1.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
+        frameVertex(vertices, matrix, basis, normal, x1, y1, z1, 0.0F, 0.0F, red, green, blue, gpuRotating, mirrorU, encoded, cosine, sine);
+        frameVertex(vertices, matrix, basis, normal, x2, y2, z2, 1.0F, 0.0F, red, green, blue, gpuRotating, mirrorU, encoded, cosine, sine);
+        frameVertex(vertices, matrix, basis, normal, x3, y3, z3, 1.0F, 1.0F, red, green, blue, gpuRotating, mirrorU, encoded, cosine, sine);
+        frameVertex(vertices, matrix, basis, normal, x4, y4, z4, 0.0F, 1.0F, red, green, blue, gpuRotating, mirrorU, encoded, cosine, sine);
     }
 
     private static void frameVertex(VertexConsumer vertices, Matrix4f matrix, PortalRenderBasis basis,
                                      Vec3 normal, float x, float y, float z,
                                      float faceU, float faceV, float red, float green, float blue,
-                                     boolean gpuRotating, int encoded,
+                                     boolean gpuRotating, boolean mirrorU, int encoded,
                                      double cosine, double sine) {
         Vec3 point = basis.at(x, y, z);
-        float sourceU = RING_UV_MIN_U + faceU * (RING_UV_MAX_U - RING_UV_MIN_U);
+        float alignedU = EndframeVisualGeometry.alignedFaceU(faceU, mirrorU);
+        float sourceU = RING_UV_MIN_U + alignedU * (RING_UV_MAX_U - RING_UV_MIN_U);
         float sourceV = RING_UV_MIN_V + faceV * (RING_UV_MAX_V - RING_UV_MIN_V);
         float u = gpuRotating ? sourceU : EndframeVisualGeometry.rotatedU(sourceU, sourceV, cosine, sine);
         float v = gpuRotating ? sourceV : EndframeVisualGeometry.rotatedV(sourceU, sourceV, cosine, sine);
