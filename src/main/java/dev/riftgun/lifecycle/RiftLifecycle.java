@@ -10,6 +10,7 @@ import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.entity.SpecialEntityTransitPolicies;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalOwnerIndex;
 import dev.riftgun.portal.SweptPortalIndex;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.relocation.EntityRelocationManager;
@@ -81,12 +82,14 @@ public final class RiftLifecycle {
 
     public static void entityJoined(Entity entity) {
         if (entity.level().isClientSide()) return;
+        if (entity instanceof PortalEntity portal) PortalOwnerIndex.track(portal);
         if (entity instanceof Projectile projectile) SweptPortalIndex.track(projectile);
         SweptPortalIndex.trackSpecialEntity(entity);
     }
 
     public static void entityLeft(Entity entity) {
         if (entity.level().isClientSide()) return;
+        if (entity instanceof PortalEntity portal) PortalOwnerIndex.untrack(portal);
         if (entity instanceof Projectile projectile) SweptPortalIndex.untrack(projectile);
         SweptPortalIndex.untrackSpecialEntity(entity);
     }
@@ -108,6 +111,7 @@ public final class RiftLifecycle {
         EntityRelocationManager.reset();
         TransitDiagnostics.reset();
         EntityRelocationExitImmunity.reset();
+        PortalOwnerIndex.clear(server);
         SweptPortalIndex.reset();
         SpecialEntityTransitPolicies.reset();
     }

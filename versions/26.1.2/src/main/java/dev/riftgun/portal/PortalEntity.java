@@ -234,12 +234,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     private static void closeOwnedPortals(MinecraftServer server, UUID owner, Set<UUID> excluded) {
-        for (ServerLevel level : server.getAllLevels()) {
-            for (Entity entity : level.getAllEntities()) {
-                if (entity instanceof PortalEntity portal && owner.equals(portal.ownerId)
-                    && !excluded.contains(portal.getUUID())) portal.startClosing();
-            }
-        }
+        PortalOwnerIndex.closeOwned(server, owner, excluded);
     }
 
     @Override
