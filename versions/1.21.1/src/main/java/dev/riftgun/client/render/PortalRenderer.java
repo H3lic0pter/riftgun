@@ -27,7 +27,8 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity> {
                        MultiBufferSource buffers, int packedLight) {
         PortalVisualType type = PortalVisualPreferences.selected();
         type.renderer().render(new PortalVisualRenderContext(entity, partialTick, poseStack, buffers,
-            packedLight, PortalVisualStyles.resolve(entity)));
+            packedLight, PortalRenderFrameState.current().surfaceRenderPath(),
+            PortalVisualStyles.resolve(entity)));
         super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
     }
 }

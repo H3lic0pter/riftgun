@@ -47,7 +47,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
             normalOffset = SwirlVisualGeometry.anchoredCenterOffset(centerDistance);
         }
         float phase = phase(portal);
-        PortalSurfaceRenderPath path = PortalShaderCompatibility.currentPath();
+        PortalSurfaceRenderPath path = context.surfaceRenderPath();
         if (path == PortalSurfaceRenderPath.CUSTOM) {
             drawFaces(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.swirl()), width, height,
                 depth, normalOffset, context.style().surfaceColor(), shimmer, phase, mapped);

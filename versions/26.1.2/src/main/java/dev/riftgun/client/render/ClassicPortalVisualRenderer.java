@@ -22,7 +22,7 @@ final class ClassicPortalVisualRenderer implements PortalVisualRenderer {
         float width = portal.portalWidth() * eased;
         float height = portal.portalHeight() * eased;
         float shimmer = 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F;
-        PortalSurfaceRenderPath path = PortalShaderCompatibility.currentPath();
+        PortalSurfaceRenderPath path = context.surfaceRenderPath();
         // During a shader-pack shadow pass the whole portal body is skipped (surface, border and
         // edge): Iris 26.1.2 has no override for the lines pipeline used by the border and would
         // fatal-compile it. Skipping the portal in shadow passes is also cheaper.

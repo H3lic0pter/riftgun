@@ -55,7 +55,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
             normalOffset = 0.0F;
         }
         float phase = phase(portal);
-        PortalSurfaceRenderPath path = PortalShaderCompatibility.currentPath();
+        PortalSurfaceRenderPath path = context.surfaceRenderPath();
         // During a shader-pack shadow pass the whole portal body (surface, glow and rim) is
         // skipped: Iris 26.1.2 lacks overrides for some of our pipelines in its shadow pass and
         // would fatal-compile them. Skipping the portal in shadow passes is also cheaper.

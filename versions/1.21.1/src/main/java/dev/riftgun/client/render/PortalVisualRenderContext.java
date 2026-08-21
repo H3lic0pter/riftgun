@@ -10,6 +10,7 @@ public record PortalVisualRenderContext(
     PoseStack poseStack,
     MultiBufferSource buffers,
     int packedLight,
+    PortalSurfaceRenderPath surfaceRenderPath,
     PortalVisualStyle style
 ) {
     public float visibleProgress() {

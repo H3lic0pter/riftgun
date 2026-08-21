@@ -18,6 +18,7 @@ public record PortalVisualRenderContext(
     float partialTick,
     PoseStack poseStack,
     SubmitNodeCollector collector,
+    PortalSurfaceRenderPath surfaceRenderPath,
     PortalVisualStyle style
 ) {
     public float visibleProgress() {

@@ -23,7 +23,7 @@ final class ClassicPortalVisualRenderer implements PortalVisualRenderer {
         float width = portal.portalWidth() * eased;
         float height = portal.portalHeight() * eased;
         float shimmer = 0.96F + Mth.sin(context.age() * 0.18F) * 0.04F;
-        PortalSurfaceRenderPath path = PortalShaderCompatibility.currentPath();
+        PortalSurfaceRenderPath path = context.surfaceRenderPath();
         if (path == PortalSurfaceRenderPath.CUSTOM) {
             drawVolume(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.portal()), width, height,
                 PortalEntity.DEPTH, context.style().surfaceColor(), shimmer);
