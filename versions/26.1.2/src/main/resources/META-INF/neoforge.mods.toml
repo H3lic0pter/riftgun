@@ -12,6 +12,9 @@ displayURL = "https://github.com/H3lic0pter/riftgun"
 logoFile = "icon.png"
 description = '''Create linked walk-through portals for local and cross-dimensional travel, with saved destinations, configurable placement, portal fuels, modules, player privacy, and client-side visual and sound themes.'''
 
+[[mixins]]
+config = "riftgun.mixins.json"
+
 [[dependencies.${mod_id}]]
 modId = "neoforge"
 type = "required"

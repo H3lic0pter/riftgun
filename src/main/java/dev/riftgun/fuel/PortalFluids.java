@@ -91,6 +91,9 @@ public final class PortalFluids {
     private static DeferredHolder<FluidType, FluidType> type(String name) {
         return TYPES.register(name, () -> new FluidType(FluidType.Properties.create()
             .descriptionId("fluid." + RiftConstants.MOD_ID + "." + name)
+            //? if >=1.21.11 {
+            /*.isWaterLike(true)
+            *///?}
             .canConvertToSource(false)
             .canDrown(false)
             .supportsBoating(false)
