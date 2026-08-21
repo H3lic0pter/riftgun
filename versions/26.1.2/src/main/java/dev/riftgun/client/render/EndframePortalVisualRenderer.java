@@ -34,7 +34,6 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
      *  centre (the region the artwork marks for the star: radius ~100/128 of
      *  the face half-extent), so the star fills exactly the marked hole. */
     private static final float STAR_RADIUS_SCALE = 0.7773F;
-    private static final int STAR_SEGMENTS = 48;
     private static final float TAU = (float) (Math.PI * 2.0);
 
     @Override
@@ -95,26 +94,26 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
 
     private static void starFan(VertexConsumer vertices, PoseStack.Pose pose, PortalRenderBasis basis,
                                 float hw, float hh, float z, boolean reversed) {
-        Vec3 center = basis.at(0.0F, 0.0F, z);
-        for (int segment = 0; segment < STAR_SEGMENTS; segment++) {
-            float first = (float) (Math.PI * 2.0 * segment / STAR_SEGMENTS);
-            float second = (float) (Math.PI * 2.0 * (segment + 1) / STAR_SEGMENTS);
-            Vec3 firstPoint = basis.at((float) Math.cos(first) * hw, (float) Math.sin(first) * hh, z);
-            Vec3 secondPoint = basis.at((float) Math.cos(second) * hw, (float) Math.sin(second) * hh, z);
-            if (reversed) {
-                starVertex(vertices, pose, center);
-                starVertex(vertices, pose, secondPoint);
-                starVertex(vertices, pose, firstPoint);
-            } else {
-                starVertex(vertices, pose, center);
-                starVertex(vertices, pose, firstPoint);
-                starVertex(vertices, pose, secondPoint);
-            }
+        for (int segment = 0; segment < EndframeVisualGeometry.STAR_SEGMENTS; segment++) {
+            int first = reversed ? segment + 1 : segment;
+            int second = reversed ? segment : segment + 1;
+            float firstX = EndframeVisualGeometry.rimX(first) * hw;
+            float firstY = EndframeVisualGeometry.rimY(first) * hh;
+            float secondX = EndframeVisualGeometry.rimX(second) * hw;
+            float secondY = EndframeVisualGeometry.rimY(second) * hh;
+            starVertex(vertices, pose, basis, 0.0F, 0.0F, z);
+            starVertex(vertices, pose, basis, firstX, firstY, z);
+            starVertex(vertices, pose, basis, secondX, secondY, z);
+            starVertex(vertices, pose, basis, 0.0F, 0.0F, z);
         }
     }
 
-    private static void starVertex(VertexConsumer vertices, PoseStack.Pose pose, Vec3 point) {
-        vertices.addVertex(pose, (float) point.x, (float) point.y, (float) point.z);
+    private static void starVertex(VertexConsumer vertices, PoseStack.Pose pose, PortalRenderBasis basis,
+                                   float x, float y, float z) {
+        float worldX = (float) (basis.right().x * x + basis.up().x * y + basis.normal().x * z);
+        float worldY = (float) (basis.right().y * x + basis.up().y * y + basis.normal().y * z);
+        float worldZ = (float) (basis.right().z * x + basis.up().z * y + basis.normal().z * z);
+        vertices.addVertex(pose, worldX, worldY, worldZ);
     }
 
     private static void drawSlab(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,

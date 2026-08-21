@@ -25,7 +25,8 @@ final class PortalVisualSelectionTest {
 
     @Test
     void registryExposesBuiltinsInUiOrder() {
-        assertEquals(List.of(PortalVisualRegistry.CLASSIC_ID, PortalVisualRegistry.SWIRL_ID),
+        assertEquals(List.of(PortalVisualRegistry.CLASSIC_ID, PortalVisualRegistry.SWIRL_ID,
+                PortalVisualRegistry.ENDFRAME_ID),
             PortalVisualRegistry.values().stream().map(PortalVisualType::id).toList());
         assertEquals(PortalVisualRegistry.SWIRL_ID, PortalVisualRegistry.DEFAULT_ID);
     }
