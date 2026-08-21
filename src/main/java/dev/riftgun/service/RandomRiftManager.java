@@ -106,6 +106,9 @@ public final class RandomRiftManager {
     }
 
     public static void reset() {
+        for (MinecraftServer server : new ArrayList<>(SEARCHES.keySet())) {
+            cancelAll(server);
+        }
         SEARCHES.clear();
         COOLDOWNS.clear();
     }
