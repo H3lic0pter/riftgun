@@ -24,6 +24,8 @@ final class PortalGuiSprites {
     static final ResourceLocation CONFIGURE_GUN = icon("configure_gun");
     static final ResourceLocation MODULE_BAY = icon("module_bay");
     static final ResourceLocation PORTAL_CLOSE = icon("portal_close");
+    static final ResourceLocation RANDOM_RIFT_ON = icon("random_rift_on");
+    static final ResourceLocation RANDOM_RIFT_OFF = icon("random_rift_off");
     static final ResourceLocation SMART_DISTANCE = icon("smart_distance");
     static final ResourceLocation PORTAL_DURATION = icon("portal_duration");
     static final ResourceLocation SURFACE_RANGE = icon("surface_range");

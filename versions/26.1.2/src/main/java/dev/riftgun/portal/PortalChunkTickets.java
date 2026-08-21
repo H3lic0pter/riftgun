@@ -25,6 +25,8 @@ public final class PortalChunkTickets {
         "entity_relocation_exit", () -> new TicketType(TicketType.NO_TIMEOUT, PORTAL_FLAGS));
     public static final DeferredHolder<TicketType, TicketType> RELOCATION_PREPARATION = TICKET_TYPES.register(
         "entity_relocation_preparation", () -> new TicketType(TicketType.NO_TIMEOUT, PORTAL_FLAGS));
+    public static final DeferredHolder<TicketType, TicketType> RANDOM_RIFT_PREPARATION = TICKET_TYPES.register(
+        "random_rift_preparation", () -> new TicketType(TicketType.NO_TIMEOUT, PORTAL_FLAGS));
 
     private PortalChunkTickets() {}
 

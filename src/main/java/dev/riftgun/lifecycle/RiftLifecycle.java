@@ -15,6 +15,7 @@ import dev.riftgun.portal.SweptPortalIndex;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.relocation.EntityRelocationManager;
 import dev.riftgun.service.PortalPrivacyService;
+import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.sound.PortalSounds;
 import java.util.UUID;
 import net.minecraft.core.RegistryAccess;
@@ -29,6 +30,7 @@ import net.minecraft.world.phys.HitResult;
 /** Loader-neutral entry points for the server lifecycle and gameplay events. */
 public final class RiftLifecycle {
     public static void serverStarting(MinecraftServer server) {
+        RandomRiftManager.reset();
         PortalCrisisRegistry.freeze();
         SpecialEntityTransitPolicies.rebuild(server.registryAccess());
     }
@@ -41,6 +43,7 @@ public final class RiftLifecycle {
     public static void serverTick(MinecraftServer server) {
         RiftRuntime.current().motionHistory().tick(server);
         PortalPrivacyService.tick(server);
+        RandomRiftManager.tick(server);
         EntityRelocationManager.tick(server);
         EntityRelocationExitImmunity.tick(server.overworld().getGameTime());
         TransitDiagnostics.tick(server);
@@ -62,6 +65,7 @@ public final class RiftLifecycle {
         UUID playerId = player.getUUID();
         RiftRuntime.current().motionHistory().remove(playerId);
         PortalCrisisTestOverrides.clear(playerId);
+        RandomRiftManager.playerLeft(player);
         closeOwned(player);
     }
 
@@ -73,11 +77,13 @@ public final class RiftLifecycle {
 
     public static void playerRespawned(ServerPlayer player) {
         RiftRuntime.current().motionHistory().reset(player);
+        RandomRiftManager.playerChangedDimension(player);
         closeOwned(player);
     }
 
     public static void playerChangedDimension(ServerPlayer player) {
         RiftRuntime.current().motionHistory().reset(player);
+        RandomRiftManager.playerChangedDimension(player);
     }
 
     public static void entityJoined(Entity entity) {
@@ -101,11 +107,13 @@ public final class RiftLifecycle {
 
     public static void serverStopping(MinecraftServer server) {
         PortalSounds.beginServerShutdown();
+        RandomRiftManager.cancelAll(server);
         EntityRelocationManager.cancelAll(server);
     }
 
     public static void serverStopped(MinecraftServer server) {
         PortalPrivacyService.reset();
+        RandomRiftManager.reset();
         PortalCrisisTestOverrides.reset();
         PortalSounds.endServerShutdown();
         EntityRelocationManager.reset();

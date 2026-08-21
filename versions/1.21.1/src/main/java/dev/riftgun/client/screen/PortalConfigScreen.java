@@ -153,6 +153,7 @@ public final class PortalConfigScreen extends Screen {
     private final List<VisualWidgetBinding> visualOptionWidgets = new ArrayList<>();
     private final List<VisualToggleBinding> visualToggleWidgets = new ArrayList<>();
     private @Nullable ThemedButton openPortalButton;
+    private @Nullable ThemedButton randomRiftButton;
     private @Nullable ThemedButton bucketModeButton;
     private @Nullable ThemedButton clearFluidButton;
     private int groupSelectorX;
@@ -230,6 +231,7 @@ public final class PortalConfigScreen extends Screen {
         visualOptionWidgets.clear();
         visualToggleWidgets.clear();
         openPortalButton = null;
+        randomRiftButton = null;
         bucketModeButton = null;
         clearFluidButton = null;
         panelWidth = Math.min(520, width - 12);
@@ -293,9 +295,18 @@ public final class PortalConfigScreen extends Screen {
             ignored -> requestClearFluid());
         clearFluidButton.active = PortalClientState.gun().getInt("Amount") > 0;
         int portalButtonX = rightX + FUEL_GAUGE_WIDTH + 47;
+        if (PortalClientState.randomRift().getBoolean("Enabled") && coordinateOverrideUnlocked()) {
+            randomRiftButton = button(portalButtonX, footerY, 19, 19,
+                Component.empty(), false,
+                ignored -> requestRandomRift());
+            randomRiftButton.active = !PortalClientState.randomRift().getBoolean("Searching")
+                && PortalClientState.randomRiftCooldownTicks() <= 0;
+            portalButtonX += 22;
+        }
         ThemedButton generate = button(portalButtonX, footerY,
-            Math.max(24, rightX + available - portalButtonX), 19,
+            Math.max(1, rightX + available - portalButtonX), 19,
             "screen.riftgun.generate", true, ignored -> generatePortal());
+        generate.horizontalMarquee();
         generate.active = viewed() != null;
         openPortalButton = generate;
         updateOpenPortalButton();
@@ -307,6 +318,7 @@ public final class PortalConfigScreen extends Screen {
     public void tick() {
         super.tick();
         clientTicks++;
+        updateRandomRiftButton();
         if (pendingSelection != null && clientTicks >= selectionDueTick) flushSelection();
         if (visualSettingsDirty && clientTicks >= visualSettingsSaveDueTick) flushVisualSettings();
     }
@@ -1216,6 +1228,9 @@ public final class PortalConfigScreen extends Screen {
                 graphics.renderTooltip(font, Component.translatable("screen.riftgun.open_front_tooltip"),
                     mouseX, mouseY);
             }
+            if (randomRiftButton != null && randomRiftButton.isHovered()) {
+                graphics.renderComponentTooltip(font, randomRiftTooltip(), mouseX, mouseY);
+            }
             renderGunControlTooltips(graphics, mouseX, mouseY);
         }
         if (modal == Modal.SETTINGS) {
@@ -1320,6 +1335,10 @@ public final class PortalConfigScreen extends Screen {
         }
         if (closePortalsButton != null) {
             drawPortalCloseIcon(graphics, closePortalsButton.getX() + 4, closePortalsButton.getY() + 4);
+        }
+        if (randomRiftButton != null) {
+            drawRandomRiftIcon(graphics, randomRiftButton.getX(), randomRiftButton.getY(),
+                randomRiftButton.getWidth(), randomRiftButton.getHeight(), randomRiftButton.active);
         }
     }
 
@@ -2096,6 +2115,34 @@ public final class PortalConfigScreen extends Screen {
         flushSelection();
         PortalNetworking.sendRequest(PortalAction.OPEN_PORTAL,
             tag -> tag.putUUID("Destination", viewedDestination));
+    }
+
+    private void requestRandomRift() {
+        PortalNetworking.sendRequest(PortalAction.OPEN_RANDOM_RIFT);
+        if (minecraft != null) minecraft.setScreen(null);
+    }
+
+    private List<Component> randomRiftTooltip() {
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.translatable("screen.riftgun.random_rift"));
+        if (PortalClientState.randomRift().getBoolean("Searching")) {
+            lines.add(Component.translatable("screen.riftgun.random_rift.searching"));
+            return lines;
+        }
+        int cooldownTicks = PortalClientState.randomRiftCooldownTicks();
+        if (cooldownTicks > 0) {
+            lines.add(Component.translatable("screen.riftgun.random_rift.cooldown",
+                (cooldownTicks + 19) / 20));
+        } else {
+            lines.add(Component.translatable("screen.riftgun.random_rift.description"));
+        }
+        return lines;
+    }
+
+    private void updateRandomRiftButton() {
+        if (randomRiftButton == null) return;
+        randomRiftButton.active = !PortalClientState.randomRift().getBoolean("Searching")
+            && PortalClientState.randomRiftCooldownTicks() <= 0;
     }
 
     private void togglePin(UUID id) {

@@ -12,6 +12,8 @@ public final class PortalClientState {
     private static CompoundTag gunReference = new CompoundTag();
     private static CompoundTag gun = new CompoundTag();
     private static PortalModuleRules moduleRules = PortalModuleRules.defaults();
+    private static CompoundTag randomRift = new CompoundTag();
+    private static long randomRiftSnapshotNanos;
 
     public static PortalPlayerData data() {
         return data;
@@ -26,6 +28,9 @@ public final class PortalClientState {
             gun = envelope.contains("Gun") ? Nbt.getCompound(envelope, "Gun").copy() : new CompoundTag();
             moduleRules = envelope.contains("ModuleRules")
                 ? PortalModuleRules.load(Nbt.getCompound(envelope, "ModuleRules")) : PortalModuleRules.defaults();
+            randomRift = envelope.contains("RandomRift")
+                ? Nbt.getCompound(envelope, "RandomRift").copy() : new CompoundTag();
+            randomRiftSnapshotNanos = System.nanoTime();
             if (Nbt.getBoolean(envelope, "OpenScreen")) {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PortalConfigScreen());
             } else if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
@@ -70,6 +75,16 @@ public final class PortalClientState {
 
     public static PortalModuleRules moduleRules() {
         return moduleRules;
+    }
+
+    public static CompoundTag randomRift() {
+        return randomRift;
+    }
+
+    public static int randomRiftCooldownTicks() {
+        int receivedTicks = Nbt.getInt(randomRift, "CooldownTicks");
+        long elapsedTicks = Math.max(0L, System.nanoTime() - randomRiftSnapshotNanos) / 50_000_000L;
+        return (int) Math.max(0L, receivedTicks - elapsedTicks);
     }
 
     private PortalClientState() {}

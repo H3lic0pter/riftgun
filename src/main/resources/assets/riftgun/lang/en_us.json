@@ -414,5 +414,15 @@
   "chat.riftgun.privacy_grant_expired_target.entity_relocation_destination": "Your one-time destination allowance for %s has expired",
   "chat.riftgun.privacy_grant_expired_requester.entity_relocation_destination": "%s's one-time destination allowance for you has expired",
   "jei.riftgun.fluid_transmutation": "Fluid Transmutation",
-  "jei.riftgun.fluid_transmutation.water_source": "Throw the ingredients into a standalone water source block"
+  "jei.riftgun.fluid_transmutation.water_source": "Throw the ingredients into a standalone water source block",
+  "message.riftgun.random_rift_disabled": "Random rifts are disabled on this server",
+  "message.riftgun.random_rift_searching": "A random rift search is already running",
+  "message.riftgun.random_rift_search_started": "Searching for an unknown safe destination...",
+  "message.riftgun.random_rift_cooldown": "Random rift cooling down: %s seconds",
+  "message.riftgun.random_rift_canceled": "Random rift search canceled",
+  "message.riftgun.random_rift_failed": "No safe random destination was found",
+  "screen.riftgun.random_rift": "Open a random rift",
+  "screen.riftgun.random_rift.description": "Search for a safe unknown destination in this dimension",
+  "screen.riftgun.random_rift.searching": "Searching for a safe destination...",
+  "screen.riftgun.random_rift.cooldown": "Cooling down: %s seconds remaining"
 }

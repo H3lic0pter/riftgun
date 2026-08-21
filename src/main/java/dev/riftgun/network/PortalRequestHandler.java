@@ -12,6 +12,7 @@ import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalOpenOrigin;
 import dev.riftgun.service.PortalShortcutGunMode;
 import dev.riftgun.service.PortalShortcutGunSelection;
+import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.relocation.EntityRelocationManager;
 import java.util.UUID;
@@ -123,6 +124,10 @@ public final class PortalRequestHandler {
                 PortalOpenCoordinator.request(player, data,
                     PortalRequestFields.id(request, "Destination"), true,
                     PortalOpenOrigin.GUI.resolvePlacement(data.settings().placementMode()), gun);
+                yield false;
+            }
+            case OPEN_RANDOM_RIFT -> {
+                RandomRiftManager.request(player, gun);
                 yield false;
             }
             case OPEN_SELECTED -> {

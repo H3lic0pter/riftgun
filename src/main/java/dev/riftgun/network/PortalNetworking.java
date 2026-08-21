@@ -4,6 +4,7 @@ import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.core.network.RiftNetwork;
 import java.util.function.Consumer;
 import dev.riftgun.service.PortalGunLocator;
+import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.fuel.PortalGunSnapshot;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
@@ -62,6 +63,12 @@ public final class PortalNetworking {
         PortalPlayerData data = PortalDataStore.load(player);
         envelope.put("Data", data.save());
         envelope.put("ModuleRules", PortalModuleRules.current().save());
+        RandomRiftManager.Snapshot randomRift = RandomRiftManager.snapshot(player);
+        CompoundTag randomRiftTag = new CompoundTag();
+        randomRiftTag.putBoolean("Enabled", randomRift.enabled());
+        randomRiftTag.putBoolean("Searching", randomRift.searching());
+        randomRiftTag.putInt("CooldownTicks", randomRift.cooldownTicks());
+        envelope.put("RandomRift", randomRiftTag);
         if (locatedGun != null) {
             envelope.put("GunReference", locatedGun.saveReference());
             envelope.put("Gun", PortalGunSnapshot.create(locatedGun.stack(), data.settings().smartDistance()));

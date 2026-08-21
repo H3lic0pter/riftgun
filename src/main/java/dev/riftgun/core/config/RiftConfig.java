@@ -8,6 +8,7 @@ import java.util.List;
 public record RiftConfig(
     ShortcutConfig shortcuts,
     DestinationConfig destinations,
+    RandomRiftConfig randomRift,
     FuelConfig fuel,
     ModuleConfig modules,
     PortalConfig portal,
@@ -23,6 +24,7 @@ public record RiftConfig(
         return new RiftConfig(
             new ShortcutConfig(PortalShortcutGunMode.HELD_HANDS),
             new DestinationConfig(256, 32, 48, 32),
+            new RandomRiftConfig(true, 60, 256, 4096),
             new FuelConfig(true, 50, 100, 5, 8, 5, 8),
             new ModuleConfig(2, 8000, 3, 16, 1, 45, true, true),
             new PortalConfig(15, true, 0.35),
@@ -53,6 +55,21 @@ public record RiftConfig(
         int maximumDestinationNameLength,
         int maximumGroupNameLength
     ) {}
+
+    public record RandomRiftConfig(
+        boolean enabled,
+        int cooldownTicks,
+        int minimumRadius,
+        int maximumRadius
+    ) {
+        public int innerRadius() {
+            return Math.min(minimumRadius, maximumRadius);
+        }
+
+        public int outerRadius() {
+            return Math.max(minimumRadius, maximumRadius);
+        }
+    }
 
     public record FuelConfig(
         boolean randomConsumption,

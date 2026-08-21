@@ -414,5 +414,15 @@
   "chat.riftgun.privacy_grant_expired_target.entity_relocation_destination": "你给予 %s 的单次目的地准许已过期",
   "chat.riftgun.privacy_grant_expired_requester.entity_relocation_destination": "%s 给予你的单次目的地准许已过期",
   "jei.riftgun.fluid_transmutation": "流体转化",
-  "jei.riftgun.fluid_transmutation.water_source": "将材料投入独立的水源方块中"
+  "jei.riftgun.fluid_transmutation.water_source": "将材料投入独立的水源方块中",
+  "message.riftgun.random_rift_disabled": "服务器已关闭随机裂隙功能",
+  "message.riftgun.random_rift_searching": "随机裂隙仍在搜索中",
+  "message.riftgun.random_rift_search_started": "正在寻找未知的安全目的地……",
+  "message.riftgun.random_rift_cooldown": "随机裂隙冷却中：%s 秒",
+  "message.riftgun.random_rift_canceled": "随机裂隙搜索已取消",
+  "message.riftgun.random_rift_failed": "未能找到安全的随机目的地",
+  "screen.riftgun.random_rift": "开启随机裂隙",
+  "screen.riftgun.random_rift.description": "在当前维度寻找安全的未知目的地",
+  "screen.riftgun.random_rift.searching": "正在寻找安全目的地……",
+  "screen.riftgun.random_rift.cooldown": "冷却中：剩余 %s 秒"
 }

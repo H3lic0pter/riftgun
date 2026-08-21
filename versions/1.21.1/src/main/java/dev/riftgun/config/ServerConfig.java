@@ -25,6 +25,9 @@ public final class ServerConfig {
             new RiftConfig.DestinationConfig(
                 value.maxDestinations.get(), value.maxGroups.get(),
                 value.maxDestinationNameLength.get(), value.maxGroupNameLength.get()),
+            new RiftConfig.RandomRiftConfig(
+                value.randomRiftEnabled.get(), value.randomRiftCooldownTicks.get(),
+                value.randomRiftMinimumRadius.get(), value.randomRiftMaximumRadius.get()),
             new RiftConfig.FuelConfig(
                 value.randomConsumption.get(), value.unstableFuelMin.get(), value.unstableFuelMax.get(),
                 value.portalFuelMin.get(), value.portalFuelMax.get(),
@@ -91,6 +94,10 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxGroups;
         public final ModConfigSpec.IntValue maxDestinationNameLength;
         public final ModConfigSpec.IntValue maxGroupNameLength;
+        public final ModConfigSpec.BooleanValue randomRiftEnabled;
+        public final ModConfigSpec.IntValue randomRiftCooldownTicks;
+        public final ModConfigSpec.IntValue randomRiftMinimumRadius;
+        public final ModConfigSpec.IntValue randomRiftMaximumRadius;
         public final ModConfigSpec.BooleanValue randomConsumption;
         public final ModConfigSpec.IntValue unstableFuelMin;
         public final ModConfigSpec.IntValue unstableFuelMax;
@@ -176,6 +183,15 @@ public final class ServerConfig {
             maxGroups = builder.defineInRange("maxGroupsPerPlayer", 32, 0, 512);
             maxDestinationNameLength = builder.defineInRange("maxDestinationNameLength", 48, 1, 128);
             maxGroupNameLength = builder.defineInRange("maxGroupNameLength", 32, 1, 64);
+            builder.pop();
+
+            builder.push("randomRift");
+            randomRiftEnabled = builder.comment("Enable random same-dimension rifts from the Portal Gun GUI.")
+                .define("enabled", true);
+            randomRiftCooldownTicks = builder.comment("Per-player cooldown after a random rift opens. Zero disables it.")
+                .defineInRange("cooldownTicks", 60, 0, 72000);
+            randomRiftMinimumRadius = builder.defineInRange("minimumRadius", 256, 0, 30000000);
+            randomRiftMaximumRadius = builder.defineInRange("maximumRadius", 4096, 1, 30000000);
             builder.pop();
 
             builder.push("fuel");

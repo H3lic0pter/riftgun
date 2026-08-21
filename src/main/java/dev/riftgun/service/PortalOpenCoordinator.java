@@ -46,6 +46,13 @@ public final class PortalOpenCoordinator {
         }
     }
 
+    /** Opens a temporary destination without changing the player's saved or selected destinations. */
+    public static boolean openTransient(ServerPlayer player, PortalPlayerData data,
+                                        Destination destination, PortalPlacementMode mode,
+                                        PortalGunLocator.LocatedGun locatedGun, boolean fromGui) {
+        return open(player, data, destination, mode, locatedGun, null, null, false, fromGui);
+    }
+
     /** Opens a portal whose exit lands next to the given online player. */
     public static void requestPlayerTarget(ServerPlayer player, PortalPlayerData data,
                                            UUID targetPlayerId, boolean fromGui,
