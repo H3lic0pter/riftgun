@@ -123,18 +123,18 @@ public final class PortalRenderTypes {
             .withShaderDefine("PORTAL_LAYERS", 15)
             .build();
 
-        /** Translucent, unculled end-frame liquid frame; the GPU spins its UV from
-         *  the rotation angle baked into the lightmap attribute each frame. */
+        /** Depth-writing cutout end-frame liquid. The node-specific fragment
+         *  shader discards transparent texels so the native star remains visible. */
         public static final RenderPipeline ENDFRAME_FRAME = RenderPipeline.builder(
                 RenderPipelines.MATRICES_PROJECTION_SNIPPET)
             .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/riftgun_endframe_frame"))
             .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_endframe"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_endframe"))
             .withSampler("Sampler0")
-            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withColorTargetState(ColorTargetState.DEFAULT)
             .withCull(false)
             .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
-            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
             .build();
 
         private Pipelines() {}
@@ -203,10 +203,9 @@ public final class PortalRenderTypes {
 
     private static final RenderType ENDFRAME_FALLBACK = RenderType.create(
         "riftgun_endframe_fallback",
-        RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT)
+        RenderSetup.builder(RenderPipelines.ENTITY_CUTOUT)
             .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE,
                 () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
-            .sortOnUpload()
             .bufferSize(256)
             .createRenderSetup()
     );

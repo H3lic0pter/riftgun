@@ -5,8 +5,8 @@
 - [x] Keep the existing EndFrame texture, easing, depth offsets and
   `STAR_RADIUS_SCALE = 0.7773F`.
 - [x] Keep the custom shader path for normal rendering.
-- [x] Under an active shader pack, render the star through Minecraft's native
-  End Portal pipeline and the rotating frame through a clamped entity pipeline.
+- [x] Under an active shader pack, leave the inner disc empty and render only
+  the rotating frame through a clamped entity pipeline.
 - [x] Skip every EndFrame submission in an Iris shadow pass.
 - [x] Align the shader-pack fallback vertex budget with Swirl.
 - [x] Use `0.45F` for the additive fallback glow multiplier in EndFrame and
@@ -28,12 +28,12 @@
 | Path | Star | Frame surface | Frame glow | Total |
 | --- | ---: | ---: | ---: | ---: |
 | EndFrame custom | 192 | 8 | 0 | 200 |
-| EndFrame shader fallback | 192 | 8 | 8 | 208 |
+| EndFrame shader fallback | 0 | 8 | 8 | 16 |
 | Swirl shader fallback | 192 edge | 8 | 8 | 208 |
 
 ## Automated verification
 
-- [x] Geometry tests lock segment count, winding and 192/200/208 vertex
+- [x] Geometry tests lock segment count, winding and 192/200/16 vertex
   budgets.
 - [x] Source-contract tests lock precomputation, one render-path lookup,
   fallback routing, clamp resources and the shared `0.45F` glow multiplier.

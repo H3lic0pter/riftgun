@@ -4,7 +4,7 @@ final class EndframeVisualGeometry {
     static final int STAR_SEGMENTS = 24;
     static final int STAR_VERTEX_COUNT = STAR_SEGMENTS * 2 * 4;
     static final int CUSTOM_VERTEX_COUNT = STAR_VERTEX_COUNT + 8;
-    static final int FALLBACK_VERTEX_COUNT = STAR_VERTEX_COUNT + 8 + 8;
+    static final int FALLBACK_VERTEX_COUNT = 8 + 8;
 
     private static final float[] RIM_X = new float[STAR_SEGMENTS + 1];
     private static final float[] RIM_Y = new float[STAR_SEGMENTS + 1];

@@ -12,7 +12,7 @@ final class EndframeVisualGeometryTest {
         assertEquals(24, EndframeVisualGeometry.STAR_SEGMENTS);
         assertEquals(192, EndframeVisualGeometry.STAR_VERTEX_COUNT);
         assertEquals(200, EndframeVisualGeometry.CUSTOM_VERTEX_COUNT);
-        assertEquals(208, EndframeVisualGeometry.FALLBACK_VERTEX_COUNT);
+        assertEquals(16, EndframeVisualGeometry.FALLBACK_VERTEX_COUNT);
     }
 
     @Test

@@ -175,7 +175,7 @@ public final class PortalRenderTypes extends RenderType {
     }
 
     public static RenderType endframeFrame() {
-        return RenderType.entityTranslucent(ENDFRAME_FRAME_TEXTURE);
+        return RenderType.entityCutout(ENDFRAME_FRAME_TEXTURE);
     }
 
     public static RenderType endframeStar(PortalSurfaceRenderPath path) {

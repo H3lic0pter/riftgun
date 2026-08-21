@@ -13,8 +13,8 @@ import org.joml.Matrix4f;
  * PortalGun-style portal face: the vanilla animated end-portal star framed by
  * the PortalGun overlay ring tinted with the portal fluid colour. On the custom
  * shader path the ring spins on the GPU like a vortex; under a shader pack a
- * standard entity pipeline carries CPU-rotated UVs plus a restrained glow. The
- * star uses the native end-portal type there so shader-pack overrides still apply.
+ * standard entity pipeline carries CPU-rotated UVs plus a restrained glow.
+ * Shader-pack rendering intentionally leaves the inner disc empty.
  */
 final class EndframePortalVisualRenderer implements PortalVisualRenderer {
     /** Half-thickness of the two-faced star slab. Kept small so the overlay
@@ -49,9 +49,10 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
         float width = portal.portalWidth() * eased;
         float height = portal.portalHeight() * eased;
 
-        // Vanilla animated end-portal star (unculled so both faces render).
-        drawStar(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.endframeStar(path)),
-            width, height);
+        if (path == PortalSurfaceRenderPath.CUSTOM) {
+            drawStar(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.endframeStar(path)),
+                width, height);
+        }
 
         float rotation = rotationRadians(context);
         if (path == PortalSurfaceRenderPath.CUSTOM) {
