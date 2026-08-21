@@ -22,9 +22,9 @@ import net.minecraft.resources.Identifier;
  *
  * <p>The 1.21.x composite-state shaders were replaced by declarative render pipelines. The
  * portal pixelation shader survives as a custom pipeline ({@link Pipelines#PORTAL}); the swirl
- * surface now runs on a custom {@link Pipelines#SWIRL} pipeline that reproduces the 1.21.x
- * look — a rotating cutout disc — with the per-frame rotation baked into the lightmap
- * attribute, and the rim stays on the position-color {@link Pipelines#SWIRL_EDGE} pipeline.
+ * surface and restrained glow run on custom {@link Pipelines#SWIRL} and
+ * {@link Pipelines#SWIRL_GLOW} pipelines, with per-frame rotation baked into the lightmap
+ * attribute, while the rim stays on the position-color {@link Pipelines#SWIRL_EDGE} pipeline.
  */
 public final class PortalRenderTypes {
     private static final Identifier SWIRL_TEXTURE =
@@ -73,6 +73,18 @@ public final class PortalRenderTypes {
             .withCull(true)
             .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
+            .build();
+
+        /** Low-intensity additive mask over the custom swirl surface. */
+        public static final RenderPipeline SWIRL_GLOW = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal_swirl_glow"))
+            .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal_swirl"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "core/rendertype_rift_portal_swirl"))
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(BlendFunction.ADDITIVE))
+            .withCull(true)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .build();
 
         /**
@@ -160,6 +172,16 @@ public final class PortalRenderTypes {
             .createRenderSetup()
     );
 
+    private static final RenderType SWIRL_GLOW = RenderType.create(
+        "rift_portal_swirl_glow",
+        RenderSetup.builder(Pipelines.SWIRL_GLOW)
+            .withTexture("Sampler0", SWIRL_TEXTURE,
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))
+            .sortOnUpload()
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
     private static final RenderType SWIRL_FALLBACK_GLOW = RenderType.create(
         "rift_portal_swirl_fallback_glow",
         RenderSetup.builder(Pipelines.SWIRL_FALLBACK_GLOW)
@@ -232,6 +254,10 @@ public final class PortalRenderTypes {
 
     public static RenderType swirl() {
         return SWIRL;
+    }
+
+    public static RenderType swirlGlow() {
+        return SWIRL_GLOW;
     }
 
     public static RenderType swirlFallback() {

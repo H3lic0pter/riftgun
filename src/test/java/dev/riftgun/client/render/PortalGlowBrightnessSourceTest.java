@@ -10,14 +10,15 @@ import org.junit.jupiter.api.Test;
 
 final class PortalGlowBrightnessSourceTest {
     @Test
-    void swirlGlowUsesTheSharedRestrainedMultiplierOnBothNodes() throws IOException {
-        for (String node : new String[] {"1.21.1", "26.1.2"}) {
-            String source = Files.readString(Path.of("versions", node,
-                "src/main/java/dev/riftgun/client/render/SwirlPortalVisualRenderer.java"));
+    void swirlGlowUsesPathSpecificRestrainedMultipliers() throws IOException {
+        String legacy = Files.readString(Path.of("versions/1.21.1/src/main/java/dev/riftgun/"
+            + "client/render/SwirlPortalVisualRenderer.java"));
+        assertTrue(legacy.contains("GLOW_BRIGHTNESS_MULTIPLIER = 0.45F"));
 
-            assertTrue(source.contains("GLOW_BRIGHTNESS_MULTIPLIER = 0.45F"));
-            assertFalse(source.contains("GLOW_BRIGHTNESS_MULTIPLIER = 0.80F"));
-            assertFalse(source.contains("FALLBACK_BRIGHTNESS_BOOST"));
-        }
+        String modern = Files.readString(Path.of("versions/26.1.2/src/main/java/dev/riftgun/"
+            + "client/render/SwirlPortalVisualRenderer.java"));
+        assertTrue(modern.contains("CUSTOM_GLOW_BRIGHTNESS_MULTIPLIER = 0.35F"));
+        assertTrue(modern.contains("FALLBACK_GLOW_BRIGHTNESS_MULTIPLIER = 0.45F"));
+        assertFalse(modern.contains("FALLBACK_BRIGHTNESS_BOOST"));
     }
 }

@@ -21,8 +21,8 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
     private static final int EDGE_SEGMENTS = 48;
     private static final float TICKS_PER_SECOND = 20.0F;
     private static final float FALLBACK_UV_SCALE = 1.0F / 0.94F;
-    // Shader-pack fallback keeps a restrained glow; the custom path matches 1.21.1's surface-only brightness.
-    private static final float GLOW_BRIGHTNESS_MULTIPLIER = 0.45F;
+    private static final float CUSTOM_GLOW_BRIGHTNESS_MULTIPLIER = 0.35F;
+    private static final float FALLBACK_GLOW_BRIGHTNESS_MULTIPLIER = 0.45F;
     private static final float TAU = (float) (Math.PI * 2.0);
 
     @Override
@@ -69,6 +69,10 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
             context.submit(PortalRenderTypes.swirl(), (pose, vertices) -> drawSurface(
                 pose.pose(), basis, vertices, width, height, depth, normalOffset,
                 context.style().surfaceColor(), shimmer, rotation, mapped));
+            context.submit(PortalRenderTypes.swirlGlow(), (pose, vertices) -> drawSurface(
+                pose.pose(), basis, vertices, width, height, depth, normalOffset,
+                context.style().surfaceColor(),
+                shimmer * CUSTOM_GLOW_BRIGHTNESS_MULTIPLIER, rotation, mapped));
         } else if (path == PortalSurfaceRenderPath.VANILLA_FALLBACK) {
             float period = animated ? (float) SwirlVisualOptions.outerPeriod() : 0.0F;
             context.submit(PortalRenderTypes.swirlFallback(), (pose, vertices) -> drawFallbackFace(
@@ -77,7 +81,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
                 context.age(), period, animated));
             context.submit(PortalRenderTypes.swirlFallbackGlow(), (pose, vertices) -> drawFallbackFace(
                 pose.pose(), basis, vertices, width, height, depth, normalOffset,
-                context.style().surfaceColor(), shimmer * GLOW_BRIGHTNESS_MULTIPLIER,
+                context.style().surfaceColor(), shimmer * FALLBACK_GLOW_BRIGHTNESS_MULTIPLIER,
                 phase, mapped, context.age(), period, animated));
         }
         context.submit(PortalRenderTypes.swirlEdge(), (pose, vertices) -> drawEdge(pose.pose(), basis,

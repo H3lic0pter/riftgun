@@ -76,7 +76,7 @@ class SwirlFallbackResourceTest {
         int fallbackGlow = renderTypes.indexOf(
             "private static final RenderType SWIRL_FALLBACK_GLOW =", swirl);
         String customSwirl = renderTypes.substring(swirl, fallbackGlow);
-        assertEquals(1, count(customSwirl, "getClampToEdge(FilterMode.NEAREST)"));
+        assertEquals(2, count(customSwirl, "getClampToEdge(FilterMode.NEAREST)"));
 
         int swirlPipeline = renderTypes.indexOf("public static final RenderPipeline SWIRL =");
         int fallbackGlowPipeline = renderTypes.indexOf(
@@ -102,7 +102,8 @@ class SwirlFallbackResourceTest {
 
         String renderer = Files.readString(Path.of(
             "versions/26.1.2/src/main/java/dev/riftgun/client/render/SwirlPortalVisualRenderer.java"));
-        assertFalse(renderer.contains("PortalRenderTypes.swirlGlow()"));
+        assertTrue(renderer.contains("PortalRenderTypes.swirlGlow()"));
+        assertTrue(renderer.contains("CUSTOM_GLOW_BRIGHTNESS_MULTIPLIER = 0.35F"));
     }
 
     @Test
