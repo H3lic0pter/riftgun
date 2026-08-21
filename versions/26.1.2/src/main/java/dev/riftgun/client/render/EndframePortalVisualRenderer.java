@@ -13,10 +13,9 @@ import org.joml.Matrix4f;
 /**
  * PortalGun-style portal face: the vanilla animated end-portal star framed by
  * the PortalGun overlay ring tinted with the portal fluid colour. On the custom
- * pipeline the ring spins on the GPU like a vortex; under a shader pack it falls
- * back to the static translucent ring. The star always renders through the
- * vanilla end-portal pipeline so resource and shader packs that override the end
- * portal keep applying.
+ * pipeline the ring spins on the GPU like a vortex; under a shader pack a
+ * standard entity pipeline carries CPU-rotated UVs plus a restrained glow. The
+ * star uses the native end-portal type there so shader-pack overrides still apply.
  */
 final class EndframePortalVisualRenderer implements PortalVisualRenderer {
     /** Half-thickness of the two-faced star slab. Kept small so the overlay
@@ -34,6 +33,7 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
      *  centre (the region the artwork marks for the star: radius ~100/128 of
      *  the face half-extent), so the star fills exactly the marked hole. */
     private static final float STAR_RADIUS_SCALE = 0.7773F;
+    private static final float FALLBACK_GLOW_BRIGHTNESS = 0.45F;
     private static final float TAU = (float) (Math.PI * 2.0);
 
     @Override
@@ -45,7 +45,7 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
         PortalRenderBasis basis = PortalRenderBasis.from(portal);
         // During a shader-pack shadow pass the whole body is skipped (see the
         // classic renderer); the end-portal star and ring get dropped there too.
-        PortalSurfaceRenderPath path = PortalShaderCompatibility.currentPath();
+        PortalSurfaceRenderPath path = context.surfaceRenderPath();
         if (path == PortalSurfaceRenderPath.SKIP_SURFACE) return;
 
         float eased = Mth.sin(progress * Mth.HALF_PI);
@@ -54,7 +54,7 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
         int ringColor = context.style().surfaceColor();
 
         // Vanilla animated end-portal star (unculled so both faces render).
-        context.submit(PortalRenderTypes.endframeStar(),
+        context.submit(PortalRenderTypes.endframeStar(path),
             (pose, vertices) -> drawStar(pose, basis, vertices, width, height));
 
         boolean rotating = path == PortalSurfaceRenderPath.CUSTOM;
@@ -66,11 +66,18 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
             int back = SwirlPortalVisualRenderer.encodeRotation(-rotation);
             context.submit(PortalRenderTypes.endframeFrameRotating(),
                 (pose, vertices) -> drawSlab(pose.pose(), basis, vertices, width, height,
-                    RING_LAYER_OFFSET, ringColor, true, front, back));
+                    RING_LAYER_OFFSET, ringColor, 1.0F, true, front, back, 1.0, 0.0));
         } else {
+            float rotation = rotationRadians(context);
+            double cosine = Math.cos(rotation);
+            double sine = Math.sin(rotation);
             context.submit(PortalRenderTypes.endframeFrame(),
                 (pose, vertices) -> drawSlab(pose.pose(), basis, vertices, width, height,
-                    RING_LAYER_OFFSET, ringColor, false, 0, 0));
+                    RING_LAYER_OFFSET, ringColor, 1.0F, false, 0, 0, cosine, sine));
+            context.submit(PortalRenderTypes.endframeFrameGlow(),
+                (pose, vertices) -> drawSlab(pose.pose(), basis, vertices, width, height,
+                    RING_LAYER_OFFSET, ringColor, FALLBACK_GLOW_BRIGHTNESS,
+                    false, 0, 0, cosine, sine));
         }
     }
 
@@ -118,10 +125,12 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
 
     private static void drawSlab(Matrix4f matrix, PortalRenderBasis basis, VertexConsumer vertices,
                                  float width, float height, float offset, int color,
-                                 boolean rotating, int frontEncoded, int backEncoded) {
-        float red = red(color);
-        float green = green(color);
-        float blue = blue(color);
+                                 float brightness, boolean gpuRotating,
+                                 int frontEncoded, int backEncoded,
+                                 double cosine, double sine) {
+        float red = red(color) * brightness;
+        float green = green(color) * brightness;
+        float blue = blue(color) * brightness;
         float hw = width * 0.5F;
         float hh = height * 0.5F;
         float slabHalf = STAR_DEPTH * 0.5F;
@@ -130,33 +139,37 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
         float frontZ = slabHalf + offset;
         quad(vertices, matrix, basis, frontNormal,
             -hw, hh, frontZ, hw, hh, frontZ, hw, -hh, frontZ, -hw, -hh, frontZ,
-            red, green, blue, rotating, frontEncoded);
+            red, green, blue, gpuRotating, frontEncoded, cosine, sine);
 
         Vec3 backNormal = basis.normal().scale(-1.0F);
         float backZ = -slabHalf - offset;
         quad(vertices, matrix, basis, backNormal,
             hw, hh, backZ, -hw, hh, backZ, -hw, -hh, backZ, hw, -hh, backZ,
-            red, green, blue, rotating, backEncoded);
+            red, green, blue, gpuRotating, backEncoded, cosine, -sine);
     }
 
     private static void quad(VertexConsumer vertices, Matrix4f matrix, PortalRenderBasis basis,
                              Vec3 normal, float x1, float y1, float z1, float x2, float y2, float z2,
-                             float x3, float y3, float z3, float x4, float y4, float z4,
-                             float red, float green, float blue, boolean rotating, int encoded) {
-        frameVertex(vertices, matrix, basis, normal, x1, y1, z1, 0.0F, 0.0F, red, green, blue, rotating, encoded);
-        frameVertex(vertices, matrix, basis, normal, x2, y2, z2, 1.0F, 0.0F, red, green, blue, rotating, encoded);
-        frameVertex(vertices, matrix, basis, normal, x3, y3, z3, 1.0F, 1.0F, red, green, blue, rotating, encoded);
-        frameVertex(vertices, matrix, basis, normal, x4, y4, z4, 0.0F, 1.0F, red, green, blue, rotating, encoded);
+                              float x3, float y3, float z3, float x4, float y4, float z4,
+                              float red, float green, float blue, boolean gpuRotating, int encoded,
+                              double cosine, double sine) {
+        frameVertex(vertices, matrix, basis, normal, x1, y1, z1, 0.0F, 0.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
+        frameVertex(vertices, matrix, basis, normal, x2, y2, z2, 1.0F, 0.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
+        frameVertex(vertices, matrix, basis, normal, x3, y3, z3, 1.0F, 1.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
+        frameVertex(vertices, matrix, basis, normal, x4, y4, z4, 0.0F, 1.0F, red, green, blue, gpuRotating, encoded, cosine, sine);
     }
 
     private static void frameVertex(VertexConsumer vertices, Matrix4f matrix, PortalRenderBasis basis,
-                                    Vec3 normal, float x, float y, float z,
-                                    float faceU, float faceV, float red, float green, float blue,
-                                    boolean rotating, int encoded) {
+                                     Vec3 normal, float x, float y, float z,
+                                     float faceU, float faceV, float red, float green, float blue,
+                                     boolean gpuRotating, int encoded,
+                                     double cosine, double sine) {
         Vec3 point = basis.at(x, y, z);
-        float u = RING_UV_MIN_U + faceU * (RING_UV_MAX_U - RING_UV_MIN_U);
-        float v = RING_UV_MIN_V + faceV * (RING_UV_MAX_V - RING_UV_MIN_V);
-        if (rotating) {
+        float sourceU = RING_UV_MIN_U + faceU * (RING_UV_MAX_U - RING_UV_MIN_U);
+        float sourceV = RING_UV_MIN_V + faceV * (RING_UV_MAX_V - RING_UV_MIN_V);
+        float u = gpuRotating ? sourceU : EndframeVisualGeometry.rotatedU(sourceU, sourceV, cosine, sine);
+        float v = gpuRotating ? sourceV : EndframeVisualGeometry.rotatedV(sourceU, sourceV, cosine, sine);
+        if (gpuRotating) {
             // POSITION_COLOR_TEX_LIGHTMAP with the angle packed into the lightmap.
             vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
                 .setColor(red, green, blue, 1.0F)

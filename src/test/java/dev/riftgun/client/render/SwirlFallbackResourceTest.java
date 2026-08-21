@@ -56,7 +56,7 @@ class SwirlFallbackResourceTest {
         String source = Files.readString(Path.of(
             "versions/26.1.2/src/main/java/dev/riftgun/client/render/PortalRenderTypes.java"));
         int fallback = source.indexOf("private static final RenderType SWIRL_FALLBACK =");
-        int endframe = source.indexOf("private static final RenderType ENDFRAME_STAR =");
+        int endframe = source.indexOf("private static final RenderType ENDFRAME_FALLBACK =");
         String fallbackTypes = source.substring(fallback, endframe);
 
         assertEquals(1, count(fallbackTypes, "getClampToEdge(FilterMode.LINEAR)"));

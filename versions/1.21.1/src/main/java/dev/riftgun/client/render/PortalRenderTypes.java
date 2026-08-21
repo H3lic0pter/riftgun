@@ -178,12 +178,16 @@ public final class PortalRenderTypes extends RenderType {
         return RenderType.entityTranslucent(ENDFRAME_FRAME_TEXTURE);
     }
 
-    public static RenderType endframeStar() {
-        return ENDFRAME_STAR;
+    public static RenderType endframeStar(PortalSurfaceRenderPath path) {
+        return path == PortalSurfaceRenderPath.CUSTOM ? ENDFRAME_STAR : RenderType.endPortal();
     }
 
     public static RenderType endframeFrameRotating() {
         return ENDFRAME_FRAME_ROTATING;
+    }
+
+    public static RenderType endframeFrameGlow() {
+        return RenderType.eyes(ENDFRAME_FRAME_TEXTURE);
     }
 
     public static RenderType swirlFallbackGlow() {

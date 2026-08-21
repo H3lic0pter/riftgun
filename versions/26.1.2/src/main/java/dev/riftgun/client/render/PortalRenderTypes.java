@@ -201,6 +201,25 @@ public final class PortalRenderTypes {
             .createRenderSetup()
     );
 
+    private static final RenderType ENDFRAME_FALLBACK = RenderType.create(
+        "riftgun_endframe_fallback",
+        RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT)
+            .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE,
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+            .sortOnUpload()
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
+    private static final RenderType ENDFRAME_FALLBACK_GLOW = RenderType.create(
+        "riftgun_endframe_fallback_glow",
+        RenderSetup.builder(Pipelines.SWIRL_FALLBACK_GLOW)
+            .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE,
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
     private static final RenderType ENDFRAME_STAR = RenderType.create(
         "riftgun_endframe_star",
         RenderSetup.builder(Pipelines.ENDFRAME_STAR)
@@ -247,15 +266,19 @@ public final class PortalRenderTypes {
     }
 
     public static RenderType endframeFrame() {
-        return RenderTypes.entityTranslucent(ENDFRAME_FRAME_TEXTURE);
+        return ENDFRAME_FALLBACK;
     }
 
     public static RenderType endframeFrameRotating() {
         return ENDFRAME_FRAME;
     }
 
-    public static RenderType endframeStar() {
-        return ENDFRAME_STAR;
+    public static RenderType endframeStar(PortalSurfaceRenderPath path) {
+        return path == PortalSurfaceRenderPath.CUSTOM ? ENDFRAME_STAR : RenderTypes.endPortal();
+    }
+
+    public static RenderType endframeFrameGlow() {
+        return ENDFRAME_FALLBACK_GLOW;
     }
 
     public static RenderType swirlFallbackGlow() {
