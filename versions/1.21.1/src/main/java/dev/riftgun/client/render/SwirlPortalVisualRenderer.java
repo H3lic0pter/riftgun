@@ -14,7 +14,7 @@ import org.joml.Matrix4f;
 final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
     private static final int EDGE_SEGMENTS = 48;
     private static final float TICKS_PER_SECOND = 20.0F;
-    private static final float FALLBACK_BRIGHTNESS_BOOST = 0.80F;
+    private static final float GLOW_BRIGHTNESS_MULTIPLIER = 0.45F;
     private static final float TAU = (float) (Math.PI * 2.0);
 
     @Override
@@ -59,7 +59,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
                 context.age(), animated ? (float) SwirlVisualOptions.outerPeriod() : 0.0F, animated);
             drawFallbackFace(matrix, basis,
                 context.buffers().getBuffer(PortalRenderTypes.swirlFallbackGlow()), width, height,
-                depth, normalOffset, context.style().surfaceColor(), shimmer * FALLBACK_BRIGHTNESS_BOOST,
+                depth, normalOffset, context.style().surfaceColor(), shimmer * GLOW_BRIGHTNESS_MULTIPLIER,
                 phase, mapped, context.age(),
                 animated ? (float) SwirlVisualOptions.outerPeriod() : 0.0F, animated);
         }

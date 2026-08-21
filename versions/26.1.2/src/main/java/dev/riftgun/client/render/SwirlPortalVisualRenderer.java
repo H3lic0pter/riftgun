@@ -21,7 +21,7 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
     private static final int EDGE_SEGMENTS = 48;
     private static final float TICKS_PER_SECOND = 20.0F;
     // The additive glow layer tints slightly dimmer than the opaque surface.
-    private static final float GLOW_BRIGHTNESS_MULTIPLIER = 0.80F;
+    private static final float GLOW_BRIGHTNESS_MULTIPLIER = 0.45F;
     private static final float TAU = (float) (Math.PI * 2.0);
 
     @Override
