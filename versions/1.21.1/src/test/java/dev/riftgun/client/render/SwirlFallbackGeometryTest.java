@@ -28,13 +28,16 @@ class SwirlFallbackGeometryTest {
     }
 
     @Test
-    void fallbackRimNeverSamplesQuadCorners() {
-        for (int segment = 0; segment < 48; segment++) {
-            SwirlFallbackGeometry.RimPoint point =
-                SwirlFallbackGeometry.rimPoint(segment, 48);
-            double uvRadius = Math.hypot(point.u() - 0.5F, point.v() - 0.5F);
+    void quadVertexBudgetIsConstant() {
+        assertEquals(4, SwirlFallbackGeometry.vertexCount(false));
+        assertEquals(8, SwirlFallbackGeometry.vertexCount(true));
+        assertEquals(8, SwirlFallbackGeometry.vertexCount(false) * 2);
+        assertEquals(16, SwirlFallbackGeometry.vertexCount(true) * 2);
+    }
 
-            assertEquals(0.5, uvRadius, EPSILON);
-        }
+    @Test
+    void backFaceMirrorsTheFrontRotation() {
+        assertEquals(1.0F, SwirlFallbackGeometry.rotationDirection(false), EPSILON);
+        assertEquals(-1.0F, SwirlFallbackGeometry.rotationDirection(true), EPSILON);
     }
 }

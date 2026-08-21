@@ -95,7 +95,7 @@ public final class PortalRenderTypes extends RenderType {
         "rift_portal_swirl_fallback_glow",
         DefaultVertexFormat.NEW_ENTITY,
         VertexFormat.Mode.QUADS,
-        4096,
+        256,
         false,
         true,
         CompositeState.builder()

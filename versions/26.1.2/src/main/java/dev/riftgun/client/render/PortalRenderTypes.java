@@ -186,8 +186,18 @@ public final class PortalRenderTypes {
     private static final RenderType SWIRL_FALLBACK_GLOW = RenderType.create(
         "rift_portal_swirl_fallback_glow",
         RenderSetup.builder(Pipelines.SWIRL_FALLBACK_GLOW)
-            .withTexture("Sampler0", SWIRL_TEXTURE)
-            .bufferSize(4096)
+            .withTexture("Sampler0", SWIRL_TEXTURE,
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
+    private static final RenderType SWIRL_FALLBACK = RenderType.create(
+        "rift_portal_swirl_fallback",
+        RenderSetup.builder(RenderPipelines.ENTITY_CUTOUT)
+            .withTexture("Sampler0", SWIRL_TEXTURE,
+                () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+            .bufferSize(256)
             .createRenderSetup()
     );
 
@@ -233,7 +243,7 @@ public final class PortalRenderTypes {
     }
 
     public static RenderType swirlFallback() {
-        return RenderTypes.entityCutout(SWIRL_TEXTURE);
+        return SWIRL_FALLBACK;
     }
 
     public static RenderType endframeFrame() {

@@ -13,8 +13,9 @@ import org.joml.Matrix4f;
 
 final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
     private static final int EDGE_SEGMENTS = 48;
-    private static final int FALLBACK_SURFACE_SEGMENTS = 48;
+    private static final float TICKS_PER_SECOND = 20.0F;
     private static final float FALLBACK_BRIGHTNESS_BOOST = 0.80F;
+    private static final float TAU = (float) (Math.PI * 2.0);
 
     @Override
     public void render(PortalVisualRenderContext context) {
@@ -110,76 +111,67 @@ final class SwirlPortalVisualRenderer implements PortalVisualRenderer {
         SwirlFallbackGeometry.FaceOffsets faces =
             SwirlFallbackGeometry.faceOffsets(normalOffset, depth);
 
-        drawFallbackDisc(vertices, matrix, basis, hw, hh, faces.front(), basis.normal(),
+        drawFallbackQuad(vertices, matrix, basis, hw, hh, faces.front(), basis.normal(),
             red, green, blue, ageTicks, periodSeconds, phase, animated, mapped, false);
 
         if (!faces.hasDistinctBack()) return;
-        drawFallbackDisc(vertices, matrix, basis, hw, hh, faces.back(), basis.normal().scale(-1.0),
+        drawFallbackQuad(vertices, matrix, basis, hw, hh, faces.back(), basis.normal().scale(-1.0),
             red, green, blue, ageTicks, periodSeconds, phase, animated, mapped, true);
     }
 
-    private static void drawFallbackDisc(VertexConsumer vertices, Matrix4f matrix,
+    private static void drawFallbackQuad(VertexConsumer vertices, Matrix4f matrix,
                                          PortalRenderBasis basis, float halfWidth, float halfHeight,
                                          float faceOffset, Vec3 normal,
                                          float red, float green, float blue,
                                          float ageTicks, float periodSeconds, float phase,
                                          boolean animated, boolean mapped, boolean backFace) {
-        float rotationDirection = backFace ? -1.0F : 1.0F;
-        for (int segment = 0; segment < FALLBACK_SURFACE_SEGMENTS; segment++) {
-            SwirlFallbackGeometry.RimPoint first =
-                SwirlFallbackGeometry.rimPoint(segment, FALLBACK_SURFACE_SEGMENTS);
-            SwirlFallbackGeometry.RimPoint second =
-                SwirlFallbackGeometry.rimPoint(segment + 1, FALLBACK_SURFACE_SEGMENTS);
-
-            fallbackVertex(vertices, matrix, basis.at(0, 0, faceOffset), normal, red, green, blue,
-                rotatedUv(0.5F, 0.5F, ageTicks, periodSeconds, phase, animated, mapped,
-                    rotationDirection));
-            fallbackRimVertex(vertices, matrix, basis, halfWidth, halfHeight, faceOffset, normal,
-                red, green, blue, first, backFace, ageTicks, periodSeconds, phase, animated, mapped,
-                rotationDirection);
-            fallbackRimVertex(vertices, matrix, basis, halfWidth, halfHeight, faceOffset, normal,
-                red, green, blue, second, backFace, ageTicks, periodSeconds, phase, animated, mapped,
-                rotationDirection);
-            // The RenderType consumes quads; repeating the third vertex makes the second triangle degenerate.
-            fallbackRimVertex(vertices, matrix, basis, halfWidth, halfHeight, faceOffset, normal,
-                red, green, blue, second, backFace, ageTicks, periodSeconds, phase, animated, mapped,
-                rotationDirection);
+        double cosine = 1.0;
+        double sine = 0.0;
+        if (animated) {
+            float direction = SwirlFallbackGeometry.rotationDirection(backFace);
+            float turns = ageTicks / (Math.max(periodSeconds, 0.1F) * TICKS_PER_SECOND) * direction
+                + phase;
+            double angle = (turns - Math.floor(turns)) * TAU;
+            cosine = Math.cos(angle);
+            sine = Math.sin(angle);
         }
-    }
 
-    private static void fallbackRimVertex(VertexConsumer vertices, Matrix4f matrix,
-                                          PortalRenderBasis basis, float halfWidth, float halfHeight,
-                                          float faceOffset, Vec3 normal,
-                                          float red, float green, float blue,
-                                          SwirlFallbackGeometry.RimPoint point, boolean backFace,
-                                          float ageTicks, float periodSeconds, float phase,
-                                          boolean animated, boolean mapped, float rotationDirection) {
-        float x = point.x() * halfWidth * (backFace ? -1.0F : 1.0F);
-        float y = point.y() * halfHeight;
-        fallbackVertex(vertices, matrix, basis.at(x, y, faceOffset), normal, red, green, blue,
-            rotatedUv(point.u(), point.v(), ageTicks, periodSeconds, phase, animated, mapped,
-                rotationDirection));
-    }
-
-    private static SwirlFallbackAnimation.Uv rotatedUv(float u, float v, float ageTicks,
-                                                       float periodSeconds, float phase,
-                                                       boolean animated, boolean mapped,
-                                                       float rotationDirection) {
-        SwirlFallbackAnimation.Uv rotated = SwirlFallbackAnimation.rotate(
-            u, v, ageTicks, periodSeconds, phase, animated, rotationDirection);
-        if (!mapped) return rotated;
-
-        float mappedU = 63.5F / 128.0F + (rotated.u() - 0.5F) * (110.0F / 128.0F);
-        float mappedV = 62.5F / 128.0F + (rotated.v() - 0.5F) * (104.0F / 128.0F);
-        return new SwirlFallbackAnimation.Uv(mappedU, mappedV);
+        if (backFace) {
+            fallbackVertex(vertices, matrix, basis.at(halfWidth, -halfHeight, faceOffset), normal,
+                red, green, blue, 0, 0, cosine, sine, mapped);
+            fallbackVertex(vertices, matrix, basis.at(-halfWidth, -halfHeight, faceOffset), normal,
+                red, green, blue, 1, 0, cosine, sine, mapped);
+            fallbackVertex(vertices, matrix, basis.at(-halfWidth, halfHeight, faceOffset), normal,
+                red, green, blue, 1, 1, cosine, sine, mapped);
+            fallbackVertex(vertices, matrix, basis.at(halfWidth, halfHeight, faceOffset), normal,
+                red, green, blue, 0, 1, cosine, sine, mapped);
+        } else {
+            fallbackVertex(vertices, matrix, basis.at(-halfWidth, -halfHeight, faceOffset), normal,
+                red, green, blue, 0, 0, cosine, sine, mapped);
+            fallbackVertex(vertices, matrix, basis.at(halfWidth, -halfHeight, faceOffset), normal,
+                red, green, blue, 1, 0, cosine, sine, mapped);
+            fallbackVertex(vertices, matrix, basis.at(halfWidth, halfHeight, faceOffset), normal,
+                red, green, blue, 1, 1, cosine, sine, mapped);
+            fallbackVertex(vertices, matrix, basis.at(-halfWidth, halfHeight, faceOffset), normal,
+                red, green, blue, 0, 1, cosine, sine, mapped);
+        }
     }
 
     private static void fallbackVertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
                                        Vec3 normal, float red, float green, float blue,
-                                       SwirlFallbackAnimation.Uv uv) {
+                                       float u, float v, double cosine, double sine,
+                                       boolean mapped) {
+        float centeredU = u - 0.5F;
+        float centeredV = v - 0.5F;
+        float rotatedU = (float) (centeredU * cosine - centeredV * sine) + 0.5F;
+        float rotatedV = (float) (centeredU * sine + centeredV * cosine) + 0.5F;
+        if (mapped) {
+            rotatedU = 63.5F / 128.0F + (rotatedU - 0.5F) * (110.0F / 128.0F);
+            rotatedV = 62.5F / 128.0F + (rotatedV - 0.5F) * (104.0F / 128.0F);
+        }
         vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
             .setColor(red, green, blue, 1.0F)
-            .setUv(uv.u(), uv.v())
+            .setUv(rotatedU, rotatedV)
             .setOverlay(OverlayTexture.NO_OVERLAY)
             .setLight(LightTexture.FULL_BRIGHT)
             .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
