@@ -205,7 +205,7 @@ public final class RandomRiftManager {
 
     private static void finishIfExhausted(ServerPlayer player, PortalGunLocator.LocatedGun gun,
                                           Search search) {
-        if (search.attempts < MAXIMUM_ATTEMPTS) return;
+        if (search.attempts < RiftConfigs.server().randomRift().maximumAttempts()) return;
         SEARCHES.remove(player.getUUID());
         message(player, "message.riftgun.random_rift_failed");
         PortalNetworking.sendSnapshot(player, false, gun);
