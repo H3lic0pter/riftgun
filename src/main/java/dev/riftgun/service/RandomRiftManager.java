@@ -11,6 +11,7 @@ import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.network.PortalNetworking;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
@@ -40,8 +41,8 @@ public final class RandomRiftManager {
     private static final TicketType<UUID> PREPARATION_TICKET =
         TicketType.create("riftgun_random_rift_preparation", UUID::compareTo);
 //?}
-    private static final Map<UUID, Search> SEARCHES = new HashMap<>();
-    private static final Map<UUID, Long> COOLDOWNS = new HashMap<>();
+    private static final Map<MinecraftServer, Map<UUID, Search>> SEARCHES = new IdentityHashMap<>();
+    private static final Map<MinecraftServer, Map<UUID, Long>> COOLDOWNS = new IdentityHashMap<>();
     private static final RandomSource RANDOM = RandomSource.create();
     private static final UUID SEARCH_PROBE_ID = new UUID(0L, 0L);
     private static final VanillaDestinationSafetyInspector SAFETY_INSPECTOR =
@@ -59,7 +60,7 @@ public final class RandomRiftManager {
             return;
         }
         UUID playerId = player.getUUID();
-        if (SEARCHES.containsKey(playerId)) {
+        if (searches(playerServer(player)).containsKey(playerId)) {
             message(player, "message.riftgun.random_rift_searching");
             return;
         }
@@ -68,18 +69,18 @@ public final class RandomRiftManager {
             message(player, "message.riftgun.random_rift_cooldown", (cooldown + 19) / 20);
             return;
         }
-        SEARCHES.put(playerId, new Search(player.level().dimension(), player.getX(), player.getZ(),
+        searches(playerServer(player)).put(playerId, new Search(player.level().dimension(), player.getX(), player.getZ(),
             gun.saveReference()));
         message(player, "message.riftgun.random_rift_search_started");
         PortalNetworking.sendSnapshot(player, false, gun);
     }
 
     public static void tick(MinecraftServer server) {
-        for (UUID playerId : new ArrayList<>(SEARCHES.keySet())) {
-            Search search = SEARCHES.get(playerId);
+        for (UUID playerId : new ArrayList<>(searches(server).keySet())) {
+            Search search = searches(server).get(playerId);
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);
             if (search == null || player == null) {
-                SEARCHES.remove(playerId);
+                searches(server).remove(playerId);
                 continue;
             }
             tickSearch(player, search);
@@ -88,12 +89,12 @@ public final class RandomRiftManager {
 
     public static Snapshot snapshot(ServerPlayer player) {
         return new Snapshot(RiftConfigs.server().randomRift().enabled(),
-            SEARCHES.containsKey(player.getUUID()), cooldownTicks(player));
+            searches(playerServer(player)).containsKey(player.getUUID()), cooldownTicks(player));
     }
 
     public static void playerLeft(ServerPlayer player) {
         cancel(playerServer(player), player.getUUID());
-        COOLDOWNS.remove(player.getUUID());
+        cooldowns(playerServer(player)).remove(player.getUUID());
     }
 
     public static void playerChangedDimension(ServerPlayer player) {
@@ -101,8 +102,10 @@ public final class RandomRiftManager {
     }
 
     public static void cancelAll(MinecraftServer server) {
-        for (Search search : SEARCHES.values()) releasePreparation(server, search);
-        SEARCHES.clear();
+        Map<UUID, Search> searches = SEARCHES.remove(server);
+        if (searches != null) {
+            for (Search search : searches.values()) releasePreparation(server, search);
+        }
     }
 
     public static void reset() {
@@ -152,12 +155,12 @@ public final class RandomRiftManager {
             Destination destination = new Destination(UUID.randomUUID(), "Unknown Rift",
                 PortalPlayerData.DEFAULT_GROUP_ID, level.dimension(), target.getX() + 0.5,
                 target.getY(), target.getZ() + 0.5, player.getYRot(), time, 0L, false);
-            SEARCHES.remove(player.getUUID());
+            searches(playerServer(player)).remove(player.getUUID());
             boolean opened = PortalOpenCoordinator.openTransient(player, data, destination,
                 PortalPlacementMode.FRONT, gun, true);
             if (opened) {
                 int cooldownTicks = config.cooldownTicks();
-                if (cooldownTicks > 0) COOLDOWNS.put(player.getUUID(), time + cooldownTicks);
+                if (cooldownTicks > 0) cooldowns(playerServer(player)).put(player.getUUID(), time + cooldownTicks);
             }
             PortalNetworking.sendSnapshot(player, false, gun);
             if (opened) PortalNetworking.sendPortalOpened(player);
@@ -206,7 +209,7 @@ public final class RandomRiftManager {
     private static void finishIfExhausted(ServerPlayer player, PortalGunLocator.LocatedGun gun,
                                           Search search) {
         if (search.attempts < RiftConfigs.server().randomRift().maximumAttempts()) return;
-        SEARCHES.remove(player.getUUID());
+        searches(playerServer(player)).remove(player.getUUID());
         message(player, "message.riftgun.random_rift_failed");
         PortalNetworking.sendSnapshot(player, false, gun);
     }
@@ -240,7 +243,7 @@ public final class RandomRiftManager {
     }
 
     private static void cancel(MinecraftServer server, UUID playerId) {
-        Search search = SEARCHES.remove(playerId);
+        Search search = searches(server).remove(playerId);
         if (search != null && server != null) releasePreparation(server, search);
     }
 
@@ -252,10 +255,18 @@ public final class RandomRiftManager {
 //?}
     }
 
+    private static Map<UUID, Search> searches(MinecraftServer server) {
+        return SEARCHES.computeIfAbsent(server, ignored -> new HashMap<>());
+    }
+
+    private static Map<UUID, Long> cooldowns(MinecraftServer server) {
+        return COOLDOWNS.computeIfAbsent(server, ignored -> new HashMap<>());
+    }
+
     private static int cooldownTicks(ServerPlayer player) {
-        long remaining = COOLDOWNS.getOrDefault(player.getUUID(), 0L) - player.level().getGameTime();
+        long remaining = cooldowns(playerServer(player)).getOrDefault(player.getUUID(), 0L) - player.level().getGameTime();
         if (remaining <= 0) {
-            COOLDOWNS.remove(player.getUUID());
+            cooldowns(playerServer(player)).remove(player.getUUID());
             return 0;
         }
         return (int) Math.min(Integer.MAX_VALUE, remaining);
