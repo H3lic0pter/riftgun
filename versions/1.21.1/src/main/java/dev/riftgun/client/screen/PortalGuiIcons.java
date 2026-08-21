@@ -7,13 +7,15 @@ import net.minecraft.resources.ResourceLocation;
 /** Sprite-backed icon primitives shared by the configuration screen's panes. */
 final class PortalGuiIcons {
     private static final int ICON_SIZE = 16;
+    // The die's dark face reads left-heavy at mathematical center.
+    private static final int RANDOM_RIFT_OPTICAL_X = 1;
 
     /** Accepts button bounds and centers the standard 16 x 16 random-rift sprite within them. */
     static void drawRandomRiftIcon(GuiGraphics graphics, int buttonX, int buttonY,
                                    int buttonWidth, int buttonHeight, boolean enabled) {
         PortalGuiSprites.draw(graphics,
             enabled ? PortalGuiSprites.RANDOM_RIFT_ON : PortalGuiSprites.RANDOM_RIFT_OFF,
-            buttonX + (buttonWidth - ICON_SIZE) / 2,
+            buttonX + (buttonWidth - ICON_SIZE) / 2 + RANDOM_RIFT_OPTICAL_X,
             buttonY + (buttonHeight - ICON_SIZE) / 2);
     }
 
