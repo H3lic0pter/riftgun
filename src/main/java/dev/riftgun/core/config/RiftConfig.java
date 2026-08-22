@@ -24,7 +24,7 @@ public record RiftConfig(
         return new RiftConfig(
             new ShortcutConfig(PortalShortcutGunMode.HELD_HANDS),
             new DestinationConfig(256, 32, 48, 32),
-            new RandomRiftConfig(true, 60, 256, 4096, 16),
+            new RandomRiftConfig(true, 60, 256, 4096, 16, 8),
             new FuelConfig(true, 50, 100, 5, 8, 5, 8),
             new ModuleConfig(2, 8000, 3, 16, 1, 45, true, true),
             new PortalConfig(15, true, 0.35),
@@ -61,7 +61,8 @@ public record RiftConfig(
         int cooldownTicks,
         int minimumRadius,
         int maximumRadius,
-        int maximumAttempts
+        int maximumAttempts,
+        int maximumConcurrentSearches
     ) {
         public int innerRadius() {
             return Math.min(minimumRadius, maximumRadius);

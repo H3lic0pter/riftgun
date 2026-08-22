@@ -17,6 +17,8 @@ final class RandomRiftChunkPreparationSourceTest {
         assertFalse(manager.contains("level.getChunk("));
         assertTrue(manager.contains("addPreparationTicket"));
         assertTrue(manager.contains("isPositionEntityTicking"));
+        assertTrue(manager.contains("RandomRiftSearchPolicy.candidateProbe("));
+        assertFalse(manager.contains("new BlockPos(candidateX, 0, candidateZ)"));
         assertTrue(manager.contains("removePreparationTicket"));
     }
 }

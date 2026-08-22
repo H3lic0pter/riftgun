@@ -30,7 +30,6 @@ import net.minecraft.world.level.border.WorldBorder;
 
 /** Incremental random-destination search. At most one candidate is loaded per player per server tick. */
 public final class RandomRiftManager {
-    private static final int MAXIMUM_ATTEMPTS = 16;
     private static final int PREPARATION_TIMEOUT_TICKS = 100;
     private static final int PREPARATION_TICKET_RADIUS = 3;
     private static final int NETHER_ROOF_MARGIN = 8;
@@ -69,7 +68,13 @@ public final class RandomRiftManager {
             message(player, "message.riftgun.random_rift_cooldown", (cooldown + 19) / 20);
             return;
         }
-        searches(playerServer(player)).put(playerId, new Search(player.level().dimension(), player.getX(), player.getZ(),
+        Map<UUID, Search> serverSearches = searches(playerServer(player));
+        if (!RandomRiftSearchPolicy.hasCapacity(
+            serverSearches.size(), config.maximumConcurrentSearches())) {
+            message(player, "message.riftgun.random_rift_too_many_searches");
+            return;
+        }
+        serverSearches.put(playerId, new Search(player.level().dimension(), player.getX(), player.getZ(),
             gun.saveReference()));
         message(player, "message.riftgun.random_rift_search_started");
         PortalNetworking.sendSnapshot(player, false, gun);
@@ -138,7 +143,9 @@ public final class RandomRiftManager {
             beginCandidate(level, search, config, now);
             return;
         }
-        if (!level.isPositionEntityTicking(search.candidatePosition())) {
+        RandomRiftSearchPolicy.CandidateProbe probe = RandomRiftSearchPolicy.candidateProbe(
+            search.candidateX >> 4, search.candidateZ >> 4, minimumBuildHeight(level));
+        if (!level.isPositionEntityTicking(new BlockPos(probe.x(), probe.y(), probe.z()))) {
             if (now - search.preparationStartedAt >= PREPARATION_TIMEOUT_TICKS) {
                 removePreparationTicket(level, search);
                 search.clearCandidate();
@@ -276,6 +283,14 @@ public final class RandomRiftManager {
         return Math.max(minimum, Math.min(maximum, value));
     }
 
+    private static int minimumBuildHeight(ServerLevel level) {
+//? if >=1.21.11 {
+        /*return level.dimensionType().minY();
+*///?} else {
+        return level.getMinBuildHeight();
+//?}
+    }
+
     private static void message(ServerPlayer player, String key, Object... arguments) {
         Msg.displayClientMessage(player, Component.translatable(key, arguments), true);
     }
@@ -312,10 +327,6 @@ public final class RandomRiftManager {
             candidateZ = z;
             candidateChunk = new ChunkPos(x >> 4, z >> 4);
             preparationStartedAt = now;
-        }
-
-        private BlockPos candidatePosition() {
-            return new BlockPos(candidateX, 0, candidateZ);
         }
 
         private void clearCandidate() {
