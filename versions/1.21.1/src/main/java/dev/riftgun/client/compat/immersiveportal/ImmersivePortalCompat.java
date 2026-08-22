@@ -26,6 +26,10 @@ public final class ImmersivePortalCompat {
         return isAvailable() && ImmersivePortalBridge.render(context);
     }
 
+    public static boolean isRenderingPortalWorld() {
+        return isLoaded() && ImmersivePortalBridge.isRenderingPortalWorld();
+    }
+
     public static void tick(Minecraft minecraft) {
         ClientPacketListener current = minecraft.getConnection();
         if (current != connection) {

@@ -14,7 +14,10 @@ final class ImmersivePortalVisualRenderer implements PortalVisualRenderer {
             fallback.render(context);
             return;
         }
-        ImmersivePortalCompat.render(context);
+        boolean proxySynced = ImmersivePortalCompat.render(context);
+        // The linked Rift entity is rendered again inside IP's destination world.
+        // It has no local proxy and must not paint a loading disc over the IP view.
+        if (!proxySynced && ImmersivePortalCompat.isRenderingPortalWorld()) return;
         overlay.render(context, ImmersivePortalCompat.readiness(context.portal().visualId()));
     }
 }

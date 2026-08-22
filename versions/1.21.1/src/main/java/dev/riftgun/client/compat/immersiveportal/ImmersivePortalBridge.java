@@ -5,6 +5,7 @@ import dev.riftgun.portal.PortalEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import java.util.UUID;
+import qouteall.imm_ptl.core.render.context_management.PortalRendering;
 
 /**
  * Isolated bridge for IP client objects. It intentionally cannot affect Rift
@@ -14,6 +15,10 @@ final class ImmersivePortalBridge {
     static boolean render(PortalVisualRenderContext context) {
         if (!(context.portal() instanceof PortalEntity portal)) return false;
         return ImmersivePortalVisualCache.sync(portal, context.visibleProgress());
+    }
+
+    static boolean isRenderingPortalWorld() {
+        return PortalRendering.isRendering();
     }
 
     static void tick(Minecraft minecraft) {

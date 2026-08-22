@@ -10,9 +10,12 @@ import java.util.Map;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.SectionPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.phys.Vec3;
+import qouteall.imm_ptl.core.ClientWorldLoader;
 import qouteall.imm_ptl.core.api.PortalAPI;
 import qouteall.imm_ptl.core.portal.Portal;
 import qouteall.imm_ptl.core.portal.shape.SpecialFlatPortalShape;
@@ -24,9 +27,9 @@ final class ImmersivePortalVisualCache {
     private static final int CIRCLE_SEGMENTS = 56;
     private static final double INNER_RADIUS = 0.91875;
     private static final double MIN_SIZE = 0.001;
-    private static final float FADE_STEP = 0.1F;
     private static final Map<UUID, PortalEntity> SOURCES = new HashMap<>();
     private static final Map<UUID, ProxyPair> PROXIES = new HashMap<>();
+    private static final Map<UUID, ImmersivePortalCoverState> COVERS = new HashMap<>();
 
     static void tick(Minecraft minecraft) {
         if (minecraft.level == null
@@ -48,10 +51,16 @@ final class ImmersivePortalVisualCache {
                 iterator.remove();
                 continue;
             }
-            if (pair.source.visualProgress(1.0F) > 0.0F) {
-                pair.readiness = Math.min(1.0F, pair.readiness + FADE_STEP);
-            }
+            ImmersivePortalCoverState cover = COVERS.computeIfAbsent(
+                pair.source.getUUID(), ignored -> new ImmersivePortalCoverState());
+            if (targetChunkReady(pair.source)) cover.markReady();
+            cover.tick();
         }
+    }
+
+    static float readiness(UUID riftPortalId) {
+        ImmersivePortalCoverState cover = COVERS.get(riftPortalId);
+        return cover == null ? 0.0F : cover.readiness();
     }
 
     static boolean sync(PortalEntity source, float progress) {
@@ -64,18 +73,12 @@ final class ImmersivePortalVisualCache {
         ProxyPair pair = PROXIES.get(source.getUUID());
         if (pair == null || pair.source != source || pair.front.level() != source.level()) {
             remove(source.getUUID());
-            pair = create(source);
+            return false;
         }
-        if (pair == null) return false;
 
         apply(pair.front, source, target, progress, false);
         apply(pair.back, source, target, progress, true);
         return true;
-    }
-
-    static float readiness(UUID riftPortalId) {
-        ProxyPair pair = PROXIES.get(riftPortalId);
-        return pair == null ? 0.0F : pair.readiness;
     }
 
     static void remove(UUID riftPortalId) {
@@ -91,11 +94,14 @@ final class ImmersivePortalVisualCache {
         if (!(entity instanceof PortalEntity portal)) return;
         SOURCES.remove(portal.getUUID());
         remove(portal.getUUID());
+        Entity.RemovalReason reason = portal.getRemovalReason();
+        if (reason != null && reason.shouldDestroy()) COVERS.remove(portal.getUUID());
     }
 
     static void reset() {
         clearProxies();
         SOURCES.clear();
+        COVERS.clear();
     }
 
     private static ProxyPair create(PortalEntity source) {
@@ -104,6 +110,11 @@ final class ImmersivePortalVisualCache {
         if (!(source.level() instanceof ClientLevel level)) return null;
         PortalVisualTarget target = source.visualTarget().orElse(null);
         if (target == null) return null;
+        // Prepare IP's secondary world during the client tick, never from the render stack.
+        if (!target.dimension().equals(level.dimension())
+            && ClientWorldLoader.getOptionalWorld(target.dimension()) == null) {
+            return null;
+        }
 
         Portal front = Portal.ENTITY_TYPE.create(level);
         if (front == null) return null;
@@ -150,6 +161,17 @@ final class ImmersivePortalVisualCache {
         return new SpecialFlatPortalShape(mesh);
     }
 
+    private static boolean targetChunkReady(PortalEntity source) {
+        PortalVisualTarget target = source.visualTarget().orElse(null);
+        if (target == null) return false;
+        ClientLevel targetLevel = ClientWorldLoader.getOptionalWorld(target.dimension());
+        if (targetLevel == null) return false;
+        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(target.position().x));
+        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(target.position().z));
+        return targetLevel.getChunkSource().getChunk(
+            chunkX, chunkZ, ChunkStatus.FULL, false) != null;
+    }
+
     private static DQuaternion connectionRotation(Vec3 sourceRight, Vec3 sourceUp,
                                                   Vec3 targetRight, Vec3 targetUp) {
         DQuaternion source = DQuaternion.fromFacingVecs(sourceRight, sourceUp);
@@ -177,7 +199,6 @@ final class ImmersivePortalVisualCache {
         private final PortalEntity source;
         private final Portal front;
         private final Portal back;
-        private float readiness;
 
         private ProxyPair(PortalEntity source, Portal front, Portal back) {
             this.source = source;
