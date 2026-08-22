@@ -91,6 +91,20 @@ public final class PortalRenderTypes extends RenderType {
             .createCompositeState(true)
     );
 
+    private static final RenderType IMMERSIVE_FILL = create(
+        "riftgun_immersive_fill",
+        DefaultVertexFormat.POSITION_COLOR,
+        VertexFormat.Mode.TRIANGLES,
+        1024,
+        false,
+        true,
+        CompositeState.builder()
+            .setShaderState(POSITION_COLOR_SHADER)
+            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+            .setCullState(NO_CULL)
+            .createCompositeState(true)
+    );
+
     private static final RenderType SWIRL_FALLBACK_GLOW = create(
         "rift_portal_swirl_fallback_glow",
         DefaultVertexFormat.NEW_ENTITY,
@@ -164,6 +178,10 @@ public final class PortalRenderTypes extends RenderType {
 
     public static RenderType swirlEdge() {
         return SWIRL_EDGE;
+    }
+
+    public static RenderType immersiveFill() {
+        return IMMERSIVE_FILL;
     }
 
     public static RenderType classicFallback() {

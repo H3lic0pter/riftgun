@@ -22,6 +22,12 @@ under their own licenses:
      (adapted from Tempad's MIT-licensed `rendertype_timedoor` shaders)
    - License text: see THIRD_PARTY_LICENSES/Tempad-LICENSE
 
+2. Portal Gun Mod (MIT)
+   - Origin: https://github.com/Jozef-Steinhubl/portal-gun-mod
+   - Used in: cropped Immersive portal frame texture
+   - Copyright (c) 2021 MeowMC; Copyright (c) 2025 Jozef Steinhübl
+   - License text: see THIRD_PARTY_LICENSES/PortalGunMod-LICENSE
+
 Generated portal splash particle sprites and portal sound effects are
 self-authored outputs of the project's tooling and are covered by the
 project's own MIT license.

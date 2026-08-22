@@ -27,7 +27,8 @@ public final class ServerConfig {
                 value.maxDestinationNameLength.get(), value.maxGroupNameLength.get()),
             new RiftConfig.RandomRiftConfig(
                 value.randomRiftEnabled.get(), value.randomRiftCooldownTicks.get(),
-                value.randomRiftMinimumRadius.get(), value.randomRiftMaximumRadius.get()),
+                value.randomRiftMinimumRadius.get(), value.randomRiftMaximumRadius.get(),
+                value.randomRiftMaximumAttempts.get()),
             new RiftConfig.FuelConfig(
                 value.randomConsumption.get(), value.unstableFuelMin.get(), value.unstableFuelMax.get(),
                 value.portalFuelMin.get(), value.portalFuelMax.get(),
@@ -98,6 +99,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue randomRiftCooldownTicks;
         public final ModConfigSpec.IntValue randomRiftMinimumRadius;
         public final ModConfigSpec.IntValue randomRiftMaximumRadius;
+        public final ModConfigSpec.IntValue randomRiftMaximumAttempts;
         public final ModConfigSpec.BooleanValue randomConsumption;
         public final ModConfigSpec.IntValue unstableFuelMin;
         public final ModConfigSpec.IntValue unstableFuelMax;
@@ -192,6 +194,7 @@ public final class ServerConfig {
                 .defineInRange("cooldownTicks", 60, 0, 72000);
             randomRiftMinimumRadius = builder.defineInRange("minimumRadius", 256, 0, 30000000);
             randomRiftMaximumRadius = builder.defineInRange("maximumRadius", 4096, 1, 30000000);
+            randomRiftMaximumAttempts = builder.defineInRange("maximumAttempts", 16, 1, 1024);
             builder.pop();
 
             builder.push("fuel");

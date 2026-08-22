@@ -3,6 +3,7 @@ package dev.riftgun.client;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalSplashEmitter;
+import dev.riftgun.client.compat.immersiveportal.ImmersivePortalCompat;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlacementMode;
@@ -22,6 +23,8 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
@@ -31,6 +34,7 @@ public final class ClientGameEvents {
         Minecraft minecraft = Minecraft.getInstance();
         GuiCaptureHarness.tick(minecraft);
         PortalSplashEmitter.tick(minecraft);
+        ImmersivePortalCompat.tick(minecraft);
         while (ClientModEvents.OPEN_CONFIG.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendShortcutRequest(PortalAction.OPEN_GUI);
@@ -59,6 +63,16 @@ public final class ClientGameEvents {
                 PortalNetworking.sendShortcutRequest(PortalAction.RELOCATE_ENTITY);
             }
         }
+    }
+
+    @SubscribeEvent
+    public static void entityJoined(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide()) ImmersivePortalCompat.entityJoined(event.getEntity());
+    }
+
+    @SubscribeEvent
+    public static void entityLeft(EntityLeaveLevelEvent event) {
+        if (event.getLevel().isClientSide()) ImmersivePortalCompat.entityLeft(event.getEntity());
     }
 
     private static void sendForcedOpen(Minecraft minecraft, PortalPlacementMode mode) {

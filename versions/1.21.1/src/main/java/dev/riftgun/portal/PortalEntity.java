@@ -60,6 +60,20 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Integer> ANCHOR_FACE =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Optional<UUID>> LINKED_PORTAL =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<String> LINKED_DIMENSION =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Long> LINKED_X =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Long> LINKED_Y =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Long> LINKED_Z =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Integer> LINKED_ORIENTATION =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> LINKED_Y_ROT =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.FLOAT);
     private static final TicketType<BlockPos> PORTAL_TICKET =
         TicketType.create("riftgun_portal", Vec3i::compareTo);
 
@@ -170,10 +184,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     private static void link(PortalEntity entry, PortalEntity exit) {
-        entry.linkedPortalId = exit.getUUID();
-        entry.linkedDimension = exit.level().dimension();
-        exit.linkedPortalId = entry.getUUID();
-        exit.linkedDimension = entry.level().dimension();
+        entry.syncVisualLink(exit);
+        exit.syncVisualLink(entry);
     }
 
     void acquireChunkTicket() {
@@ -236,6 +248,13 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         builder.define(FUEL_ID, "riftgun:dimensional_portal_fluid");
         builder.define(ANCHOR, Optional.empty());
         builder.define(ANCHOR_FACE, -1);
+        builder.define(LINKED_PORTAL, Optional.empty());
+        builder.define(LINKED_DIMENSION, "");
+        builder.define(LINKED_X, 0L);
+        builder.define(LINKED_Y, 0L);
+        builder.define(LINKED_Z, 0L);
+        builder.define(LINKED_ORIENTATION, PortalOrientation.VERTICAL.ordinal());
+        builder.define(LINKED_Y_ROT, 0.0F);
     }
 
     public PortalLifecycle.Phase phase() {
@@ -312,6 +331,22 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
             attachment.anchor(), attachment.face());
     }
 
+    public Optional<PortalVisualTarget> visualTarget() {
+        Optional<UUID> linkedId = entityData.get(LINKED_PORTAL);
+        ResourceLocation dimensionId = ResourceLocation.tryParse(entityData.get(LINKED_DIMENSION));
+        if (linkedId.isEmpty() || dimensionId == null) return Optional.empty();
+        ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, dimensionId);
+        Vec3 position = new Vec3(
+            Double.longBitsToDouble(entityData.get(LINKED_X)),
+            Double.longBitsToDouble(entityData.get(LINKED_Y)),
+            Double.longBitsToDouble(entityData.get(LINKED_Z))
+        );
+        PortalOrientation orientation = PortalOrientation.byOrdinal(entityData.get(LINKED_ORIENTATION));
+        float yaw = entityData.get(LINKED_Y_ROT);
+        return Optional.of(new PortalVisualTarget(linkedId.get(), dimension, position,
+            orientation.right(yaw), orientation.up(yaw)));
+    }
+
     private PortalAttachment attachment() {
         return PortalAttachment.fromSynced(entityData.get(ANCHOR), entityData.get(ANCHOR_FACE));
     }
@@ -332,6 +367,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         int nextPhaseTicks = PortalPairClock.phaseTicks(lifecycleStartedAt, closeStartedAt, now);
         entityData.set(PHASE, nextPhase.ordinal());
         entityData.set(PHASE_TICKS, nextPhaseTicks);
+
+        PortalEntity linked = linkedPortal();
+        if (linked != null) syncVisualLink(linked);
 
         SweptPortalIndex.refresh(this);
 
@@ -616,6 +654,18 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         return null;
     }
 
+    private void syncVisualLink(PortalEntity linked) {
+        linkedPortalId = linked.getUUID();
+        linkedDimension = linked.level().dimension();
+        entityData.set(LINKED_PORTAL, Optional.of(linkedPortalId));
+        entityData.set(LINKED_DIMENSION, linkedDimension.location().toString());
+        entityData.set(LINKED_X, Double.doubleToLongBits(linked.getX()));
+        entityData.set(LINKED_Y, Double.doubleToLongBits(linked.getY()));
+        entityData.set(LINKED_Z, Double.doubleToLongBits(linked.getZ()));
+        entityData.set(LINKED_ORIENTATION, linked.orientation().ordinal());
+        entityData.set(LINKED_Y_ROT, linked.getYRot());
+    }
+
     long serverTime() {
         return level() instanceof ServerLevel serverLevel
             ? serverLevel.getServer().overworld().getGameTime()
@@ -629,6 +679,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         if (linkedDimensionId != null) {
             linkedDimension = ResourceKey.create(Registries.DIMENSION, linkedDimensionId);
         }
+        entityData.set(LINKED_PORTAL, Optional.ofNullable(linkedPortalId));
+        entityData.set(LINKED_DIMENSION,
+            linkedDimension == null ? "" : linkedDimension.location().toString());
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
         if (tag.hasUUID("ExcludedPlayer")) excludedPlayerId = tag.getUUID("ExcludedPlayer");
         exitPortal = tag.getBoolean("ExitPortal");

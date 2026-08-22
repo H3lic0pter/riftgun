@@ -60,7 +60,8 @@ public record RiftConfig(
         boolean enabled,
         int cooldownTicks,
         int minimumRadius,
-        int maximumRadius
+        int maximumRadius,
+        int maximumAttempts
     ) {
         public int innerRadius() {
             return Math.min(minimumRadius, maximumRadius);

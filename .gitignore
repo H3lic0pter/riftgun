@@ -23,3 +23,5 @@ versions/*/logs/
 versions/*/crash-reports/
 versions/*/saves/
 versions/*/server.properties
+
+ref/

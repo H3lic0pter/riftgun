@@ -1,6 +1,7 @@
 package dev.riftgun;
 
 import dev.riftgun.fuel.PortalFuelProfileReloadListener;
+import dev.riftgun.compat.immersiveportal.ImmersivePortalServerCompat;
 import dev.riftgun.lifecycle.RiftLifecycle;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -61,6 +62,7 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void playerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            ImmersivePortalServerCompat.playerLeft(player);
             RiftLifecycle.playerLeft(player);
         }
     }
@@ -82,6 +84,7 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void serverTick(ServerTickEvent.Post event) {
         RiftLifecycle.serverTick(event.getServer());
+        ImmersivePortalServerCompat.tick(event.getServer());
     }
 
     @SubscribeEvent
@@ -92,10 +95,12 @@ public final class CommonEvents {
     @SubscribeEvent
     public static void entityJoined(EntityJoinLevelEvent event) {
         RiftLifecycle.entityJoined(event.getEntity());
+        ImmersivePortalServerCompat.entityJoined(event.getEntity());
     }
 
     @SubscribeEvent
     public static void entityLeft(EntityLeaveLevelEvent event) {
+        ImmersivePortalServerCompat.entityLeft(event.getEntity());
         RiftLifecycle.entityLeft(event.getEntity());
     }
 
@@ -108,6 +113,7 @@ public final class CommonEvents {
 
     @SubscribeEvent
     public static void serverStopped(ServerStoppedEvent event) {
+        ImmersivePortalServerCompat.clear();
         RiftLifecycle.serverStopped(event.getServer());
     }
 

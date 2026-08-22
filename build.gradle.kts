@@ -89,6 +89,12 @@ dependencies {
     if (ryoamicProject != null && ryoamicVersion != null) {
         optionalClientCompileOnly("maven.modrinth:$ryoamicProject:$ryoamicVersion")
     }
+    val immersivePortalsVersion = findProperty("immersive_portals_version") as String?
+    if (immersivePortalsVersion != null) {
+        optionalClientCompileOnly(
+            "maven.modrinth:immersive-portals-neoforge:$immersivePortalsVersion"
+        )
+    }
     val jeiVersion = findProperty("jei_version") as String?
     if (jeiVersion != null) {
         val jeiApi = "mezz.jei:jei-${property("minecraft_version")}-neoforge-api:$jeiVersion"

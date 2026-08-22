@@ -1,6 +1,8 @@
 package dev.riftgun.network;
 
 import dev.riftgun.client.PortalClientPayloadHandler;
+import dev.riftgun.client.compat.immersiveportal.ImmersivePortalCompat;
+import dev.riftgun.compat.immersiveportal.ImmersivePortalServerCompat;
 import dev.riftgun.core.network.NetworkTransport;
 import dev.riftgun.core.network.RiftNetwork;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -22,6 +24,17 @@ public final class NeoForgeNetworkAdapter implements NetworkTransport {
             });
         registrar.playToClient(PortalResponsePayload.TYPE, PortalResponsePayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(() -> PortalClientPayloadHandler.handle(payload.data())));
+        registrar.playToServer(ImmersivePortalHelloPayload.TYPE, ImmersivePortalHelloPayload.STREAM_CODEC,
+            (payload, context) -> {
+                if (context.player() instanceof ServerPlayer player) {
+                    context.enqueueWork(() -> ImmersivePortalServerCompat.handleSelection(
+                        player, payload.selected()));
+                }
+            });
+        registrar.playToClient(ImmersivePortalCapabilityPayload.TYPE,
+            ImmersivePortalCapabilityPayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(() ->
+                ImmersivePortalCompat.handleCapability(payload.supported())));
     }
 
     @Override

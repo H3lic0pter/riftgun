@@ -10,6 +10,16 @@ The portal surface vertex and fragment shaders are adapted from Tempad's
 
 The complete upstream license text is stored in `THIRD_PARTY_LICENSES/Tempad-LICENSE.md`.
 
+The Immersive portal frame texture is cropped from Portal Gun Mod's
+`overlay_frame.png` asset:
+
+- Repository: https://github.com/Jozef-Steinhubl/portal-gun-mod
+- Copyright (c) 2021 MeowMC; Copyright (c) 2025 Jozef Steinhübl
+- License: MIT
+
+The complete upstream license text is stored in
+`THIRD_PARTY_LICENSES/PortalGunMod-LICENSE.md`.
+
 The `endframe` portal frame texture (`textures/entity/portal_frame.png`) is a
 self-authored rift-liquid artwork by H3lic0pter and is covered by Rift Gun's
 MIT License.
