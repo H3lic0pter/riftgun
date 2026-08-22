@@ -10,10 +10,16 @@ final class ImmersivePortalVisualRenderer implements PortalVisualRenderer {
 
     @Override
     public void render(PortalVisualRenderContext context) {
-        if (!(context.portal() instanceof PortalEntity) || !ImmersivePortalCompat.isAvailable()) {
-            fallback.render(context);
-            return;
+        ImmersivePortalRenderPolicy.Mode mode = ImmersivePortalRenderPolicy.choose(
+            ImmersivePortalCompat.isAvailable(), context.portal() instanceof PortalEntity);
+        switch (mode) {
+            case SWIRL -> fallback.render(context);
+            case LOADING_COVER -> overlay.render(context, 0.0F);
+            case PORTAL_PROXY -> renderProxy(context);
         }
+    }
+
+    private void renderProxy(PortalVisualRenderContext context) {
         boolean proxySynced = ImmersivePortalCompat.render(context);
         // The linked Rift entity is rendered again inside IP's destination world.
         // It has no local proxy and must not paint a loading disc over the IP view.
