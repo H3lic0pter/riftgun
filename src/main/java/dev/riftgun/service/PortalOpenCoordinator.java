@@ -29,7 +29,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
 
-/** Synchronous portal-open router. Unloaded cross-dimension exits are created after first transit. */
+/** Routes unloaded destinations through deferred exit creation when required by the game node. */
 public final class PortalOpenCoordinator {
     public static void request(ServerPlayer player, PortalPlayerData data,
                                UUID destinationId, boolean fromGui,
@@ -197,7 +197,8 @@ public final class PortalOpenCoordinator {
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;
-        if (PortalOpenRoute.decide(crossDimension, targetTicksEntities) == PortalOpenRoute.DEFERRED_EXIT) {
+        if (PortalOpenRoute.decide(crossDimension, targetTicksEntities,
+                PortalEntity.deferUnloadedSameDimensionExit()) == PortalOpenRoute.DEFERRED_EXIT) {
             opened = PortalEntity.openDeferredExit(
                 player, entry.placement(), fuelPlan.use().profile(), PortalExitTarget.from(destination),
                 runtimeOptions, exclusions,

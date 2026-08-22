@@ -146,6 +146,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         return true;
     }
 
+    public static boolean deferUnloadedSameDimensionExit() {
+        return false;
+    }
+
     public static boolean openDeferredExit(ServerPlayer player, PortalPlacement placement,
                                            PortalFuelProfile fuel, PortalExitTarget target,
                                            PortalRuntimeOptions options, PortalExclusions exclusions,
@@ -264,6 +268,12 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     /** Returns the authoritative clock-derived phase even when this entity is not ticking. */
     public PortalLifecycle.Phase lifecyclePhaseAt(long now) {
         return PortalPairClock.phase(lifecycleStartedAt, closeStartedAt, now);
+    }
+
+    PortalTransitReadiness transitReadinessAt(long now) {
+        boolean targetTicking = level() instanceof ServerLevel serverLevel
+            && serverLevel.isPositionEntityTicking(blockPosition());
+        return PortalTransitReadiness.evaluate(lifecyclePhaseAt(now), targetTicking, false);
     }
 
     public int phaseTicks() {

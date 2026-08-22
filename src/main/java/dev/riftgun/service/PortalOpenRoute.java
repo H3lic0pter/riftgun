@@ -5,7 +5,9 @@ public enum PortalOpenRoute {
     IMMEDIATE_PAIR,
     DEFERRED_EXIT;
 
-    public static PortalOpenRoute decide(boolean crossDimension, boolean targetTicksEntities) {
-        return crossDimension && !targetTicksEntities ? DEFERRED_EXIT : IMMEDIATE_PAIR;
+    public static PortalOpenRoute decide(boolean crossDimension, boolean targetTicksEntities,
+                                         boolean deferUnloadedSameDimension) {
+        return !targetTicksEntities && (crossDimension || deferUnloadedSameDimension)
+            ? DEFERRED_EXIT : IMMEDIATE_PAIR;
     }
 }

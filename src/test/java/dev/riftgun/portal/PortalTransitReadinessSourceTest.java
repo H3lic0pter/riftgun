@@ -1,5 +1,6 @@
 package dev.riftgun.portal;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,12 +11,12 @@ import org.junit.jupiter.api.Test;
 
 final class PortalTransitReadinessSourceTest {
     @Test
-    void transitUsesClockDerivedTargetPhaseWithoutTickingBypass() throws IOException {
+    void allTransitPathsUseTheVersionAwareReadinessSeam() throws IOException {
         String orchestrator = read("src/main/java/dev/riftgun/portal/PortalTransitOrchestrator.java");
 
-        assertTrue(orchestrator.contains("target.lifecyclePhaseAt(now)"));
+        assertEquals(3, occurrences(orchestrator, "target.transitReadinessAt(now)"));
         assertFalse(orchestrator.contains("target.phase()"));
-        assertFalse(orchestrator.contains("targetTicking"));
+        assertFalse(orchestrator.contains("target.lifecyclePhaseAt(now)"));
     }
 
     @Test
@@ -26,10 +27,15 @@ final class PortalTransitReadinessSourceTest {
             assertTrue(source.contains("PortalLifecycle.Phase lifecyclePhaseAt(long now)"));
             assertTrue(source.contains(
                 "PortalPairClock.phase(lifecycleStartedAt, closeStartedAt, now)"));
+            assertTrue(source.contains("PortalTransitReadiness transitReadinessAt(long now)"));
         }
     }
 
     private static String read(String path) throws IOException {
         return Files.readString(Path.of(path));
+    }
+
+    private static int occurrences(String source, String needle) {
+        return source.split(java.util.regex.Pattern.quote(needle), -1).length - 1;
     }
 }

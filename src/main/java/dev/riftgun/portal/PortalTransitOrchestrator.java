@@ -84,9 +84,10 @@ final class PortalTransitOrchestrator {
 
         PortalEntity target = portal.linkedPortal();
         if (target != null) {
-            PortalLifecycle.Phase targetPhase = target.lifecyclePhaseAt(now);
-            if (targetPhase != PortalLifecycle.Phase.OPEN) {
-                notifyBlockedRoute(touching, now, "linked_target_" + targetPhase, target);
+            PortalTransitReadiness readiness = target.transitReadinessAt(now);
+            if (!readiness.ready()) {
+                notifyBlockedRoute(touching, now,
+                    "linked_target_" + readiness.diagnosticReason(), target);
                 return;
             }
             for (Entity entity : touching) {
@@ -178,7 +179,7 @@ final class PortalTransitOrchestrator {
         if (!portal.allowsProjectile(projectile)) return false;
         PortalEntity target = portal.linkedPortal();
         long now = portal.serverTime();
-        if (target == null || target.lifecyclePhaseAt(now) != PortalLifecycle.Phase.OPEN) return false;
+        if (target == null || !target.transitReadinessAt(now).ready()) return false;
         double radius = Math.max(projectile.getBbWidth(), projectile.getBbHeight()) * 0.5;
         if (!PortalSweptIntersection.crosses(
             portal.placement(), start, end, radius)) return false;
@@ -195,7 +196,7 @@ final class PortalTransitOrchestrator {
         if (!eligibility.allowsSwept(entity)) return false;
         PortalEntity target = portal.linkedPortal();
         long now = portal.serverTime();
-        if (target == null || target.lifecyclePhaseAt(now) != PortalLifecycle.Phase.OPEN) return false;
+        if (target == null || !target.transitReadinessAt(now).ready()) return false;
         double radius = Math.max(entity.getBbWidth(), entity.getBbHeight()) * 0.5;
         if (!PortalSweptIntersection.crosses(portal.placement(), start, end, radius)) return false;
         if (!gate.enter(entity.getUUID(), now, portal.transitCooldownTicks())) return false;
