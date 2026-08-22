@@ -32,7 +32,7 @@ import net.minecraft.world.level.border.WorldBorder;
 public final class RandomRiftManager {
     private static final int PREPARATION_TIMEOUT_TICKS = 100;
     private static final int PREPARATION_TICKET_RADIUS = 3;
-    private static final int NETHER_ROOF_MARGIN = 8;
+    private static final int CEILING_BEDROCK_MARGIN = 8;
 //? if >=1.21.11 {
     /*private static final TicketType PREPARATION_TICKET =
         dev.riftgun.portal.PortalChunkTickets.RANDOM_RIFT_PREPARATION.get();
@@ -190,21 +190,19 @@ public final class RandomRiftManager {
     }
 
     private static BlockPos inspectCandidate(ServerLevel level, int x, int z) {
+        int minimumBuildHeight = minimumBuildHeight(level);
+        int maximumBuildHeight = maximumBuildHeight(level);
+        boolean ceilingDimension = level.dimensionType().hasCeiling();
+        int searchCeiling = RandomRiftSearchPolicy.searchCeiling(ceilingDimension, minimumBuildHeight,
+            level.dimensionType().logicalHeight(), maximumBuildHeight);
         int top = Math.min(level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z),
-//? if >=1.21.11 {
-            /*level.dimensionType().minY() + level.dimensionType().height() - 2);
-        int bottom = level.dimensionType().minY() + 1;
-        int maximumBuildHeight = level.dimensionType().minY() + level.dimensionType().height();
-*///?} else {
-            level.getMaxBuildHeight() - 2);
-        int bottom = level.getMinBuildHeight() + 1;
-        int maximumBuildHeight = level.getMaxBuildHeight();
-//?}
+            searchCeiling - 2);
+        int bottom = minimumBuildHeight + 1;
         for (int y = top; y >= bottom; y--) {
             BlockPos feet = new BlockPos(x, y, z);
             BlockPos support = feet.below();
-            if (level.dimension().equals(Level.NETHER)
-                && support.getY() >= maximumBuildHeight - NETHER_ROOF_MARGIN
+            if (ceilingDimension
+                && support.getY() >= searchCeiling - CEILING_BEDROCK_MARGIN
                 && level.getBlockState(support).is(Blocks.BEDROCK)) continue;
             Destination probe = new Destination(SEARCH_PROBE_ID, "", PortalPlayerData.DEFAULT_GROUP_ID,
                 level.dimension(), x + 0.5, y, z + 0.5, 0.0F, 0L, 0L, false);
@@ -288,6 +286,14 @@ public final class RandomRiftManager {
         /*return level.dimensionType().minY();
 *///?} else {
         return level.getMinBuildHeight();
+//?}
+    }
+
+    private static int maximumBuildHeight(ServerLevel level) {
+//? if >=1.21.11 {
+        /*return level.dimensionType().minY() + level.dimensionType().height();
+*///?} else {
+        return level.getMaxBuildHeight();
 //?}
     }
 

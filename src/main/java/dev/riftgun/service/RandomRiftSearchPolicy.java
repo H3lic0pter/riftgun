@@ -9,6 +9,11 @@ final class RandomRiftSearchPolicy {
         return new CandidateProbe((chunkX << 4) + 8, minimumBuildHeight + 1, (chunkZ << 4) + 8);
     }
 
+    static int searchCeiling(boolean ceilingDimension, int minimumBuildHeight,
+                             int logicalHeight, int maximumBuildHeight) {
+        return ceilingDimension ? minimumBuildHeight + logicalHeight : maximumBuildHeight;
+    }
+
     record CandidateProbe(int x, int y, int z) {}
 
     private RandomRiftSearchPolicy() {}
