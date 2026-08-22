@@ -5,8 +5,10 @@ import dev.riftgun.client.render.PortalVisualRegistry;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalVisualTarget;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -30,31 +32,50 @@ final class ImmersivePortalVisualCache {
     private static final Map<UUID, PortalEntity> SOURCES = new HashMap<>();
     private static final Map<UUID, ProxyPair> PROXIES = new HashMap<>();
     private static final Map<UUID, ImmersivePortalCoverState> COVERS = new HashMap<>();
+    private static final Set<UUID> PENDING = new HashSet<>();
+    private static final Set<UUID> FADING_COVERS = new HashSet<>();
 
     static void tick(Minecraft minecraft) {
         if (minecraft.level == null
             || !PortalVisualPreferences.selectedId().equals(PortalVisualRegistry.IMMERSIVE_PORTAL_ID)) {
-            clearProxies();
+            suspendProxies();
             return;
         }
 
-        SOURCES.values().removeIf(source -> source.isRemoved() || source.level() != minecraft.level);
-        SOURCES.values().stream()
-            .filter(portal -> portal.visualTarget().isPresent())
-            .forEach(ImmersivePortalVisualCache::create);
+        createPending(minecraft);
+        updateFadingCovers(minecraft);
+    }
 
-        Iterator<Map.Entry<UUID, ProxyPair>> iterator = PROXIES.entrySet().iterator();
+    private static void createPending(Minecraft minecraft) {
+        Iterator<UUID> iterator = PENDING.iterator();
         while (iterator.hasNext()) {
-            ProxyPair pair = iterator.next().getValue();
-            if (pair.source.isRemoved() || pair.source.level() != minecraft.level) {
-                discard(pair);
+            UUID portalId = iterator.next();
+            PortalEntity source = SOURCES.get(portalId);
+            if (source == null || source.isRemoved() || source.level() != minecraft.level) {
+                if (source != null) SOURCES.remove(portalId, source);
+                remove(portalId);
+                iterator.remove();
+                continue;
+            }
+            if (source.visualTarget().isEmpty()) continue;
+            if (create(source) != null) iterator.remove();
+        }
+    }
+
+    private static void updateFadingCovers(Minecraft minecraft) {
+        Iterator<UUID> iterator = FADING_COVERS.iterator();
+        while (iterator.hasNext()) {
+            UUID portalId = iterator.next();
+            ProxyPair pair = PROXIES.get(portalId);
+            if (pair == null || pair.source.isRemoved() || pair.source.level() != minecraft.level) {
                 iterator.remove();
                 continue;
             }
             ImmersivePortalCoverState cover = COVERS.computeIfAbsent(
-                pair.source.getUUID(), ignored -> new ImmersivePortalCoverState());
-            if (targetChunkReady(pair.source)) cover.markReady();
+                portalId, ignored -> new ImmersivePortalCoverState());
+            if (cover.needsDestinationCheck() && targetChunkReady(pair.source)) cover.markReady();
             cover.tick();
+            if (!cover.needsTick()) iterator.remove();
         }
     }
 
@@ -67,32 +88,38 @@ final class ImmersivePortalVisualCache {
         PortalVisualTarget target = source.visualTarget().orElse(null);
         if (target == null) {
             remove(source.getUUID());
+            PENDING.add(source.getUUID());
             return false;
         }
 
         ProxyPair pair = PROXIES.get(source.getUUID());
         if (pair == null || pair.source != source || pair.front.level() != source.level()) {
             remove(source.getUUID());
+            PENDING.add(source.getUUID());
             return false;
         }
 
-        apply(pair.front, source, target, progress, false);
-        apply(pair.back, source, target, progress, true);
+        pair.sync(VisualState.capture(source, target, progress));
         return true;
     }
 
     static void remove(UUID riftPortalId) {
         ProxyPair removed = PROXIES.remove(riftPortalId);
         if (removed != null) discard(removed);
+        FADING_COVERS.remove(riftPortalId);
     }
 
     static void track(Entity entity) {
-        if (entity instanceof PortalEntity portal) SOURCES.put(portal.getUUID(), portal);
+        if (!(entity instanceof PortalEntity portal)) return;
+        PortalEntity previous = SOURCES.put(portal.getUUID(), portal);
+        if (previous != portal) remove(portal.getUUID());
+        PENDING.add(portal.getUUID());
     }
 
     static void untrack(Entity entity) {
         if (!(entity instanceof PortalEntity portal)) return;
-        SOURCES.remove(portal.getUUID());
+        if (!SOURCES.remove(portal.getUUID(), portal)) return;
+        PENDING.remove(portal.getUUID());
         remove(portal.getUUID());
         Entity.RemovalReason reason = portal.getRemovalReason();
         if (reason != null && reason.shouldDestroy()) COVERS.remove(portal.getUUID());
@@ -102,6 +129,8 @@ final class ImmersivePortalVisualCache {
         clearProxies();
         SOURCES.clear();
         COVERS.clear();
+        PENDING.clear();
+        FADING_COVERS.clear();
     }
 
     private static ProxyPair create(PortalEntity source) {
@@ -119,32 +148,36 @@ final class ImmersivePortalVisualCache {
         Portal front = Portal.ENTITY_TYPE.create(level);
         if (front == null) return null;
         front.setPortalShape(circleShape());
-        apply(front, source, target, Math.max(source.visualProgress(1.0F), (float) MIN_SIZE), false);
+        VisualState initial = VisualState.capture(source, target,
+            Math.max(source.visualProgress(1.0F), (float) MIN_SIZE));
+        apply(front, initial, false);
         front.setTeleportable(false);
         level.addEntity(front);
 
         Portal back = PortalAPI.createFlippedPortal(front);
-        apply(back, source, target, Math.max(source.visualProgress(1.0F), (float) MIN_SIZE), true);
+        apply(back, initial, true);
         back.setTeleportable(false);
         level.addEntity(back);
 
-        ProxyPair created = new ProxyPair(source, front, back);
+        ProxyPair created = new ProxyPair(source, front, back, initial);
         PROXIES.put(source.getUUID(), created);
+        ImmersivePortalCoverState cover = COVERS.computeIfAbsent(
+            source.getUUID(), ignored -> new ImmersivePortalCoverState());
+        if (cover.needsTick()) FADING_COVERS.add(source.getUUID());
         return created;
     }
 
-    private static void apply(Portal proxy, PortalEntity source, PortalVisualTarget target,
-                              float progress, boolean flipped) {
-        Vec3 sourceRight = flipped ? source.right().scale(-1.0) : source.right();
-        Vec3 sourceUp = source.up();
-        proxy.setOriginPos(source.position());
+    private static void apply(Portal proxy, VisualState state, boolean flipped) {
+        Vec3 sourceRight = flipped ? state.sourceRight().scale(-1.0) : state.sourceRight();
+        proxy.setOriginPos(state.sourcePosition());
         double scale = Math.max(MIN_SIZE,
-            Mth.sin(Mth.clamp(progress, 0.0F, 1.0F) * Mth.HALF_PI));
-        proxy.setOrientationAndSize(sourceRight, sourceUp,
-            source.portalWidth() * scale, source.portalHeight() * scale);
-        proxy.setDestinationDimension(target.dimension());
-        proxy.setDestination(target.position());
-        proxy.setRotation(connectionRotation(source.right(), sourceUp, target.right(), target.up()));
+            Mth.sin(Mth.clamp(state.progress(), 0.0F, 1.0F) * Mth.HALF_PI));
+        proxy.setOrientationAndSize(sourceRight, state.sourceUp(),
+            state.width() * scale, state.height() * scale);
+        proxy.setDestinationDimension(state.target().dimension());
+        proxy.setDestination(state.target().position());
+        proxy.setRotation(connectionRotation(state.sourceRight(), state.sourceUp(),
+            state.target().right(), state.target().up()));
         proxy.setScaleTransformation(1.0);
         proxy.setTeleportable(false);
     }
@@ -193,17 +226,48 @@ final class ImmersivePortalVisualCache {
     private static void clearProxies() {
         PROXIES.values().forEach(ImmersivePortalVisualCache::discard);
         PROXIES.clear();
+        FADING_COVERS.clear();
+    }
+
+    private static void suspendProxies() {
+        clearProxies();
+        PENDING.addAll(SOURCES.keySet());
     }
 
     private static final class ProxyPair {
         private final PortalEntity source;
         private final Portal front;
         private final Portal back;
+        private final ImmersivePortalDirtyState<VisualState> state =
+            new ImmersivePortalDirtyState<>();
 
-        private ProxyPair(PortalEntity source, Portal front, Portal back) {
+        private ProxyPair(PortalEntity source, Portal front, Portal back, VisualState initial) {
             this.source = source;
             this.front = front;
             this.back = back;
+            state.update(initial);
+        }
+
+        private void sync(VisualState next) {
+            if (!state.update(next)) return;
+            apply(front, next, false);
+            apply(back, next, true);
+        }
+    }
+
+    private record VisualState(
+        Vec3 sourcePosition,
+        Vec3 sourceRight,
+        Vec3 sourceUp,
+        float width,
+        float height,
+        PortalVisualTarget target,
+        float progress
+    ) {
+        private static VisualState capture(PortalEntity source, PortalVisualTarget target,
+                                           float progress) {
+            return new VisualState(source.position(), source.right(), source.up(),
+                source.portalWidth(), source.portalHeight(), target, progress);
         }
     }
 

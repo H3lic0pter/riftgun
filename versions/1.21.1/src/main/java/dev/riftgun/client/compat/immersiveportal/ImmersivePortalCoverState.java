@@ -14,6 +14,14 @@ final class ImmersivePortalCoverState {
         if (ready) readiness = Math.min(1.0F, readiness + FADE_STEP);
     }
 
+    boolean needsDestinationCheck() {
+        return !ready;
+    }
+
+    boolean needsTick() {
+        return readiness < 1.0F;
+    }
+
     float readiness() {
         return readiness;
     }
