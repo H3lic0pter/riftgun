@@ -354,7 +354,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         PortalOrientation orientation = PortalOrientation.byOrdinal(entityData.get(LINKED_ORIENTATION));
         float yaw = entityData.get(LINKED_Y_ROT);
         return Optional.of(new PortalVisualTarget(linkedId.get(), dimension, position,
-            orientation.right(yaw), orientation.up(yaw)));
+            orientation.right(yaw), orientation.up(yaw), orientation.normal(yaw)));
     }
 
     private PortalAttachment attachment() {

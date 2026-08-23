@@ -168,16 +168,19 @@ final class ImmersivePortalVisualCache {
     }
 
     private static void apply(Portal proxy, VisualState state, boolean flipped) {
-        Vec3 sourceRight = flipped ? state.sourceRight().scale(-1.0) : state.sourceRight();
+        ImmersivePortalProxyBasis source = ImmersivePortalProxyBasis.orient(
+            state.sourceRight(), state.sourceUp(), state.sourceNormal());
+        ImmersivePortalProxyBasis target = ImmersivePortalProxyBasis.orient(
+            state.target().right(), state.target().up(), state.target().normal());
+        Vec3 sourceRight = flipped ? source.right().scale(-1.0) : source.right();
         proxy.setOriginPos(state.sourcePosition());
         double scale = Math.max(MIN_SIZE,
             Mth.sin(Mth.clamp(state.progress(), 0.0F, 1.0F) * Mth.HALF_PI));
-        proxy.setOrientationAndSize(sourceRight, state.sourceUp(),
+        proxy.setOrientationAndSize(sourceRight, source.up(),
             state.width() * scale, state.height() * scale);
         proxy.setDestinationDimension(state.target().dimension());
         proxy.setDestination(state.target().position());
-        proxy.setRotation(connectionRotation(state.sourceRight(), state.sourceUp(),
-            state.target().right(), state.target().up()));
+        proxy.setRotation(connectionRotation(source, target));
         proxy.setScaleTransformation(1.0);
         proxy.setTeleportable(false);
     }
@@ -205,12 +208,12 @@ final class ImmersivePortalVisualCache {
             chunkX, chunkZ, ChunkStatus.FULL, false) != null;
     }
 
-    private static DQuaternion connectionRotation(Vec3 sourceRight, Vec3 sourceUp,
-                                                  Vec3 targetRight, Vec3 targetUp) {
-        DQuaternion source = DQuaternion.fromFacingVecs(sourceRight, sourceUp);
-        DQuaternion target = DQuaternion.fromFacingVecs(targetRight, targetUp);
-        DQuaternion delta = target.hamiltonProduct(source.getConjugated());
-        return DQuaternion.rotationByDegrees(targetUp, 180.0).hamiltonProduct(delta);
+    private static DQuaternion connectionRotation(ImmersivePortalProxyBasis source,
+                                                  ImmersivePortalProxyBasis target) {
+        DQuaternion sourceRotation = DQuaternion.fromFacingVecs(source.right(), source.up());
+        DQuaternion targetRotation = DQuaternion.fromFacingVecs(target.right(), target.up());
+        DQuaternion delta = targetRotation.hamiltonProduct(sourceRotation.getConjugated());
+        return DQuaternion.rotationByDegrees(target.up(), 180.0).hamiltonProduct(delta);
     }
 
     private static void discard(ProxyPair pair) {
@@ -259,6 +262,7 @@ final class ImmersivePortalVisualCache {
         Vec3 sourcePosition,
         Vec3 sourceRight,
         Vec3 sourceUp,
+        Vec3 sourceNormal,
         float width,
         float height,
         PortalVisualTarget target,
@@ -267,7 +271,7 @@ final class ImmersivePortalVisualCache {
         private static VisualState capture(PortalEntity source, PortalVisualTarget target,
                                            float progress) {
             return new VisualState(source.position(), source.right(), source.up(),
-                source.portalWidth(), source.portalHeight(), target, progress);
+                source.normal(), source.portalWidth(), source.portalHeight(), target, progress);
         }
     }
 

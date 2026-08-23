@@ -11,5 +11,6 @@ public record PortalVisualTarget(
     ResourceKey<Level> dimension,
     Vec3 position,
     Vec3 right,
-    Vec3 up
+    Vec3 up,
+    Vec3 normal
 ) {}
