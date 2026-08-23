@@ -31,7 +31,7 @@ final class ImmersivePortalOverlayRenderer {
         float fillAlpha = 1.0F - Mth.clamp(readiness, 0.0F, 1.0F);
         if (fillAlpha > 0.0F) {
             drawSolidDisc(context.buffers().getBuffer(PortalRenderTypes.immersiveFill()),
-                matrix, basis, width, height, rgb, fillAlpha * progress);
+                matrix, basis, width, height, lightenFillColor(rgb), fillAlpha * progress);
         }
         drawBothFaces(context.buffers().getBuffer(RenderType.entityTranslucent(FRAME)),
             matrix, basis, width, height, rgb, progress);
@@ -61,6 +61,16 @@ final class ImmersivePortalOverlayRenderer {
         vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
             .setColor((rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255,
                 Math.round(Mth.clamp(alpha, 0.0F, 1.0F) * 255.0F));
+    }
+
+    private static int lightenFillColor(int rgb) {
+        int red = (rgb >> 16) & 255;
+        int green = (rgb >> 8) & 255;
+        int blue = rgb & 255;
+        red += (255 - red) / 3;
+        green += (255 - green) / 3;
+        blue += (255 - blue) / 3;
+        return (red << 16) | (green << 8) | blue;
     }
 
     private static void drawBothFaces(VertexConsumer vertices, Matrix4f matrix,
