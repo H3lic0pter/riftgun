@@ -5,6 +5,12 @@
       "riftgun:portal/shot"
     ]
   },
+  "aperture_ish_shot": {
+    "subtitle": "subtitles.riftgun.aperture_ish_shot",
+    "sounds": [
+      "riftgun:portal/aperture_ish"
+    ]
+  },
   "rift_portal_open": {
     "subtitle": "subtitles.riftgun.portal_open",
     "sounds": [

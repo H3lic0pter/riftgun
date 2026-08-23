@@ -15,13 +15,17 @@ import org.junit.jupiter.api.Test;
 final class PortalSoundSettingsTest {
     @Test
     void builtInChoicesAreIndependentPerChannel() {
-        assertEquals(2, PortalSoundRegistry.values(PortalSoundChannel.SHOT).size());
+        assertEquals(3, PortalSoundRegistry.values(PortalSoundChannel.SHOT).size());
         assertEquals(2, PortalSoundRegistry.values(PortalSoundChannel.PORTAL).size());
         assertEquals(3, PortalSoundRegistry.values(PortalSoundChannel.TRANSIT).size());
         assertTrue(PortalSoundRegistry.values(PortalSoundChannel.TRANSIT).stream()
             .anyMatch(choice -> choice.id().equals(PortalSoundRegistry.ENDER_ID)));
         assertFalse(PortalSoundRegistry.values(PortalSoundChannel.SHOT).stream()
             .anyMatch(choice -> choice.id().equals(PortalSoundRegistry.ENDER_ID)));
+        assertTrue(PortalSoundRegistry.values(PortalSoundChannel.SHOT).stream()
+            .anyMatch(choice -> choice.id().equals(PortalSoundRegistry.APERTURE_ISH_ID)));
+        assertFalse(PortalSoundRegistry.values(PortalSoundChannel.PORTAL).stream()
+            .anyMatch(choice -> choice.id().equals(PortalSoundRegistry.APERTURE_ISH_ID)));
     }
 
     @Test
@@ -33,9 +37,9 @@ final class PortalSoundSettingsTest {
         //?}
         assertEquals(PortalSoundRegistry.RIFT_ID,
             PortalSoundRegistry.normalize(PortalSoundChannel.SHOT, missing));
-        assertEquals(PortalSoundRegistry.NONE_ID,
+        assertEquals(PortalSoundRegistry.APERTURE_ISH_ID,
             PortalSoundRegistry.cycle(PortalSoundChannel.SHOT, PortalSoundRegistry.RIFT_ID, 1));
-        assertEquals(PortalSoundRegistry.RIFT_ID,
+        assertEquals(PortalSoundRegistry.APERTURE_ISH_ID,
             PortalSoundRegistry.cycle(PortalSoundChannel.SHOT, PortalSoundRegistry.NONE_ID, -1));
     }
 

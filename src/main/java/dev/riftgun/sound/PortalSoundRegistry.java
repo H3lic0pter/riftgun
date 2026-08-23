@@ -34,6 +34,11 @@ public final class PortalSoundRegistry {
 *///?} else {
     public static final ResourceLocation ENDER_ID = id("ender");
 //?}
+//? if >=1.21.11 {
+    /*public static final Identifier APERTURE_ISH_ID = id("aperture_ish");
+*///?} else {
+    public static final ResourceLocation APERTURE_ISH_ID = id("aperture_ish");
+//?}
 
 //? if >=1.21.11 {
     /*private static final Map<PortalSoundChannel, LinkedHashMap<Identifier, Definition>> DEFINITIONS =
@@ -50,6 +55,10 @@ public final class PortalSoundRegistry {
         PortalSoundChoice rift = new PortalSoundChoice(RIFT_ID, "screen.riftgun.sound.rift");
         registerShot(rift, new PortalSoundCue(
             PortalSounds::riftShot, SoundSource.PLAYERS, 0.8F, 1.0F));
+        registerShot(new PortalSoundChoice(
+                APERTURE_ISH_ID, "screen.riftgun.sound.aperture_ish"),
+            new PortalSoundCue(
+                PortalSounds::apertureIshShot, SoundSource.PLAYERS, 0.8F, 1.0F));
         registerPortal(rift,
             new PortalSoundCue(PortalSounds::riftPortalOpen,
                 SoundSource.BLOCKS, 0.85F, 1.0F),

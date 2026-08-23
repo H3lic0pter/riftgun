@@ -25,6 +25,8 @@ public final class PortalSounds {
 
     private static final DeferredHolder<SoundEvent, SoundEvent> RIFT_SHOT =
         fixed("rift_shot", 24.0F);
+    private static final DeferredHolder<SoundEvent, SoundEvent> APERTURE_ISH_SHOT =
+        fixed("aperture_ish_shot", 24.0F);
     private static final DeferredHolder<SoundEvent, SoundEvent> RIFT_PORTAL_OPEN =
         fixed("rift_portal_open", 32.0F);
     private static final DeferredHolder<SoundEvent, SoundEvent> RIFT_PORTAL_CLOSE =
@@ -41,6 +43,10 @@ public final class PortalSounds {
 
     static SoundEvent riftShot() {
         return RIFT_SHOT.get();
+    }
+
+    static SoundEvent apertureIshShot() {
+        return APERTURE_ISH_SHOT.get();
     }
 
     static SoundEvent riftPortalOpen() {
