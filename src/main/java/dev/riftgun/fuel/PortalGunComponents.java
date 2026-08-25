@@ -6,6 +6,7 @@ import dev.riftgun.module.PortalGunModuleSettings;
 import java.util.UUID;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.item.component.ItemContainerContents;
@@ -45,6 +46,12 @@ public final class PortalGunComponents {
         COMPONENTS.registerComponentType("portal_gun_visual_state", builder -> builder
             .persistent(PortalGunVisualState.CODEC)
             .networkSynchronized(PortalGunVisualState.STREAM_CODEC));
+
+    /** Immutable payload carried by a coordinate note. CompoundTag keeps the cross-version schema explicit. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CompoundTag>> COORDINATE_SNAPSHOT =
+        COMPONENTS.registerComponentType("coordinate_snapshot", builder -> builder
+            .persistent(CompoundTag.CODEC)
+            .networkSynchronized(ByteBufCodecs.COMPOUND_TAG));
 
     private PortalGunComponents() {}
 }

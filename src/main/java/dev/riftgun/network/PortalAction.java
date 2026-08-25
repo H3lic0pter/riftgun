@@ -6,6 +6,8 @@ public enum PortalAction {
     CREATE_CURRENT,
     CREATE_COORDINATE,
     EDIT_DESTINATION,
+    SHARE_DESTINATION_CHAT,
+    CREATE_COORDINATE_NOTE,
     DELETE_DESTINATION,
     TOGGLE_PIN,
     VIEW_DESTINATION,
@@ -36,7 +38,8 @@ public enum PortalAction {
 
     public boolean requiresPortalGun() {
         return switch (this) {
-            case CLOSE_PORTALS, SET_PRIVACY, SET_PRIVACY_OVERRIDE, REQUEST_PRIVACY_PLAYERS -> false;
+            case SHARE_DESTINATION_CHAT, CLOSE_PORTALS, SET_PRIVACY, SET_PRIVACY_OVERRIDE,
+                 REQUEST_PRIVACY_PLAYERS -> false;
             default -> true;
         };
     }

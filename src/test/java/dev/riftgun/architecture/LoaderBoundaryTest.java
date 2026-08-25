@@ -14,7 +14,8 @@ final class LoaderBoundaryTest {
     private static final Path CORE = Path.of("src/main/java/dev/riftgun/core");
     private static final Path MAIN = Path.of("src/main/java/dev/riftgun");
     private static final Set<String> NEOFORGE_ADAPTERS = Set.of(
-        "command/PortalCrisisTestCommands.java", "command/PortalPrivacyCommands.java",
+        "command/CoordinateShareCommands.java", "command/PortalCrisisTestCommands.java",
+        "command/PortalPrivacyCommands.java",
         "fuel/PortalFluids.java", "fuel/PortalGunComponents.java",
         "fuel/PortalGunFluidInteractions.java", "fuel/PortalGunSnapshot.java",
         "fuel/PortalGunTank.java", "fuel/PortalGunWorldScoop.java",

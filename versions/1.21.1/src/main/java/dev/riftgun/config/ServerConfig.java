@@ -25,6 +25,9 @@ public final class ServerConfig {
             new RiftConfig.DestinationConfig(
                 value.maxDestinations.get(), value.maxGroups.get(),
                 value.maxDestinationNameLength.get(), value.maxGroupNameLength.get()),
+            new RiftConfig.CoordinateSharingConfig(
+                value.coordinateSharingEnabled.get(), value.chatShareExpirySeconds.get(),
+                value.chatShareCooldownSeconds.get()),
             new RiftConfig.RandomRiftConfig(
                 value.randomRiftEnabled.get(), value.randomRiftCooldownTicks.get(),
                 value.randomRiftMinimumRadius.get(), value.randomRiftMaximumRadius.get(),
@@ -95,6 +98,9 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxGroups;
         public final ModConfigSpec.IntValue maxDestinationNameLength;
         public final ModConfigSpec.IntValue maxGroupNameLength;
+        public final ModConfigSpec.BooleanValue coordinateSharingEnabled;
+        public final ModConfigSpec.IntValue chatShareExpirySeconds;
+        public final ModConfigSpec.IntValue chatShareCooldownSeconds;
         public final ModConfigSpec.BooleanValue randomRiftEnabled;
         public final ModConfigSpec.IntValue randomRiftCooldownTicks;
         public final ModConfigSpec.IntValue randomRiftMinimumRadius;
@@ -186,6 +192,14 @@ public final class ServerConfig {
             maxGroups = builder.defineInRange("maxGroupsPerPlayer", 32, 0, 512);
             maxDestinationNameLength = builder.defineInRange("maxDestinationNameLength", 48, 1, 128);
             maxGroupNameLength = builder.defineInRange("maxGroupNameLength", 32, 1, 64);
+            builder.pop();
+
+            builder.push("coordinateSharing");
+            coordinateSharingEnabled = builder.define("enabled", true);
+            chatShareExpirySeconds = builder.comment("Lifetime of clickable coordinate shares in chat.")
+                .defineInRange("chatShareExpirySeconds", 300, 10, 3600);
+            chatShareCooldownSeconds = builder.comment("Per-player chat sharing cooldown. Zero disables it.")
+                .defineInRange("chatShareCooldownSeconds", 5, 0, 60);
             builder.pop();
 
             builder.push("randomRift");

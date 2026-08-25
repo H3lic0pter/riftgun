@@ -8,6 +8,7 @@ import java.util.List;
 public record RiftConfig(
     ShortcutConfig shortcuts,
     DestinationConfig destinations,
+    CoordinateSharingConfig coordinateSharing,
     RandomRiftConfig randomRift,
     FuelConfig fuel,
     ModuleConfig modules,
@@ -24,6 +25,7 @@ public record RiftConfig(
         return new RiftConfig(
             new ShortcutConfig(PortalShortcutGunMode.HELD_HANDS),
             new DestinationConfig(256, 32, 48, 32),
+            new CoordinateSharingConfig(true, 300, 5),
             new RandomRiftConfig(true, 60, 256, 4096, 16, 8),
             new FuelConfig(true, 50, 100, 5, 8, 5, 8),
             new ModuleConfig(2, 8000, 3, 16, 1, 45, true, true),
@@ -54,6 +56,12 @@ public record RiftConfig(
         int maximumGroups,
         int maximumDestinationNameLength,
         int maximumGroupNameLength
+    ) {}
+
+    public record CoordinateSharingConfig(
+        boolean enabled,
+        int chatExpirySeconds,
+        int chatCooldownSeconds
     ) {}
 
     public record RandomRiftConfig(

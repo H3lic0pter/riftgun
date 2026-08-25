@@ -19,6 +19,7 @@ import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModuleMenus;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalGunItem;
+import dev.riftgun.portal.CoordinateNoteItem;
 import dev.riftgun.relocation.EntityRelocationPortalEntity;
 import dev.riftgun.recipe.RiftGunRecipes;
 import dev.riftgun.sound.PortalSounds;
@@ -70,6 +71,10 @@ public final class RiftGun {
         () -> new PortalGunItem(new Item.Properties().stacksTo(1)
             .component(PortalGunComponents.VISUAL_STATE.get(), PortalGunVisualState.UNINITIALIZED))
     );
+    private static final DeferredHolder<Item, CoordinateNoteItem> COORDINATE_NOTE = ITEMS.register(
+        "coordinate_note", () -> new CoordinateNoteItem(new Item.Properties().stacksTo(1)));
+
+    public static Item coordinateNote() { return COORDINATE_NOTE.get(); }
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> RIFT_GUN_TAB = CREATIVE_TABS.register(
         "riftgun",
@@ -160,6 +165,7 @@ public final class RiftGun {
         event.accept(PortalFluids.PORTAL_BUCKET.get());
         event.accept(PortalFluids.DIMENSIONAL_BUCKET.get());
         event.accept(PRIVACY_TERMINAL_ITEM.get());
+        event.accept(COORDINATE_NOTE.get());
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {

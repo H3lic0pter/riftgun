@@ -63,6 +63,7 @@ public final class PortalConfigScreen extends Screen {
     private int detailScroll;
     private int detailContentHeight;
     private int detailEditY = -1;
+    private int detailShareY = -1;
     private boolean draggingDetailScrollbar;
     private int detailScrollbarGrab;
 
@@ -360,6 +361,11 @@ public final class PortalConfigScreen extends Screen {
             addGroupSelector(x + 18, y + 111, fieldWidth);
         } else if (modal == Modal.CREATE_GROUP || modal == Modal.RENAME_GROUP) {
             addField(x + 18, y + 44, fieldWidth, formName, 32, value -> formName = value);
+        } else if (modal == Modal.SHARE_DESTINATION) {
+            button(x + 18, y + 38, fieldWidth, 19, "screen.riftgun.share_chat", false,
+                ignored -> shareViewed(PortalAction.SHARE_DESTINATION_CHAT));
+            button(x + 18, y + 62, fieldWidth, 19, "screen.riftgun.share_item", false,
+                ignored -> shareViewed(PortalAction.CREATE_COORDINATE_NOTE));
         } else if (modal == Modal.SETTINGS) {
             PortalPlayerSettings settings = PortalClientState.data().settings();
             button(x + 18, y + 28, fieldWidth, 18,
@@ -492,6 +498,9 @@ public final class PortalConfigScreen extends Screen {
                 "screen.riftgun.cancel", false, ignored -> cancelConfirmation());
             button(x + 24 + (box.width() - 42) / 2, actionY, (box.width() - 42) / 2, 19,
                 "screen.riftgun.confirm", false, ignored -> acceptConfirmation());
+        } else if (modal == Modal.SHARE_DESTINATION) {
+            button(x + 18, actionY, fieldWidth, 19, "screen.riftgun.cancel", false,
+                ignored -> closeModalNow());
         } else if (modal == Modal.SETTINGS) {
             button(x + 18, actionY, fieldWidth, 19, "screen.riftgun.done", false,
                 ignored -> closeModalNow());
@@ -794,9 +803,12 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderGroupRow(GuiGraphics graphics, UUID id, int y, boolean hover, boolean focused) {
         PortalPlayerData data = PortalClientState.data();
-        boolean custom = !id.equals(PortalPlayerData.DEFAULT_GROUP_ID);
+        boolean shared = id.equals(PortalPlayerData.SHARED_SECTION_ID);
+        boolean custom = !id.equals(PortalPlayerData.DEFAULT_GROUP_ID) && !shared;
         boolean expanded = data.expandedGroups().contains(id);
-        String name = custom ? data.group(id).map(DestinationGroup::name).orElse("?") : "Default";
+        String name = shared ? Component.translatable("screen.riftgun.shared_group").getString()
+            : custom ? data.group(id).map(DestinationGroup::name).orElse("?")
+            : "Default";
         if (custom) drawDragHandle(graphics, panelX + 8, y + 5);
         drawDisclosure(graphics, panelX + 17, y + 6, expanded);
         int right = panelX + listWidth - 6;
@@ -902,6 +914,7 @@ public final class PortalConfigScreen extends Screen {
         int y = listTop - detailScroll + 8;
         int contentStart = y;
         detailEditY = -1;
+        detailShareY = -1;
         graphics.enableScissor(left + 1, listTop, right - 1, listBottom);
         graphics.drawString(font, Component.translatable("screen.riftgun.details"), x, y,
             PortalTheme.TEXT_MUTED, false);
@@ -967,6 +980,14 @@ public final class PortalConfigScreen extends Screen {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
                 graphics.renderOutline(x, y, right - x - 8, 18, PortalTheme.BORDER);
                 graphics.drawCenteredString(font, Component.translatable("screen.riftgun.edit"),
+                    (x + right - 8) / 2, y + 5, PortalTheme.TEXT);
+            }
+            y += 22;
+            detailShareY = modal == Modal.NONE ? y : -1;
+            if (modal == Modal.NONE) {
+                graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
+                graphics.renderOutline(x, y, right - x - 8, 18, PortalTheme.BORDER);
+                graphics.drawCenteredString(font, Component.translatable("screen.riftgun.share"),
                     (x + right - 8) / 2, y + 5, PortalTheme.TEXT);
             }
             y += 26;
@@ -1706,6 +1727,10 @@ public final class PortalConfigScreen extends Screen {
         ids.add(PortalPlayerData.DEFAULT_GROUP_ID);
         PortalClientState.data().groups().stream().sorted(Comparator.comparingInt(DestinationGroup::order))
             .map(DestinationGroup::id).forEach(ids::add);
+        if (PortalClientState.data().destinations().stream()
+            .anyMatch(destination -> destination.groupId().equals(PortalPlayerData.SHARED_SECTION_ID))) {
+            ids.add(PortalPlayerData.SHARED_SECTION_ID);
+        }
         return ids;
     }
 
@@ -1839,7 +1864,8 @@ public final class PortalConfigScreen extends Screen {
                     }
                     return true;
                 }
-                boolean custom = !row.id().equals(PortalPlayerData.DEFAULT_GROUP_ID);
+                boolean custom = !row.id().equals(PortalPlayerData.DEFAULT_GROUP_ID)
+                    && !row.id().equals(PortalPlayerData.SHARED_SECTION_ID);
                 if (custom && mouseX >= right - 30 && mouseX < right - 16) {
                     openForm(Modal.RENAME_GROUP, row.id());
                 } else if (custom && mouseX >= right - 14) {
@@ -1870,6 +1896,11 @@ public final class PortalConfigScreen extends Screen {
         int visibleEditY = detailEditY;
         if (viewed() != null && mouseY >= visibleEditY && mouseY < visibleEditY + 18) {
             openForm(Modal.EDIT_DESTINATION, viewedDestination);
+            return true;
+        }
+        int visibleShareY = detailShareY;
+        if (viewed() != null && mouseY >= visibleShareY && mouseY < visibleShareY + 18) {
+            openForm(Modal.SHARE_DESTINATION, viewedDestination);
             return true;
         }
         return false;
@@ -2021,7 +2052,8 @@ public final class PortalConfigScreen extends Screen {
 
     private boolean listKeyPressed(int keyCode) {
         if ((keyCode == 265 || keyCode == 264) && hasAltDown() && focusedRowKind == RowKind.GROUP
-            && focusedRowId != null && !focusedRowId.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
+            && focusedRowId != null && !focusedRowId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
+            && !focusedRowId.equals(PortalPlayerData.SHARED_SECTION_ID)) {
             moveGroup(focusedRowId, keyCode == 265 ? -1 : 1);
             return true;
         }
@@ -2049,7 +2081,8 @@ public final class PortalConfigScreen extends Screen {
             return true;
         }
         if (keyCode == 82 && focusedRowKind == RowKind.GROUP && focusedRowId != null
-            && !focusedRowId.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
+            && !focusedRowId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
+            && !focusedRowId.equals(PortalPlayerData.SHARED_SECTION_ID)) {
             openForm(Modal.RENAME_GROUP, focusedRowId);
             return true;
         }
@@ -2075,6 +2108,13 @@ public final class PortalConfigScreen extends Screen {
             selectionDueTick = clientTicks + 6L;
         }
         updateOpenPortalButton();
+    }
+
+    private void shareViewed(PortalAction action) {
+        UUID id = modalTarget;
+        if (id == null) return;
+        PortalNetworking.sendRequest(action, tag -> tag.putUUID("Destination", id));
+        closeModalNow();
     }
 
     private void selectPlayer(UUID id) {
@@ -2352,7 +2392,8 @@ public final class PortalConfigScreen extends Screen {
             || mouseY < listTop || mouseY >= listBottom) return null;
         for (Row row : hitRows) {
             if (mouseY < row.y() || mouseY >= row.y() + ROW_HEIGHT) continue;
-            return row.kind() == RowKind.GROUP ? row.id() : destinationGroup(row.id());
+            UUID group = row.kind() == RowKind.GROUP ? row.id() : destinationGroup(row.id());
+            return PortalPlayerData.SHARED_SECTION_ID.equals(group) ? null : group;
         }
         return null;
     }
@@ -2478,9 +2519,10 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private UUID creationGroup() {
-        if (selectedGroup != null) return selectedGroup;
+        if (selectedGroup != null && !selectedGroup.equals(PortalPlayerData.SHARED_SECTION_ID)) return selectedGroup;
         Destination current = viewed();
-        return current == null ? PortalPlayerData.DEFAULT_GROUP_ID : current.groupId();
+        return current == null || current.groupId().equals(PortalPlayerData.SHARED_SECTION_ID)
+            ? PortalPlayerData.DEFAULT_GROUP_ID : current.groupId();
     }
 
     private void requestCloseModal() {
@@ -2925,6 +2967,9 @@ public final class PortalConfigScreen extends Screen {
 
     private String groupName(UUID id) {
         if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) return "Default";
+        if (id.equals(PortalPlayerData.SHARED_SECTION_ID)) {
+            return Component.translatable("screen.riftgun.shared_group").getString();
+        }
         return PortalClientState.data().group(id).map(DestinationGroup::name).orElse("Default");
     }
 
@@ -2987,6 +3032,7 @@ public final class PortalConfigScreen extends Screen {
             case SOUND_SETTINGS -> 178;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
                  CONFIRM_DIRTY, CONFIRM_CLEAR_FLUID -> 112;
+            case SHARE_DESTINATION -> 132;
             case NONE -> 0;
         };
         int boxWidth = Math.min(340, panelWidth - 16);
@@ -3060,6 +3106,7 @@ public final class PortalConfigScreen extends Screen {
         EDIT_DESTINATION("screen.riftgun.edit_destination", "", true, true),
         CREATE_GROUP("screen.riftgun.create_group", "", true, false),
         RENAME_GROUP("screen.riftgun.rename_group", "", true, false),
+        SHARE_DESTINATION("screen.riftgun.share", "", false, false),
         SETTINGS("screen.riftgun.settings", "", false, false),
         GUN_SETTINGS("screen.riftgun.configure_gun", "", false, false),
         PORTAL_DURATION_SETTINGS("screen.riftgun.portal_duration", "", false, false),

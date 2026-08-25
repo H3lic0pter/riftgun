@@ -21,10 +21,12 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 8;
+    public static final int CURRENT_VERSION = 9;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
     /** Sentinel id for the Player section's collapsed/expanded state in {@link #expandedGroups()}. */
     public static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
+    /** Virtual group shown only while imported destinations exist. */
+    public static final UUID SHARED_SECTION_ID = new UUID(0L, 0x200L);
 
     private final List<DestinationGroup> groups = new ArrayList<>();
     private final List<Destination> destinations = new ArrayList<>();
@@ -32,6 +34,7 @@ public final class PortalPlayerData {
     private final Map<UUID, DestinationSafetyResult> safetyResults = new HashMap<>();
     private final Set<UUID> pinnedPlayers = new HashSet<>();
     private final Map<UUID, Long> playerLastUseAt = new HashMap<>();
+    private final Map<UUID, ShareProvenance> shareProvenance = new HashMap<>();
 //? if >=1.21.11 {
     /*private final Map<Identifier, PortalPermissionPolicy> globalPermissions = new HashMap<>();
 *///?} else {
@@ -47,6 +50,7 @@ public final class PortalPlayerData {
     public PortalPlayerData() {
         expandedGroups.add(DEFAULT_GROUP_ID);
         expandedGroups.add(PLAYER_SECTION_ID);
+        expandedGroups.add(SHARED_SECTION_ID);
         PortalPermissions.definitions().forEach(definition ->
             globalPermissions.put(definition.id(), definition.fallbackGlobalPolicy()));
     }
@@ -174,6 +178,15 @@ public final class PortalPlayerData {
         return groups.stream().filter(group -> group.id().equals(id)).findFirst();
     }
 
+    public Optional<ShareProvenance> shareProvenance(UUID destinationId) {
+        return Optional.ofNullable(shareProvenance.get(destinationId));
+    }
+
+    public void shareProvenance(UUID destinationId, ShareProvenance provenance) {
+        if (provenance == null) shareProvenance.remove(destinationId);
+        else shareProvenance.put(destinationId, provenance);
+    }
+
     public DestinationSafetyResult safetyResult(UUID destinationId) {
         return safetyResults.getOrDefault(destinationId, DestinationSafetyResult.UNKNOWN);
     }
@@ -274,6 +287,10 @@ public final class PortalPlayerData {
         ListTag destinationTags = new ListTag();
         destinations.forEach(destination -> destinationTags.add(destination.save()));
         root.put("Destinations", destinationTags);
+
+        ListTag provenanceTags = new ListTag();
+        shareProvenance.forEach((id, provenance) -> provenanceTags.add(provenance.save(id)));
+        root.put("ShareProvenance", provenanceTags);
 
         ListTag safetyTags = new ListTag();
         safetyResults.forEach((id, result) -> {
@@ -408,6 +425,13 @@ public final class PortalPlayerData {
         groups.forEach(tag -> data.groups.add(DestinationGroup.load((CompoundTag) tag)));
         ListTag destinations = Nbt.getList(root, "Destinations");
         destinations.forEach(tag -> data.destinations.add(Destination.load((CompoundTag) tag)));
+        ListTag provenance = Nbt.getList(root, "ShareProvenance");
+        provenance.forEach(raw -> {
+            CompoundTag tag = (CompoundTag) raw;
+            if (!Nbt.hasUUID(tag, "Destination")) return;
+            ShareProvenance value = ShareProvenance.load(tag);
+            if (value != null) data.shareProvenance.put(Nbt.getUUID(tag, "Destination"), value);
+        });
         ListTag safetyResults = Nbt.getList(root, "SafetyResults");
         safetyResults.forEach(tag -> {
             CompoundTag compound = (CompoundTag) tag;
@@ -452,6 +476,7 @@ public final class PortalPlayerData {
     private void repairReferences() {
         Set<UUID> groupIds = new HashSet<>();
         groupIds.add(DEFAULT_GROUP_ID);
+        groupIds.add(SHARED_SECTION_ID);
         groups.removeIf(group -> group.id().equals(DEFAULT_GROUP_ID) || !groupIds.add(group.id()));
 
         for (int index = 0; index < destinations.size(); index++) {
@@ -463,6 +488,7 @@ public final class PortalPlayerData {
         if (selectedDestinationId != null && destination(selectedDestinationId).isEmpty()) selectedDestinationId = null;
         if (lastViewedDestinationId != null && destination(lastViewedDestinationId).isEmpty()) lastViewedDestinationId = null;
         safetyResults.keySet().removeIf(id -> destination(id).isEmpty());
+        shareProvenance.keySet().removeIf(id -> destination(id).isEmpty());
         expandedGroups.removeIf(id -> !groupIds.contains(id) && !id.equals(PLAYER_SECTION_ID));
     }
 

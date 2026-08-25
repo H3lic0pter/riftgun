@@ -70,7 +70,10 @@ final class PortalDestinationActions {
         UUID destinationId = PortalRequestFields.id(request, "Destination");
         Destination current = data.destination(destinationId).orElseThrow(
             () -> PortalRequestFields.error("message.riftgun.destination_missing"));
-        UUID group = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
+        UUID requestedGroup = PortalRequestFields.optionalGroupId(request, "Group");
+        UUID group = current.groupId().equals(PortalPlayerData.SHARED_SECTION_ID)
+            && PortalPlayerData.SHARED_SECTION_ID.equals(requestedGroup)
+            ? PortalPlayerData.SHARED_SECTION_ID : validGroup(data, requestedGroup);
         String name = destinationName(data, Nbt.getString(request, "Name"), false);
         boolean coordinateOverride = PortalGunCapabilities.resolve(
             gun, data.settings().smartDistance()).coordinateOverride();
@@ -92,6 +95,7 @@ final class PortalDestinationActions {
         if (destinationId.equals(data.selectedDestinationId())) data.selectedDestinationId(null);
         if (destinationId.equals(data.lastViewedDestinationId())) data.lastViewedDestinationId(null);
         data.clearSafetyResult(destinationId);
+        data.shareProvenance(destinationId, null);
         return true;
     }
 
@@ -200,6 +204,7 @@ final class PortalDestinationActions {
         UUID groupId = PortalRequestFields.id(request, "Group");
         if (!groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && !groupId.equals(PortalPlayerData.PLAYER_SECTION_ID)
+            && !groupId.equals(PortalPlayerData.SHARED_SECTION_ID)
             && data.group(groupId).isEmpty()) {
             throw PortalRequestFields.error("message.riftgun.group_missing");
         }

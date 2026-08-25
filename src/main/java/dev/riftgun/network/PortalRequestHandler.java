@@ -13,6 +13,7 @@ import dev.riftgun.service.PortalOpenOrigin;
 import dev.riftgun.service.PortalShortcutGunMode;
 import dev.riftgun.service.PortalShortcutGunSelection;
 import dev.riftgun.service.RandomRiftManager;
+import dev.riftgun.service.CoordinateSharingService;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.relocation.EntityRelocationManager;
 import java.util.UUID;
@@ -26,6 +27,15 @@ public final class PortalRequestHandler {
     public static void handle(ServerPlayer player, CompoundTag request) {
         PortalAction action = parseAction(request);
         if (action == null) return;
+        // Chat sharing is intentionally available to spectators and does not require a Portal Gun.
+        if (action == PortalAction.SHARE_DESTINATION_CHAT) {
+            if (Nbt.hasUUID(request, "Destination")) {
+                CoordinateSharingService.shareToChat(player, Nbt.getUUID(request, "Destination"));
+            } else {
+                Msg.displayClientMessage(player, Component.translatable("message.riftgun.invalid_request"), true);
+            }
+            return;
+        }
         if (player.isSpectator()) {
             Msg.displayClientMessage(player, Component.translatable("message.riftgun.spectator_denied"), true);
             return;
@@ -115,6 +125,14 @@ public final class PortalRequestHandler {
             case CREATE_COORDINATE -> PortalDestinationActions.createCoordinate(
                 player, data, request, gun.stack());
             case EDIT_DESTINATION -> PortalDestinationActions.edit(player, data, request, gun.stack());
+            case SHARE_DESTINATION_CHAT -> {
+                CoordinateSharingService.shareToChat(player, PortalRequestFields.id(request, "Destination"));
+                yield false;
+            }
+            case CREATE_COORDINATE_NOTE -> {
+                CoordinateSharingService.createNote(player, PortalRequestFields.id(request, "Destination"));
+                yield false;
+            }
             case DELETE_DESTINATION -> PortalDestinationActions.delete(data, request);
             case TOGGLE_PIN -> PortalDestinationActions.togglePin(data, request);
             case VIEW_DESTINATION -> PortalDestinationActions.view(data, request);
