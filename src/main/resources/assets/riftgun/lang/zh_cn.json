@@ -28,6 +28,8 @@
   "screen.riftgun.pin": "置顶",
   "screen.riftgun.delete": "删除",
   "screen.riftgun.settings": "设置",
+  "screen.riftgun.default_group": "默认",
+  "screen.riftgun.remember_scroll_position": "记住滚动位置",
   "screen.riftgun.sort": "排序",
   "screen.riftgun.sort_mode": "排序：%s",
   "screen.riftgun.sort.recent": "最近",
@@ -140,7 +142,7 @@
   "message.riftgun.name_empty": "名称不能为空",
   "message.riftgun.name_too_long": "名称过长",
   "message.riftgun.group_duplicate": "分组名称已存在",
-  "message.riftgun.default_group_immutable": "Default 分组不能修改",
+  "message.riftgun.default_group_immutable": "默认分组不能修改",
   "message.riftgun.invalid_coordinate": "坐标格式无效；支持数字和 ~，不支持 ^",
   "message.riftgun.invalid_request": "请求无效",
   "message.riftgun.dimension_unavailable": "目的地维度不可用",
@@ -453,7 +455,7 @@
   "message.riftgun.coordinate_share_expired": "该坐标分享已过期",
   "message.riftgun.coordinate_already_imported": "你已经拥有该坐标",
   "message.riftgun.coordinate_share_cooldown": "请稍后再分享坐标",
-  "message.riftgun.coordinate_paper_required": "生成坐标纸条需要 Paper",
+  "message.riftgun.coordinate_paper_required": "生成坐标纸条需要纸",
   "message.riftgun.inventory_full": "物品栏空间不足",
   "message.riftgun.coordinate_note_created": "已生成坐标纸条"
 }

@@ -4,11 +4,13 @@ import static dev.riftgun.client.screen.PortalGuiIcons.*;
 
 import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
+import dev.riftgun.client.PortalGuiScrollMemory;
 import dev.riftgun.client.render.PortalVisualPreferences;
 import dev.riftgun.client.render.PortalVisualOption;
 import dev.riftgun.client.render.PortalVisualOptions;
 import dev.riftgun.client.render.PortalVisualRegistry;
 import dev.riftgun.client.render.PortalVisualType;
+import dev.riftgun.config.ClientConfig;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.DestinationSort;
@@ -172,6 +174,9 @@ public final class PortalConfigScreen extends Screen {
 
     public PortalConfigScreen() {
         super(Component.translatable("screen.riftgun.config"));
+        PortalGuiScrollMemory.Position scroll = PortalGuiScrollMemory.restore(rememberScrollPosition());
+        listScroll = scroll.listScroll();
+        detailScroll = scroll.detailScroll();
         PortalPlayerData data = PortalClientState.data();
         playerTargets = new PlayerTargetController(data);
         if (playerTargets.selectedId() != null) {
@@ -326,6 +331,7 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     public void onClose() {
+        saveScrollPosition();
         flushSelection();
         flushVisualSettings();
         super.onClose();
@@ -333,6 +339,7 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     public void removed() {
+        saveScrollPosition();
         flushSelection();
         flushVisualSettings();
         super.removed();
@@ -386,6 +393,9 @@ public final class PortalConfigScreen extends Screen {
             button(x + 18, y + 123, fieldWidth, 18,
                 toggleLabel("screen.riftgun.sounds", settings.soundsEnabled()), false,
                 ignored -> updateSetting(5));
+            button(x + 18, y + 142, fieldWidth, 18,
+                toggleLabel("screen.riftgun.remember_scroll_position", rememberScrollPosition()), false,
+                ignored -> toggleRememberScrollPosition());
             visualSettingsButton = button(x + box.width() - 64, y + 8, 20, 18, Component.empty(), false,
                 ignored -> openVisualSettings());
             soundSettingsButton = button(x + box.width() - 40, y + 8, 20, 18, Component.empty(), false,
@@ -808,7 +818,7 @@ public final class PortalConfigScreen extends Screen {
         boolean expanded = data.expandedGroups().contains(id);
         String name = shared ? Component.translatable("screen.riftgun.shared_group").getString()
             : custom ? data.group(id).map(DestinationGroup::name).orElse("?")
-            : "Default";
+            : Component.translatable("screen.riftgun.default_group").getString();
         if (custom) drawDragHandle(graphics, panelX + 8, y + 5);
         drawDisclosure(graphics, panelX + 17, y + 6, expanded);
         int right = panelX + listWidth - 6;
@@ -832,7 +842,7 @@ public final class PortalConfigScreen extends Screen {
         drawDisclosure(graphics, panelX + 17, y + 6, expanded);
         int right = panelX + listWidth - 6;
         boolean actions = hover || focused;
-        String title = "Player";
+        String title = Component.translatable("screen.riftgun.player_group").getString();
         if (actions) {
             int refreshRight = right - 11;
             drawPlayerRefreshIcon(graphics, refreshRight - 16, y + 5);
@@ -2252,6 +2262,22 @@ public final class PortalConfigScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void toggleRememberScrollPosition() {
+        boolean enabled = !rememberScrollPosition();
+        ClientConfig.VALUES.rememberGuiScrollPosition.set(enabled);
+        ClientConfig.SPEC.save();
+        if (!enabled) PortalGuiScrollMemory.clear();
+        rebuildWidgets();
+    }
+
+    private void saveScrollPosition() {
+        PortalGuiScrollMemory.remember(rememberScrollPosition(), listScroll, detailScroll);
+    }
+
+    private static boolean rememberScrollPosition() {
+        return ClientConfig.VALUES.rememberGuiScrollPosition.get();
+    }
+
     private void cycleMotionPrediction() {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
@@ -2966,11 +2992,14 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private String groupName(UUID id) {
-        if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) return "Default";
+        if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
+            return Component.translatable("screen.riftgun.default_group").getString();
+        }
         if (id.equals(PortalPlayerData.SHARED_SECTION_ID)) {
             return Component.translatable("screen.riftgun.shared_group").getString();
         }
-        return PortalClientState.data().group(id).map(DestinationGroup::name).orElse("Default");
+        return PortalClientState.data().group(id).map(DestinationGroup::name)
+            .orElseGet(() -> Component.translatable("screen.riftgun.default_group").getString());
     }
 
     private Component gunFluidName() {
@@ -3022,7 +3051,7 @@ public final class PortalConfigScreen extends Screen {
         int desiredHeight = switch (modal) {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
             case CREATE_CURRENT -> 164;
-            case SETTINGS -> 182;
+            case SETTINGS -> 201;
             case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
                  SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS,
                  PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS -> 132;

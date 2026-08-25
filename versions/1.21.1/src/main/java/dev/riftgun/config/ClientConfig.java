@@ -36,6 +36,7 @@ public final class ClientConfig {
         public final ModConfigSpec.DoubleValue endframeRotationPeriod;
         public final ModConfigSpec.BooleanValue endframeRotationReverse;
         public final ModConfigSpec.IntValue portalDynamicLightLevel;
+        public final ModConfigSpec.BooleanValue rememberGuiScrollPosition;
 
         private Values(ModConfigSpec.Builder builder) {
             portalVisualType = builder.comment("Client-local portal visual type ID")
@@ -68,6 +69,12 @@ public final class ClientConfig {
                     "Maximum portal luminance used by optional dynamic-light integrations")
                 .defineInRange("level", 9, 0, 15);
             builder.pop(2);
+
+            builder.push("gui");
+            rememberGuiScrollPosition = builder.comment(
+                    "Remember the main portal GUI list and detail scroll positions for this client session")
+                .define("rememberScrollPosition", true);
+            builder.pop();
         }
     }
 

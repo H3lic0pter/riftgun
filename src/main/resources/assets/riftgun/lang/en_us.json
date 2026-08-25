@@ -29,6 +29,8 @@
   "screen.riftgun.pin": "Pin",
   "screen.riftgun.delete": "Delete",
   "screen.riftgun.settings": "Settings",
+  "screen.riftgun.default_group": "Default",
+  "screen.riftgun.remember_scroll_position": "Remember scroll position",
   "screen.riftgun.sort": "Sort",
   "screen.riftgun.sort_mode": "Sort: %s",
   "screen.riftgun.sort.recent": "Recent",
