@@ -1,6 +1,11 @@
 package dev.riftgun.service;
 
 import dev.riftgun.RiftGun;
+import dev.riftgun.api.CoordinateNoteRequest;
+import dev.riftgun.api.CoordinateNoteResult;
+import dev.riftgun.api.CoordinateNoteStatus;
+import dev.riftgun.api.RiftGunDimensionLabels;
+import dev.riftgun.api.RiftResourceId;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.core.msg.Msg;
 import dev.riftgun.data.CoordinateSnapshot;
@@ -11,6 +16,7 @@ import dev.riftgun.data.ShareProvenance;
 import dev.riftgun.fuel.PortalGunComponents;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -75,7 +81,7 @@ public final class CoordinateSharingService {
         prune(now);
 
         Component message = Component.translatable("chat.riftgun.coordinate_share",
-            player.getDisplayName(), dimensionName(destination), destination.name())
+            player.getDisplayName(), dimensionName(player, destination), destination.name())
             .append("  ").append(clickAction(snapshot));
         for (ServerPlayer target : server.getPlayerList().getPlayers()) {
             Msg.displayClientMessage(target, message, false);
@@ -92,6 +98,61 @@ public final class CoordinateSharingService {
         if (server == null || server.getLevel(destination.dimension()) == null) {
             return tell(player, Result.DIMENSION_UNAVAILABLE);
         }
+        Result result = createNoteItem(player, snapshot(player, data, destination));
+        if (result == Result.SUCCESS) {
+            Msg.displayClientMessage(player,
+                Component.translatable("message.riftgun.coordinate_note_created"), true);
+            return result;
+        }
+        return tell(player, result);
+    }
+
+    /** Public-API implementation for addon-owned destinations. */
+    public static CoordinateNoteResult createExternalNote(CoordinateNoteRequest request) {
+        ServerPlayer player = request.player();
+        if (!RiftConfigs.server().coordinateSharing().enabled()) {
+            return apiResult(CoordinateNoteStatus.SHARING_DISABLED, Result.DISABLED);
+        }
+        MinecraftServer server = server(player);
+        if (server == null) return apiResult(CoordinateNoteStatus.TARGET_DIMENSION_UNAVAILABLE,
+            Result.DIMENSION_UNAVAILABLE);
+//? if >=1.21.11 {
+        /*var dimensionId = net.minecraft.resources.Identifier.tryParse(
+            request.destination().dimensionId().toString());
+*///?} else {
+        var dimensionId = net.minecraft.resources.ResourceLocation.tryParse(
+            request.destination().dimensionId().toString());
+//?}
+        if (dimensionId == null) return apiResult(CoordinateNoteStatus.INVALID_REQUEST, Result.INVALID);
+        var dimension = net.minecraft.resources.ResourceKey.create(
+            net.minecraft.core.registries.Registries.DIMENSION, dimensionId);
+        if (server.getLevel(dimension) == null) {
+            return apiResult(CoordinateNoteStatus.TARGET_DIMENSION_UNAVAILABLE,
+                Result.DIMENSION_UNAVAILABLE);
+        }
+        String name = trim(request.displayName().getString(),
+            RiftConfigs.server().destinations().maximumDestinationNameLength());
+        if (name.isBlank()) return apiResult(CoordinateNoteStatus.INVALID_REQUEST, Result.INVALID);
+        UUID sourceId = UUID.nameUUIDFromBytes(request.sourceId().toString()
+            .getBytes(StandardCharsets.UTF_8));
+        var target = request.destination();
+        CoordinateSnapshot snapshot = new CoordinateSnapshot(
+            UUID.randomUUID(), sourceId, name, dimension,
+            target.x(), target.y(), target.z(), target.yaw(),
+            player.getUUID(), profileName(player), player.getUUID(), profileName(player));
+        Result result = createNoteItem(player, snapshot);
+        return switch (result) {
+            case SUCCESS -> apiResult(CoordinateNoteStatus.CREATED, result);
+            case DISABLED -> apiResult(CoordinateNoteStatus.SHARING_DISABLED, result);
+            case DIMENSION_UNAVAILABLE -> apiResult(
+                CoordinateNoteStatus.TARGET_DIMENSION_UNAVAILABLE, result);
+            case PAPER_REQUIRED -> apiResult(CoordinateNoteStatus.PAPER_REQUIRED, result);
+            case INVENTORY_FULL -> apiResult(CoordinateNoteStatus.INVENTORY_FULL, result);
+            default -> apiResult(CoordinateNoteStatus.INVALID_REQUEST, result);
+        };
+    }
+
+    private static Result createNoteItem(ServerPlayer player, CoordinateSnapshot snapshot) {
         Inventory inventory = player.getInventory();
         int paperSlot = -1;
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
@@ -106,14 +167,19 @@ public final class CoordinateSharingService {
         ItemStack paper = inventory.getItem(paperSlot);
         if (!emptySlot && (creative || paper.getCount() > 1)) return tell(player, Result.INVENTORY_FULL);
 
-        ItemStack note = note(snapshot(player, data, destination));
+        ItemStack note = note(player, snapshot);
         if (!creative) paper.shrink(1);
         if (!inventory.add(note)) {
             if (!creative) paper.grow(1);
             return tell(player, Result.INVENTORY_FULL);
         }
-        Msg.displayClientMessage(player, Component.translatable("message.riftgun.coordinate_note_created"), true);
         return Result.SUCCESS;
+    }
+
+    private static CoordinateNoteResult apiResult(CoordinateNoteStatus status, Result result) {
+        String key = status == CoordinateNoteStatus.CREATED
+            ? "message.riftgun.coordinate_note_created" : result.key();
+        return new CoordinateNoteResult(status, Component.translatable(key));
     }
 
     public static Result importChat(ServerPlayer player, UUID shareId) {
@@ -177,7 +243,7 @@ public final class CoordinateSharingService {
             player.getUUID(), profileName(player));
     }
 
-    private static ItemStack note(CoordinateSnapshot snapshot) {
+    private static ItemStack note(ServerPlayer player, CoordinateSnapshot snapshot) {
         ItemStack stack = new ItemStack(RiftGun.coordinateNote());
         stack.set(PortalGunComponents.COORDINATE_SNAPSHOT, snapshot.save());
         stack.set(DataComponents.CUSTOM_NAME, Component.translatable("item.riftgun.coordinate_note.named", snapshot.name())
@@ -185,7 +251,7 @@ public final class CoordinateSharingService {
         stack.set(DataComponents.LORE, new ItemLore(java.util.List.of(
             Component.translatable("tooltip.riftgun.coordinate_note.shared_by", snapshot.sharedByName()).withStyle(ChatFormatting.GRAY),
             Component.translatable("tooltip.riftgun.coordinate_note.original_author", snapshot.originalAuthorName()).withStyle(ChatFormatting.DARK_GRAY),
-            Component.translatable("tooltip.riftgun.coordinate_note.dimension", dimensionName(snapshot)).withStyle(ChatFormatting.GRAY),
+            Component.translatable("tooltip.riftgun.coordinate_note.dimension", dimensionName(player, snapshot)).withStyle(ChatFormatting.GRAY),
             Component.translatable("tooltip.riftgun.coordinate_note.dimension_id", dimensionId(snapshot)).withStyle(ChatFormatting.DARK_GRAY),
             Component.translatable("tooltip.riftgun.coordinate_note.position", format(snapshot.x()), format(snapshot.y()), format(snapshot.z())).withStyle(ChatFormatting.GRAY),
             Component.translatable("tooltip.riftgun.coordinate_note.yaw", format(snapshot.yaw())).withStyle(ChatFormatting.GRAY),
@@ -211,17 +277,17 @@ public final class CoordinateSharingService {
 //?}
     }
 
-    private static Component dimensionName(Destination destination) {
+    private static Component dimensionName(ServerPlayer player, Destination destination) {
 //? if >=1.21.11 {
         /*String id = destination.dimension().identifier().toString();
 *///?} else {
         String id = destination.dimension().location().toString();
 //?}
-        return friendlyDimension(id);
+        return friendlyDimension(player, id);
     }
 
-    private static Component dimensionName(CoordinateSnapshot snapshot) {
-        return friendlyDimension(dimensionId(snapshot));
+    private static Component dimensionName(ServerPlayer player, CoordinateSnapshot snapshot) {
+        return friendlyDimension(player, dimensionId(snapshot));
     }
 
     private static String dimensionId(CoordinateSnapshot snapshot) {
@@ -232,7 +298,11 @@ public final class CoordinateSharingService {
 //?}
     }
 
-    private static Component friendlyDimension(String id) {
+    private static Component friendlyDimension(ServerPlayer player, String id) {
+        try {
+            var dynamic = RiftGunDimensionLabels.label(player, RiftResourceId.parse(id));
+            if (dynamic.isPresent()) return dynamic.orElseThrow();
+        } catch (IllegalArgumentException ignored) { }
         String[] parts = id.split(":", 2);
         return parts.length == 2 ? Component.translatable("dimension." + parts[0] + "." + parts[1])
             : Component.literal(id);

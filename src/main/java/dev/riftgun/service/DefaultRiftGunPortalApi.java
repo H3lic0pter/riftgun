@@ -60,7 +60,7 @@ public final class DefaultRiftGunPortalApi implements RiftGunPortalApi {
         ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, dimensionId);
         long gameTime = player.level().getGameTime();
         Destination destination = new Destination(
-            UUID.randomUUID(), request.sourceId().toString(), PortalPlayerData.DEFAULT_GROUP_ID,
+            UUID.randomUUID(), request.displayName().getString(), PortalPlayerData.DEFAULT_GROUP_ID,
             dimension, target.x(), target.y(), target.z(), target.yaw(), gameTime, 0L, false);
         PortalPlayerData data = PortalDataStore.load(player);
         PortalOpenResult result = PortalOpenCoordinator.openTransientResult(

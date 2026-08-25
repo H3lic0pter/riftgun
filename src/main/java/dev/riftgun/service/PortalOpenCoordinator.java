@@ -2,6 +2,7 @@ package dev.riftgun.service;
 import dev.riftgun.api.PortalOpenResult;
 import dev.riftgun.api.PortalOpenStatus;
 import dev.riftgun.api.PortalTransitAuthorization;
+import dev.riftgun.api.RiftGunPortalOpenPolicies;
 import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.portal.PortalChunkGuard;
@@ -166,6 +167,10 @@ public final class PortalOpenCoordinator {
                                          @Nullable UUID exitExclude, boolean recordAsDestination,
                                          boolean fromGui,
                                          Optional<PortalTransitAuthorization> transitAuthorization) {
+        var sourcePolicy = RiftGunPortalOpenPolicies.evaluate(player);
+        if (!sourcePolicy.allowed()) {
+            return reject(PortalOpenStatus.SOURCE_POLICY_REJECTED, sourcePolicy.message());
+        }
         var dimensionResult = RiftRuntime.current().dimensionPolicy().validate(player, destination);
         if (!dimensionResult.allowed()) {
             return reject(PortalOpenStatus.TARGET_DIMENSION_REJECTED, dimensionResult.message());

@@ -20,7 +20,7 @@ final class PortalOpenContractTest {
         assertFalse(rejected.opened());
         assertEquals(PortalOpenStatus.NO_PORTAL_GUN, rejected.status());
         assertEquals("message.riftgun.portal_gun_required", rejected.message().getString());
-        assertEquals(new RiftGunApiVersion(1, 1, 0), RiftGunApi.portals().version());
+        assertEquals(new RiftGunApiVersion(1, 2, 0), RiftGunApi.portals().version());
     }
 
     @Test

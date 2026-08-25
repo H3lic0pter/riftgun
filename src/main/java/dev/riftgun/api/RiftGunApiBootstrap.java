@@ -11,6 +11,10 @@ public final class RiftGunApiBootstrap {
         RiftGunApi.installPortalApi(implementation);
     }
 
+    public static void installCoordinateNoteApi(RiftGunCoordinateNoteApi implementation) {
+        RiftGunApi.installCoordinateNoteApi(implementation);
+    }
+
     static java.util.Optional<PortalTransitAuthorization> currentTransitAuthorization() {
         return java.util.Optional.ofNullable(TRANSIT_AUTHORIZATION.get());
     }
