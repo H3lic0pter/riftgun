@@ -11,6 +11,8 @@ import dev.riftgun.service.PortalSupportArea;
 import dev.riftgun.sound.PortalSoundSnapshot;
 import dev.riftgun.sound.PortalSounds;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
+import dev.riftgun.api.PortalTransitAuthorization;
+import dev.riftgun.module.PortalTransitAuthorizationCodec;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -90,6 +92,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     private @Nullable BlockPos ticketPosition;
     private boolean ticketHeld;
     private PortalEntityAccessSnapshot entityAccess = PortalEntityAccessSnapshot.NONE;
+    private Optional<PortalTransitAuthorization> transitAuthorization = Optional.empty();
     private int openDurationTicks = PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
     private int transitCooldownTicks = 20;
     private boolean fallGuard;
@@ -221,6 +224,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         portal.entityData.set(FUEL_RGB, fuelRgb);
         portal.entityData.set(FUEL_ID, fuelId);
         portal.entityAccess = options.entityAccess();
+        portal.transitAuthorization = options.transitAuthorization();
         portal.openDurationTicks = options.openDurationTicks();
         portal.transitCooldownTicks = options.transitCooldownTicks();
         portal.fallGuard = options.fallGuard();
@@ -491,7 +495,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     PortalRuntimeOptions runtimeOptions() {
         return new PortalRuntimeOptions(entityAccess, openDurationTicks, aperture,
             transitCooldownTicks, fallGuard, entityFallGuard, horizontalTriggerExtend,
-            sounds, crisis.configuration());
+            sounds, crisis.configuration(), transitAuthorization);
     }
 
     void warnDeferredExitFailure(MinecraftServer server, List<Entity> movedEntities) {
@@ -548,6 +552,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     PortalEntityAccessSnapshot entityAccess() {
         return entityAccess;
+    }
+
+    Optional<PortalTransitAuthorization> transitAuthorization() {
+        return transitAuthorization;
     }
 
     @Nullable UUID ownerId() {
@@ -732,6 +740,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         if (tag.contains("EntityAccess")) {
             entityAccess = PortalEntityAccessSnapshot.load(tag.getCompound("EntityAccess"));
         }
+        if (tag.contains("TransitAuthorization")) {
+            transitAuthorization = PortalTransitAuthorizationCodec.load(
+                tag.getCompound("TransitAuthorization"));
+        }
         openDurationTicks = tag.contains("OpenDurationTicks")
             ? Math.max(1, tag.getInt("OpenDurationTicks"))
             : PortalOpenDuration.ticks(PortalOpenDuration.DEFAULT_SECONDS);
@@ -768,6 +780,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         tag.putInt("FuelRgb", entityData.get(FUEL_RGB));
         tag.putString("FuelId", entityData.get(FUEL_ID));
         tag.put("EntityAccess", entityAccess.save());
+        transitAuthorization.ifPresent(authorization -> tag.put(
+            "TransitAuthorization", PortalTransitAuthorizationCodec.save(authorization)));
         tag.putInt("OpenDurationTicks", openDurationTicks);
         tag.putInt("TransitCooldownTicks", transitCooldownTicks);
         tag.putBoolean("FallGuard", fallGuard);

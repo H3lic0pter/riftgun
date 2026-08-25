@@ -24,4 +24,5 @@ versions/*/crash-reports/
 versions/*/saves/
 versions/*/server.properties
 
+.vscode/
 ref/

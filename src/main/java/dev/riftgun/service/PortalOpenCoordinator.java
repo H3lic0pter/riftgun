@@ -1,4 +1,7 @@
 package dev.riftgun.service;
+import dev.riftgun.api.PortalOpenResult;
+import dev.riftgun.api.PortalOpenStatus;
+import dev.riftgun.api.PortalTransitAuthorization;
 import dev.riftgun.core.msg.Msg;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.portal.PortalChunkGuard;
@@ -22,6 +25,7 @@ import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PlayerExcludeMode;
 import java.util.UUID;
+import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -39,10 +43,14 @@ public final class PortalOpenCoordinator {
             failMessage(player, "message.riftgun.destination_missing");
             return;
         }
-        if (open(player, data, destination, mode, locatedGun, null, null, true, fromGui)) {
+        PortalOpenResult result = open(
+            player, data, destination, mode, locatedGun, null, null, true, fromGui, Optional.empty());
+        if (result.opened()) {
             PortalDataStore.save(player, data);
             PortalNetworking.sendSnapshot(player, false, locatedGun);
             if (fromGui) PortalNetworking.sendPortalOpened(player);
+        } else {
+            displayFailure(player, result);
         }
     }
 
@@ -50,7 +58,30 @@ public final class PortalOpenCoordinator {
     public static boolean openTransient(ServerPlayer player, PortalPlayerData data,
                                         Destination destination, PortalPlacementMode mode,
                                         PortalGunLocator.LocatedGun locatedGun, boolean fromGui) {
-        return open(player, data, destination, mode, locatedGun, null, null, false, fromGui);
+        PortalOpenResult result = openTransientResult(
+            player, data, destination, mode, locatedGun, fromGui);
+        if (!result.opened()) displayFailure(player, result);
+        return result.opened();
+    }
+
+    /** Internal structured variant used by the public Rift Gun integration adapter. */
+    static PortalOpenResult openTransientResult(ServerPlayer player, PortalPlayerData data,
+                                                 Destination destination, PortalPlacementMode mode,
+                                                 PortalGunLocator.LocatedGun locatedGun, boolean fromGui) {
+        return open(player, data, destination, mode, locatedGun, null, null, false, fromGui, Optional.empty());
+    }
+
+    static PortalOpenResult openTransientResult(
+        ServerPlayer player,
+        PortalPlayerData data,
+        Destination destination,
+        PortalPlacementMode mode,
+        PortalGunLocator.LocatedGun locatedGun,
+        boolean fromGui,
+        Optional<PortalTransitAuthorization> transitAuthorization
+    ) {
+        return open(player, data, destination, mode, locatedGun, null, null, false, fromGui,
+            transitAuthorization);
     }
 
     /** Opens a portal whose exit lands next to the given online player. */
@@ -113,7 +144,10 @@ public final class PortalOpenCoordinator {
         UUID exitExclude = transitProtects
             ? targetPlayerId
             : excludeMode != PlayerExcludeMode.OFF ? targetPlayerId : null;
-        if (open(player, data, destination, mode, locatedGun, entryExclude, exitExclude, false, fromGui)) {
+        PortalOpenResult result = open(
+            player, data, destination, mode, locatedGun, entryExclude, exitExclude, false, fromGui,
+            Optional.empty());
+        if (result.opened()) {
             if (consumeOneShotGrant) {
                 PortalPrivacyService.consumeGrant(server, target.getUUID(), player.getUUID());
             }
@@ -121,17 +155,20 @@ public final class PortalOpenCoordinator {
             PortalDataStore.save(player, data);
             PortalNetworking.sendSnapshot(player, false, locatedGun);
             if (fromGui) PortalNetworking.sendPortalOpened(player);
+        } else {
+            displayFailure(player, result);
         }
     }
 
-    private static boolean open(ServerPlayer player, PortalPlayerData data,
-                                Destination destination, PortalPlacementMode mode,
-                                PortalGunLocator.LocatedGun locatedGun, @Nullable UUID entryExclude,
-                                @Nullable UUID exitExclude, boolean recordAsDestination, boolean fromGui) {
+    private static PortalOpenResult open(ServerPlayer player, PortalPlayerData data,
+                                         Destination destination, PortalPlacementMode mode,
+                                         PortalGunLocator.LocatedGun locatedGun, @Nullable UUID entryExclude,
+                                         @Nullable UUID exitExclude, boolean recordAsDestination,
+                                         boolean fromGui,
+                                         Optional<PortalTransitAuthorization> transitAuthorization) {
         var dimensionResult = RiftRuntime.current().dimensionPolicy().validate(player, destination);
         if (!dimensionResult.allowed()) {
-            Msg.displayClientMessage(player, dimensionResult.message(), true);
-            return false;
+            return reject(PortalOpenStatus.TARGET_DIMENSION_REJECTED, dimensionResult.message());
         }
 //? if >=1.21.11 {
         /*MinecraftServer server = player.level().getServer();
@@ -140,12 +177,12 @@ public final class PortalOpenCoordinator {
 //?}
         ServerLevel targetLevel = server == null ? null : server.getLevel(destination.dimension());
         if (targetLevel == null) {
-            failMessage(player, "message.riftgun.dimension_unavailable");
-            return false;
+            return reject(PortalOpenStatus.TARGET_DIMENSION_UNAVAILABLE,
+                "message.riftgun.dimension_unavailable");
         }
         if (!PortalChunkGuard.inWorldBounds(targetLevel, BlockPos.containing(destination.position()))) {
-            failMessage(player, "message.riftgun.coordinate_out_of_bounds");
-            return false;
+            return reject(PortalOpenStatus.TARGET_OUT_OF_BOUNDS,
+                "message.riftgun.coordinate_out_of_bounds");
         }
 
         PortalGunModuleSettings.ensure(locatedGun.stack(), data.settings().smartDistance());
@@ -158,29 +195,26 @@ public final class PortalOpenCoordinator {
             RiftConfigs.server().prediction().downshotProjectionFactor());
         PortalPlacementCapture capture = RiftRuntime.current().placementResolver().capture(player, mode, constraints);
         if (!capture.successful()) {
-            failMessage(player, capture.errorKey());
-            return false;
+            return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED, capture.errorKey());
         }
         PortalEntryPlacementResult entry = RiftRuntime.current().placementResolver().resolveEntry(
             player, capture.intent(), constraints);
         if (!entry.successful()) {
-            failMessage(player, entry.errorKey());
-            return false;
+            return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED, entry.errorKey());
         }
         if (!PortalChunkGuard.inWorldBounds((ServerLevel) player.level(),
             BlockPos.containing(entry.placement().center()))) {
             com.mojang.logging.LogUtils.getLogger().warn(
                 "Portal open rejected: entry placement out of bounds center={}",
                 entry.placement().center());
-            failMessage(player, "message.riftgun.coordinate_out_of_bounds");
-            return false;
+            return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED,
+                "message.riftgun.coordinate_out_of_bounds");
         }
 
         PortalFuelManager.Plan fuelPlan = PortalFuelManager.plan(
             player, locatedGun.stack(), destination.dimension());
         if (!fuelPlan.successful()) {
-            failMessage(player, fuelPlan.errorKey());
-            return false;
+            return reject(PortalOpenStatus.INSUFFICIENT_FUEL, fuelPlan.errorKey());
         }
 
         boolean crossDimension = !player.level().dimension().equals(destination.dimension());
@@ -193,7 +227,8 @@ public final class PortalOpenCoordinator {
             RiftConfigs.server().portal().horizontalTriggerExtend(),
             PortalSoundSnapshot.from(data.settings().portalSounds()),
             PortalCrisisConfigurationSnapshot.capture(
-                RiftFuelStores.open(locatedGun.stack()).content().fluid()));
+                RiftFuelStores.open(locatedGun.stack()).content().fluid()),
+            transitAuthorization);
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;
@@ -218,16 +253,15 @@ public final class PortalOpenCoordinator {
             PortalPlacementResult placement = RiftRuntime.current().placementResolver().resolveExitPrepared(
                 targetLevel, PortalExitTarget.from(resolved), entry.placement(), gunCapabilities.aperture());
             if (!placement.successful()) {
-                failMessage(player, placement.errorKey());
-                return false;
+                return reject(PortalOpenStatus.EXIT_PLACEMENT_REJECTED, placement.errorKey());
             }
             if (!PortalChunkGuard.inWorldBounds(targetLevel,
                 BlockPos.containing(placement.pair().exit().center()))) {
                 com.mojang.logging.LogUtils.getLogger().warn(
                     "Portal open rejected: exit placement out of bounds center={}",
                     placement.pair().exit().center());
-                failMessage(player, "message.riftgun.coordinate_out_of_bounds");
-                return false;
+                return reject(PortalOpenStatus.EXIT_PLACEMENT_REJECTED,
+                    "message.riftgun.coordinate_out_of_bounds");
             }
             opened = PortalEntity.openPair(player, placement.pair(), fuelPlan.use().profile(),
                 runtimeOptions, exclusions,
@@ -235,8 +269,7 @@ public final class PortalOpenCoordinator {
         }
 
         if (!opened) {
-            failMessage(player, "message.riftgun.portal_open_failed");
-            return false;
+            return reject(PortalOpenStatus.PORTAL_OPEN_FAILED, "message.riftgun.portal_open_failed");
         }
 
         if (recordAsDestination) {
@@ -245,7 +278,19 @@ public final class PortalOpenCoordinator {
             data.selectedDestinationId(destination.id());
             data.replaceDestination(destination.usedAt(player.level().getGameTime()));
         }
-        return true;
+        return PortalOpenResult.success();
+    }
+
+    private static PortalOpenResult reject(PortalOpenStatus status, String translationKey) {
+        return reject(status, Component.translatable(translationKey));
+    }
+
+    private static PortalOpenResult reject(PortalOpenStatus status, Component message) {
+        return PortalOpenResult.rejected(status, message);
+    }
+
+    private static void displayFailure(ServerPlayer player, PortalOpenResult result) {
+        Msg.displayClientMessage(player, result.message(), true);
     }
 
     private static void failMessage(ServerPlayer player, String translationKey) {

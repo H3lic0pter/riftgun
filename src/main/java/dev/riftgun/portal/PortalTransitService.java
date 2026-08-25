@@ -1,8 +1,11 @@
 package dev.riftgun.portal;
 
+import dev.riftgun.api.PortalTransitAuthorization;
+import dev.riftgun.api.RiftGunApiBootstrap;
 import dev.riftgun.core.transit.tree.PassengerTreeTransfer;
 import dev.riftgun.core.transit.tree.MinecraftEntityTreeAccess;
 import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -49,7 +52,8 @@ final class PortalTransitService {
 
     static @Nullable Entity complete(Entity entity, ServerLevel targetLevel,
                                      TransitPlan plan, boolean playerFallGuard,
-                                     boolean entityFallGuard) {
+                                     boolean entityFallGuard,
+                                     Optional<PortalTransitAuthorization> transitAuthorization) {
         Entity moved;
         if (entity.level() == targetLevel) {
             boolean successful = entity.teleportTo(targetLevel,
@@ -61,16 +65,18 @@ final class PortalTransitService {
 //?}
             moved = successful ? entity : null;
         } else {
+            moved = RiftGunApiBootstrap.withTransitAuthorization(transitAuthorization, () -> {
 //? if >=1.21.11 {
-            /*moved = entity.teleport(new TeleportTransition(targetLevel, plan.destination(),
+            /*return entity.teleport(new TeleportTransition(targetLevel, plan.destination(),
 *///?} else {
-            moved = entity.changeDimension(new DimensionTransition(targetLevel, plan.destination(),
+            return entity.changeDimension(new DimensionTransition(targetLevel, plan.destination(),
 //?}
 //? if >=1.21.11 {
                 /*plan.momentum(), plan.yaw(), plan.pitch(), TeleportTransition.DO_NOTHING));
 *///?} else {
                 plan.momentum(), plan.yaw(), plan.pitch(), DimensionTransition.DO_NOTHING));
 //?}
+            });
         }
         if (moved == null) return null;
 

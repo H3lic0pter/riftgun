@@ -122,6 +122,30 @@ tasks.jar {
     from(rootProject.layout.projectDirectory.file("LICENSE")) { into("META-INF") }
 }
 
+val apiJar = tasks.register<Jar>("apiJar") {
+    group = "build"
+    description = "Builds the standalone Rift Gun integration API artifact."
+    archiveClassifier.set("api")
+    from(sourceSets.main.get().output)
+    include("dev/riftgun/api/**")
+    exclude("dev/riftgun/api/RiftGunApiBootstrap.class")
+    dependsOn(tasks.classes)
+}
+
+val apiSourcesJar = tasks.register<Jar>("apiSourcesJar") {
+    group = "build"
+    description = "Builds sources for the standalone Rift Gun integration API."
+    archiveClassifier.set("api-sources")
+    from(sourceSets.main.get().allSource)
+    include("dev/riftgun/api/**")
+    exclude("dev/riftgun/api/RiftGunApiBootstrap.java")
+}
+
+artifacts {
+    add("archives", apiJar)
+    add("archives", apiSourcesJar)
+}
+
 // NeoGradle expanded these placeholders in mods.toml; ModDevGradle does not.
 tasks.processResources {
     // Node resource dirs shadow shared ones per version (see sourceSets above).

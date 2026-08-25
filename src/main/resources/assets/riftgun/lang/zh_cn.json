@@ -429,5 +429,7 @@
   "screen.riftgun.random_rift": "开启随机裂隙",
   "screen.riftgun.random_rift.description": "在当前维度寻找安全的未知目的地",
   "screen.riftgun.random_rift.searching": "正在寻找安全目的地……",
-  "screen.riftgun.random_rift.cooldown": "冷却中：剩余 %s 秒"
+  "screen.riftgun.random_rift.cooldown": "冷却中：剩余 %s 秒",
+  "message.riftgun.api_not_ready": "Rift Gun 集成 API 尚未就绪",
+  "message.riftgun.api_wrong_thread": "Portal 请求必须在服务器线程执行"
 }

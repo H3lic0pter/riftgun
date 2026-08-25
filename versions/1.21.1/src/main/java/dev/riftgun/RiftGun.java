@@ -1,5 +1,6 @@
 package dev.riftgun;
 
+import dev.riftgun.api.RiftGunApiBootstrap;
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.ServerConfig;
@@ -21,6 +22,7 @@ import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.relocation.EntityRelocationPortalEntity;
 import dev.riftgun.recipe.RiftGunRecipes;
 import dev.riftgun.sound.PortalSounds;
+import dev.riftgun.service.DefaultRiftGunPortalApi;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -111,6 +113,7 @@ public final class RiftGun {
 
     public RiftGun(IEventBus modBus, ModContainer container) {
         RiftRuntime.bootstrapDefaults();
+        RiftGunApiBootstrap.installPortalApi(DefaultRiftGunPortalApi.INSTANCE);
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         CREATIVE_TABS.register(modBus);

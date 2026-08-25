@@ -429,5 +429,7 @@
   "screen.riftgun.random_rift": "Open a random rift",
   "screen.riftgun.random_rift.description": "Search for a safe unknown destination in this dimension",
   "screen.riftgun.random_rift.searching": "Searching for a safe destination...",
-  "screen.riftgun.random_rift.cooldown": "Cooling down: %s seconds remaining"
+  "screen.riftgun.random_rift.cooldown": "Cooling down: %s seconds remaining",
+  "message.riftgun.api_not_ready": "The Rift Gun integration API is not ready",
+  "message.riftgun.api_wrong_thread": "Portal requests must run on the server thread"
 }

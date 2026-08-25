@@ -90,7 +90,8 @@ final class PortalCrisisController {
         Vec3 sourcePosition = player.position();
         Entity moved = PortalTransitService.complete(player, targetLevel,
             new PortalTransitService.TransitPlan(
-                target.position(), Vec3.ZERO, target.yaw(), player.getXRot()), false, false);
+                target.position(), Vec3.ZERO, target.yaw(), player.getXRot()), false, false,
+            portal.transitAuthorization());
         if (!(moved instanceof ServerPlayer movedPlayer)) {
             portal.transit().leave(player.getUUID());
             return;

@@ -1,8 +1,10 @@
 package dev.riftgun.portal;
 
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
+import dev.riftgun.api.PortalTransitAuthorization;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import dev.riftgun.sound.PortalSoundSnapshot;
+import java.util.Optional;
 
 /** Immutable behavior snapshot shared by both ends of one portal pair. */
 public record PortalRuntimeOptions(
@@ -14,7 +16,8 @@ public record PortalRuntimeOptions(
     boolean entityFallGuard,
     double horizontalTriggerExtend,
     PortalSoundSnapshot sounds,
-    PortalCrisisConfigurationSnapshot crises
+    PortalCrisisConfigurationSnapshot crises,
+    Optional<PortalTransitAuthorization> transitAuthorization
 ) {
     public PortalRuntimeOptions {
         if (entityAccess == null) entityAccess = PortalEntityAccessSnapshot.NONE;
@@ -24,5 +27,6 @@ public record PortalRuntimeOptions(
         horizontalTriggerExtend = Math.max(0.0, horizontalTriggerExtend);
         if (sounds == null) sounds = PortalSoundSnapshot.defaults();
         if (crises == null) crises = PortalCrisisConfigurationSnapshot.stable();
+        if (transitAuthorization == null) transitAuthorization = Optional.empty();
     }
 }
