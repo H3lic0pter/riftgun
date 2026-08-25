@@ -2,6 +2,7 @@ package dev.riftgun.client.screen;
 
 import static dev.riftgun.client.screen.PortalGuiIcons.*;
 
+import dev.riftgun.client.DimensionLabelState;
 import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.PortalGuiScrollMemory;
@@ -869,8 +870,7 @@ public final class PortalConfigScreen extends Screen {
             String localDimension = minecraft != null && minecraft.player != null
                 ? minecraft.player.level().dimension().identifier().toString() : "";
             if (!entry.dimension().equals(localDimension)) {
-                String dim = entry.dimension().contains(":")
-                    ? entry.dimension().substring(entry.dimension().lastIndexOf(':') + 1) : entry.dimension();
+                String dim = displayDimension(entry.dimension());
                 name = name + " (" + dim + ")";
             }
         }
@@ -938,13 +938,12 @@ public final class PortalConfigScreen extends Screen {
                 y = detailField(graphics, "screen.riftgun.name", entry.name(), x, y, textWidth);
                 y = detailField(graphics, "screen.riftgun.group", Component.translatable("screen.riftgun.player_group"),
                     x, y, textWidth);
-                String dimension = friendlyDimension(entry.dimension().substring(
-                    entry.dimension().lastIndexOf(':') + 1));
+                String dimension = displayDimension(entry.dimension());
                 int dimensionY = y;
                 y = detailField(graphics, "screen.riftgun.dimension", dimension, x, y, textWidth);
                 if (mouseX >= x && mouseX < right - 6
                     && mouseY >= dimensionY + 9 && mouseY < dimensionY + 23) {
-                    graphics.setComponentTooltipForNextFrame(font, List.of(Component.literal(entry.dimension())), mouseX, mouseY);
+                    graphics.setComponentTooltipForNextFrame(font, List.of(Component.literal(dimension)), mouseX, mouseY);
                 }
                 if (minecraft != null && minecraft.player != null
                     && !entry.dimension().equals(minecraft.player.level().dimension().identifier().toString())) {
@@ -968,12 +967,12 @@ public final class PortalConfigScreen extends Screen {
             int textWidth = panelWidth - listWidth - 20;
             y = detailField(graphics, "screen.riftgun.name", destination.name(), x, y, textWidth);
             y = detailField(graphics, "screen.riftgun.group", groupName(destination.groupId()), x, y, textWidth);
-            String dimension = friendlyDimension(destination.dimension().identifier().getPath());
+            String dimension = displayDimension(destination.dimension().identifier().toString());
             int dimensionY = y;
             y = detailField(graphics, "screen.riftgun.dimension", dimension, x, y, textWidth);
             if (mouseX >= x && mouseX < right - 6
                 && mouseY >= dimensionY + 9 && mouseY < dimensionY + 23) {
-                graphics.setComponentTooltipForNextFrame(font, List.of(Component.literal(destination.dimension().identifier().toString())), mouseX, mouseY);
+                graphics.setComponentTooltipForNextFrame(font, List.of(Component.literal(dimension)), mouseX, mouseY);
             }
             if (minecraft != null && minecraft.player != null
                 && !minecraft.player.level().dimension().equals(destination.dimension())
@@ -3007,6 +3006,11 @@ public final class PortalConfigScreen extends Screen {
             result.append(word.isEmpty() ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1));
         }
         return result.toString();
+    }
+
+    private static String displayDimension(String dimensionId) {
+        return DimensionLabelState.label(dimensionId).orElseGet(() -> friendlyDimension(
+            dimensionId.substring(dimensionId.lastIndexOf(':') + 1)));
     }
 
     private static Component toggleLabel(String key, boolean value) {

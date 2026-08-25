@@ -14,11 +14,13 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.ShareProvenance;
 import dev.riftgun.fuel.PortalGunComponents;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
@@ -82,7 +84,7 @@ public final class CoordinateSharingService {
 
         Component message = Component.translatable("chat.riftgun.coordinate_share",
             player.getDisplayName(), dimensionName(player, destination), destination.name())
-            .append("  ").append(clickAction(snapshot));
+            .append("  ").append(clickAction(player, snapshot));
         for (ServerPlayer target : server.getPlayerList().getPlayers()) {
             Msg.displayClientMessage(target, message, false);
         }
@@ -248,23 +250,31 @@ public final class CoordinateSharingService {
         stack.set(PortalGunComponents.COORDINATE_SNAPSHOT, snapshot.save());
         stack.set(DataComponents.CUSTOM_NAME, Component.translatable("item.riftgun.coordinate_note.named", snapshot.name())
             .withStyle(style -> style.withItalic(false)));
-        stack.set(DataComponents.LORE, new ItemLore(java.util.List.of(
-            Component.translatable("tooltip.riftgun.coordinate_note.shared_by", snapshot.sharedByName()).withStyle(ChatFormatting.GRAY),
-            Component.translatable("tooltip.riftgun.coordinate_note.original_author", snapshot.originalAuthorName()).withStyle(ChatFormatting.DARK_GRAY),
-            Component.translatable("tooltip.riftgun.coordinate_note.dimension", dimensionName(player, snapshot)).withStyle(ChatFormatting.GRAY),
-            Component.translatable("tooltip.riftgun.coordinate_note.dimension_id", dimensionId(snapshot)).withStyle(ChatFormatting.DARK_GRAY),
-            Component.translatable("tooltip.riftgun.coordinate_note.position", format(snapshot.x()), format(snapshot.y()), format(snapshot.z())).withStyle(ChatFormatting.GRAY),
-            Component.translatable("tooltip.riftgun.coordinate_note.yaw", format(snapshot.yaw())).withStyle(ChatFormatting.GRAY),
-            Component.translatable("tooltip.riftgun.coordinate_note.use").withStyle(ChatFormatting.AQUA)
-        )));
+        ArrayList<Component> lore = new ArrayList<>();
+        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.shared_by", snapshot.sharedByName())
+            .withStyle(ChatFormatting.GRAY));
+        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.original_author", snapshot.originalAuthorName())
+            .withStyle(ChatFormatting.DARK_GRAY));
+        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.dimension", dimensionName(player, snapshot))
+            .withStyle(ChatFormatting.GRAY));
+        if (dynamicDimensionName(player, dimensionId(snapshot)).isEmpty()) {
+            lore.add(Component.translatable("tooltip.riftgun.coordinate_note.dimension_id", dimensionId(snapshot))
+                .withStyle(ChatFormatting.DARK_GRAY));
+        }
+        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.position",
+            format(snapshot.x()), format(snapshot.y()), format(snapshot.z())).withStyle(ChatFormatting.GRAY));
+        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.yaw", format(snapshot.yaw()))
+            .withStyle(ChatFormatting.GRAY));
+        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.use").withStyle(ChatFormatting.AQUA));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
-    private static Component clickAction(CoordinateSnapshot snapshot) {
+    private static Component clickAction(ServerPlayer player, CoordinateSnapshot snapshot) {
         String command = "/riftgun share import " + snapshot.snapshotId();
         Component hover = Component.translatable("chat.riftgun.coordinate_hover",
             format(snapshot.x()), format(snapshot.y()), format(snapshot.z()),
-            dimensionId(snapshot), format(snapshot.yaw()),
+            dimensionName(player, snapshot), format(snapshot.yaw()),
             RiftConfigs.server().coordinateSharing().chatExpirySeconds());
         return Component.translatable("chat.riftgun.coordinate_add").withStyle(style -> style
             .withColor(ChatFormatting.AQUA).withUnderlined(true)
@@ -299,13 +309,19 @@ public final class CoordinateSharingService {
     }
 
     private static Component friendlyDimension(ServerPlayer player, String id) {
-        try {
-            var dynamic = RiftGunDimensionLabels.label(player, RiftResourceId.parse(id));
-            if (dynamic.isPresent()) return dynamic.orElseThrow();
-        } catch (IllegalArgumentException ignored) { }
+        Optional<Component> dynamic = dynamicDimensionName(player, id);
+        if (dynamic.isPresent()) return dynamic.orElseThrow();
         String[] parts = id.split(":", 2);
         return parts.length == 2 ? Component.translatable("dimension." + parts[0] + "." + parts[1])
             : Component.literal(id);
+    }
+
+    private static Optional<Component> dynamicDimensionName(ServerPlayer player, String id) {
+        try {
+            return RiftGunDimensionLabels.label(player, RiftResourceId.parse(id));
+        } catch (IllegalArgumentException ignored) {
+            return Optional.empty();
+        }
     }
 
     private static String uniqueName(PortalPlayerData data, String base, String sharer) {

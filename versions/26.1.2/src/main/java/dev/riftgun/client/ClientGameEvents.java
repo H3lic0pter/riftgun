@@ -170,7 +170,9 @@ public final class ClientGameEvents {
             : data.group(destination.groupId()).map(value -> value.name()).orElse("Default");
         event.getToolTip().add(Component.translatable("tooltip.riftgun.target", destination.name()).withStyle(ChatFormatting.AQUA));
         event.getToolTip().add(Component.translatable("tooltip.riftgun.group", group).withStyle(ChatFormatting.GRAY));
-        event.getToolTip().add(Component.translatable("tooltip.riftgun.dimension", destination.dimension().identifier()).withStyle(ChatFormatting.GRAY));
+        String dimensionId = destination.dimension().identifier().toString();
+        String dimension = DimensionLabelState.label(dimensionId).orElse(dimensionId);
+        event.getToolTip().add(Component.translatable("tooltip.riftgun.dimension", dimension).withStyle(ChatFormatting.GRAY));
     }
 
     private ClientGameEvents() {}

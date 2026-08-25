@@ -22,6 +22,7 @@ public final class PortalClientState {
     public static void handle(CompoundTag envelope) {
         String kind = Nbt.getString(envelope, "Kind");
         if (kind.equals("Snapshot")) {
+            DimensionLabelState.replace(envelope);
             data = PortalPlayerData.load(Nbt.getCompound(envelope, "Data"));
             gunReference = envelope.contains("GunReference")
                 ? Nbt.getCompound(envelope, "GunReference").copy() : new CompoundTag();
@@ -47,6 +48,7 @@ public final class PortalClientState {
                 Minecraft.getInstance().setScreen(null);
             }
         } else if (kind.equals("PlayerList")) {
+            DimensionLabelState.merge(envelope);
             PlayerListState.handle(envelope);
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.onPlayerListRefresh();

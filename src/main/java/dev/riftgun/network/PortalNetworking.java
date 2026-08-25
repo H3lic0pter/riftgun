@@ -1,6 +1,8 @@
 package dev.riftgun.network;
 import dev.riftgun.core.nbt.Nbt;
 
+import dev.riftgun.api.RiftGunDimensionLabels;
+import dev.riftgun.api.RiftResourceId;
 import dev.riftgun.core.network.RiftNetwork;
 import java.util.function.Consumer;
 import dev.riftgun.service.PortalGunLocator;
@@ -13,6 +15,7 @@ import dev.riftgun.module.PortalModuleRules;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.LinkedHashSet;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -62,6 +65,13 @@ public final class PortalNetworking {
         envelope.putBoolean("OpenScreen", openScreen);
         PortalPlayerData data = PortalDataStore.load(player);
         envelope.put("Data", data.save());
+        putDimensionLabels(envelope, player, data.destinations().stream().map(destination -> {
+//? if >=1.21.11 {
+            /*return destination.dimension().identifier().toString();
+*///?} else {
+            return destination.dimension().location().toString();
+//?}
+        }).toList());
         envelope.put("ModuleRules", PortalModuleRules.current().save());
         RandomRiftManager.Snapshot randomRift = RandomRiftManager.snapshot(player);
         CompoundTag randomRiftTag = new CompoundTag();
@@ -109,6 +119,7 @@ public final class PortalNetworking {
         online.sort(Comparator.comparing((ServerPlayer candidate) -> data.isPlayerPinned(candidate.getUUID()))
             .reversed().thenComparing(playerComparator(player, data)));
         int order = 0;
+        LinkedHashSet<String> dimensions = new LinkedHashSet<>();
         for (ServerPlayer candidate : online) {
             CompoundTag entry = new CompoundTag();
             Nbt.putUUID(entry, "Id", candidate.getUUID());
@@ -122,6 +133,7 @@ public final class PortalNetworking {
 *///?} else {
             entry.putString("Dimension", candidate.level().dimension().location().toString());
 //?}
+            dimensions.add(Nbt.getString(entry, "Dimension"));
             entry.putBoolean("Pinned", data.isPlayerPinned(candidate.getUUID()));
             entry.putLong("LastUse", data.playerLastUseAt(candidate.getUUID()));
             entry.putBoolean("Self", candidate.getUUID().equals(player.getUUID()));
@@ -131,7 +143,25 @@ public final class PortalNetworking {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "PlayerList");
         envelope.put("Players", entries);
+        putDimensionLabels(envelope, player, dimensions);
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    private static void putDimensionLabels(
+        CompoundTag envelope, ServerPlayer viewer, Iterable<String> dimensionIds
+    ) {
+        ListTag labels = new ListTag();
+        for (String dimensionId : dimensionIds) {
+            try {
+                RiftGunDimensionLabels.label(viewer, RiftResourceId.parse(dimensionId)).ifPresent(label -> {
+                    CompoundTag entry = new CompoundTag();
+                    entry.putString("Id", dimensionId);
+                    entry.putString("Label", label.getString());
+                    labels.add(entry);
+                });
+            } catch (IllegalArgumentException ignored) { }
+        }
+        envelope.put("DimensionLabels", labels);
     }
 
     private static Comparator<ServerPlayer> playerComparator(ServerPlayer viewer, PortalPlayerData data) {
