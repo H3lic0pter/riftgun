@@ -1047,7 +1047,8 @@ public final class PortalConfigScreen extends Screen {
                     graphics.renderTooltip(font, Component.literal(dimension), mouseX, mouseY);
                 }
                 if (minecraft != null && minecraft.player != null
-                    && !entry.dimension().equals(minecraft.player.level().dimension().location().toString())) {
+                    && !entry.dimension().equals(minecraft.player.level().dimension().location().toString())
+                    && !hasCrossDimensionFuel()) {
                     drawDetailText(graphics,
                         Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
                         x, right - 8, y, PortalTheme.WARNING, false);
@@ -1065,7 +1066,7 @@ public final class PortalConfigScreen extends Screen {
             int textWidth = panelWidth - listWidth - 20;
             y = detailField(graphics, "screen.riftgun.name", external.name(), x, y, textWidth);
             String sourceGroup = external.sourceGroup().isBlank() ? external.source().displayName()
-                : external.source().displayName() + " · " + external.sourceGroup();
+                : external.source().displayName() + " - " + external.sourceGroup();
             y = detailField(graphics, "screen.riftgun.group", sourceGroup, x, y, textWidth);
             String dimension = displayDimension(external.dimensionId());
             y = detailField(graphics, "screen.riftgun.dimension", dimension, x, y, textWidth);
@@ -1098,7 +1099,7 @@ public final class PortalConfigScreen extends Screen {
             }
             if (minecraft != null && minecraft.player != null
                 && !minecraft.player.level().dimension().equals(destination.dimension())
-                && !PortalClientState.gun().getBoolean("CrossDimension")) {
+                && !hasCrossDimensionFuel()) {
                 drawDetailText(graphics,
                     Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
                     x, right - 8, y, PortalTheme.WARNING, false);
@@ -2581,6 +2582,11 @@ public final class PortalConfigScreen extends Screen {
 
     private boolean coordinateOverrideUnlocked() {
         return PortalClientState.gun().getBoolean("CoordinateOverride");
+    }
+
+    private boolean hasCrossDimensionFuel() {
+        return PortalClientState.gun().getBoolean("InfiniteFuel")
+            || PortalClientState.gun().getBoolean("CrossDimension");
     }
 
     private int moduleCount(String kind) {
