@@ -108,6 +108,7 @@ public final class PortalRequestHandler {
             && EntityRelocationManager.tryStart(player, data, gun, false)) return;
         if (PortalPlayerTargetActions.openSelected(
             player, data, mode, gun, false)) return;
+        if (ExternalDestinationActions.openSelected(player, data, mode, gun, false)) return;
         UUID selected = data.selectedDestinationId();
         if (selected == null) {
             Msg.displayClientMessage(player, Component.translatable("message.riftgun.no_destination_selected"), true);
@@ -136,12 +137,23 @@ public final class PortalRequestHandler {
             case DELETE_DESTINATION -> PortalDestinationActions.delete(data, request);
             case TOGGLE_PIN -> PortalDestinationActions.togglePin(data, request);
             case VIEW_DESTINATION -> PortalDestinationActions.view(data, request);
-            case SELECT_DESTINATION -> PortalDestinationActions.select(data, request);
-            case SELECT_PLAYER -> PortalPlayerTargetActions.select(player, data, request);
+            case SELECT_DESTINATION -> {
+                ExternalDestinationActions.clearSelection(player.getUUID());
+                yield PortalDestinationActions.select(data, request);
+            }
+            case SELECT_EXTERNAL_DESTINATION -> ExternalDestinationActions.select(player, data, request);
+            case SELECT_PLAYER -> {
+                ExternalDestinationActions.clearSelection(player.getUUID());
+                yield PortalPlayerTargetActions.select(player, data, request);
+            }
             case OPEN_PORTAL -> {
                 PortalOpenCoordinator.request(player, data,
                     PortalRequestFields.id(request, "Destination"), true,
                     PortalOpenOrigin.GUI.resolvePlacement(data.settings().placementMode()), gun);
+                yield false;
+            }
+            case OPEN_EXTERNAL_DESTINATION -> {
+                ExternalDestinationActions.openSelected(player, data, requestedPlacement(request), gun, true);
                 yield false;
             }
             case OPEN_RANDOM_RIFT -> {
@@ -150,6 +162,10 @@ public final class PortalRequestHandler {
             }
             case OPEN_SELECTED -> {
                 openSelected(player, data, requestedPlacement(request), gun);
+                yield false;
+            }
+            case CLEAR_EXTERNAL_DESTINATION -> {
+                ExternalDestinationActions.clearSelection(player.getUUID());
                 yield false;
             }
             case RELOCATE_ENTITY -> {
@@ -189,6 +205,7 @@ public final class PortalRequestHandler {
     private static void openSelected(ServerPlayer player, PortalPlayerData data,
                                      PortalPlacementMode mode, PortalGunLocator.LocatedGun gun) {
         if (PortalPlayerTargetActions.openSelected(player, data, mode, gun, false)) return;
+        if (ExternalDestinationActions.openSelected(player, data, mode, gun, false)) return;
         UUID selected = data.selectedDestinationId();
         if (selected == null) {
             throw PortalRequestFields.error("message.riftgun.no_destination_selected");

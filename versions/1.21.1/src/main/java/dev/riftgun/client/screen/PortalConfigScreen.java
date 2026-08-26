@@ -6,6 +6,8 @@ import dev.riftgun.client.DimensionLabelState;
 import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.PortalGuiScrollMemory;
+import dev.riftgun.client.external.ClientMapWaypointIntegration;
+import dev.riftgun.external.client.ExternalDestination;
 import dev.riftgun.client.render.PortalVisualPreferences;
 import dev.riftgun.client.render.PortalVisualOption;
 import dev.riftgun.client.render.PortalVisualOptions;
@@ -21,6 +23,9 @@ import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.network.ExternalDestinationRequest;
+import dev.riftgun.external.ExternalDestinationSelection;
+import dev.riftgun.external.ExternalDestinationSource;
 import dev.riftgun.sound.PortalSoundChannel;
 import dev.riftgun.sound.PortalSoundChoice;
 import dev.riftgun.sound.PortalSoundRegistry;
@@ -28,6 +33,7 @@ import dev.riftgun.sound.PortalSoundSettings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.nio.charset.StandardCharsets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -82,6 +89,12 @@ public final class PortalConfigScreen extends Screen {
     private double dragStartX;
     private double dragStartY;
     private @Nullable UUID ensureVisibleId;
+    private @Nullable UUID viewedExternalRow;
+    private @Nullable UUID selectedExternalRow;
+    private final Map<UUID, ExternalDestination> externalRows = new HashMap<>();
+    private final Set<ExternalDestinationSource> expandedExternalGroups =
+        EnumSet.allOf(ExternalDestinationSource.class);
+    private boolean externalDestinationsInitialized;
     private final List<Row> hitRows = new ArrayList<>();
     private final Map<UUID, Float> animatedRowY = new HashMap<>();
 
@@ -160,6 +173,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton randomRiftButton;
     private @Nullable ThemedButton bucketModeButton;
     private @Nullable ThemedButton clearFluidButton;
+    private @Nullable ThemedButton mapRefreshButton;
     private int groupSelectorX;
     private int groupSelectorY;
     private int groupSelectorWidth;
@@ -180,6 +194,12 @@ public final class PortalConfigScreen extends Screen {
         detailScroll = scroll.detailScroll();
         PortalPlayerData data = PortalClientState.data();
         playerTargets = new PlayerTargetController(data);
+        expandedExternalGroups.removeIf(source -> !ClientMapWaypointIntegration.expanded(source));
+        ExternalDestinationSelection externalSelection = ClientMapWaypointIntegration.selected();
+        if (externalSelection != null) {
+            selectedExternalRow = externalRowId(externalSelection.source(), externalSelection.stableId());
+            viewedExternalRow = selectedExternalRow;
+        }
         if (playerTargets.selectedId() != null) {
             viewedDestination = null;
             focusedRowId = playerTargets.selectedId();
@@ -189,6 +209,12 @@ public final class PortalConfigScreen extends Screen {
                 ? data.selectedDestinationId() : data.lastViewedDestinationId();
             focusedRowId = viewedDestination;
             focusedRowKind = viewedDestination == null ? null : RowKind.DESTINATION;
+        }
+        if (externalSelection != null) {
+            viewedDestination = null;
+            playerTargets.clearSelection();
+            focusedRowId = selectedExternalRow;
+            focusedRowKind = RowKind.EXTERNAL_DESTINATION;
         }
     }
 
@@ -241,6 +267,7 @@ public final class PortalConfigScreen extends Screen {
         randomRiftButton = null;
         bucketModeButton = null;
         clearFluidButton = null;
+        mapRefreshButton = null;
         panelWidth = Math.min(520, width - 12);
         panelHeight = Math.min(320, height - 12);
         panelX = (width - panelWidth) / 2;
@@ -256,13 +283,19 @@ public final class PortalConfigScreen extends Screen {
             return;
         }
 
-        searchBox = new EditBox(font, panelX + 10, panelY + 25, listWidth - 20, 17,
+        refreshExternalDestinations(false);
+        int searchWidth = ClientMapWaypointIntegration.anyInstalled() ? listWidth - 42 : listWidth - 20;
+        searchBox = new EditBox(font, panelX + 10, panelY + 25, searchWidth, 17,
             Component.translatable("screen.riftgun.search"));
         searchBox.setValue(query);
         searchBox.setHint(Component.translatable("screen.riftgun.search_hint"));
         searchBox.setMaxLength(64);
         searchBox.setResponder(value -> query = value);
         addRenderableWidget(searchBox);
+        if (ClientMapWaypointIntegration.anyInstalled()) {
+            mapRefreshButton = button(panelX + listWidth - 29, panelY + 25, 19, 17,
+                Component.empty(), false, ignored -> refreshExternalDestinations(true));
+        }
 
         int rightX = panelX + listWidth + 8;
         int available = panelWidth - listWidth - 16;
@@ -328,6 +361,7 @@ public final class PortalConfigScreen extends Screen {
         updateRandomRiftButton();
         if (pendingSelection != null && clientTicks >= selectionDueTick) flushSelection();
         if (visualSettingsDirty && clientTicks >= visualSettingsSaveDueTick) flushVisualSettings();
+        if (clientTicks % 10L == 0L) refreshJourneyMapIfDirty();
     }
 
     @Override
@@ -380,27 +414,54 @@ public final class PortalConfigScreen extends Screen {
                 toggleLabel("screen.riftgun.safety", settings.safetyCheckEnabled()), false,
                 ignored -> updateSetting(0));
             button(x + 18, y + 47, fieldWidth, 18,
-                toggleLabel("screen.riftgun.confirm_deletion", settings.confirmDeletion()), false,
-                ignored -> updateSetting(1));
-            button(x + 18, y + 66, fieldWidth, 18,
-                toggleLabel("screen.riftgun.confirm_discard", settings.confirmDiscardedChanges()), false,
-                ignored -> updateSetting(2));
-            button(x + 18, y + 85, fieldWidth, 18,
-                toggleLabel("screen.riftgun.confirm_clear_fluid", settings.confirmClearFluid()), false,
-                ignored -> updateSetting(3));
-            button(x + 18, y + 104, fieldWidth, 18,
                 toggleLabel("screen.riftgun.animations", settings.animationsEnabled()), false,
                 ignored -> updateSetting(4));
-            button(x + 18, y + 123, fieldWidth, 18,
+            button(x + 18, y + 66, fieldWidth, 18,
                 toggleLabel("screen.riftgun.sounds", settings.soundsEnabled()), false,
                 ignored -> updateSetting(5));
-            button(x + 18, y + 142, fieldWidth, 18,
+            button(x + 18, y + 85, fieldWidth, 18,
                 toggleLabel("screen.riftgun.remember_scroll_position", rememberScrollPosition()), false,
                 ignored -> toggleRememberScrollPosition());
-            visualSettingsButton = button(x + box.width() - 64, y + 8, 20, 18, Component.empty(), false,
-                ignored -> openVisualSettings());
-            soundSettingsButton = button(x + box.width() - 40, y + 8, 20, 18, Component.empty(), false,
-                ignored -> openSoundSettings());
+            button(x + 18, y + 104, fieldWidth, 18,
+                "screen.riftgun.confirm_settings", false,
+                ignored -> openSettingsPage(Modal.CONFIRM_SETTINGS));
+            if (ClientMapWaypointIntegration.anyInstalled()) {
+                button(x + 18, y + 123, fieldWidth, 18,
+                    "screen.riftgun.map_integration_settings", false,
+                    ignored -> openSettingsPage(Modal.MAP_INTEGRATION_SETTINGS));
+            }
+            visualSettingsButton = button(x + box.width() - 64, y + 8, 20, 18,
+                Component.empty(), false, ignored -> openVisualSettings());
+            soundSettingsButton = button(x + box.width() - 40, y + 8, 20, 18,
+                Component.empty(), false, ignored -> openSoundSettings());
+        } else if (modal == Modal.CONFIRM_SETTINGS) {
+            PortalPlayerSettings settings = PortalClientState.data().settings();
+            button(x + 18, y + 35, fieldWidth, 18,
+                toggleLabel("screen.riftgun.confirm_deletion", settings.confirmDeletion()), false,
+                ignored -> updateSetting(1));
+            button(x + 18, y + 58, fieldWidth, 18,
+                toggleLabel("screen.riftgun.confirm_discard", settings.confirmDiscardedChanges()), false,
+                ignored -> updateSetting(2));
+            button(x + 18, y + 81, fieldWidth, 18,
+                toggleLabel("screen.riftgun.confirm_clear_fluid", settings.confirmClearFluid()), false,
+                ignored -> updateSetting(3));
+        } else if (modal == Modal.MAP_INTEGRATION_SETTINGS) {
+            int optionY = y + 34;
+            if (ClientMapWaypointIntegration.installed(ExternalDestinationSource.JOURNEYMAP)) {
+                button(x + 18, optionY, fieldWidth, 18,
+                    toggleLabel("screen.riftgun.map.journeymap",
+                        ClientConfig.VALUES.journeyMapWaypointsEnabled.get()), false,
+                    ignored -> toggleMapSource(ExternalDestinationSource.JOURNEYMAP));
+                optionY += 23;
+            }
+            if (ClientMapWaypointIntegration.installed(ExternalDestinationSource.XAERO_MINIMAP)) {
+                button(x + 18, optionY, fieldWidth, 18,
+                    toggleLabel("screen.riftgun.map.xaero",
+                        ClientConfig.VALUES.xaeroWaypointsEnabled.get()), false,
+                    ignored -> toggleMapSource(ExternalDestinationSource.XAERO_MINIMAP));
+                optionY += 23;
+            }
+            addRenderableWidget(new MapWaypointLimitSlider(x + 18, optionY, fieldWidth, 18));
         } else if (modal == Modal.GUN_SETTINGS) {
             int buttonX = x + 18;
             portalDurationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
@@ -521,6 +582,9 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal.isGunSettingPage()) {
             moduleSettingBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToGunSettings());
+        } else if (modal == Modal.CONFIRM_SETTINGS || modal == Modal.MAP_INTEGRATION_SETTINGS) {
+            button(x + 18, actionY, 24, 19, Component.literal("←"), false,
+                ignored -> backToSettings());
         } else if (modal == Modal.VISUAL_SETTINGS) {
             visualBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToSettings());
@@ -778,6 +842,7 @@ public final class PortalConfigScreen extends Screen {
             boolean focused = listFocused && row.id().equals(focusedRowId) && row.kind() == focusedRowKind;
             boolean selected = row.kind() == RowKind.DESTINATION
                 && row.id().equals(PortalClientState.data().selectedDestinationId())
+                || row.kind() == RowKind.EXTERNAL_DESTINATION && row.id().equals(selectedExternalRow)
                 || row.kind() == RowKind.PLAYER && row.id().equals(playerTargets.selectedId());
             hitRows.add(new Row(row.kind(), row.id(), y));
             if (row.kind() == RowKind.GROUP) visibleGroupRows.put(row.id(), y);
@@ -786,6 +851,11 @@ public final class PortalConfigScreen extends Screen {
                 y + ROW_HEIGHT, 0x5530333A);
             if (focused) graphics.renderOutline(panelX + 4, y, listWidth - 8, ROW_HEIGHT, PortalTheme.BORDER_FOCUS);
             if (row.kind() == RowKind.GROUP) renderGroupRow(graphics, row.id(), y, hover, focused);
+            else if (row.kind() == RowKind.EXTERNAL_GROUP) {
+                renderExternalGroupRow(graphics, row.id(), y);
+            } else if (row.kind() == RowKind.EXTERNAL_DESTINATION) {
+                renderExternalDestinationRow(graphics, row.id(), y, hover, focused, mouseX, mouseY);
+            }
             else if (row.kind() == RowKind.PLAYER_SECTION) {
                 renderPlayerSectionRow(graphics, row.id(), y, hover, focused);
             } else if (row.kind() == RowKind.PLAYER) {
@@ -856,6 +926,34 @@ public final class PortalConfigScreen extends Screen {
                 PortalTheme.ICE, false);
             graphics.drawString(font, countText, right - font.width(countText), y + 5,
                 PortalTheme.TEXT_MUTED, false);
+        }
+    }
+
+    private void renderExternalGroupRow(GuiGraphics graphics, UUID id, int y) {
+        ExternalDestinationSource source = externalSource(id);
+        if (source == null) return;
+        drawDisclosure(graphics, panelX + 17, y + 6, expandedExternalGroups.contains(source));
+        int right = panelX + listWidth - 6;
+        String count = Integer.toString(ClientMapWaypointIntegration.catalog().destinations(source).size());
+        graphics.drawString(font, trim(source.displayName(), listWidth - 54), panelX + 28, y + 5,
+            PortalTheme.ICE, false);
+        graphics.drawString(font, count, right - font.width(count), y + 5, PortalTheme.TEXT_MUTED, false);
+    }
+
+    private void renderExternalDestinationRow(GuiGraphics graphics, UUID id, int y,
+                                               boolean hover, boolean focused, int mouseX, int mouseY) {
+        ExternalDestination destination = externalRows.get(id);
+        if (destination == null) return;
+        int nameX = panelX + 23;
+        int nameWidth = listWidth - 49;
+        int color = !destination.selectable() ? PortalTheme.TEXT_MUTED
+            : id.equals(selectedExternalRow) ? PortalTheme.ICE : PortalTheme.TEXT;
+        drawDestinationDragDot(graphics, panelX + 12, y + 8,
+            destination.selectable() ? (hover || focused ? PortalTheme.TEXT_MUTED : 0xFF50535A)
+                : 0xFF3E4148);
+        graphics.drawString(font, trim(destination.name(), nameWidth), nameX, y + 5, color, false);
+        if (hover && mouseX >= nameX && font.width(destination.name()) > nameWidth) {
+            graphics.renderTooltip(font, Component.literal(destination.name()), mouseX, mouseY);
         }
     }
 
@@ -930,6 +1028,7 @@ public final class PortalConfigScreen extends Screen {
             PortalTheme.TEXT_MUTED, false);
         y += 19;
         Destination destination = viewed();
+        ExternalDestination external = viewedExternal();
         if (playerTargets.selectedId() != null) {
             PlayerListState.PlayerEntry entry = PlayerListState.player(playerTargets.selectedId());
             if (entry == null) {
@@ -959,6 +1058,26 @@ public final class PortalConfigScreen extends Screen {
                     y += 18;
                 }
                 detailEditY = -1;
+            }
+        } else if (external != null) {
+            int textWidth = panelWidth - listWidth - 20;
+            y = detailField(graphics, "screen.riftgun.name", external.name(), x, y, textWidth);
+            String sourceGroup = external.sourceGroup().isBlank() ? external.source().displayName()
+                : external.source().displayName() + " · " + external.sourceGroup();
+            y = detailField(graphics, "screen.riftgun.group", sourceGroup, x, y, textWidth);
+            String dimension = displayDimension(external.dimensionId());
+            y = detailField(graphics, "screen.riftgun.dimension", dimension, x, y, textWidth);
+            y = detailField(graphics, "screen.riftgun.coordinates",
+                String.format(Locale.ROOT, "%.1f  %.1f  %.1f", external.x(), external.y(), external.z()),
+                x, y, textWidth);
+            graphics.drawString(font, Component.translatable("screen.riftgun.external_read_only"),
+                x, y, PortalTheme.TEXT_MUTED, false);
+            y += 18;
+            if (!external.selectable()) {
+                graphics.drawString(font,
+                    Component.translatable("screen.riftgun.external_unknown_dimension"),
+                    x, y, PortalTheme.WARNING, false);
+                y += 18;
             }
         } else if (destination == null) {
             graphics.drawString(font, Component.translatable("screen.riftgun.empty_details"), x, y,
@@ -1078,6 +1197,17 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.entity_relocation_hint"),
                 x, y + 30, PortalTheme.TEXT_MUTED, false);
+        } else if (modal == Modal.MAP_INTEGRATION_SETTINGS) {
+            int statusY = y + 104;
+            for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
+                var result = ClientMapWaypointIntegration.catalog().readResult(source);
+                if (result == null || result.status()
+                    == dev.riftgun.external.client.ExternalDestinationReadResult.Status.AVAILABLE) continue;
+                graphics.drawString(font, Component.translatable("screen.riftgun.map.incompatible",
+                    source.displayName(), result.installedVersion()), x, statusY,
+                    PortalTheme.WARNING, false);
+                statusY += 12;
+            }
         } else if (modal == Modal.VISUAL_SETTINGS) {
             label(graphics, "screen.riftgun.portal_visual", x, y + 34);
         } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
@@ -1123,6 +1253,11 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void renderPlacementIcons(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (mapRefreshButton != null && mapRefreshButton.visible) {
+            // The shared helper subtracts 4; these anchors center its 16 px sprite in 19 x 17.
+            drawPlayerRefreshIcon(graphics, mapRefreshButton.getX() + 5,
+                mapRefreshButton.getY() + 4);
+        }
         if (modal.isDestinationForm() && groupDropdownButton != null) {
             drawDownIcon(graphics, groupDropdownButton.getX() + 6, groupDropdownButton.getY() + 7);
         }
@@ -1694,6 +1829,7 @@ public final class PortalConfigScreen extends Screen {
     private List<Row> buildRows() {
         PortalPlayerData data = PortalClientState.data();
         List<Row> rows = new ArrayList<>();
+        externalRows.clear();
         String normalizedQuery = query.strip().toLowerCase(Locale.ROOT);
         for (UUID groupId : orderedGroupIds()) {
             String name = groupName(groupId);
@@ -1707,14 +1843,39 @@ public final class PortalConfigScreen extends Screen {
             if (data.expandedGroups().contains(groupId) || !normalizedQuery.isEmpty()) {
                 destinations.forEach(destination -> rows.add(new Row(RowKind.DESTINATION, destination.id(), 0)));
             }
-            if (groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
-                rows.addAll(playerSectionRows(normalizedQuery));
+        }
+        addExternalRows(rows, ExternalDestinationSource.JOURNEYMAP, normalizedQuery);
+        addExternalRows(rows, ExternalDestinationSource.XAERO_MINIMAP, normalizedQuery);
+        rows.addAll(playerSectionRows(normalizedQuery));
+        return rows;
+    }
+
+    private void addExternalRows(List<Row> rows, ExternalDestinationSource source, String normalizedQuery) {
+        if (!ClientMapWaypointIntegration.installed(source)
+            || !ClientMapWaypointIntegration.enabled(source)) return;
+        List<ExternalDestination> matches = ClientMapWaypointIntegration.catalog().destinations(source)
+            .stream().filter(destination -> matchesExternal(destination, normalizedQuery)).toList();
+        boolean groupMatch = normalizedQuery.isEmpty()
+            || source.displayName().toLowerCase(Locale.ROOT).contains(normalizedQuery);
+        if (!groupMatch && matches.isEmpty()) return;
+        if (!ClientMapWaypointIntegration.catalog().isGroupVisible(source)) return;
+        rows.add(new Row(RowKind.EXTERNAL_GROUP, externalGroupId(source), 0));
+        if (expandedExternalGroups.contains(source) || !normalizedQuery.isEmpty()) {
+            for (ExternalDestination destination : matches) {
+                UUID rowId = externalRowId(source, destination.stableId());
+                externalRows.put(rowId, destination);
+                rows.add(new Row(RowKind.EXTERNAL_DESTINATION, rowId, 0));
             }
         }
-        if (rows.stream().noneMatch(row -> row.kind() == RowKind.PLAYER_SECTION)) {
-            rows.addAll(playerSectionRows(normalizedQuery));
-        }
-        return rows;
+    }
+
+    private boolean matchesExternal(ExternalDestination destination, String normalized) {
+        return normalized.isEmpty()
+            || destination.name().toLowerCase(Locale.ROOT).contains(normalized)
+            || destination.sourceGroup().toLowerCase(Locale.ROOT).contains(normalized)
+            || destination.dimensionId().toLowerCase(Locale.ROOT).contains(normalized)
+            || String.format(Locale.ROOT, "%s %s %s", destination.x(), destination.y(), destination.z())
+                .contains(normalized);
     }
 
     private List<Row> playerSectionRows(String normalizedQuery) {
@@ -1852,6 +2013,20 @@ public final class PortalConfigScreen extends Screen {
                             selectPlayer(entry.id());
                         }
                     }
+                    return true;
+                }
+                if (row.kind() == RowKind.EXTERNAL_GROUP) {
+                    ExternalDestinationSource source = externalSource(row.id());
+                    if (source != null) {
+                        if (expandedExternalGroups.contains(source)) expandedExternalGroups.remove(source);
+                        else expandedExternalGroups.add(source);
+                        ClientMapWaypointIntegration.expanded(source,
+                            expandedExternalGroups.contains(source));
+                    }
+                    return true;
+                }
+                if (row.kind() == RowKind.EXTERNAL_DESTINATION) {
+                    selectExternalDestination(row.id());
                     return true;
                 }
                 if (row.kind() == RowKind.DESTINATION) {
@@ -2035,6 +2210,11 @@ public final class PortalConfigScreen extends Screen {
             backToSettings();
             return true;
         }
+        if (keyCode == 256 && (modal == Modal.CONFIRM_SETTINGS
+            || modal == Modal.MAP_INTEGRATION_SETTINGS)) {
+            backToSettings();
+            return true;
+        }
         if (keyCode == 256 && modal != Modal.NONE) {
             requestCloseModal();
             return true;
@@ -2072,6 +2252,16 @@ public final class PortalConfigScreen extends Screen {
         }
         if ((keyCode == 257 || keyCode == 335) && focusedRowId != null) {
             if (focusedRowKind == RowKind.DESTINATION) selectDestination(focusedRowId);
+            else if (focusedRowKind == RowKind.EXTERNAL_DESTINATION) selectExternalDestination(focusedRowId);
+            else if (focusedRowKind == RowKind.EXTERNAL_GROUP) {
+                ExternalDestinationSource source = externalSource(focusedRowId);
+                if (source != null) {
+                    boolean expanded = !expandedExternalGroups.contains(source);
+                    ClientMapWaypointIntegration.expanded(source, expanded);
+                    if (expanded) expandedExternalGroups.add(source);
+                    else expandedExternalGroups.remove(source);
+                }
+            }
             else if (focusedRowKind == RowKind.PLAYER) {
                 PlayerListState.PlayerEntry entry = PlayerListState.player(focusedRowId);
                 if (entry != null && !entry.self()) selectPlayer(entry.id());
@@ -2097,7 +2287,7 @@ public final class PortalConfigScreen extends Screen {
         }
         if (keyCode == 261 && focusedRowId != null) {
             if (focusedRowKind == RowKind.DESTINATION) requestDeleteDestination(focusedRowId);
-            else requestDeleteGroup(focusedRowId);
+            else if (focusedRowKind == RowKind.GROUP) requestDeleteGroup(focusedRowId);
             return true;
         }
         return false;
@@ -2111,10 +2301,34 @@ public final class PortalConfigScreen extends Screen {
         viewedDestination = id;
         selectedGroup = null;
         playerTargets.clearSelection();
+        clearExternalSelection(false);
         if (!id.equals(previous)) detailScroll = 0;
         if (!id.equals(previous)) {
             pendingSelection = id;
             selectionDueTick = clientTicks + 6L;
+        }
+        updateOpenPortalButton();
+    }
+
+    private void selectExternalDestination(UUID rowId) {
+        ExternalDestination destination = externalRows.get(rowId);
+        if (destination == null) return;
+        viewedExternalRow = rowId;
+        viewedDestination = null;
+        selectedGroup = null;
+        detailScroll = 0;
+        focusedRowId = rowId;
+        focusedRowKind = RowKind.EXTERNAL_DESTINATION;
+        ensureVisibleId = rowId;
+        if (destination.selectable()) {
+            flushSelection();
+            playerTargets.clearSelection();
+            PortalClientState.data().selectedDestinationId(null);
+            selectedExternalRow = rowId;
+            ClientMapWaypointIntegration.select(destination);
+            ExternalDestinationSelection selection = ClientMapWaypointIntegration.selected();
+            PortalNetworking.sendRequest(PortalAction.SELECT_EXTERNAL_DESTINATION,
+                tag -> tag.merge(ExternalDestinationRequest.encode(selection)));
         }
         updateOpenPortalButton();
     }
@@ -2132,6 +2346,7 @@ public final class PortalConfigScreen extends Screen {
         selectedGroup = null;
         pendingSelection = null;
         selectionDueTick = -1L;
+        clearExternalSelection(false);
         detailScroll = 0;
         focusedRowId = id;
         focusedRowKind = RowKind.PLAYER;
@@ -2158,6 +2373,12 @@ public final class PortalConfigScreen extends Screen {
     private void generatePortal() {
         if (playerTargets.selectedId() != null) {
             playerTargets.openSelected();
+            return;
+        }
+        if (selectedExternalRow != null && selectedExternalRow.equals(viewedExternalRow)) {
+            PortalNetworking.sendRequest(PortalAction.OPEN_EXTERNAL_DESTINATION,
+                tag -> tag.putString("PlacementMode",
+                    PortalClientState.data().settings().placementMode().name()));
             return;
         }
         if (viewedDestination == null) return;
@@ -2900,7 +3121,9 @@ public final class PortalConfigScreen extends Screen {
 
     private void updateOpenPortalButton() {
         if (openPortalButton == null) return;
-        openPortalButton.active = viewed() != null || playerTargets.selectedId() != null;
+        ExternalDestination external = viewedExternal();
+        openPortalButton.active = viewed() != null || playerTargets.selectedId() != null
+            || external != null && external.selectable() && viewedExternalRow.equals(selectedExternalRow);
         openPortalButton.setMessage(Component.translatable("screen.riftgun.generate"));
     }
 
@@ -2990,6 +3213,94 @@ public final class PortalConfigScreen extends Screen {
         return viewedDestination == null ? null : PortalClientState.data().destination(viewedDestination).orElse(null);
     }
 
+    private void openSettingsPage(Modal page) {
+        modal = page;
+        rebuildWidgets();
+    }
+
+    private void toggleMapSource(ExternalDestinationSource source) {
+        boolean enabled = !ClientMapWaypointIntegration.enabled(source);
+        switch (source) {
+            case JOURNEYMAP -> ClientConfig.VALUES.journeyMapWaypointsEnabled.set(enabled);
+            case XAERO_MINIMAP -> ClientConfig.VALUES.xaeroWaypointsEnabled.set(enabled);
+        }
+        ClientConfig.SPEC.save();
+        if (!enabled && ClientMapWaypointIntegration.selected() != null
+            && ClientMapWaypointIntegration.selected().source() == source) {
+            clearExternalSelection(true);
+        }
+        refreshExternalDestinations(true);
+        rebuildWidgets();
+    }
+
+    private @Nullable ExternalDestination viewedExternal() {
+        return viewedExternalRow == null ? null : findExternal(viewedExternalRow);
+    }
+
+    private @Nullable ExternalDestination findExternal(UUID rowId) {
+        ExternalDestination cached = externalRows.get(rowId);
+        if (cached != null) return cached;
+        for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
+            for (ExternalDestination destination : ClientMapWaypointIntegration.catalog().destinations(source)) {
+                if (externalRowId(source, destination.stableId()).equals(rowId)) return destination;
+            }
+        }
+        return null;
+    }
+
+    private void refreshExternalDestinations(boolean manual) {
+        if (!manual && externalDestinationsInitialized) return;
+        if (minecraft == null || minecraft.getConnection() == null) return;
+        externalDestinationsInitialized = true;
+        Set<String> dimensions = minecraft.getConnection().levels().stream()
+            .map(key -> key.location().toString()).collect(java.util.stream.Collectors.toSet());
+        ClientMapWaypointIntegration.refresh(dimensions, ClientConfig.VALUES.maximumMapWaypoints.get());
+        reconcileExternalSelection();
+    }
+
+    private void refreshJourneyMapIfDirty() {
+        if (minecraft == null || minecraft.getConnection() == null) return;
+        Set<String> dimensions = minecraft.getConnection().levels().stream()
+            .map(key -> key.location().toString()).collect(java.util.stream.Collectors.toSet());
+        ClientMapWaypointIntegration.refreshJourneyMapIfDirty(dimensions,
+            ClientConfig.VALUES.maximumMapWaypoints.get());
+        reconcileExternalSelection();
+    }
+
+    private void reconcileExternalSelection() {
+        boolean removed = ClientMapWaypointIntegration.reconcileSelection();
+        if (!removed && !(selectedExternalRow != null
+            && ClientMapWaypointIntegration.selected() == null)) return;
+        selectedExternalRow = null;
+        viewedExternalRow = null;
+        if (removed) PortalNetworking.sendRequest(PortalAction.CLEAR_EXTERNAL_DESTINATION);
+        updateOpenPortalButton();
+    }
+
+    private void clearExternalSelection(boolean notifyServer) {
+        selectedExternalRow = null;
+        viewedExternalRow = null;
+        ClientMapWaypointIntegration.clearSelection();
+        if (notifyServer) PortalNetworking.sendRequest(PortalAction.CLEAR_EXTERNAL_DESTINATION);
+    }
+
+    private static UUID externalGroupId(ExternalDestinationSource source) {
+        return UUID.nameUUIDFromBytes(("riftgun:external-group:" + source.name())
+            .getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static UUID externalRowId(ExternalDestinationSource source, String stableId) {
+        return UUID.nameUUIDFromBytes(("riftgun:external:" + source.name() + ':' + stableId)
+            .getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static @Nullable ExternalDestinationSource externalSource(UUID groupId) {
+        for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
+            if (externalGroupId(source).equals(groupId)) return source;
+        }
+        return null;
+    }
+
     private String groupName(UUID id) {
         if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
             return Component.translatable("screen.riftgun.default_group").getString();
@@ -3056,6 +3367,8 @@ public final class PortalConfigScreen extends Screen {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
             case CREATE_CURRENT -> 164;
             case SETTINGS -> 201;
+            case CONFIRM_SETTINGS -> 140;
+            case MAP_INTEGRATION_SETTINGS -> 170;
             case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
                  SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS,
                  PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS -> 132;
@@ -3125,7 +3438,7 @@ public final class PortalConfigScreen extends Screen {
         return new DropdownBox(selector.getX(), top, width, height);
     }
 
-    private enum RowKind { GROUP, DESTINATION, PLAYER_SECTION, PLAYER }
+    private enum RowKind { GROUP, DESTINATION, EXTERNAL_GROUP, EXTERNAL_DESTINATION, PLAYER_SECTION, PLAYER }
     private record Row(RowKind kind, UUID id, int y) {}
     private record ModalBox(int x, int y, int width, int height) {}
     private record DropdownBox(int x, int y, int width, int height) {}
@@ -3141,6 +3454,8 @@ public final class PortalConfigScreen extends Screen {
         RENAME_GROUP("screen.riftgun.rename_group", "", true, false),
         SHARE_DESTINATION("screen.riftgun.share", "", false, false),
         SETTINGS("screen.riftgun.settings", "", false, false),
+        CONFIRM_SETTINGS("screen.riftgun.confirm_settings", "", false, false),
+        MAP_INTEGRATION_SETTINGS("screen.riftgun.map_integration_settings", "", false, false),
         GUN_SETTINGS("screen.riftgun.configure_gun", "", false, false),
         PORTAL_DURATION_SETTINGS("screen.riftgun.portal_duration", "", false, false),
         SMART_DISTANCE_SETTINGS("screen.riftgun.smart_distance", "", false, false),
@@ -3180,6 +3495,36 @@ public final class PortalConfigScreen extends Screen {
         boolean hasInputs() { return hasName || hasCoordinates; }
         boolean isDestinationForm() {
             return this == CREATE_CURRENT || this == CREATE_COORDINATE || this == EDIT_DESTINATION;
+        }
+    }
+
+    private final class MapWaypointLimitSlider extends AbstractSliderButton {
+        private MapWaypointLimitSlider(int x, int y, int width, int height) {
+            super(x, y, width, height, Component.empty(),
+                (ClientConfig.VALUES.maximumMapWaypoints.get() - 1) / 999.0);
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable("screen.riftgun.map.maximum_waypoints", amount()));
+        }
+
+        @Override
+        protected void applyValue() {
+            updateMessage();
+        }
+
+        @Override
+        public void onRelease(double mouseX, double mouseY) {
+            super.onRelease(mouseX, mouseY);
+            ClientConfig.VALUES.maximumMapWaypoints.set(amount());
+            ClientConfig.SPEC.save();
+            refreshExternalDestinations(true);
+        }
+
+        private int amount() {
+            return 1 + (int) Math.round(value * 999.0);
         }
     }
 

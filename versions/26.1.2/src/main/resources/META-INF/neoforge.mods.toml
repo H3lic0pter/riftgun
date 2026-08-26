@@ -35,3 +35,17 @@ type = "optional"
 versionRange = "[19.21,)"
 ordering = "NONE"
 side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "journeymap"
+type = "optional"
+versionRange = "[0,)"
+ordering = "AFTER"
+side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "xaerominimap"
+type = "optional"
+versionRange = "[26.4.2,26.5)"
+ordering = "AFTER"
+side = "CLIENT"

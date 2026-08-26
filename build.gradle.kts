@@ -26,7 +26,18 @@ repositories {
     maven {
         name = "Jared Maven"
         url = uri("https://maven.blamejared.com")
-        content { includeGroup("mezz.jei") }
+        content {
+            includeGroup("mezz.jei")
+            includeGroup("info.journeymap")
+        }
+    }
+    maven {
+        name = "Xaero Maven"
+        url = uri("https://chocolateminecraft.com/maven")
+        content {
+            includeGroup("xaero.minimap")
+            includeGroup("xaero.lib")
+        }
     }
 }
 
@@ -104,6 +115,17 @@ dependencies {
         optionalClientRuntimeOnly(jeiFull)
         // The JEI bridge and its registration tests compile against the API.
         testImplementation(jeiApi)
+    }
+    val journeyMapApiVersion = findProperty("journeymap_api_version") as String?
+    if (journeyMapApiVersion != null) {
+        optionalClientCompileOnly(
+            "info.journeymap:journeymap-api-neoforge:$journeyMapApiVersion"
+        )
+    }
+    val xaeroArtifact = findProperty("xaero_minimap_artifact") as String?
+    val xaeroVersion = findProperty("xaero_minimap_version") as String?
+    if (xaeroArtifact != null && xaeroVersion != null) {
+        optionalClientCompileOnly("xaero.minimap:$xaeroArtifact:$xaeroVersion")
     }
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")

@@ -28,6 +28,7 @@ public final class ServerConfig {
             new RiftConfig.CoordinateSharingConfig(
                 value.coordinateSharingEnabled.get(), value.chatShareExpirySeconds.get(),
                 value.chatShareCooldownSeconds.get()),
+            new RiftConfig.MapWaypointIntegrationConfig(value.mapWaypointIntegrationEnabled.get()),
             new RiftConfig.RandomRiftConfig(
                 value.randomRiftEnabled.get(), value.randomRiftCooldownTicks.get(),
                 value.randomRiftMinimumRadius.get(), value.randomRiftMaximumRadius.get(),
@@ -99,6 +100,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue maxDestinationNameLength;
         public final ModConfigSpec.IntValue maxGroupNameLength;
         public final ModConfigSpec.BooleanValue coordinateSharingEnabled;
+        public final ModConfigSpec.BooleanValue mapWaypointIntegrationEnabled;
         public final ModConfigSpec.IntValue chatShareExpirySeconds;
         public final ModConfigSpec.IntValue chatShareCooldownSeconds;
         public final ModConfigSpec.BooleanValue randomRiftEnabled;
@@ -200,6 +202,14 @@ public final class ServerConfig {
                 .defineInRange("chatShareExpirySeconds", 300, 10, 3600);
             chatShareCooldownSeconds = builder.comment("Per-player chat sharing cooldown. Zero disables it.")
                 .defineInRange("chatShareCooldownSeconds", 5, 0, 60);
+            builder.pop();
+
+            builder.push("mapWaypointIntegration");
+            mapWaypointIntegrationEnabled = builder.comment(
+                    "Allow clients to use JourneyMap/Xaero waypoints as portal targets. The server",
+                    "revalidates dimensions and coordinates but cannot verify that client-supplied",
+                    "waypoints came from an unmodified map mod; treat this as arbitrary coordinates.")
+                .define("enabled", true);
             builder.pop();
 
             builder.push("randomRift");

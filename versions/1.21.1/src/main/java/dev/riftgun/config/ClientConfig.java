@@ -37,6 +37,9 @@ public final class ClientConfig {
         public final ModConfigSpec.BooleanValue endframeRotationReverse;
         public final ModConfigSpec.IntValue portalDynamicLightLevel;
         public final ModConfigSpec.BooleanValue rememberGuiScrollPosition;
+        public final ModConfigSpec.BooleanValue journeyMapWaypointsEnabled;
+        public final ModConfigSpec.BooleanValue xaeroWaypointsEnabled;
+        public final ModConfigSpec.IntValue maximumMapWaypoints;
 
         private Values(ModConfigSpec.Builder builder) {
             portalVisualType = builder.comment("Client-local portal visual type ID")
@@ -74,6 +77,15 @@ public final class ClientConfig {
             rememberGuiScrollPosition = builder.comment(
                     "Remember the main portal GUI list and detail scroll positions for this client session")
                 .define("rememberScrollPosition", true);
+            builder.pop();
+
+            builder.push("mapIntegration");
+            journeyMapWaypointsEnabled = builder.comment("Show read-only JourneyMap waypoints")
+                .define("journeyMapEnabled", true);
+            xaeroWaypointsEnabled = builder.comment("Show experimental read-only Xaero's Minimap waypoints")
+                .define("xaeroMinimapEnabled", true);
+            maximumMapWaypoints = builder.comment("Maximum displayed waypoints per installed map mod")
+                .defineInRange("maximumWaypointsPerSource", 100, 1, 1000);
             builder.pop();
         }
     }

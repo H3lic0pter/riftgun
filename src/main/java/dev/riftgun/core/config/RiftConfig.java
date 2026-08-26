@@ -9,6 +9,7 @@ public record RiftConfig(
     ShortcutConfig shortcuts,
     DestinationConfig destinations,
     CoordinateSharingConfig coordinateSharing,
+    MapWaypointIntegrationConfig mapWaypointIntegration,
     RandomRiftConfig randomRift,
     FuelConfig fuel,
     ModuleConfig modules,
@@ -26,6 +27,7 @@ public record RiftConfig(
             new ShortcutConfig(PortalShortcutGunMode.HELD_HANDS),
             new DestinationConfig(256, 32, 48, 32),
             new CoordinateSharingConfig(true, 300, 5),
+            new MapWaypointIntegrationConfig(true),
             new RandomRiftConfig(true, 60, 256, 4096, 16, 8),
             new FuelConfig(true, 50, 100, 5, 8, 5, 8),
             new ModuleConfig(2, 8000, 3, 16, 1, 45, true, true),
@@ -63,6 +65,8 @@ public record RiftConfig(
         int chatExpirySeconds,
         int chatCooldownSeconds
     ) {}
+
+    public record MapWaypointIntegrationConfig(boolean enabled) {}
 
     public record RandomRiftConfig(
         boolean enabled,

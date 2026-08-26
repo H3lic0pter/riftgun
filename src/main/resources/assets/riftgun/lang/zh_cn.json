@@ -457,5 +457,15 @@
   "message.riftgun.coordinate_share_cooldown": "请稍后再分享坐标",
   "message.riftgun.coordinate_paper_required": "生成坐标纸条需要纸",
   "message.riftgun.inventory_full": "物品栏空间不足",
-  "message.riftgun.coordinate_note_created": "已生成坐标纸条"
+  "message.riftgun.coordinate_note_created": "已生成坐标纸条",
+  "screen.riftgun.confirm_settings": "二次确认设置",
+  "screen.riftgun.map_integration_settings": "地图联动",
+  "screen.riftgun.map.journeymap": "JourneyMap 坐标",
+  "screen.riftgun.map.xaero": "Xaero's Minimap 坐标（实验性）",
+  "screen.riftgun.map.maximum_waypoints": "每个地图最多显示：%s",
+  "screen.riftgun.map.incompatible": "%s %s 版本不兼容",
+  "screen.riftgun.external_read_only": "只读地图坐标",
+  "screen.riftgun.external_unknown_dimension": "维度不可用，无法选择",
+  "message.riftgun.map_waypoint_integration_disabled": "服务器已关闭地图坐标联动",
+  "message.riftgun.external_destination_unavailable": "所选地图坐标已不可用"
 }

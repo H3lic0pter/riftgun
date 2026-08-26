@@ -457,5 +457,15 @@
   "message.riftgun.coordinate_share_cooldown": "Wait before sharing another coordinate",
   "message.riftgun.coordinate_paper_required": "You need Paper to create a coordinate note",
   "message.riftgun.inventory_full": "Not enough inventory space",
-  "message.riftgun.coordinate_note_created": "Coordinate note created"
+  "message.riftgun.coordinate_note_created": "Coordinate note created",
+  "screen.riftgun.confirm_settings": "Confirmation Settings",
+  "screen.riftgun.map_integration_settings": "Map Integration",
+  "screen.riftgun.map.journeymap": "JourneyMap Waypoints",
+  "screen.riftgun.map.xaero": "Xaero's Minimap Waypoints (Experimental)",
+  "screen.riftgun.map.maximum_waypoints": "Maximum Waypoints per Map: %s",
+  "screen.riftgun.map.incompatible": "%s %s is incompatible",
+  "screen.riftgun.external_read_only": "Read-only map waypoint",
+  "screen.riftgun.external_unknown_dimension": "Dimension unavailable; cannot select",
+  "message.riftgun.map_waypoint_integration_disabled": "Map waypoint integration is disabled on this server",
+  "message.riftgun.external_destination_unavailable": "The selected map waypoint is no longer available"
 }

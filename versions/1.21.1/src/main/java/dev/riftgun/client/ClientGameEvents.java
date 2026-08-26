@@ -3,6 +3,9 @@ package dev.riftgun.client;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalSplashEmitter;
+import dev.riftgun.client.external.ClientMapWaypointIntegration;
+import dev.riftgun.external.ExternalDestinationSelection;
+import dev.riftgun.config.ClientConfig;
 import dev.riftgun.client.compat.immersiveportal.ImmersivePortalCompat;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalPlayerData;
@@ -29,9 +32,14 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 @EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
 public final class ClientGameEvents {
+    private static boolean connected;
     @SubscribeEvent
     public static void clientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
+        boolean nowConnected = minecraft.getConnection() != null;
+        if (connected && !nowConnected) ClientMapWaypointIntegration.clear();
+        connected = nowConnected;
+        if (nowConnected) refreshJourneyMapSelection(minecraft);
         GuiCaptureHarness.tick(minecraft);
         PortalSplashEmitter.tick(minecraft);
         ImmersivePortalCompat.tick(minecraft);
@@ -79,6 +87,17 @@ public final class ClientGameEvents {
         if (minecraft.player == null || minecraft.getConnection() == null) return;
         PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED,
             tag -> tag.putString("PlacementMode", mode.name()));
+    }
+
+    private static void refreshJourneyMapSelection(Minecraft minecraft) {
+        var dimensions = minecraft.getConnection().levels().stream()
+            .map(key -> key.location().toString())
+            .collect(java.util.stream.Collectors.toSet());
+        ClientMapWaypointIntegration.refreshJourneyMapIfDirty(dimensions,
+            ClientConfig.VALUES.maximumMapWaypoints.get());
+        if (ClientMapWaypointIntegration.reconcileSelection()) {
+            PortalNetworking.sendRequest(PortalAction.CLEAR_EXTERNAL_DESTINATION);
+        }
     }
 
     @SubscribeEvent
@@ -163,6 +182,18 @@ public final class ClientGameEvents {
         }
         PortalPlayerData data = PortalClientState.data();
         UUID selectedId = data.selectedDestinationId();
+        ExternalDestinationSelection external = ClientMapWaypointIntegration.selected();
+        if (external != null) {
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.target", external.name())
+                .withStyle(ChatFormatting.AQUA));
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.group",
+                external.source().displayName()).withStyle(ChatFormatting.GRAY));
+            String dimension = DimensionLabelState.label(external.dimensionId())
+                .orElse(external.dimensionId());
+            event.getToolTip().add(Component.translatable("tooltip.riftgun.dimension", dimension)
+                .withStyle(ChatFormatting.GRAY));
+            return;
+        }
         if (selectedId == null) {
             event.getToolTip().add(Component.translatable("tooltip.riftgun.no_target").withStyle(ChatFormatting.GRAY));
             return;
@@ -170,8 +201,9 @@ public final class ClientGameEvents {
         Destination destination = data.destination(selectedId).orElse(null);
         if (destination == null) return;
         String group = destination.groupId().equals(PortalPlayerData.DEFAULT_GROUP_ID)
-            ? "Default"
-            : data.group(destination.groupId()).map(value -> value.name()).orElse("Default");
+            ? Component.translatable("screen.riftgun.default_group").getString()
+            : data.group(destination.groupId()).map(value -> value.name())
+                .orElseGet(() -> Component.translatable("screen.riftgun.default_group").getString());
         event.getToolTip().add(Component.translatable("tooltip.riftgun.target", destination.name()).withStyle(ChatFormatting.AQUA));
         event.getToolTip().add(Component.translatable("tooltip.riftgun.group", group).withStyle(ChatFormatting.GRAY));
         String dimensionId = destination.dimension().location().toString();

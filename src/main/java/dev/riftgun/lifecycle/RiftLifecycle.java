@@ -9,6 +9,7 @@ import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.entity.SpecialEntityTransitPolicies;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.network.ExternalDestinationActions;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalOwnerIndex;
 import dev.riftgun.portal.SweptPortalIndex;
@@ -66,6 +67,7 @@ public final class RiftLifecycle {
         RiftRuntime.current().motionHistory().remove(playerId);
         PortalCrisisTestOverrides.clear(playerId);
         RandomRiftManager.playerLeft(player);
+        ExternalDestinationActions.clearSelection(playerId);
         closeOwned(player);
     }
 
@@ -113,6 +115,7 @@ public final class RiftLifecycle {
 
     public static void serverStopped(MinecraftServer server) {
         PortalPrivacyService.reset();
+        ExternalDestinationActions.reset();
         RandomRiftManager.reset();
         PortalCrisisTestOverrides.reset();
         PortalSounds.endServerShutdown();
