@@ -34,6 +34,8 @@ public final class PortalClientState {
             randomRiftSnapshotNanos = System.nanoTime();
             if (Nbt.getBoolean(envelope, "OpenScreen")) {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PortalConfigScreen());
+            } else if (Nbt.getBoolean(envelope, "OpenRadial")) {
+                ModeRadialInput.openFromServer();
             } else if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.refreshFromServer(Set.of());
             }

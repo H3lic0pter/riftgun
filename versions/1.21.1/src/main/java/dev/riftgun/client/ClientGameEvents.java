@@ -43,16 +43,10 @@ public final class ClientGameEvents {
         GuiCaptureHarness.tick(minecraft);
         PortalSplashEmitter.tick(minecraft);
         ImmersivePortalCompat.tick(minecraft);
+        ModeRadialInput.tick(minecraft);
         while (ClientModEvents.OPEN_CONFIG.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendShortcutRequest(PortalAction.OPEN_GUI);
-            }
-        }
-        while (ClientModEvents.CYCLE_PLACEMENT.consumeClick()) {
-            if (minecraft.player != null && minecraft.getConnection() != null) {
-                boolean reverse = minecraft.options.keyShift.isDown();
-                PortalNetworking.sendShortcutRequest(PortalAction.CYCLE_PLACEMENT_MODE,
-                    tag -> tag.putBoolean("Reverse", reverse));
             }
         }
         while (ClientModEvents.FORCE_FRONT.consumeClick()) {

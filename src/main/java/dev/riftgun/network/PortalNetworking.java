@@ -60,9 +60,19 @@ public final class PortalNetworking {
 
     public static void sendSnapshot(ServerPlayer player, boolean openScreen,
                                     PortalGunLocator.LocatedGun locatedGun) {
+        sendSnapshot(player, openScreen, false, locatedGun);
+    }
+
+    public static void sendRadialSnapshot(ServerPlayer player, PortalGunLocator.LocatedGun locatedGun) {
+        sendSnapshot(player, false, true, locatedGun);
+    }
+
+    private static void sendSnapshot(ServerPlayer player, boolean openScreen, boolean openRadial,
+                                     PortalGunLocator.LocatedGun locatedGun) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Snapshot");
         envelope.putBoolean("OpenScreen", openScreen);
+        envelope.putBoolean("OpenRadial", openRadial);
         PortalPlayerData data = PortalDataStore.load(player);
         envelope.put("Data", data.save());
         putDimensionLabels(envelope, player, data.destinations().stream().map(destination -> {

@@ -72,6 +72,10 @@ public final class PortalRequestHandler {
             PortalNetworking.sendSnapshot(player, true, gun);
             return;
         }
+        if (action == PortalAction.OPEN_MODE_RADIAL) {
+            PortalNetworking.sendRadialSnapshot(player, gun);
+            return;
+        }
         if (action == PortalAction.OPEN_MODULES) {
             PortalModuleMenu.open(player, gun);
             return;
@@ -174,6 +178,7 @@ public final class PortalRequestHandler {
             }
             case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(
                 player, data, gun.stack(), Nbt.getBoolean(request, "Reverse"));
+            case SET_RADIAL_MODE -> PortalGunActions.setRadialMode(player, data, gun.stack(), request);
             case CREATE_GROUP -> PortalDestinationActions.createGroup(data, request);
             case RENAME_GROUP -> PortalDestinationActions.renameGroup(data, request);
             case DELETE_GROUP -> PortalDestinationActions.deleteGroup(data, request);
@@ -197,7 +202,7 @@ public final class PortalRequestHandler {
                 closePortals(player);
                 yield false;
             }
-            case OPEN_GUI, OPEN_MODULES, SET_PRIVACY, SET_PRIVACY_OVERRIDE,
+            case OPEN_GUI, OPEN_MODE_RADIAL, OPEN_MODULES, SET_PRIVACY, SET_PRIVACY_OVERRIDE,
                  REQUEST_PRIVACY_PLAYERS -> false;
         };
     }

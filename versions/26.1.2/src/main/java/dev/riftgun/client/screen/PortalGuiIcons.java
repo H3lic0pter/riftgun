@@ -29,6 +29,7 @@ final class PortalGuiIcons {
             ? PortalGuiSprites.DRAIN_OFF : PortalGuiSprites.DRAIN_ON, x - 3, y - 3);
     }
 
+    /** x/y are the intended top-left of the visible artwork; offsets compensate PNG padding. */
     static void drawPlacementModeIcon(GuiGraphicsExtractor graphics, int x, int y, PortalPlacementMode mode) {
         Identifier sprite = switch (mode) {
             case SMART -> PortalGuiSprites.PLACEMENT_SMART;

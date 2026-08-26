@@ -21,6 +21,8 @@ public enum PortalAction {
     CLEAR_EXTERNAL_DESTINATION,
     RELOCATE_ENTITY,
     CYCLE_PLACEMENT_MODE,
+    OPEN_MODE_RADIAL,
+    SET_RADIAL_MODE,
     CREATE_GROUP,
     RENAME_GROUP,
     DELETE_GROUP,
@@ -48,6 +50,7 @@ public enum PortalAction {
     }
 
     public boolean isExclusiveKeyboardShortcut() {
-        return this == OPEN_SELECTED || this == RELOCATE_ENTITY || this == CYCLE_PLACEMENT_MODE;
+        return this == OPEN_SELECTED || this == RELOCATE_ENTITY || this == CYCLE_PLACEMENT_MODE
+            || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE;
     }
 }

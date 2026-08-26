@@ -52,6 +52,43 @@ final class PortalGunActions {
         return candidate;
     }
 
+    static boolean setRadialMode(ServerPlayer player, PortalPlayerData data, ItemStack gun,
+                                 CompoundTag request) {
+        PortalPlayerSettings old = data.settings();
+        String page = Nbt.getString(request, "Page");
+        String value = Nbt.getString(request, "Mode");
+        if (page.equals("PLACEMENT")) {
+            PortalPlacementMode mode;
+            try {
+                mode = PortalPlacementMode.valueOf(value);
+            } catch (IllegalArgumentException exception) {
+                throw PortalRequestFields.error("message.riftgun.invalid_request");
+            }
+            if (mode == PortalPlacementMode.ENTITY_RELOCATION
+                && !PortalGunCapabilities.resolve(gun, old.smartDistance()).entityRelocation()) {
+                throw PortalRequestFields.error("message.riftgun.entity_relocation_module_required");
+            }
+            if (mode == old.placementMode()) return false;
+            data.settings(old.withPlacementMode(mode));
+            return true;
+        }
+        if (page.equals("PREDICTION")) {
+            PortalPredictionMode mode;
+            try {
+                mode = PortalPredictionMode.valueOf(value);
+            } catch (IllegalArgumentException exception) {
+                throw PortalRequestFields.error("message.riftgun.invalid_request");
+            }
+            if (mode == old.predictionMode()) return false;
+            PortalPlayerSettings next = old.withPredictionMode(mode);
+            data.settings(next);
+            RiftRuntime.current().motionHistory().setPredictionEnabled(player,
+                mode != PortalPredictionMode.OFF);
+            return true;
+        }
+        throw PortalRequestFields.error("message.riftgun.invalid_request");
+    }
+
     static boolean updatePlayerSettings(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
         DestinationSort sort;
         try {

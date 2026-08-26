@@ -46,6 +46,10 @@ public final class ClientModEvents {
     public static final KeyMapping CYCLE_PLACEMENT = new KeyMapping(
         "key.riftgun.cycle_placement", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.riftgun"
     );
+    public static final KeyMapping OPEN_MODE_RADIAL = new KeyMapping(
+        "key.riftgun.open_mode_radial", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        "key.categories.riftgun"
+    );
     public static final KeyMapping FORCE_FRONT = new KeyMapping(
         "key.riftgun.force_front", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
         "key.categories.riftgun"
@@ -103,6 +107,7 @@ public final class ClientModEvents {
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(OPEN_CONFIG);
         event.register(CYCLE_PLACEMENT);
+        event.register(OPEN_MODE_RADIAL);
         event.register(FORCE_FRONT);
         event.register(FORCE_SURFACE);
         event.register(CLOSE_PORTALS);

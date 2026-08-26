@@ -127,7 +127,14 @@ final class GuiCaptureHarness {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-aperture"),
                 minecraft.getMainRenderTarget(), message -> {});
         }
-        if (ticks == 250) {
+        if (ticks == 242) {
+            minecraft.setScreen(new dev.riftgun.client.screen.ModeRadialScreen());
+        }
+        if (ticks == 248) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-mode-radial"),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 260) {
             completed = true;
             minecraft.stop();
         }
@@ -184,6 +191,7 @@ final class GuiCaptureHarness {
         gun.putBoolean("FallGuardInstalled", true);
         gun.putBoolean("FallGuardEnabled", true);
         gun.putBoolean("FallGuardEntitiesEnabled", false);
+        gun.putBoolean("EntityRelocationEnabled", true);
         CompoundTag modules = new CompoundTag();
         modules.putInt("COORDINATE_OVERRIDE", 1);
         modules.putInt("RESERVOIR_EXPANSION", 2);
