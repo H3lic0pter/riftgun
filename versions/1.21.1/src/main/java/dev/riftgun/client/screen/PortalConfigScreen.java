@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.nio.charset.StandardCharsets;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -1024,8 +1025,8 @@ public final class PortalConfigScreen extends Screen {
         detailEditY = -1;
         detailShareY = -1;
         graphics.enableScissor(left + 1, listTop, right - 1, listBottom);
-        graphics.drawString(font, Component.translatable("screen.riftgun.details"), x, y,
-            PortalTheme.TEXT_MUTED, false);
+        drawDetailText(graphics, Component.translatable("screen.riftgun.details"),
+            x, right - 8, y, PortalTheme.TEXT_MUTED, false);
         y += 19;
         Destination destination = viewed();
         ExternalDestination external = viewedExternal();
@@ -1047,14 +1048,15 @@ public final class PortalConfigScreen extends Screen {
                 }
                 if (minecraft != null && minecraft.player != null
                     && !entry.dimension().equals(minecraft.player.level().dimension().location().toString())) {
-                    graphics.drawString(font, Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
-                        x, y, PortalTheme.WARNING, false);
+                    drawDetailText(graphics,
+                        Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
+                        x, right - 8, y, PortalTheme.WARNING, false);
                     y += 18;
                 }
                 y = detailField(graphics, "screen.riftgun.coordinates", "—", x, y, textWidth);
                 if (entry.self()) {
-                    graphics.drawString(font, Component.translatable("screen.riftgun.player_self"),
-                        x, y, PortalTheme.TEXT_MUTED, false);
+                    drawDetailText(graphics, Component.translatable("screen.riftgun.player_self"),
+                        x, right - 8, y, PortalTheme.TEXT_MUTED, false);
                     y += 18;
                 }
                 detailEditY = -1;
@@ -1070,18 +1072,18 @@ public final class PortalConfigScreen extends Screen {
             y = detailField(graphics, "screen.riftgun.coordinates",
                 String.format(Locale.ROOT, "%.1f  %.1f  %.1f", external.x(), external.y(), external.z()),
                 x, y, textWidth);
-            graphics.drawString(font, Component.translatable("screen.riftgun.external_read_only"),
-                x, y, PortalTheme.TEXT_MUTED, false);
+            drawDetailText(graphics, Component.translatable("screen.riftgun.external_read_only"),
+                x, right - 8, y, PortalTheme.TEXT_MUTED, false);
             y += 18;
             if (!external.selectable()) {
-                graphics.drawString(font,
+                drawDetailText(graphics,
                     Component.translatable("screen.riftgun.external_unknown_dimension"),
-                    x, y, PortalTheme.WARNING, false);
+                    x, right - 8, y, PortalTheme.WARNING, false);
                 y += 18;
             }
         } else if (destination == null) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.empty_details"), x, y,
-                PortalTheme.TEXT_MUTED, false);
+            drawDetailText(graphics, Component.translatable("screen.riftgun.empty_details"),
+                x, right - 8, y, PortalTheme.TEXT_MUTED, false);
             y += 22;
         } else {
             int textWidth = panelWidth - listWidth - 20;
@@ -1097,8 +1099,9 @@ public final class PortalConfigScreen extends Screen {
             if (minecraft != null && minecraft.player != null
                 && !minecraft.player.level().dimension().equals(destination.dimension())
                 && !PortalClientState.gun().getBoolean("CrossDimension")) {
-                graphics.drawString(font, Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
-                    x, y, PortalTheme.WARNING, false);
+                drawDetailText(graphics,
+                    Component.translatable("screen.riftgun.cross_dimension_fuel_required"),
+                    x, right - 8, y, PortalTheme.WARNING, false);
                 y += 18;
             }
             y = detailField(graphics, "screen.riftgun.coordinates", String.format(Locale.ROOT, "%.1f  %.1f  %.1f",
@@ -1107,16 +1110,16 @@ public final class PortalConfigScreen extends Screen {
             if (modal == Modal.NONE) {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
                 graphics.renderOutline(x, y, right - x - 8, 18, PortalTheme.BORDER);
-                graphics.drawCenteredString(font, Component.translatable("screen.riftgun.edit"),
-                    (x + right - 8) / 2, y + 5, PortalTheme.TEXT);
+                drawDetailText(graphics, Component.translatable("screen.riftgun.edit"),
+                    x + 2, right - 10, y + 5, PortalTheme.TEXT, true);
             }
             y += 22;
             detailShareY = modal == Modal.NONE ? y : -1;
             if (modal == Modal.NONE) {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
                 graphics.renderOutline(x, y, right - x - 8, 18, PortalTheme.BORDER);
-                graphics.drawCenteredString(font, Component.translatable("screen.riftgun.share"),
-                    (x + right - 8) / 2, y + 5, PortalTheme.TEXT);
+                drawDetailText(graphics, Component.translatable("screen.riftgun.share"),
+                    x + 2, right - 10, y + 5, PortalTheme.TEXT, true);
             }
             y += 26;
         }
@@ -1128,15 +1131,32 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private int detailField(GuiGraphics graphics, String labelKey, String value, int x, int y, int width) {
-        label(graphics, labelKey, x, y);
-        graphics.drawString(font, trim(value, width), x, y + 11, PortalTheme.TEXT, false);
+        drawDetailText(graphics, Component.translatable(labelKey), x, x + width, y,
+            PortalTheme.TEXT_MUTED, false);
+        drawDetailText(graphics, Component.literal(value), x, x + width, y + 11,
+            PortalTheme.TEXT, false);
         return y + DETAIL_LINE_HEIGHT;
     }
 
     private int detailField(GuiGraphics graphics, String labelKey, Component value, int x, int y, int width) {
-        label(graphics, labelKey, x, y);
-        graphics.drawString(font, trim(value.getString(), width), x, y + 11, PortalTheme.TEXT, false);
+        drawDetailText(graphics, Component.translatable(labelKey), x, x + width, y,
+            PortalTheme.TEXT_MUTED, false);
+        drawDetailText(graphics, value, x, x + width, y + 11, PortalTheme.TEXT, false);
         return y + DETAIL_LINE_HEIGHT;
+    }
+
+    private void drawDetailText(GuiGraphics graphics, Component text, int left, int right,
+                                int y, int color, boolean centered) {
+        int availableWidth = Math.max(0, right - left);
+        if (availableWidth == 0) return;
+        int textWidth = font.width(text);
+        int offset = GuiTextMarquee.offset(textWidth, availableWidth, Util.getMillis());
+        int textX = centered && textWidth <= availableWidth
+            ? left + (availableWidth - textWidth) / 2
+            : left - offset;
+        graphics.enableScissor(left, y - 1, right, y + 10);
+        graphics.drawString(font, text, textX, y, color, false);
+        graphics.disableScissor();
     }
 
     private void renderModal(GuiGraphics graphics) {
