@@ -35,25 +35,29 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                                           PortalPlacementConstraints constraints) {
         EntryResult entry = switch (mode) {
             case FRONT -> EntryResult.frontRoute();
+            case REMOTE -> remote(player, constraints.maximumSurfaceRange(), constraints.aperture());
             case SURFACE -> surface(player, false, constraints.smartDistance(),
                 constraints.maximumSurfaceRange(), constraints.aperture());
             case SMART -> surface(player, true, constraints.smartDistance(),
-                constraints.maximumSurfaceRange(), constraints.aperture());
+                constraints.maximumSurfaceRange(), constraints.aperture(), constraints.smartFallback());
             case ENTITY_RELOCATION -> EntryResult.failure("message.riftgun.entity_relocation_target_required");
         };
         if (entry.front) return PortalPlacementCapture.success(
             PortalPlacementIntent.front(constraints.predictionMode()));
-        return entry.placement == null
-            ? PortalPlacementCapture.failure(entry.errorKey)
-            : PortalPlacementCapture.success(PortalPlacementIntent.surface(entry.placement));
+        if (entry.placement == null) return PortalPlacementCapture.failure(entry.errorKey);
+        return PortalPlacementCapture.success(entry.placement.anchored()
+            ? PortalPlacementIntent.surface(entry.placement)
+            : PortalPlacementIntent.remote(entry.placement));
     }
 
     @Override
     public PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent,
                                                    PortalPlacementConstraints constraints) {
-        EntryResult entry = intent.route() == PortalPlacementIntent.Route.FRONT
-            ? front(player, intent.predictionMode(), constraints)
-            : revalidateSurface(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
+        EntryResult entry = switch (intent.route()) {
+            case FRONT -> front(player, intent.predictionMode(), constraints);
+            case REMOTE -> revalidateRemote(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
+            case SURFACE -> revalidateSurface(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
+        };
         return entry.placement == null
             ? PortalEntryPlacementResult.failure(entry.errorKey)
             : PortalEntryPlacementResult.success(entry.placement);
@@ -69,10 +73,11 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     private EntryResult front(ServerPlayer player, PortalPredictionMode mode,
                               PortalPlacementConstraints constraints) {
         PortalAperture aperture = constraints.aperture();
-        boolean downShot = usesDownshot(player.getXRot(),
+        PortalOrientation horizontal = horizontalOrientation(player.getXRot(),
             RiftRuntime.current().placementCapabilities().downshotMinimumPitch(player));
-        PortalMotionPredictor.Purpose purpose = downShot
-            ? PortalMotionPredictor.Purpose.DOWN_SHOT : PortalMotionPredictor.Purpose.FRONT;
+        boolean horizontalDoor = horizontal != PortalOrientation.VERTICAL;
+        PortalMotionPredictor.Purpose purpose = horizontalDoor
+            ? PortalMotionPredictor.Purpose.HORIZONTAL : PortalMotionPredictor.Purpose.FRONT;
         boolean trajectory = mode == PortalPredictionMode.TRAJECTORY;
         Vec3 prediction = trajectory ? predictedDisplacement(player, purpose) : Vec3.ZERO;
         List<Vec3> positions = trajectory && prediction.lengthSqr() >= 1.0E-8
@@ -80,8 +85,8 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         double frontDistance = RiftRuntime.current().placementCapabilities().frontDistance(player);
         double downshotDistance = RiftRuntime.current().placementCapabilities().downshotDistance(player);
         if (mode == PortalPredictionMode.PROJECTION) {
-            double extra = downShot
-                ? projectionExtra(player, downshotProjectionAxis(),
+            double extra = horizontalDoor
+                ? projectionExtra(player, horizontalViewAxis(horizontal),
                     constraints.downshotProjectionFactor())
                 : projectionExtra(player, frontProjectionAxis(player),
                     constraints.frontProjectionFactor());
@@ -91,16 +96,18 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         EntryResult last = null;
         for (Vec3 displacement : positions) {
             if (PortalAperturePolicy.expanded(aperture)) {
-                EntryResult expanded = downShot
-                    ? downshot(player, displacement, downshotDistance, PortalAperturePolicy.horizontal(),
+                EntryResult expanded = horizontalDoor
+                    ? horizontalFront(player, displacement, downshotDistance, horizontal,
+                        PortalAperturePolicy.horizontal(),
                         PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)
                     : verticalFront(player, displacement, frontDistance, PortalAperturePolicy.floatingVertical(),
                         PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE);
                 if (expanded.placement != null) return expanded;
                 last = expanded;
             }
-            EntryResult standard = downShot
-                ? downshot(player, displacement, downshotDistance, PortalGeometry.HORIZONTAL,
+            EntryResult standard = horizontalDoor
+                ? horizontalFront(player, displacement, downshotDistance, horizontal,
+                    PortalGeometry.HORIZONTAL,
                     RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player))
                 : verticalFront(player, displacement, frontDistance, PortalGeometry.FLOATING_VERTICAL,
                     RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player));
@@ -114,7 +121,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
      * Distance added to the door when PROJECTION mode is active. Uses the sampled recent
      * velocity (blocks/tick scaled to per-second) so doors opened from the modal GUI still
      * see the player's movement right before opening. Falls back to instantaneous velocity.
-     * The factor is per door type: front uses the view axis factor, downshot the vertical one.
+     * The factor is per door type: vertical front uses the view axis factor, horizontal doors the normal.
      */
     private static double projectionExtra(ServerPlayer player, Vec3 axis, double factor) {
         Vec3 velocity = RiftRuntime.current().motionHistory().recentVelocity(player)
@@ -123,14 +130,14 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return Mth.clamp(projection * factor, 0.0, MAXIMUM_PROJECTION_EXTRA);
     }
 
-    /** Projection axis for the downshot door: straight down in world coordinates. */
-    private static Vec3 downshotProjectionAxis() {
-        return new Vec3(0.0, -1.0, 0.0);
-    }
-
     /** Projection axis for the front door: the view heading in the xz plane. */
     private static Vec3 frontProjectionAxis(ServerPlayer player) {
         return Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
+    }
+
+    private static Vec3 horizontalViewAxis(PortalOrientation orientation) {
+        return orientation == PortalOrientation.TOP
+            ? new Vec3(0.0, -1.0, 0.0) : new Vec3(0.0, 1.0, 0.0);
     }
 
     private EntryResult verticalFront(ServerPlayer player, Vec3 prediction, double frontDistance,
@@ -157,11 +164,12 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
-    private EntryResult downshot(ServerPlayer player, Vec3 prediction, double downshotDistance,
-                                 PortalGeometry geometry, double minimumExposure) {
+    private EntryResult horizontalFront(ServerPlayer player, Vec3 prediction, double distance,
+                                        PortalOrientation orientation, PortalGeometry geometry,
+                                        double minimumExposure) {
         Vec3 center = player.position().add(prediction)
-            .add(0.0, -downshotDistance, 0.0);
-        PortalPlacement placement = new PortalPlacement(center, PortalOrientation.TOP,
+            .add(horizontalViewAxis(orientation).scale(distance));
+        PortalPlacement placement = new PortalPlacement(center, orientation,
             geometry, player.getYRot(), null, null);
 //? if >=1.21.11 {
         /*return !FloatingPortalBounds.allows(placement.bounds(), ((ServerLevel) player.level()).dimensionType().minY())
@@ -183,12 +191,21 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             RiftRuntime.current().placementCapabilities().maximumHorizontalPrediction(player));
     }
 
-    static boolean usesDownshot(float pitch, float minimumPitch) {
-        return pitch >= minimumPitch;
+    static PortalOrientation horizontalOrientation(float pitch, float minimumPitch) {
+        if (pitch >= minimumPitch) return PortalOrientation.TOP;
+        if (pitch <= -minimumPitch) return PortalOrientation.BOTTOM;
+        return PortalOrientation.VERTICAL;
     }
 
     private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance,
                                 double maximumRange, PortalAperture aperture) {
+        return surface(player, smart, requestedSmartDistance, maximumRange, aperture,
+            dev.riftgun.pairing.PortalFloatingFallback.FRONT);
+    }
+
+    private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance,
+                                double maximumRange, PortalAperture aperture,
+                                dev.riftgun.pairing.PortalFloatingFallback fallback) {
         double rayRange = smart ? maximumRange : maximumRange + 16.0;
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getLookAngle().scale(rayRange));
@@ -199,17 +216,94 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 //?}
             eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         if (!(raw instanceof BlockHitResult hit) || raw.getType() != HitResult.Type.BLOCK) {
-            return smart ? EntryResult.frontRoute() : EntryResult.failure("message.riftgun.surface_missing");
+            return smart ? floatingFallback(player, maximumRange, aperture, fallback)
+                : EntryResult.failure("message.riftgun.surface_missing");
         }
 
         double distance = eye.distanceTo(hit.getLocation());
-        if (smart && distance > Math.min(requestedSmartDistance, maximumRange)) return EntryResult.frontRoute();
+        if (smart && distance > Math.min(requestedSmartDistance, maximumRange)) {
+            return floatingFallback(player, maximumRange, aperture, fallback);
+        }
         if (distance > maximumRange) return EntryResult.failure("message.riftgun.surface_out_of_range");
 //? if >=1.21.11 {
-        /*return attached((ServerLevel) player.level(), player, hit, aperture);
+        /*EntryResult attached = attached((ServerLevel) player.level(), player, hit, aperture);
 *///?} else {
-        return attached(player.serverLevel(), player, hit, aperture);
+        EntryResult attached = attached(player.serverLevel(), player, hit, aperture);
 //?}
+        return shouldUseFloatingFallback(smart, attached.placement != null)
+            ? floatingFallback(player, maximumRange, aperture, fallback) : attached;
+    }
+
+    static boolean shouldUseFloatingFallback(boolean smart, boolean attachedPlacementSuccessful) {
+        return smart && !attachedPlacementSuccessful;
+    }
+
+    private EntryResult floatingFallback(ServerPlayer player, double maximumRange,
+                                         PortalAperture aperture,
+                                         dev.riftgun.pairing.PortalFloatingFallback fallback) {
+        return fallback == dev.riftgun.pairing.PortalFloatingFallback.REMOTE
+            ? remote(player, maximumRange, aperture) : EntryResult.frontRoute();
+    }
+
+    private EntryResult remote(ServerPlayer player, double maximumRange, PortalAperture aperture) {
+        ServerLevel level = serverLevel(player);
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 rayEnd = eye.add(look.scale(maximumRange));
+        HitResult hit = level.clip(new ClipContext(
+            eye, rayEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        double distance = hit.getType() == HitResult.Type.BLOCK
+            ? Math.max(1.5, eye.distanceTo(hit.getLocation()) - 0.18) : maximumRange;
+        PortalOrientation orientation = horizontalOrientation(player.getXRot(),
+            RiftRuntime.current().placementCapabilities().downshotMinimumPitch(player));
+        PortalGeometry standard = orientation == PortalOrientation.VERTICAL
+            ? PortalGeometry.FLOATING_VERTICAL : PortalGeometry.HORIZONTAL;
+        PortalGeometry expanded = orientation == PortalOrientation.VERTICAL
+            ? PortalAperturePolicy.floatingVertical() : PortalAperturePolicy.horizontal();
+        double minimum = RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player);
+        for (double candidateDistance = distance; candidateDistance >= 1.5; candidateDistance -= 0.25) {
+            Vec3 center = eye.add(look.scale(candidateDistance));
+            if (PortalAperturePolicy.expanded(aperture)) {
+                PortalPlacement placement = new PortalPlacement(center, orientation, expanded,
+                    player.getYRot(), null, null);
+                if (!outsideWorld(level, placement.bounds())
+                    && !floatingObstructed(level, placement,
+                        PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)) {
+                    return EntryResult.success(placement);
+                }
+            }
+            PortalPlacement placement = new PortalPlacement(center, orientation, standard,
+                player.getYRot(), null, null);
+            if (!outsideWorld(level, placement.bounds())
+                && !floatingObstructed(level, placement, minimum)) {
+                return EntryResult.success(placement);
+            }
+        }
+        return EntryResult.failure("message.riftgun.remote_obstructed");
+    }
+
+    private EntryResult revalidateRemote(ServerPlayer player, PortalPlacement placement,
+                                         double maximumRange) {
+        if (placement == null || placement.anchored()) {
+            return EntryResult.failure("message.riftgun.remote_invalid");
+        }
+        ServerLevel level = serverLevel(player);
+        if (player.getEyePosition().distanceTo(placement.center()) > maximumRange + 1.5) {
+            return EntryResult.failure("message.riftgun.remote_out_of_range");
+        }
+        double exposure = placement.geometry().expanded()
+            ? PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE
+            : RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player);
+        return outsideWorld(level, placement.bounds()) || floatingObstructed(level, placement, exposure)
+            ? EntryResult.failure("message.riftgun.remote_obstructed") : EntryResult.success(placement);
+    }
+
+    private static ServerLevel serverLevel(ServerPlayer player) {
+        //? if >=1.21.11 {
+        /*return (ServerLevel) player.level();
+        *///?} else {
+        return player.serverLevel();
+        //?}
     }
 
     private EntryResult revalidateSurface(ServerPlayer player, PortalPlacement placement, double maximumRange) {

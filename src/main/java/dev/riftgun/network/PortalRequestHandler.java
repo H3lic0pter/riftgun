@@ -16,6 +16,9 @@ import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.service.CoordinateSharingService;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.relocation.EntityRelocationManager;
+import dev.riftgun.pairing.PortalFunctionMode;
+import dev.riftgun.pairing.PortalPairingEndpoint;
+import dev.riftgun.pairing.PortalPairingManager;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -104,6 +107,16 @@ public final class PortalRequestHandler {
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun.stack(), data.settings().smartDistance());
         PortalPlacementMode mode = data.settings().placementMode();
+        if (capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
+            if (mode == PortalPlacementMode.ENTITY_RELOCATION) {
+                if (player.isShiftKeyDown()) PortalPairingManager.setRelocationTarget(player, data, gun);
+                else EntityRelocationManager.tryStart(player, data, gun, true);
+                return;
+            }
+            PortalPairingManager.place(player, data, gun, mode,
+                player.isShiftKeyDown() ? PortalPairingEndpoint.A : PortalPairingEndpoint.B);
+            return;
+        }
         if (mode == PortalPlacementMode.ENTITY_RELOCATION) {
             EntityRelocationManager.tryStart(player, data, gun, true);
             return;
@@ -176,6 +189,30 @@ public final class PortalRequestHandler {
                 EntityRelocationManager.tryStart(player, data, gun, true);
                 yield false;
             }
+            case PLACE_PAIRING_ENDPOINT -> {
+                PortalGunCapabilities pairingCapabilities = PortalGunCapabilities.resolve(
+                    gun.stack(), data.settings().smartDistance());
+                if (!pairingCapabilities.portalPairing()) {
+                    throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+                }
+                if (pairingCapabilities.functionMode() != PortalFunctionMode.PORTAL_PAIRING) {
+                    throw PortalRequestFields.error("message.riftgun.pairing_mode_required");
+                }
+                if (data.settings().placementMode() == PortalPlacementMode.ENTITY_RELOCATION) {
+                    if (Nbt.getBoolean(request, "EndpointA")) {
+                        PortalPairingManager.setRelocationTarget(player, data, gun);
+                    } else {
+                        EntityRelocationManager.tryStart(player, data, gun, true);
+                    }
+                } else {
+                    PortalPairingManager.place(player, data, gun, data.settings().placementMode(),
+                        Nbt.getBoolean(request, "EndpointA")
+                            ? PortalPairingEndpoint.A : PortalPairingEndpoint.B);
+                }
+                yield false;
+            }
+            case TOGGLE_FUNCTION_MODE -> PortalGunActions.toggleFunctionMode(
+                player, data, gun.stack());
             case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(
                 player, data, gun.stack(), Nbt.getBoolean(request, "Reverse"));
             case SET_RADIAL_MODE -> PortalGunActions.setRadialMode(player, data, gun.stack(), request);
@@ -185,7 +222,8 @@ public final class PortalRequestHandler {
             case MOVE_GROUP -> PortalDestinationActions.moveGroup(data, request);
             case MOVE_DESTINATION_GROUP -> PortalDestinationActions.moveDestinationGroup(data, request);
             case SET_GROUP_EXPANDED -> PortalDestinationActions.setExpanded(data, request);
-            case SET_SETTINGS -> PortalGunActions.updatePlayerSettings(player, data, request);
+            case SET_SETTINGS -> PortalGunActions.updatePlayerSettings(
+                player, data, request, gun.stack());
             case SET_GUN_MODULE_SETTINGS -> PortalGunActions.updateModuleSettings(data, request, gun.stack());
             case TOGGLE_BUCKET_MODE -> PortalGunActions.toggleBucketMode(player, gun.stack());
             case CLEAR_GUN_FLUID -> PortalGunActions.clearFluid(player, gun.stack());

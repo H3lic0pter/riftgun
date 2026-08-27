@@ -10,6 +10,6 @@ public interface PortalMotionPredictor {
 
     enum Purpose {
         FRONT,
-        DOWN_SHOT
+        HORIZONTAL
     }
 }

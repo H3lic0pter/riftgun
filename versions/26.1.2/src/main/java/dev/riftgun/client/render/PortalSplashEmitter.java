@@ -45,6 +45,7 @@ public final class PortalSplashEmitter {
         PortalLifecycle.Phase phase;
         int phaseTicks;
         if (portal instanceof PortalEntity interactive) {
+            if (interactive.pairingDormant()) return;
             phase = interactive.phase();
             phaseTicks = interactive.phaseTicks();
         } else if (portal instanceof EntityRelocationPortalEntity relocation) {

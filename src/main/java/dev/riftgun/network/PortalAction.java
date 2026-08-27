@@ -20,6 +20,8 @@ public enum PortalAction {
     OPEN_SELECTED,
     CLEAR_EXTERNAL_DESTINATION,
     RELOCATE_ENTITY,
+    PLACE_PAIRING_ENDPOINT,
+    TOGGLE_FUNCTION_MODE,
     CYCLE_PLACEMENT_MODE,
     OPEN_MODE_RADIAL,
     SET_RADIAL_MODE,
@@ -50,7 +52,8 @@ public enum PortalAction {
     }
 
     public boolean isExclusiveKeyboardShortcut() {
-        return this == OPEN_SELECTED || this == RELOCATE_ENTITY || this == CYCLE_PLACEMENT_MODE
+        return this == OPEN_SELECTED || this == RELOCATE_ENTITY || this == PLACE_PAIRING_ENDPOINT
+            || this == TOGGLE_FUNCTION_MODE || this == CYCLE_PLACEMENT_MODE
             || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE;
     }
 }

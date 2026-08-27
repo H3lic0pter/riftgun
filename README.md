@@ -47,7 +47,8 @@ Destinations support shared groups, pinning, remembered sorting, coordinate entr
 ### Portal placement and behavior
 
 - `SMART` uses surface placement within the configured smart distance and front placement beyond it.
-- `FRONT` creates a floating vertical portal. Looking steeply downward may create a horizontal downshot portal.
+- `FRONT` creates a floating vertical portal. Looking steeply down or up creates a horizontal top or bottom portal.
+- `REMOTE` projects a fixed floating portal along the view ray and is available with Portal Pairing.
 - `SURFACE` attaches a portal to the targeted block face and is limited by the gun's surface range.
 - Motion prediction can be disabled or configured from the gun GUI. Projection mode is the default.
 - Standard portals accept players, dropped items, and vehicles. Mob categories require their corresponding transit modules.
@@ -113,6 +114,7 @@ The gun starts with nine module slots. Each Module Bay Expansion adds three slot
 | Matter Anchor | Prevents a dropped Portal Gun from despawning or being destroyed by fire, lava, or explosions | 1 |
 | Projectile Transit | Allows eligible projectiles to cross portals while preserving transformed velocity and orientation | 1 |
 | Entity Relocation | Opens a short-lived visual gate around a targeted entity and sends it to the selected destination | 1 |
+| Portal Pairing | Adds manual A/B endpoint placement, REMOTE placement, and the Coordinate Travel / Portal Pairing function switch | 1 |
 | Zero-Point Fuel | Makes the loaded portal-fluid profile unlimited; supplies Dimensional Portal Fluid behavior when empty | 1 |
 | Creative | Grants every module function at its configured maximum and unlocks all module slots | 1 |
 
@@ -132,6 +134,12 @@ cost is calculated once when the transfer starts: projectiles use the base
 cost, passive entities default to `1.5×`, hostile entities and players to
 `3×`, and boss-tagged entities to `10×`, rounded down. Server administrators
 may change all multipliers, including setting them to zero.
+
+With Portal Pairing enabled, right-click places endpoint B and sneak-right-click
+places endpoint A. The first endpoint is dormant; placing the other connects the
+pair and consumes one ordinary pair charge. Replacing either connected endpoint
+rebuilds the pair, consumes one charge, and resets the shared duration. The
+dedicated endpoint and function-switch keys are unbound by default.
 
 ### Player targets and privacy
 

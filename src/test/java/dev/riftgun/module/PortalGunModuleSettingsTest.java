@@ -48,13 +48,18 @@ final class PortalGunModuleSettingsTest {
             new PortalGunModuleSettings.Transit(true, true, true, -1),
             new PortalGunModuleSettings.Duration(0), true,
             new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT),
-            dev.riftgun.relocation.EntityRelocationSettings.defaults(), true, false);
+            dev.riftgun.relocation.EntityRelocationSettings.defaults(),
+            dev.riftgun.pairing.PortalPairingSettings.defaults(), true, false);
 
         assertEquals(1, settings.smartDistance());
         assertEquals(1, settings.desiredSurfaceRange());
         assertEquals(1, settings.portalDurationSeconds());
         assertEquals(0, settings.transitCooldownTenths());
         assertFalse(settings.fallGuardEntitiesEnabled());
+        assertEquals(dev.riftgun.pairing.PortalFunctionMode.COORDINATE_TRAVEL,
+            settings.portalPairing().functionMode());
+        assertEquals(dev.riftgun.pairing.PortalFloatingFallback.FRONT,
+            settings.portalPairing().coordinateSmartFallback());
         assertTrue(settings.projectileTransitEnabled());
     }
 

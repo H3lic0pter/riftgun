@@ -68,6 +68,7 @@ neoForge {
             client()
             systemProperty("riftgun.guiCapture", System.getProperty("riftgun.guiCapture", "false"))
             systemProperty("riftgun.guiCaptureScale", System.getProperty("riftgun.guiCaptureScale", "0"))
+            systemProperty("riftgun.radialCapture", System.getProperty("riftgun.radialCapture", "false"))
             loadedMods.set(mods)
         }
         create("server") {

@@ -61,6 +61,8 @@ public final class PortalModules {
         "fall_guard_module", PortalModuleKind.FALL_GUARD, ignored -> 1, 0x6FBF73);
     public static final ModuleEntry ENTITY_RELOCATION = register(
         "entity_relocation_module", PortalModuleKind.ENTITY_RELOCATION, ignored -> 1, 0x75D7C8);
+    public static final ModuleEntry PORTAL_PAIRING = register(
+        "portal_pairing_module", PortalModuleKind.PORTAL_PAIRING, ignored -> 1, 0xE19A52);
     public static final ModuleEntry MATTER_ANCHOR = register(
         "matter_anchor_module", PortalModuleKind.MATTER_ANCHOR, ignored -> 1, 0x8A86A8);
     public static final ModuleEntry PROJECTILE_TRANSIT = register(

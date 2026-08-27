@@ -193,11 +193,16 @@ public final class PortalOpenCoordinator {
         PortalGunModuleSettings.ensure(locatedGun.stack(), data.settings().smartDistance());
         PortalGunCapabilities gunCapabilities = PortalGunCapabilities.resolve(
             locatedGun.stack(), data.settings().smartDistance());
+        if (mode == PortalPlacementMode.REMOTE && !gunCapabilities.portalPairing()) {
+            return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED,
+                "message.riftgun.portal_pairing_module_required");
+        }
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
             data.settings().predictionMode(), gunCapabilities.aperture(),
             RiftConfigs.server().prediction().frontProjectionFactor(),
-            RiftConfigs.server().prediction().downshotProjectionFactor());
+            RiftConfigs.server().prediction().downshotProjectionFactor(),
+            gunCapabilities.activeSmartFallback());
         PortalPlacementCapture capture = RiftRuntime.current().placementResolver().capture(player, mode, constraints);
         if (!capture.successful()) {
             return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED, capture.errorKey());

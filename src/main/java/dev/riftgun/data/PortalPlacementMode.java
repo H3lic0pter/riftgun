@@ -3,6 +3,7 @@ package dev.riftgun.data;
 public enum PortalPlacementMode {
     SMART,
     FRONT,
+    REMOTE,
     SURFACE,
     ENTITY_RELOCATION;
 

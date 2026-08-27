@@ -5,6 +5,10 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.service.PortalGunLocator;
+import dev.riftgun.service.PortalGunIdentity;
+import dev.riftgun.portal.PortalOwnerIndex;
+import dev.riftgun.data.PortalPlacementMode;
+import java.util.UUID;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
@@ -69,6 +73,8 @@ public final class PortalGunModuleContainer extends SimpleContainer {
         int newActiveRange = activeCount(getItems(), PortalModuleKind.SURFACE_RANGE, rules);
         int oldActiveRelocation = activeCount(previous, PortalModuleKind.ENTITY_RELOCATION, rules);
         int newActiveRelocation = activeCount(getItems(), PortalModuleKind.ENTITY_RELOCATION, rules);
+        int oldActivePairing = activeCount(previous, PortalModuleKind.PORTAL_PAIRING, rules);
+        int newActivePairing = activeCount(getItems(), PortalModuleKind.PORTAL_PAIRING, rules);
 
         PortalGunModules.save(gun(), getItems());
         if (newActiveRange > oldActiveRange) {
@@ -88,6 +94,24 @@ public final class PortalGunModuleContainer extends SimpleContainer {
                 PortalDataStore.save(owner, data);
                 PortalNetworking.sendSnapshot(owner, false, locatedGun);
             }
+        }
+        if (oldActivePairing > 0 && newActivePairing == 0) {
+            UUID gunId = PortalGunIdentity.ensure(gun());
+//? if >=1.21.11 {
+            /*var server = owner.level().getServer();
+*///?} else {
+            var server = owner.getServer();
+//?}
+            if (server != null) {
+                PortalOwnerIndex.closeOwnedMatching(server, owner.getUUID(),
+                    portal -> gunId.equals(portal.pairingGunId()));
+            }
+            var data = PortalDataStore.load(owner);
+            if (data.settings().placementMode() == PortalPlacementMode.REMOTE) {
+                data.settings(data.settings().withPlacementMode(PortalPlacementMode.FRONT));
+                PortalDataStore.save(owner, data);
+            }
+            PortalNetworking.sendSnapshot(owner, false, locatedGun);
         }
         previous = copyItems();
     }

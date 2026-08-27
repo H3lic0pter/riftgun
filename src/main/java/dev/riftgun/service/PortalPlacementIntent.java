@@ -18,8 +18,13 @@ public record PortalPlacementIntent(
         return new PortalPlacementIntent(Route.SURFACE, placement, PortalPredictionMode.OFF);
     }
 
+    public static PortalPlacementIntent remote(PortalPlacement placement) {
+        return new PortalPlacementIntent(Route.REMOTE, placement, PortalPredictionMode.OFF);
+    }
+
     public enum Route {
         FRONT,
+        REMOTE,
         SURFACE
     }
 }

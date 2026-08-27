@@ -189,6 +189,10 @@ final class GuiCaptureHarness {
         gun.putBoolean("FallGuardEnabled", true);
         gun.putBoolean("FallGuardEntitiesEnabled", false);
         gun.putBoolean("EntityRelocationEnabled", true);
+        gun.putBoolean("PortalPairingInstalled", true);
+        gun.putString("FunctionMode", "PORTAL_PAIRING");
+        gun.putString("CoordinateSmartFallback", "FRONT");
+        gun.putString("PairingSmartFallback", "REMOTE");
         CompoundTag modules = new CompoundTag();
         modules.putInt("COORDINATE_OVERRIDE", 1);
         modules.putInt("RESERVOIR_EXPANSION", 2);
@@ -199,6 +203,7 @@ final class GuiCaptureHarness {
         modules.putInt("SURFACE_RANGE", 3);
         modules.putInt("APERTURE_EXPANSION", 1);
         modules.putInt("PLAYER_TARGET", 1);
+        modules.putInt("PORTAL_PAIRING", 1);
         gun.put("Modules", modules);
         envelope.put("Gun", gun);
         envelope.put("ModuleRules", PortalModuleRules.defaults().save());

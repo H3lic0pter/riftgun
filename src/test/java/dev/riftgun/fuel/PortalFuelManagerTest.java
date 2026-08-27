@@ -34,4 +34,25 @@ final class PortalFuelManagerTest {
         assertEquals(8, ordinaryUse.amount());
         assertFalse(ordinaryUse.virtual());
     }
+
+    @Test
+    void recognizedProfileUseNeverRequiresAFullCharge() {
+        //? if >=1.21.11 {
+        /*PortalFuelProfile portalFluid = new PortalFuelProfile(
+            Identifier.fromNamespaceAndPath("riftgun", "portal_fluid"),
+            0x58BFFF, false, 500, 800);
+        *///?} else {
+        PortalFuelProfile portalFluid = new PortalFuelProfile(
+            ResourceLocation.fromNamespaceAndPath("riftgun", "portal_fluid"),
+            0x58BFFF, false, 500, 800);
+        //?}
+
+        PortalFuelUse ordinary = PortalFuelManager.selectRecognizedFuel(portalFluid, false);
+        assertEquals(0, ordinary.amount());
+        assertFalse(ordinary.virtual());
+
+        PortalFuelUse infinite = PortalFuelManager.selectRecognizedFuel(portalFluid, true);
+        assertEquals(0, infinite.amount());
+        assertTrue(infinite.virtual());
+    }
 }

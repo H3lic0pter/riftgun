@@ -15,6 +15,8 @@ public final class PortalTheme {
     public static final int PORTAL = 0xFF64D45D;
     public static final int DANGER = 0xFFE18479;
     public static final int WARNING = 0xFFE2B66B;
+    public static final int AMBER = 0xFFE19A52;
+    public static final int AMBER_DARK = 0xFF84502D;
 
     private PortalTheme() {}
 }

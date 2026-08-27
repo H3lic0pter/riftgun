@@ -3,6 +3,7 @@ package dev.riftgun.client;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalSplashEmitter;
+import dev.riftgun.client.render.PortalPlacementPreview;
 import dev.riftgun.client.external.ClientMapWaypointIntegration;
 import dev.riftgun.external.ExternalDestinationSelection;
 import dev.riftgun.config.ClientConfig;
@@ -42,6 +43,7 @@ public final class ClientGameEvents {
         if (nowConnected) refreshJourneyMapSelection(minecraft);
         GuiCaptureHarness.tick(minecraft);
         PortalSplashEmitter.tick(minecraft);
+        PortalPlacementPreview.tick(minecraft);
         ImmersivePortalCompat.tick(minecraft);
         ModeRadialInput.tick(minecraft);
         while (ClientModEvents.OPEN_CONFIG.consumeClick()) {
@@ -63,6 +65,17 @@ public final class ClientGameEvents {
         while (ClientModEvents.ENTITY_RELOCATION.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendShortcutRequest(PortalAction.RELOCATE_ENTITY);
+            }
+        }
+        while (ClientModEvents.PORTAL_PAIRING_OPERATION.consumeClick()) {
+            if (minecraft.player != null && minecraft.getConnection() != null) {
+                PortalNetworking.sendShortcutRequest(PortalAction.PLACE_PAIRING_ENDPOINT,
+                    tag -> tag.putBoolean("EndpointA", minecraft.player.isShiftKeyDown()));
+            }
+        }
+        while (ClientModEvents.TOGGLE_FUNCTION_MODE.consumeClick()) {
+            if (minecraft.player != null && minecraft.getConnection() != null) {
+                PortalNetworking.sendShortcutRequest(PortalAction.TOGGLE_FUNCTION_MODE);
             }
         }
     }

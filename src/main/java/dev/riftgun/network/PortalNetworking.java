@@ -12,6 +12,8 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.DestinationSort;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.core.runtime.RiftRuntime;
+import dev.riftgun.service.PortalShortcutGunSelection;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -73,6 +75,9 @@ public final class PortalNetworking {
         envelope.putString("Kind", "Snapshot");
         envelope.putBoolean("OpenScreen", openScreen);
         envelope.putBoolean("OpenRadial", openRadial);
+        envelope.putString("ShortcutGunMode", PortalShortcutGunSelection.mode().name());
+        envelope.putFloat("HorizontalPortalPitch",
+            RiftRuntime.current().placementCapabilities().downshotMinimumPitch(player));
         PortalPlayerData data = PortalDataStore.load(player);
         envelope.put("Data", data.save());
         putDimensionLabels(envelope, player, data.destinations().stream().map(destination -> {

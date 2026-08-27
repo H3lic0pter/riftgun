@@ -53,3 +53,10 @@ type = "optional"
 versionRange = "[26.4.2,26.5)"
 ordering = "AFTER"
 side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "immersive_portals_core"
+type = "optional"
+versionRange = "[6.0.7,)"
+ordering = "AFTER"
+side = "BOTH"

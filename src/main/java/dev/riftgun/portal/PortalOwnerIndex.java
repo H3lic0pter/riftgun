@@ -2,6 +2,7 @@ package dev.riftgun.portal;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -35,6 +36,21 @@ public final class PortalOwnerIndex {
     public static int closeOwned(MinecraftServer server, UUID owner, Set<UUID> excluded) {
         return STORE.visit(server, owner, excluded, PortalEntity::getUUID,
             portal -> isLive(server, owner, portal), PortalEntity::startClosing);
+    }
+
+    public static List<PortalEntity> owned(MinecraftServer server, UUID owner) {
+        return STORE.matching(server, owner, portal -> isLive(server, owner, portal));
+    }
+
+    public static int closeOwnedMatching(MinecraftServer server, UUID owner,
+                                         Predicate<PortalEntity> predicate) {
+        int closed = 0;
+        for (PortalEntity portal : owned(server, owner)) {
+            if (!predicate.test(portal)) continue;
+            portal.startClosing();
+            closed++;
+        }
+        return closed;
     }
 
     public static void clear(MinecraftServer server) {
@@ -98,6 +114,14 @@ public final class PortalOwnerIndex {
             if (owners == null) return 0;
             Set<P> portals = owners.get(owner);
             return portals == null ? 0 : portals.size();
+        }
+
+        List<P> matching(S server, UUID owner, Predicate<P> predicate) {
+            Map<UUID, Set<P>> owners = byServer.get(server);
+            if (owners == null) return List.of();
+            Set<P> portals = owners.get(owner);
+            if (portals == null) return List.of();
+            return portals.stream().filter(predicate).toList();
         }
 
         private void removeEmpty(S server, UUID owner, Map<UUID, Set<P>> owners, Set<P> portals) {

@@ -34,10 +34,12 @@ final class PortalGuiIcons {
         Identifier sprite = switch (mode) {
             case SMART -> PortalGuiSprites.PLACEMENT_SMART;
             case FRONT -> PortalGuiSprites.PLACEMENT_FRONT;
+            case REMOTE -> PortalGuiSprites.PLACEMENT_REMOTE;
             case SURFACE -> PortalGuiSprites.PLACEMENT_SURFACE;
             case ENTITY_RELOCATION -> PortalGuiSprites.PLACEMENT_ENTITY_RELOCATION;
         };
-        PortalGuiSprites.draw(graphics, sprite, x - (mode == PortalPlacementMode.FRONT ? 4 : 3), y - 3);
+        PortalGuiSprites.draw(graphics, sprite,
+            x - (mode == PortalPlacementMode.FRONT ? 4 : 3), y - 3);
     }
 
     static void drawPredictionIcon(GuiGraphicsExtractor graphics, int x, int y, int color) {

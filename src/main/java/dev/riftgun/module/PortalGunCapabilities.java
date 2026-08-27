@@ -4,6 +4,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.pairing.PortalFloatingFallback;
+import dev.riftgun.pairing.PortalFunctionMode;
 
 public record PortalGunCapabilities(
     boolean coordinateOverride,
@@ -19,6 +21,10 @@ public record PortalGunCapabilities(
     int transitCooldownTicks,
     boolean entityRelocation,
     boolean entityRelocationSmartRouting,
+    boolean portalPairing,
+    PortalFunctionMode functionMode,
+    PortalFloatingFallback coordinateSmartFallback,
+    PortalFloatingFallback pairingSmartFallback,
     boolean fallGuard,
     boolean entityFallGuard
 ) {
@@ -36,6 +42,8 @@ public record PortalGunCapabilities(
             gun, PortalModuleKind.PLAYER_TARGET, rules) > 0;
         boolean relocationInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0;
+        boolean pairingInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.PORTAL_PAIRING, rules) > 0;
         boolean fallGuardInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.FALL_GUARD, rules) > 0;
         return new PortalGunCapabilities(
@@ -63,9 +71,18 @@ public record PortalGunCapabilities(
             relocationInstalled && settings.entityRelocation().enabled(),
             relocationInstalled && settings.entityRelocation().enabled()
                 && settings.entityRelocation().smartRouting(),
+            pairingInstalled,
+            pairingInstalled ? settings.portalPairing().functionMode() : PortalFunctionMode.COORDINATE_TRAVEL,
+            pairingInstalled ? settings.portalPairing().coordinateSmartFallback() : PortalFloatingFallback.FRONT,
+            pairingInstalled ? settings.portalPairing().pairingSmartFallback() : PortalFloatingFallback.FRONT,
             fallGuardInstalled && settings.fallGuardEnabled(),
             fallGuardInstalled && settings.fallGuardEntitiesEnabled()
         );
+    }
+
+    public PortalFloatingFallback activeSmartFallback() {
+        return functionMode == PortalFunctionMode.PORTAL_PAIRING
+            ? pairingSmartFallback : coordinateSmartFallback;
     }
 
     public static int configuredDurationSeconds(ItemStack gun, int requestedSeconds) {

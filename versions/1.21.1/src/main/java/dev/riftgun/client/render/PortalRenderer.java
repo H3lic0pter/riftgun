@@ -26,9 +26,12 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity> {
     public void render(PortalEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource buffers, int packedLight) {
         PortalVisualType type = PortalVisualPreferences.selected();
+        PortalVisualStyle style = PortalVisualStyles.resolve(entity);
+        if (entity.pairingDormant()) style = style.dimmed();
         type.renderer().render(new PortalVisualRenderContext(entity, partialTick, poseStack, buffers,
             packedLight, PortalRenderFrameState.current().surfaceRenderPath(),
-            PortalVisualStyles.resolve(entity)));
+            style));
+        PortalPairingMarkerRenderer.render(entity, partialTick, poseStack, buffers, style.borderColor());
         super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
     }
 }

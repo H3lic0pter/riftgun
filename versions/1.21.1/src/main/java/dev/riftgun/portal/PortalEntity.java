@@ -13,6 +13,7 @@ import dev.riftgun.sound.PortalSounds;
 import dev.riftgun.module.PortalEntityAccessSnapshot;
 import dev.riftgun.api.PortalTransitAuthorization;
 import dev.riftgun.module.PortalTransitAuthorizationCodec;
+import dev.riftgun.pairing.PortalPairingEndpoint;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -58,6 +59,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<String> FUEL_ID =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Integer> PAIRING_ENDPOINT =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> PAIRING_DORMANT =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Integer> ANCHOR_FACE =
@@ -81,7 +86,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     private @Nullable UUID linkedPortalId;
     private @Nullable ResourceKey<Level> linkedDimension;
+    private @Nullable BlockPos linkedBlockPos;
     private @Nullable UUID ownerId;
+    private @Nullable UUID pairingGunId;
     private @Nullable UUID excludedPlayerId;
     private boolean exitPortal;
     private final PortalDeferredExitController deferredExit = new PortalDeferredExitController(this);
@@ -113,6 +120,23 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     public static boolean openPair(ServerPlayer player, PortalPairPlacement pair,
                                    PortalFuelProfile fuel, PortalRuntimeOptions options,
                                    PortalExclusions exclusions, BooleanSupplier commitFuel) {
+        return openPairInternal(player, pair, fuel, options, exclusions, commitFuel, null,
+            PortalPairingEndpoint.NONE);
+    }
+
+    public static boolean openPairing(ServerPlayer player, PortalPairPlacement pair,
+                                      PortalFuelProfile fuel, PortalRuntimeOptions options,
+                                      BooleanSupplier commitFuel, UUID gunId,
+                                      PortalPairingEndpoint entryEndpoint) {
+        return openPairInternal(player, pair, fuel, options, PortalExclusions.NONE, commitFuel,
+            gunId, entryEndpoint);
+    }
+
+    private static boolean openPairInternal(ServerPlayer player, PortalPairPlacement pair,
+                                            PortalFuelProfile fuel, PortalRuntimeOptions options,
+                                            PortalExclusions exclusions, BooleanSupplier commitFuel,
+                                            @Nullable UUID pairingGunId,
+                                            PortalPairingEndpoint entryEndpoint) {
         MinecraftServer server = player.getServer();
         if (server == null) return false;
         ServerLevel entryLevel = player.serverLevel();
@@ -130,6 +154,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
             fuel.rgb(), fuel.id().toString(), options, startedAt,
             exclusions.exitPlayerId(), true);
+        if (pairingGunId != null) {
+            entry.setPairing(pairingGunId, entryEndpoint, false);
+            exit.setPairing(pairingGunId, entryEndpoint.opposite(), false);
+        }
         link(entry, exit);
         entry.acquireChunkTicket();
         exit.acquireChunkTicket();
@@ -146,6 +174,28 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         PortalSounds.playShot(player, entry.sounds);
         playOpeningSounds(entryLevel, pair.entry(), entry.sounds);
         playOpeningSounds(exitLevel, pair.exit(), exit.sounds);
+        return true;
+    }
+
+    public static boolean openDormant(ServerPlayer player, PortalPlacement placement,
+                                      PortalFuelProfile fuel, PortalRuntimeOptions options,
+                                      UUID gunId, PortalPairingEndpoint endpoint) {
+        MinecraftServer server = player.getServer();
+        if (server == null || endpoint == PortalPairingEndpoint.NONE) return false;
+        ServerLevel level = player.serverLevel();
+        if (!PortalChunkGuard.inWorldBounds(level, BlockPos.containing(placement.center()))) return false;
+        PortalEntity portal = create(level, player.getUUID(), placement, fuel.rgb(), fuel.id().toString(),
+            options, server.overworld().getGameTime(), null, false);
+        portal.setPairing(gunId, endpoint, true);
+        portal.acquireChunkTicket();
+        boolean added = level.addFreshEntity(portal);
+        if (!added) {
+            portal.releaseChunkTicket();
+            return false;
+        }
+        closeOwnedPortals(server, player.getUUID(), Set.of(portal.getUUID()));
+        PortalSounds.playShot(player, portal.sounds);
+        playOpeningSounds(level, placement, portal.sounds);
         return true;
     }
 
@@ -254,6 +304,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         builder.define(GEOMETRY, PortalGeometry.FLOATING_VERTICAL.ordinal());
         builder.define(FUEL_RGB, PortalFuelProfiles.DIMENSIONAL_RGB);
         builder.define(FUEL_ID, "riftgun:dimensional_portal_fluid");
+        builder.define(PAIRING_ENDPOINT, PortalPairingEndpoint.NONE.ordinal());
+        builder.define(PAIRING_DORMANT, false);
         builder.define(ANCHOR, Optional.empty());
         builder.define(ANCHOR_FACE, -1);
         builder.define(LINKED_PORTAL, Optional.empty());
@@ -324,7 +376,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     @Override
     public float visualAge(float partialTick) {
-        return tickCount + partialTick;
+        return pairingDormant() ? 0.0F : tickCount + partialTick;
     }
 
     public Vec3 normal() {
@@ -370,6 +422,33 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         entityData.set(ANCHOR_FACE, attachment.syncedFace());
     }
 
+    private void setPairing(UUID gunId, PortalPairingEndpoint endpoint, boolean dormant) {
+        pairingGunId = gunId;
+        entityData.set(PAIRING_ENDPOINT, endpoint.ordinal());
+        entityData.set(PAIRING_DORMANT, dormant);
+        setCustomName(endpoint.translationComponent());
+    }
+
+    public @Nullable UUID pairingGunId() {
+        return pairingGunId;
+    }
+
+    public PortalPairingEndpoint pairingEndpoint() {
+        return PortalPairingEndpoint.byOrdinal(entityData.get(PAIRING_ENDPOINT));
+    }
+
+    public boolean pairingDormant() {
+        return entityData.get(PAIRING_DORMANT);
+    }
+
+    public void resetPairingDuration() {
+        if (level().isClientSide() || pairingEndpoint() == PortalPairingEndpoint.NONE) return;
+        long startedAt = PortalPairClock.openPhaseStartedAt(serverTime());
+        resetOpenClock(this, startedAt);
+        PortalEntity linked = linkedPortal();
+        if (linked != null) resetOpenClock(linked, startedAt);
+    }
+
     @Override
     public void tick() {
         super.tick();
@@ -382,8 +461,13 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         entityData.set(PHASE, nextPhase.ordinal());
         entityData.set(PHASE_TICKS, nextPhaseTicks);
 
-        PortalEntity linked = linkedPortal();
+        PortalEntity linked = loadPairingPartner(linkedPortal());
         if (linked != null) syncVisualLink(linked);
+
+        if (!pairingStateValid(linked)) {
+            startClosing();
+            return;
+        }
 
         SweptPortalIndex.refresh(this);
 
@@ -413,7 +497,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         }
         if (RiftRuntime.current().closePolicy().shouldClose(this)) {
             startClosing();
-        } else {
+        } else if (!pairingDormant()) {
             transit.tick();
         }
     }
@@ -672,9 +756,47 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         return null;
     }
 
+    private @Nullable PortalEntity loadPairingPartner(@Nullable PortalEntity linked) {
+        if (linked != null || pairingEndpoint() == PortalPairingEndpoint.NONE || pairingDormant()) {
+            return linked;
+        }
+        if (linkedDimension == null || linkedBlockPos == null
+            || !(level() instanceof ServerLevel currentLevel)) return null;
+        ServerLevel partnerLevel = currentLevel.getServer().getLevel(linkedDimension);
+        if (partnerLevel == null || !PortalChunkGuard.inWorldBounds(partnerLevel, linkedBlockPos)) return null;
+        partnerLevel.getChunk(linkedBlockPos.getX() >> 4, linkedBlockPos.getZ() >> 4);
+        return linkedPortal();
+    }
+
+    private boolean pairingStateValid(@Nullable PortalEntity linked) {
+        PortalPairingEndpoint endpoint = pairingEndpoint();
+        if (endpoint == PortalPairingEndpoint.NONE) return pairingGunId == null;
+        if (pairingGunId == null || ownerId == null) return false;
+        if (pairingDormant()) {
+            return linkedPortalId == null;
+        }
+        if (endpoint == PortalPairingEndpoint.ENTITY_TARGET
+            || linkedPortalId == null || linkedDimension == null) {
+            return false;
+        }
+        // A valid partner can be temporarily absent while its dimension or chunk is loading.
+        // Once present, reject cross-links instead of pairing entities by proximity.
+        if (linked == null) return false;
+        return !linked.pairingDormant()
+            && endpoint.opposite() == linked.pairingEndpoint()
+            && ownerId.equals(linked.ownerId)
+            && pairingGunId.equals(linked.pairingGunId)
+            && getUUID().equals(linked.linkedPortalId)
+            && linked.level().dimension().equals(linkedDimension)
+            && level().dimension().equals(linked.linkedDimension)
+            && linked.blockPosition().equals(linkedBlockPos)
+            && blockPosition().equals(linked.linkedBlockPos);
+    }
+
     private void syncVisualLink(PortalEntity linked) {
         linkedPortalId = linked.getUUID();
         linkedDimension = linked.level().dimension();
+        linkedBlockPos = linked.blockPosition();
         entityData.set(LINKED_PORTAL, Optional.of(linkedPortalId));
         entityData.set(LINKED_DIMENSION, linkedDimension.location().toString());
         entityData.set(LINKED_X, Double.doubleToLongBits(linked.getX()));
@@ -697,10 +819,15 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         if (linkedDimensionId != null) {
             linkedDimension = ResourceKey.create(Registries.DIMENSION, linkedDimensionId);
         }
+        if (tag.contains("LinkedBlockPos")) linkedBlockPos = BlockPos.of(tag.getLong("LinkedBlockPos"));
         entityData.set(LINKED_PORTAL, Optional.ofNullable(linkedPortalId));
         entityData.set(LINKED_DIMENSION,
             linkedDimension == null ? "" : linkedDimension.location().toString());
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
+        if (tag.hasUUID("PairingGun")) pairingGunId = tag.getUUID("PairingGun");
+        entityData.set(PAIRING_ENDPOINT, tag.contains("PairingEndpoint")
+            ? tag.getInt("PairingEndpoint") : PortalPairingEndpoint.NONE.ordinal());
+        entityData.set(PAIRING_DORMANT, tag.getBoolean("PairingDormant"));
         if (tag.hasUUID("ExcludedPlayer")) excludedPlayerId = tag.getUUID("ExcludedPlayer");
         exitPortal = tag.getBoolean("ExitPortal");
         horizontalTriggerExtend = tag.contains("HorizontalTriggerExtend")
@@ -763,7 +890,11 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     protected void addAdditionalSaveData(CompoundTag tag) {
         if (linkedPortalId != null) tag.putUUID("LinkedPortal", linkedPortalId);
         if (linkedDimension != null) tag.putString("LinkedDimension", linkedDimension.location().toString());
+        if (linkedBlockPos != null) tag.putLong("LinkedBlockPos", linkedBlockPos.asLong());
         if (ownerId != null) tag.putUUID("Owner", ownerId);
+        if (pairingGunId != null) tag.putUUID("PairingGun", pairingGunId);
+        tag.putInt("PairingEndpoint", entityData.get(PAIRING_ENDPOINT));
+        tag.putBoolean("PairingDormant", entityData.get(PAIRING_DORMANT));
         if (excludedPlayerId != null) tag.putUUID("ExcludedPlayer", excludedPlayerId);
         tag.putBoolean("ExitPortal", exitPortal);
         tag.putDouble("HorizontalTriggerExtend", horizontalTriggerExtend);

@@ -17,6 +17,7 @@ final class PortalGuiSprites {
     static final ResourceLocation DRAIN_OFF = icon("drain_off");
     static final ResourceLocation PLACEMENT_SMART = icon("placement_smart");
     static final ResourceLocation PLACEMENT_FRONT = icon("placement_front");
+    static final ResourceLocation PLACEMENT_REMOTE = icon("placement_remote");
     static final ResourceLocation PLACEMENT_SURFACE = icon("placement_surface");
     static final ResourceLocation PLACEMENT_ENTITY_RELOCATION = icon("placement_entity_relocation");
     static final ResourceLocation PREDICTION_ON = icon("prediction_on");

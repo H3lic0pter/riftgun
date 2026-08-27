@@ -64,6 +64,14 @@ public final class ClientModEvents {
         "key.riftgun.entity_relocation", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
         RIFTGUN_CATEGORY
     );
+    public static final KeyMapping PORTAL_PAIRING_OPERATION = new KeyMapping(
+        "key.riftgun.portal_pairing_operation", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        RIFTGUN_CATEGORY
+    );
+    public static final KeyMapping TOGGLE_FUNCTION_MODE = new KeyMapping(
+        "key.riftgun.toggle_function_mode", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        RIFTGUN_CATEGORY
+    );
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
@@ -94,6 +102,8 @@ public final class ClientModEvents {
         event.register(FORCE_SURFACE);
         event.register(CLOSE_PORTALS);
         event.register(ENTITY_RELOCATION);
+        event.register(PORTAL_PAIRING_OPERATION);
+        event.register(TOGGLE_FUNCTION_MODE);
     }
 
     @SubscribeEvent

@@ -25,6 +25,10 @@ final class GuiCaptureHarness {
                 minecraft.resizeDisplay();
             }
         }
+        if (Boolean.getBoolean("riftgun.radialCapture")) {
+            tickRadialCapture(minecraft);
+            return;
+        }
         if (ticks == 40) openRepresentativeScreen();
         if (ticks == 70) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui"), minecraft.getMainRenderTarget(),
@@ -140,12 +144,31 @@ final class GuiCaptureHarness {
         }
     }
 
+    private static void tickRadialCapture(Minecraft minecraft) {
+        if (ticks == 40) {
+            openRepresentativeState(false);
+            minecraft.setScreen(new dev.riftgun.client.screen.ModeRadialScreen());
+        }
+        if (ticks == 45 || ticks == 70 || ticks == 120) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-mode-radial-tick-" + ticks),
+                minecraft.getMainRenderTarget(), message -> {});
+        }
+        if (ticks == 130) {
+            completed = true;
+            minecraft.stop();
+        }
+    }
+
     private static String screenshotName(String prefix) {
         int scale = Integer.getInteger("riftgun.guiCaptureScale", 0);
         return prefix + (scale > 0 ? "-scale-" + scale : "-qa") + ".png";
     }
 
     private static void openRepresentativeScreen() {
+        openRepresentativeState(true);
+    }
+
+    private static void openRepresentativeState(boolean openScreen) {
         PortalPlayerData sample = new PortalPlayerData();
         UUID labs = UUID.randomUUID();
         sample.groups().add(new DestinationGroup(labs, "Citadel Labs", 0));
@@ -168,7 +191,7 @@ final class GuiCaptureHarness {
         sample.recordSafetyResult(home.id(), false);
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Snapshot");
-        envelope.putBoolean("OpenScreen", true);
+        envelope.putBoolean("OpenScreen", openScreen);
         envelope.put("Data", sample.save());
         CompoundTag gun = new CompoundTag();
         gun.putInt("Amount", 15000);
@@ -192,6 +215,10 @@ final class GuiCaptureHarness {
         gun.putBoolean("FallGuardEnabled", true);
         gun.putBoolean("FallGuardEntitiesEnabled", false);
         gun.putBoolean("EntityRelocationEnabled", true);
+        gun.putBoolean("PortalPairingInstalled", true);
+        gun.putString("FunctionMode", "PORTAL_PAIRING");
+        gun.putString("CoordinateSmartFallback", "FRONT");
+        gun.putString("PairingSmartFallback", "REMOTE");
         CompoundTag modules = new CompoundTag();
         modules.putInt("COORDINATE_OVERRIDE", 1);
         modules.putInt("RESERVOIR_EXPANSION", 2);
@@ -202,6 +229,7 @@ final class GuiCaptureHarness {
         modules.putInt("SURFACE_RANGE", 3);
         modules.putInt("APERTURE_EXPANSION", 1);
         modules.putInt("PLAYER_TARGET", 1);
+        modules.putInt("PORTAL_PAIRING", 1);
         gun.put("Modules", modules);
         envelope.put("Gun", gun);
         envelope.put("ModuleRules", PortalModuleRules.defaults().save());

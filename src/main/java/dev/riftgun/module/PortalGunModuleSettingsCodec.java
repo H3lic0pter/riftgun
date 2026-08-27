@@ -3,6 +3,7 @@ package dev.riftgun.module;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.pairing.PortalPairingSettings;
 import dev.riftgun.relocation.EntityRelocationSettings;
 
 /** Compatibility adapter between the grouped domain model and the original flat data schema. */
@@ -24,6 +25,7 @@ final class PortalGunModuleSettingsCodec {
         int transitCooldownTenths,
         boolean entityRelocationEnabled,
         boolean entityRelocationSmartRouting,
+        PortalPairingSettings portalPairing,
         boolean fallGuardEnabled,
         boolean fallGuardEntitiesEnabled
     ) {
@@ -52,6 +54,8 @@ final class PortalGunModuleSettingsCodec {
                 .forGetter(Stored::entityRelocationEnabled),
             Codec.BOOL.optionalFieldOf("entity_relocation_smart_routing", false)
                 .forGetter(Stored::entityRelocationSmartRouting),
+            PortalPairingSettings.CODEC.optionalFieldOf("portal_pairing", PortalPairingSettings.defaults())
+                .forGetter(Stored::portalPairing),
             Codec.BOOL.optionalFieldOf("fall_guard_enabled", true).forGetter(Stored::fallGuardEnabled),
             Codec.BOOL.optionalFieldOf("fall_guard_entities_enabled", false)
                 .forGetter(Stored::fallGuardEntitiesEnabled)
@@ -65,6 +69,7 @@ final class PortalGunModuleSettingsCodec {
                 new PortalGunModuleSettings.Duration(portalDurationSeconds), expandedApertureEnabled,
                 new PortalGunModuleSettings.PlayerTarget(playerTargetEnabled, playerExcludeMode),
                 new EntityRelocationSettings(entityRelocationEnabled, entityRelocationSmartRouting),
+                portalPairing,
                 fallGuardEnabled, fallGuardEntitiesEnabled);
         }
 
@@ -76,6 +81,7 @@ final class PortalGunModuleSettingsCodec {
                 settings.expandedApertureEnabled(), settings.playerTargetEnabled(),
                 settings.playerExcludeMode(), settings.transitCooldownTenths(),
                 settings.entityRelocation().enabled(), settings.entityRelocation().smartRouting(),
+                settings.portalPairing(),
                 settings.fallGuardEnabled(), settings.fallGuardEntitiesEnabled());
         }
     }

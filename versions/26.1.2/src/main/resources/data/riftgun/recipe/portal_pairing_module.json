@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["QEQ", "RMR", "QCQ"],
+  "key": {
+    "Q": "minecraft:quartz",
+    "E": "minecraft:ender_pearl",
+    "R": "#c:dusts/redstone",
+    "M": "riftgun:basic_module",
+    "C": "minecraft:compass"
+  },
+  "result": { "id": "riftgun:portal_pairing_module", "count": 1 }
+}

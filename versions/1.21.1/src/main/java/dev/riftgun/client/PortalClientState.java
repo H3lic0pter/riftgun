@@ -5,6 +5,7 @@ import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.service.PortalShortcutGunMode;
 
 public final class PortalClientState {
     private static PortalPlayerData data = new PortalPlayerData();
@@ -13,6 +14,8 @@ public final class PortalClientState {
     private static PortalModuleRules moduleRules = PortalModuleRules.defaults();
     private static CompoundTag randomRift = new CompoundTag();
     private static long randomRiftSnapshotNanos;
+    private static PortalShortcutGunMode shortcutGunMode = PortalShortcutGunMode.HELD_HANDS;
+    private static float horizontalPortalPitch = 78.0F;
 
     public static PortalPlayerData data() {
         return data;
@@ -31,6 +34,9 @@ public final class PortalClientState {
             randomRift = envelope.contains("RandomRift")
                 ? envelope.getCompound("RandomRift").copy() : new CompoundTag();
             randomRiftSnapshotNanos = System.nanoTime();
+            shortcutGunMode = parseShortcutGunMode(envelope.getString("ShortcutGunMode"));
+            horizontalPortalPitch = envelope.contains("HorizontalPortalPitch")
+                ? envelope.getFloat("HorizontalPortalPitch") : 78.0F;
             if (envelope.getBoolean("OpenScreen")) {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PortalConfigScreen());
             } else if (envelope.getBoolean("OpenRadial")) {
@@ -88,6 +94,22 @@ public final class PortalClientState {
         int receivedTicks = randomRift.getInt("CooldownTicks");
         long elapsedTicks = Math.max(0L, System.nanoTime() - randomRiftSnapshotNanos) / 50_000_000L;
         return (int) Math.max(0L, receivedTicks - elapsedTicks);
+    }
+
+    public static PortalShortcutGunMode shortcutGunMode() {
+        return shortcutGunMode;
+    }
+
+    public static float horizontalPortalPitch() {
+        return horizontalPortalPitch;
+    }
+
+    private static PortalShortcutGunMode parseShortcutGunMode(String name) {
+        try {
+            return PortalShortcutGunMode.valueOf(name);
+        } catch (IllegalArgumentException ignored) {
+            return PortalShortcutGunMode.HELD_HANDS;
+        }
     }
 
     private PortalClientState() {}

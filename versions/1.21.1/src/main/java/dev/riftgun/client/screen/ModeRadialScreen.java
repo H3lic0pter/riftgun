@@ -7,6 +7,8 @@ import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.math.RadialModeGeometry;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.pairing.PortalFunctionMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,13 +32,18 @@ public final class ModeRadialScreen extends Screen {
     private int lastAudibleSelection = -1;
     private final long openedNanos = System.nanoTime();
     private boolean cancelled;
+    private PortalFunctionMode functionMode;
 
     public ModeRadialScreen() {
         super(Component.translatable("screen.riftgun.mode_radial.title"));
+        functionMode = parseFunctionMode(Nbt.getString(PortalClientState.gun(), "FunctionMode"));
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // 1.21.1 Screen.render applies the background blur. Run it first so the
+        // blur never samples the radial UI drawn below.
+        super.render(graphics, mouseX, mouseY, partialTick);
         graphics.fill(0, 0, width, height, 0x78101115);
         List<?> options = options();
         OptionalInt hovered = RadialModeGeometry.selectionIndex(
@@ -51,15 +58,17 @@ public final class ModeRadialScreen extends Screen {
         drawRing(graphics, options.size(), animation);
         drawOptions(graphics, options);
         drawCenter(graphics);
-        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     public void commitAndClose() {
-        if (!cancelled && selection >= 0) {
-            Object mode = options().get(selection);
+        if (!cancelled) {
             PortalNetworking.sendShortcutRequest(PortalAction.SET_RADIAL_MODE, tag -> {
-                tag.putString("Page", page.name());
-                tag.putString("Mode", ((Enum<?>) mode).name());
+                tag.putString("FunctionMode", functionMode.name());
+                if (selection >= 0) {
+                    Object mode = options().get(selection);
+                    tag.putString("Page", page.name());
+                    tag.putString("Mode", ((Enum<?>) mode).name());
+                }
             });
         }
         if (minecraft != null) minecraft.setScreen(null);
@@ -67,7 +76,10 @@ public final class ModeRadialScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 1) {
+        if (button == 0 && PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
+            functionMode = functionMode.toggle();
+            playUi(functionMode == PortalFunctionMode.PORTAL_PAIRING ? 1.15F : 0.85F);
+        } else if (button == 1) {
             page = page == Page.PLACEMENT ? Page.PREDICTION : Page.PLACEMENT;
             selection = -1;
             lastAudibleSelection = -1;
@@ -104,6 +116,9 @@ public final class ModeRadialScreen extends Screen {
         if (!PortalClientState.gun().getBoolean("EntityRelocationEnabled")) {
             modes.remove(PortalPlacementMode.ENTITY_RELOCATION);
         }
+        if (!PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
+            modes.remove(PortalPlacementMode.REMOTE);
+        }
         return modes;
     }
 
@@ -116,7 +131,13 @@ public final class ModeRadialScreen extends Screen {
                 int distanceSquared = x * x + y * y;
                 if (distanceSquared < INNER_RADIUS * INNER_RADIUS || distanceSquared > outer * outer) continue;
                 int index = RadialModeGeometry.selectionIndex(x, y, count, INNER_RADIUS).orElse(-1);
-                int color = index == selection ? 0xDC416775 : (index & 1) == 0 ? 0xD825272D : 0xD830333A;
+                int selected = functionMode == PortalFunctionMode.PORTAL_PAIRING
+                    ? 0xDC84502D : 0xDC416775;
+                int baseA = functionMode == PortalFunctionMode.PORTAL_PAIRING
+                    ? 0xD82F2925 : 0xD825272D;
+                int baseB = functionMode == PortalFunctionMode.PORTAL_PAIRING
+                    ? 0xD83A3028 : 0xD830333A;
+                int color = index == selection ? selected : (index & 1) == 0 ? baseA : baseB;
                 graphics.fill(centerX + x, centerY + y, centerX + x + SAMPLE, centerY + y + SAMPLE, color);
             }
         }
@@ -147,11 +168,15 @@ public final class ModeRadialScreen extends Screen {
         int centerY = height / 2;
         Component pageLabel = Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.placement" : "screen.riftgun.mode_radial.prediction");
-        centeredText(graphics, pageLabel, centerX, centerY - 10, PortalTheme.ICE);
+        centeredText(graphics, Component.translatable("screen.riftgun.function_mode."
+            + functionMode.name().toLowerCase(Locale.ROOT)), centerX, centerY - 18,
+            functionMode == PortalFunctionMode.PORTAL_PAIRING ? PortalTheme.AMBER : PortalTheme.ICE);
+        centeredText(graphics, pageLabel, centerX, centerY - 7,
+            functionMode == PortalFunctionMode.PORTAL_PAIRING ? PortalTheme.AMBER : PortalTheme.ICE);
         Object current = selection >= 0 ? options().get(selection)
             : page == Page.PLACEMENT ? PortalClientState.data().settings().placementMode()
                 : PortalClientState.data().settings().predictionMode();
-        centeredWrappedText(graphics, label(current), centerX, centerY + 3, 80, PortalTheme.TEXT);
+        centeredWrappedText(graphics, label(current), centerX, centerY + 6, 80, PortalTheme.TEXT);
         centeredText(graphics, Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.switch_prediction" : "screen.riftgun.mode_radial.switch_placement"),
             centerX, centerY + OUTER_RADIUS + 12, PortalTheme.TEXT_MUTED);
@@ -187,6 +212,14 @@ public final class ModeRadialScreen extends Screen {
     private void playUi(float pitch) {
         if (minecraft != null && PortalClientState.data().settings().soundsEnabled()) {
             minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, pitch));
+        }
+    }
+
+    private static PortalFunctionMode parseFunctionMode(String value) {
+        try {
+            return PortalFunctionMode.valueOf(value);
+        } catch (IllegalArgumentException ignored) {
+            return PortalFunctionMode.COORDINATE_TRAVEL;
         }
     }
 

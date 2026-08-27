@@ -57,6 +57,10 @@ public final class PortalGunSnapshot {
             gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0);
         tag.putBoolean("EntityRelocationEnabled", capabilities.entityRelocation());
         tag.putBoolean("EntityRelocationSmartRouting", settings.entityRelocation().smartRouting());
+        tag.putBoolean("PortalPairingInstalled", capabilities.portalPairing());
+        tag.putString("FunctionMode", capabilities.functionMode().name());
+        tag.putString("CoordinateSmartFallback", settings.portalPairing().coordinateSmartFallback().name());
+        tag.putString("PairingSmartFallback", settings.portalPairing().pairingSmartFallback().name());
         CompoundTag modules = new CompoundTag();
         for (PortalModuleKind kind : PortalModuleKind.values()) {
             modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));

@@ -25,6 +25,7 @@
       "riftgun:passive_transit_module",
       "riftgun:projectile_transit_module",
       "riftgun:player_target_module",
+      "riftgun:portal_pairing_module",
       "riftgun:portal_aperture_module",
       "riftgun:reservoir_expansion_module",
       "riftgun:surface_range_amplifier",

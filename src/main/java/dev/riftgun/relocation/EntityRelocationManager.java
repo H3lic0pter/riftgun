@@ -23,7 +23,11 @@ import dev.riftgun.fuel.PortalFuelProfiles;
 import dev.riftgun.fuel.PortalFuelUse;
 import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.pairing.PortalFunctionMode;
+import dev.riftgun.pairing.PortalPairingEndpoint;
 import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.portal.PortalOwnerIndex;
+import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalProjectileState;
@@ -111,15 +115,19 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         RiftConfig.RelocationConfig relocationConfig = config.relocation();
         EntityRelocationTree tree = EntityRelocationTree.capture(target);
         List<Entity> treeMembers = tree.members(target);
-        ResolvedDestination destination = resolveDestination(server, data);
+        ItemStack gun = locatedGun.stack();
+        UUID gunId = PortalGunIdentity.ensure(gun);
+        ResolvedDestination destination = resolveDestination(
+            server, data, capabilities.functionMode(), owner, gunId);
         if (destination == null) {
-            message(owner, "message.riftgun.no_destination_selected");
+            message(owner, capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING
+                ? "message.riftgun.pairing_target_required"
+                : "message.riftgun.no_destination_selected");
             return true;
         }
         List<PermissionRequirement> permissions = permissionRequirements(
             server, owner, treeMembers, destination);
         if (permissions == null) return true;
-        ItemStack gun = locatedGun.stack();
         PortalGunFuelStore fuelStore = RiftFuelStores.open(gun);
         PortalFluidContent storedFuel = fuelStore.content();
         var profileResult = PortalFuelProfiles.resolve(storedFuel.fluid());
@@ -129,7 +137,6 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             return true;
         }
         EntityRelocationRegistry state = registry();
-        UUID gunId = PortalGunIdentity.ensure(gun);
         PortalFuelProfile profile = profileResult.orElseGet(PortalFuelProfiles::dimensional);
         if (!owner.level().dimension().equals(destination.dimension()) && !profile.crossDimension()) {
             message(owner, "message.riftgun.fuel_dimension_denied");
@@ -572,7 +579,9 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
     private static @Nullable ResolvedDestination refreshPreparedDestination(
             MinecraftServer server, @Nullable ServerPlayer owner,
             ResolvedDestination original) {
-        if (original.playerId() != null) return original.refresh(server);
+        if (original.playerId() != null || original.fixedPortalId() != null) {
+            return original.refresh(server);
+        }
         if (owner == null || original.savedDestinationId() == null) return null;
         Destination saved = PortalDataStore.load(owner).destination(original.savedDestinationId())
             .orElse(null);
@@ -765,6 +774,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             PortalSounds.playTransit(targetLevel, moved.position(), tx.sounds());
         }
         registry().complete(tx.reservation(), now);
+        resetFixedTarget(server, tx.destination());
         if (partial) {
             ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
             if (owner != null) message(owner, "message.riftgun.entity_relocation_tree_incomplete");
@@ -867,6 +877,19 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
                                              ResolvedDestination destination,
                                              @Nullable PortalCrisisPlan crisis) {
         double treeHeight = tree.metrics(target).height();
+        if (destination.fixedPlacement() != null) {
+            PortalPlacement placement = destination.fixedPlacement();
+            Vec3 output = switch (placement.orientation()) {
+                case VERTICAL -> placement.center().add(placement.normal().scale(0.85))
+                    .subtract(placement.up().scale(placement.geometry().height() * 0.5));
+                case TOP -> placement.center().add(placement.normal().scale(0.15));
+                case BOTTOM -> placement.center().add(placement.normal().scale(treeHeight + 0.15));
+            };
+            return new PreparedRoute(destination.dimension(), placement.center(),
+                placement.orientation(), placement.yaw(), output,
+                relocationMomentum(target, target.getDeltaMovement(),
+                    placement.orientation(), placement.yaw()), output, crisis, false);
+        }
         if (destination.playerId() != null) {
             return new PreparedRoute(destination.dimension(), destination.playerExitCenter(),
                 PortalOrientation.BOTTOM, destination.yaw(),
@@ -1015,7 +1038,18 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
     }
 
     private static @Nullable ResolvedDestination resolveDestination(MinecraftServer server,
-                                                                    PortalPlayerData data) {
+                                                                    PortalPlayerData data,
+                                                                    PortalFunctionMode functionMode,
+                                                                    ServerPlayer owner,
+                                                                    UUID gunId) {
+        if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
+            return PortalOwnerIndex.owned(server, owner.getUUID()).stream()
+                .filter(portal -> gunId.equals(portal.pairingGunId()))
+                .filter(portal -> portal.pairingEndpoint() == PortalPairingEndpoint.ENTITY_TARGET)
+                .filter(portal -> portal.phase() != dev.riftgun.portal.PortalLifecycle.Phase.CLOSING
+                    && portal.phase() != dev.riftgun.portal.PortalLifecycle.Phase.CLOSED)
+                .findFirst().map(ResolvedDestination::fixed).orElse(null);
+        }
         UUID playerId = data.selectedPlayerId();
         if (playerId != null) {
             ServerPlayer target = server.getPlayerList().getPlayer(playerId);
@@ -1025,6 +1059,15 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         UUID destinationId = data.selectedDestinationId();
         Destination destination = destinationId == null ? null : data.destination(destinationId).orElse(null);
         return destination == null ? null : ResolvedDestination.saved(destination);
+    }
+
+    private static void resetFixedTarget(MinecraftServer server, ResolvedDestination destination) {
+        ResolvedDestination refreshed = destination.fixedPortalId() == null
+            ? null : destination.refresh(server);
+        if (refreshed == null) return;
+        ServerLevel level = server.getLevel(refreshed.dimension());
+        Entity entity = level == null ? null : level.getEntity(refreshed.fixedPortalId());
+        if (entity instanceof PortalEntity portal) portal.resetPairingDuration();
     }
 
     private static Vec3 feetCenter(Entity target) {
@@ -1080,16 +1123,23 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
     record ResolvedDestination(net.minecraft.resources.ResourceKey<Level> dimension,
                                        Vec3 position, float yaw, @Nullable UUID playerId,
                                        @Nullable UUID savedDestinationId,
-                                       @Nullable Vec3 visualExitCenter) {
+                                       @Nullable Vec3 visualExitCenter,
+                                       @Nullable UUID fixedPortalId,
+                                       @Nullable PortalPlacement fixedPlacement) {
         static ResolvedDestination saved(Destination destination) {
             return new ResolvedDestination(destination.dimension(), destination.position(), destination.yaw(),
-                null, destination.id(), null);
+                null, destination.id(), null, null, null);
         }
 
         static ResolvedDestination player(UUID playerId, ServerPlayer player) {
             return new ResolvedDestination(player.level().dimension(), player.position(), player.getYRot(),
                 playerId, null, EntityRelocationGeometry.playerDestinationExitCenter(
-                    player.position(), player.getBoundingBox().maxY));
+                    player.position(), player.getBoundingBox().maxY), null, null);
+        }
+
+        static ResolvedDestination fixed(PortalEntity portal) {
+            return new ResolvedDestination(portal.level().dimension(), portal.position(),
+                portal.getYRot(), null, null, null, portal.getUUID(), portal.placement());
         }
 
         @Nullable ServerPlayer resolvePlayer(MinecraftServer server) {
@@ -1097,6 +1147,13 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
 
         @Nullable ResolvedDestination refresh(MinecraftServer server) {
+            if (fixedPortalId != null) {
+                ServerLevel level = server.getLevel(dimension);
+                Entity entity = level == null ? null : level.getEntity(fixedPortalId);
+                return entity instanceof PortalEntity portal && !portal.isRemoved()
+                    && portal.pairingEndpoint() == PortalPairingEndpoint.ENTITY_TARGET
+                    ? fixed(portal) : null;
+            }
             if (playerId == null) return this;
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);
             return player == null ? null : player(playerId, player);

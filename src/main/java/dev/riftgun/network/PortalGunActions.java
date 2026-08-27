@@ -16,6 +16,8 @@ import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.relocation.EntityRelocationRouting;
+import dev.riftgun.pairing.PortalFloatingFallback;
+import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.sound.PortalSoundSettings;
 import java.util.Locale;
 import net.minecraft.nbt.CompoundTag;
@@ -29,10 +31,9 @@ final class PortalGunActions {
     static boolean cyclePlacementMode(ServerPlayer player, PortalPlayerData data, ItemStack gun,
                                       boolean reverse) {
         PortalPlayerSettings old = data.settings();
-        boolean relocationAvailable = PortalGunCapabilities.resolve(
-            gun, old.smartDistance()).entityRelocation();
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, old.smartDistance());
         PortalPlacementMode next = adjacentAvailableMode(
-            old.placementMode(), reverse, relocationAvailable);
+            old.placementMode(), reverse, capabilities.entityRelocation(), capabilities.portalPairing());
         data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(),
             old.soundsEnabled(), old.sort(), next, old.smartDistance(), old.predictionMode(),
@@ -45,8 +46,15 @@ final class PortalGunActions {
 
     static PortalPlacementMode adjacentAvailableMode(PortalPlacementMode current, boolean reverse,
                                                        boolean relocationAvailable) {
+        return adjacentAvailableMode(current, reverse, relocationAvailable, true);
+    }
+
+    static PortalPlacementMode adjacentAvailableMode(PortalPlacementMode current, boolean reverse,
+                                                       boolean relocationAvailable,
+                                                       boolean remoteAvailable) {
         PortalPlacementMode candidate = reverse ? current.previous() : current.next();
-        if (candidate == PortalPlacementMode.ENTITY_RELOCATION && !relocationAvailable) {
+        while ((candidate == PortalPlacementMode.ENTITY_RELOCATION && !relocationAvailable)
+            || (candidate == PortalPlacementMode.REMOTE && !remoteAvailable)) {
             candidate = reverse ? candidate.previous() : candidate.next();
         }
         return candidate;
@@ -55,8 +63,22 @@ final class PortalGunActions {
     static boolean setRadialMode(ServerPlayer player, PortalPlayerData data, ItemStack gun,
                                  CompoundTag request) {
         PortalPlayerSettings old = data.settings();
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, old.smartDistance());
+        PortalGunModuleSettings gunSettings = PortalGunModuleSettings.ensure(gun, old.smartDistance());
+        PortalFunctionMode requestedFunction = gunSettings.portalPairing().functionMode();
+        if (request.contains("FunctionMode")) {
+            try {
+                requestedFunction = PortalFunctionMode.valueOf(Nbt.getString(request, "FunctionMode"));
+            } catch (IllegalArgumentException exception) {
+                throw PortalRequestFields.error("message.riftgun.invalid_request");
+            }
+            if (requestedFunction == PortalFunctionMode.PORTAL_PAIRING && !capabilities.portalPairing()) {
+                throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+            }
+        }
         String page = Nbt.getString(request, "Page");
         String value = Nbt.getString(request, "Mode");
+        PortalPlayerSettings nextPlayer = old;
         if (page.equals("PLACEMENT")) {
             PortalPlacementMode mode;
             try {
@@ -65,36 +87,70 @@ final class PortalGunActions {
                 throw PortalRequestFields.error("message.riftgun.invalid_request");
             }
             if (mode == PortalPlacementMode.ENTITY_RELOCATION
-                && !PortalGunCapabilities.resolve(gun, old.smartDistance()).entityRelocation()) {
+                && !capabilities.entityRelocation()) {
                 throw PortalRequestFields.error("message.riftgun.entity_relocation_module_required");
             }
-            if (mode == old.placementMode()) return false;
-            data.settings(old.withPlacementMode(mode));
-            return true;
-        }
-        if (page.equals("PREDICTION")) {
+            if (mode == PortalPlacementMode.REMOTE && !capabilities.portalPairing()) {
+                throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+            }
+            nextPlayer = old.withPlacementMode(mode);
+        } else if (page.equals("PREDICTION")) {
             PortalPredictionMode mode;
             try {
                 mode = PortalPredictionMode.valueOf(value);
             } catch (IllegalArgumentException exception) {
                 throw PortalRequestFields.error("message.riftgun.invalid_request");
             }
-            if (mode == old.predictionMode()) return false;
-            PortalPlayerSettings next = old.withPredictionMode(mode);
-            data.settings(next);
-            RiftRuntime.current().motionHistory().setPredictionEnabled(player,
-                mode != PortalPredictionMode.OFF);
-            return true;
+            nextPlayer = old.withPredictionMode(mode);
+        } else if (!page.isEmpty()) {
+            throw PortalRequestFields.error("message.riftgun.invalid_request");
         }
-        throw PortalRequestFields.error("message.riftgun.invalid_request");
+        boolean playerChanged = !nextPlayer.equals(old);
+        boolean functionChanged = requestedFunction != gunSettings.portalPairing().functionMode();
+        if (playerChanged) data.settings(nextPlayer);
+        if (functionChanged) {
+            gunSettings.withPortalPairing(
+                gunSettings.portalPairing().withFunctionMode(requestedFunction)).save(gun);
+        }
+        if (page.equals("PREDICTION") && playerChanged) {
+            RiftRuntime.current().motionHistory().setPredictionEnabled(player,
+                nextPlayer.predictionMode() != PortalPredictionMode.OFF);
+        }
+        return playerChanged || functionChanged;
     }
 
-    static boolean updatePlayerSettings(ServerPlayer player, PortalPlayerData data, CompoundTag request) {
+    static boolean toggleFunctionMode(ServerPlayer player, PortalPlayerData data, ItemStack gun) {
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, data.settings().smartDistance());
+        if (!capabilities.portalPairing()) {
+            throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+        }
+        PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, data.settings().smartDistance());
+        PortalFunctionMode next = settings.portalPairing().functionMode().toggle();
+        settings.withPortalPairing(settings.portalPairing().withFunctionMode(next)).save(gun);
+        Msg.displayClientMessage(player, Component.translatable("message.riftgun.function_mode",
+            Component.translatable("screen.riftgun.function_mode."
+                + next.name().toLowerCase(Locale.ROOT))), true);
+        return true;
+    }
+
+    static boolean updatePlayerSettings(ServerPlayer player, PortalPlayerData data,
+                                        CompoundTag request, ItemStack gun) {
         DestinationSort sort;
         try {
             sort = DestinationSort.valueOf(Nbt.getString(request, "Sort"));
         } catch (IllegalArgumentException ignored) {
             sort = DestinationSort.RECENT;
+        }
+        PortalPlacementMode placementMode = PortalPlacementMode.parse(
+            Nbt.getString(request, "PlacementMode"));
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun, data.settings().smartDistance());
+        if (placementMode == PortalPlacementMode.REMOTE && !capabilities.portalPairing()) {
+            throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+        }
+        if (placementMode == PortalPlacementMode.ENTITY_RELOCATION
+            && !capabilities.entityRelocation()) {
+            throw PortalRequestFields.error("message.riftgun.entity_relocation_module_required");
         }
         PortalPlayerSettings settings = new PortalPlayerSettings(
             Nbt.getBoolean(request, "SafetyCheck"),
@@ -104,7 +160,7 @@ final class PortalGunActions {
             Nbt.getBoolean(request, "Animations"),
             Nbt.getBoolean(request, "Sounds"),
             sort,
-            PortalPlacementMode.parse(Nbt.getString(request, "PlacementMode")),
+            placementMode,
             data.settings().smartDistance(),
             PortalPredictionMode.parse(Nbt.getString(request, "MotionPrediction"), PortalPredictionMode.OFF),
             Nbt.contains(request, "PortalSounds", Tag.TAG_COMPOUND)
@@ -189,6 +245,20 @@ final class PortalGunActions {
                 requireModule(gun, PortalModuleKind.ENTITY_RELOCATION, rules,
                     "message.riftgun.entity_relocation_module_required");
                 settings = settings.withEntityRelocationSmartRouting(Nbt.getBoolean(request, "Enabled"));
+            }
+            case "CoordinateSmartFallback", "PairingSmartFallback" -> {
+                requireModule(gun, PortalModuleKind.PORTAL_PAIRING, rules,
+                    "message.riftgun.portal_pairing_module_required");
+                PortalFloatingFallback fallback;
+                try {
+                    fallback = PortalFloatingFallback.valueOf(Nbt.getString(request, "Value"));
+                } catch (IllegalArgumentException exception) {
+                    throw PortalRequestFields.error("message.riftgun.invalid_request");
+                }
+                var pairing = settings.portalPairing();
+                settings = settings.withPortalPairing(setting.equals("CoordinateSmartFallback")
+                    ? pairing.withCoordinateSmartFallback(fallback)
+                    : pairing.withPairingSmartFallback(fallback));
             }
             default -> throw PortalRequestFields.error("message.riftgun.invalid_request");
         }

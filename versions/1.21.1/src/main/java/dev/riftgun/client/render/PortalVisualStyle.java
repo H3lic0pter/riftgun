@@ -19,6 +19,12 @@ public record PortalVisualStyle(int splashRgb, int surfaceColor, int borderColor
             0xFF000000 | mixWithWhite(rgb, 0.62F));
     }
 
+    public PortalVisualStyle dimmed() {
+        return new PortalVisualStyle(scale(splashRgb, 0.38F),
+            0xFF000000 | scale(surfaceColor & 0xFFFFFF, 0.38F),
+            0xFF000000 | scale(borderColor & 0xFFFFFF, 0.55F));
+    }
+
     private static int scale(int rgb, float factor) {
         int red = Math.min(255, Math.round(((rgb >> 16) & 255) * factor));
         int green = Math.min(255, Math.round(((rgb >> 8) & 255) * factor));

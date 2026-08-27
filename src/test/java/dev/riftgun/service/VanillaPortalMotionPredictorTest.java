@@ -61,7 +61,7 @@ final class VanillaPortalMotionPredictorTest {
     void downshotKeepsCompleteJumpTrajectory() {
         Vec3 result = VanillaPortalMotionPredictor.ordinaryAirborne(
             new Vec3(0.25, 0.42, 0.0), 0.42, 0.08, false, -1,
-            PortalMotionPredictor.Purpose.DOWN_SHOT, 11, 16.0);
+            PortalMotionPredictor.Purpose.HORIZONTAL, 11, 16.0);
 
         assertEquals(2.75, result.x, 1.0E-8);
         assertTrue(result.y > 0.0);
@@ -118,8 +118,11 @@ final class VanillaPortalMotionPredictorTest {
 
     @Test
     void downshotStartsAtConfiguredPitchBoundary() {
-        assertTrue(VanillaPortalPlacementResolver.usesDownshot(78.0F, 78.0F));
-        assertTrue(VanillaPortalPlacementResolver.usesDownshot(90.0F, 78.0F));
-        assertFalse(VanillaPortalPlacementResolver.usesDownshot(77.99F, 78.0F));
+        assertEquals(dev.riftgun.portal.PortalOrientation.TOP,
+            VanillaPortalPlacementResolver.horizontalOrientation(78.0F, 78.0F));
+        assertEquals(dev.riftgun.portal.PortalOrientation.BOTTOM,
+            VanillaPortalPlacementResolver.horizontalOrientation(-90.0F, 78.0F));
+        assertEquals(dev.riftgun.portal.PortalOrientation.VERTICAL,
+            VanillaPortalPlacementResolver.horizontalOrientation(77.99F, 78.0F));
     }
 }

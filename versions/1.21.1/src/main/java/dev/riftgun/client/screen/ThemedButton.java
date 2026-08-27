@@ -16,6 +16,10 @@ final class ThemedButton extends AbstractButton {
     private final boolean portalAction;
     private float hoverProgress;
     private boolean horizontalMarquee;
+    private int accentBase;
+    private int accentHover;
+    private int accentText;
+    private boolean accented;
 
     ThemedButton(int x, int y, int width, int height, Component message,
                  boolean portalAction, Consumer<ThemedButton> press) {
@@ -29,6 +33,14 @@ final class ThemedButton extends AbstractButton {
         return this;
     }
 
+    ThemedButton accented(int base, int hover, int text) {
+        accentBase = base;
+        accentHover = hover;
+        accentText = text;
+        accented = true;
+        return this;
+    }
+
     @Override
     public void onPress() {
         press.accept(this);
@@ -39,12 +51,12 @@ final class ThemedButton extends AbstractButton {
         float target = isHoveredOrFocused() && active ? 1.0F : 0.0F;
         float speed = PortalClientState.data().settings().animationsEnabled() ? 0.22F : 1.0F;
         hoverProgress = Mth.lerp(speed, hoverProgress, target);
-        int base = portalAction ? 0xFF315D38 : PortalTheme.PANEL_RAISED;
-        int hover = portalAction ? PortalTheme.PORTAL : PortalTheme.PANEL_HOVER;
+        int base = accented ? accentBase : portalAction ? 0xFF315D38 : PortalTheme.PANEL_RAISED;
+        int hover = accented ? accentHover : portalAction ? PortalTheme.PORTAL : PortalTheme.PANEL_HOVER;
         int color = active ? lerpColor(base, hover, hoverProgress) : 0xFF202126;
         graphics.fill(getX(), getY(), getX() + width, getY() + height, color);
         graphics.renderOutline(getX(), getY(), width, height, PortalTheme.BORDER);
-        int textColor = active ? PortalTheme.TEXT : 0xFF777777;
+        int textColor = active ? accented ? accentText : PortalTheme.TEXT : 0xFF777777;
         if (horizontalMarquee) renderMarquee(graphics, textColor);
         else renderString(graphics, Minecraft.getInstance().font, textColor);
     }

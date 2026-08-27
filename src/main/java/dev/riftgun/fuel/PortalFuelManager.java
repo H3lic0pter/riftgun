@@ -14,6 +14,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public final class PortalFuelManager {
+    /** Resolves the gun's current profile without requiring or reserving one full portal charge. */
+    public static Plan recognizedProfile(ItemStack gun) {
+        PortalFluidContent stored = RiftFuelStores.open(gun).content();
+        Optional<PortalFuelProfile> resolved = PortalFuelProfiles.resolve(stored.fluid());
+        if (resolved.isPresent()) {
+            return Plan.success(selectRecognizedFuel(resolved.get(), hasInfiniteFuel(gun)));
+        }
+        if (hasInfiniteFuel(gun)) return Plan.success(virtualUse(PortalFuelProfiles.dimensional(), 0));
+        return Plan.failure("message.riftgun.fuel_empty");
+    }
+
     public static Plan plan(ServerPlayer player, ItemStack gun, ResourceKey<Level> destinationDimension) {
         PortalGunFuelStore store = RiftFuelStores.open(gun);
         PortalFluidContent stored = store.content();
@@ -75,6 +86,10 @@ public final class PortalFuelManager {
 
     static PortalFuelUse selectLoadedFuel(PortalFuelProfile profile, int amount, boolean infiniteFuel) {
         return infiniteFuel ? virtualUse(profile, 0) : new PortalFuelUse(profile, amount);
+    }
+
+    static PortalFuelUse selectRecognizedFuel(PortalFuelProfile profile, boolean infiniteFuel) {
+        return selectLoadedFuel(profile, 0, infiniteFuel);
     }
 
     public record Plan(PortalFuelUse use, String errorKey) {
