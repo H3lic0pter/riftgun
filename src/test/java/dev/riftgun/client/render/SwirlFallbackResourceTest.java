@@ -108,10 +108,12 @@ class SwirlFallbackResourceTest {
 
     @Test
     void legacyFallbackTextureExplicitlyClampsToEdge() throws IOException {
-        Path metadata = Path.of(TEXTURE + ".mcmeta");
+        Path metadata = Path.of("versions/1.21.1/src/main/resources/assets/riftgun/textures/"
+            + "entity/portal_surface.png.mcmeta");
         assertTrue(Files.isRegularFile(metadata));
         assertTrue(Pattern.compile("\\\"clamp\\\"\\s*:\\s*true")
             .matcher(Files.readString(metadata)).find());
+        assertFalse(Files.exists(Path.of(TEXTURE + ".mcmeta")));
     }
 
     private static int alpha(BufferedImage image, int x, int y) {

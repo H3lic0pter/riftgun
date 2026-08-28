@@ -81,8 +81,10 @@ final class EndframeShaderFallbackSourceTest {
     @Test
     void frameTextureDeclaresLegacyClampMetadata() throws IOException {
         String metadata = read(
-            "src/main/resources/assets/riftgun/textures/entity/portal_frame.png.mcmeta");
+            "versions/1.21.1/src/main/resources/assets/riftgun/textures/entity/portal_frame.png.mcmeta");
         assertTrue(metadata.matches("(?s).*\\\"clamp\\\"\\s*:\\s*true.*"));
+        assertFalse(Files.exists(Path.of(
+            "src/main/resources/assets/riftgun/textures/entity/portal_frame.png.mcmeta")));
     }
 
     private static String read(String path) throws IOException {
