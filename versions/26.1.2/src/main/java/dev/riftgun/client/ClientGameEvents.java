@@ -19,6 +19,7 @@ import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModules;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
+import dev.riftgun.portal.CoordinateNoteItem;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -125,6 +126,10 @@ public final class ClientGameEvents {
 
     @SubscribeEvent
     public static void itemTooltip(ItemTooltipEvent event) {
+        if (event.getItemStack().getItem() instanceof CoordinateNoteItem) {
+            CoordinateNoteTooltipStyle.removeItalics(event.getToolTip());
+            return;
+        }
         if (event.getItemStack().is(PortalModules.BASIC_MODULE.get())
             || event.getItemStack().is(PortalModules.ADVANCED_BASIC_MODULE.get())) {
             String description = event.getItemStack().is(PortalModules.ADVANCED_BASIC_MODULE.get())
