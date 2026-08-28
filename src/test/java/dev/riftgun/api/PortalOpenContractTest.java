@@ -14,12 +14,12 @@ final class PortalOpenContractTest {
         PortalOpenResult opened = PortalOpenResult.success();
         PortalOpenResult rejected = PortalOpenResult.rejected(
             PortalOpenStatus.NO_PORTAL_GUN,
-            Component.translatable("message.riftgun.portal_gun_required"));
+            Component.translatable("message.riftgun.no_portal_gun"));
 
         assertTrue(opened.opened());
         assertFalse(rejected.opened());
         assertEquals(PortalOpenStatus.NO_PORTAL_GUN, rejected.status());
-        assertEquals("message.riftgun.portal_gun_required", rejected.message().getString());
+        assertEquals("message.riftgun.no_portal_gun", rejected.message().getString());
         assertEquals(new RiftGunApiVersion(1, 2, 0), RiftGunApi.portals().version());
     }
 

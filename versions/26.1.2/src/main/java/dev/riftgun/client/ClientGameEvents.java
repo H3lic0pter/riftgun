@@ -150,6 +150,19 @@ public final class ClientGameEvents {
                 : definition.descriptionKey();
             event.getToolTip().add(Component.translatable(descriptionKey)
                 .withStyle(style -> style.withColor(0xA9D6A2)));
+            if (definition.kind() == PortalModuleKind.REMOTE) {
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.remote_module.scroll_control")
+                    .withStyle(ChatFormatting.GRAY));
+            }
+            if (definition.kind() == PortalModuleKind.PORTAL_PAIRING) {
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.portal_pairing_module.use")
+                    .withStyle(ChatFormatting.GRAY));
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.portal_pairing_module.shift_use")
+                    .withStyle(ChatFormatting.GRAY));
+            }
             event.getToolTip().add(Component.translatable("tooltip.riftgun.module.limit",
                 definition.maximumCount(PortalClientState.moduleRules()))
                 .withStyle(style -> style.withColor(0xE5A39C)));
