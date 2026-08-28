@@ -4,7 +4,6 @@ import dev.riftgun.client.recipe.FluidRecipeCache;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.render.PortalSplashEmitter;
-import dev.riftgun.client.render.PortalPlacementPreview;
 import dev.riftgun.client.external.ClientMapWaypointIntegration;
 import dev.riftgun.external.ExternalDestinationSelection;
 import dev.riftgun.config.ClientConfig;
@@ -50,7 +49,6 @@ public final class ClientGameEvents {
         if (nowConnected) refreshJourneyMapSelection(minecraft);
         GuiCaptureHarness.tick(minecraft);
         PortalSplashEmitter.tick(minecraft);
-        PortalPlacementPreview.tick(minecraft);
         ModeRadialInput.tick(minecraft);
         while (ClientModEvents.OPEN_CONFIG.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {

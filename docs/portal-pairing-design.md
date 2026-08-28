@@ -147,18 +147,15 @@ resolved fallback is FRONT.
 ### 5.3 SMART routing
 
 1. A block face hit within `smartDistance` routes to SURFACE.
-2. If that near surface is invalid or obstructed, placement fails; it does not
-   unexpectedly fall back to a floating door.
+2. If that near surface is invalid or obstructed, use the configured floating
+   fallback.
 3. A miss, or a hit beyond `smartDistance`, uses the per-function floating
    fallback (`FRONT` or `REMOTE`).
 
 ### 5.4 Client preview
 
-When the client satisfies the existing gun-availability rule, REMOTE and the
-pairing entity target show a lightweight projected outline at the candidate
-point. The preview shows vertical/TOP/BOTTOM orientation and A/B or target
-semantics, but does not duplicate the full portal renderer or claim final
-server validity. The server recomputes and validates every placement.
+Portal Pairing does not render a projected placement preview. The server
+recomputes and validates every placement when the operation is requested.
 
 ## 6. Pair state and lifecycle
 
@@ -236,29 +233,22 @@ pair closes the target.
 ## 8. Visual and feedback rules
 
 - Portal-fluid color keeps its current meaning and never identifies A versus B.
-- Dormant endpoints and fixed entity targets are dim, static or slowly pulsing,
-  and cannot be traversed.
-- Connected endpoints restore the selected normal portal visual and animation.
-- A uses a complete single-ring marker; B uses a segmented/double-ring marker.
-- A/B text is shown when aimed at and may be included in the long-range helper.
-- The entity target uses a distinct target/reticle marker.
-- Real dormant/connected state is visible to every observing player.
-- Endpoint letters, target text, and long-range helpers are shown only when the
-  local player satisfies the existing GUI-shortcut gun availability rule.
+- Dormant endpoints and fixed entity targets are not rendered and cannot be
+  traversed.
+- Connected endpoints use the selected normal portal visual and animation.
+- A and B have no marker, label, color, geometry, or animation difference.
 - Other players and entities traverse connected paired portals under exactly
   the normal portal transit/module rules.
-- Action-bar feedback, Portal Gun details, and the configuration GUI show the
-  current function mode. Do not recolor the gun body, whose color represents
-  fluid.
+- Portal Gun details and the configuration GUI show the current function mode.
+  Do not recolor the gun body, whose color represents fluid.
 
-Every visual theme must expose the same state distinctions. New or changed GUI
-icons must use shared centered-icon helpers and matching PNG bounds as required
-by `AGENTS.md`.
+New or changed GUI icons must use shared centered-icon helpers and matching PNG
+bounds as required by `AGENTS.md`.
 
 ## 9. GUI
 
 - With an active pairing capability, the primary configuration GUI gains a
-  prominent blue/orange function-mode control near the concrete-mode control.
+  19 x 19 function-mode icon immediately left of the prediction icon.
 - The per-gun settings area gains a Portal Pairing second-level page containing
   the two SMART fallback selectors.
 - Without the capability, both controls and the settings-page entry are absent,
@@ -299,11 +289,10 @@ screens and entity ticks:
 3. `PortalPairingManager`: server ownership/index lookup and atomic world/fuel
    orchestration.
 4. REMOTE placement intent/resolver: shared placement service used by ordinary
-   pairing, entity target placement, and preview descriptions.
+   pairing and entity target placement.
 5. Function-aware Entity Relocation destination resolver: selected coordinate
    versus fixed pairing target.
-6. Client presentation: snapshots, input, radial theme, GUI page, preview, and
-   optional endpoint helpers.
+6. Client presentation: snapshots, input, radial theme, and GUI page.
 
 The existing `PortalEntity` transit implementation remains the single normal
 portal runtime. A dormant endpoint should be a deliberate lifecycle/link state,
@@ -336,9 +325,9 @@ not a parallel entity type unless version constraints make that unavoidable.
 - Module-gated concrete modes, cycle order, GUI entry, and key requests.
 - Radial left/right/Escape/release semantics and atomic commit payload.
 - Cyan/amber text and ring themes at normal and maximum GUI scale.
-- REMOTE preview agrees with server placement in controlled cases.
-- Dormant, connected A/B, and fixed-target visuals in every portal theme.
-- Endpoint helper visibility under both server gun-lookup policies.
+- No projected placement particles or endpoint helper rendering.
+- Dormant and fixed-target entities are invisible; connected A/B visuals match.
+- Function icons remain centered at normal and maximum GUI scale.
 - 1.21.1 radial render-order regression remains covered so background blur
   cannot blur the wheel itself.
 - English and Simplified Chinese localization completeness.
@@ -354,6 +343,6 @@ not a parallel entity type unless version constraints make that unavoidable.
 4. Function-aware Entity Relocation target flow and tests.
 5. Network actions, right-click/key input, cycle behavior, and snapshots.
 6. Radial/GUI presentation and configuration page.
-7. Dormant/linked markers, preview rendering, PNG assets, and visual QA.
+7. Function-mode PNG assets and visual QA.
 8. Localization, README updates, both builds, and controlled in-game smoke
    tests.

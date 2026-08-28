@@ -28,18 +28,13 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity, PortalRen
     @Override
     public void submit(PortalRenderState state, PoseStack poseStack,
                        SubmitNodeCollector collector, CameraRenderState camera) {
+        if (state.portal instanceof PortalEntity entity && entity.pairingDormant()) return;
         PortalVisualType type = PortalVisualPreferences.selected();
         PortalVisualStyle style = PortalVisualStyles.resolve(state.portal);
-        if (state.portal instanceof PortalEntity entity && entity.pairingDormant()) {
-            style = style.dimmed();
-        }
         PortalVisualRenderContext context = new PortalVisualRenderContext(state.portal, state.partialTick,
             poseStack, collector, PortalRenderFrameState.current().surfaceRenderPath(),
             style);
         type.renderer().submit(context);
-        if (state.portal instanceof PortalEntity entity) {
-            PortalPairingMarkerRenderer.submit(context, entity, style.borderColor());
-        }
         super.submit(state, poseStack, collector, camera);
     }
 }

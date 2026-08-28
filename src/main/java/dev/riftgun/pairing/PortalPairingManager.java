@@ -102,9 +102,10 @@ public final class PortalPairingManager {
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()), gunId, endpoint);
         }
         if (!opened) return fail(player, "message.riftgun.portal_open_failed");
-        Msg.displayClientMessage(player, Component.translatable(opposite == null
-            ? "message.riftgun.pairing_endpoint_dormant"
-            : "message.riftgun.pairing_connected", endpoint.translationComponent()), true);
+        if (opposite != null) {
+            Msg.displayClientMessage(player,
+                Component.translatable("message.riftgun.pairing_connected"), true);
+        }
         return true;
     }
 

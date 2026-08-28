@@ -426,7 +426,6 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         pairingGunId = gunId;
         entityData.set(PAIRING_ENDPOINT, endpoint.ordinal());
         entityData.set(PAIRING_DORMANT, dormant);
-        setCustomName(endpoint.translationComponent());
     }
 
     public @Nullable UUID pairingGunId() {

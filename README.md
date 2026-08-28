@@ -136,10 +136,11 @@ cost, passive entities default to `1.5×`, hostile entities and players to
 may change all multipliers, including setting them to zero.
 
 With Portal Pairing enabled, right-click places endpoint B and sneak-right-click
-places endpoint A. The first endpoint is dormant; placing the other connects the
-pair and consumes one ordinary pair charge. Replacing either connected endpoint
-rebuilds the pair, consumes one charge, and resets the shared duration. The
-dedicated endpoint and function-switch keys are unbound by default.
+places endpoint A. The first endpoint is stored invisibly; placing the other
+connects the pair and consumes one ordinary pair charge. Connected endpoints
+use identical normal portal visuals. Replacing either endpoint rebuilds the
+pair, consumes one charge, and resets the shared duration. The dedicated
+endpoint and function-switch keys are unbound by default.
 
 ### Player targets and privacy
 

@@ -23,6 +23,8 @@ final class PortalGuiSprites {
     static final Identifier PLACEMENT_ENTITY_RELOCATION = icon("placement_entity_relocation");
     static final Identifier PREDICTION_ON = icon("prediction_on");
     static final Identifier PREDICTION_OFF = icon("prediction_off");
+    static final Identifier FUNCTION_COORDINATE = icon("function_coordinate");
+    static final Identifier FUNCTION_PAIRING = icon("function_pairing");
     static final Identifier CONFIGURE_GUN = icon("configure_gun");
     static final Identifier MODULE_BAY = icon("module_bay");
     static final Identifier PORTAL_CLOSE = icon("portal_close");

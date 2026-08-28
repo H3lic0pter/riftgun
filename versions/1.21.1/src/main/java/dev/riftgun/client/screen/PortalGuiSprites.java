@@ -22,6 +22,8 @@ final class PortalGuiSprites {
     static final ResourceLocation PLACEMENT_ENTITY_RELOCATION = icon("placement_entity_relocation");
     static final ResourceLocation PREDICTION_ON = icon("prediction_on");
     static final ResourceLocation PREDICTION_OFF = icon("prediction_off");
+    static final ResourceLocation FUNCTION_COORDINATE = icon("function_coordinate");
+    static final ResourceLocation FUNCTION_PAIRING = icon("function_pairing");
     static final ResourceLocation CONFIGURE_GUN = icon("configure_gun");
     static final ResourceLocation MODULE_BAY = icon("module_bay");
     static final ResourceLocation PORTAL_CLOSE = icon("portal_close");

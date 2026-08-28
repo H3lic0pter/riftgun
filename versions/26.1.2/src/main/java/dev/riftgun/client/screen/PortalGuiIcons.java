@@ -47,6 +47,15 @@ final class PortalGuiIcons {
             ? PortalGuiSprites.PREDICTION_OFF : PortalGuiSprites.PREDICTION_ON, x - 2, y - 4);
     }
 
+    /** Accepts button bounds and mathematically centers the 16 x 16 function sprite. */
+    static void drawFunctionModeIcon(GuiGraphicsExtractor graphics, int buttonX, int buttonY,
+                                     int buttonWidth, int buttonHeight, boolean pairing) {
+        PortalGuiSprites.draw(graphics,
+            pairing ? PortalGuiSprites.FUNCTION_PAIRING : PortalGuiSprites.FUNCTION_COORDINATE,
+            buttonX + (buttonWidth - ICON_SIZE) / 2,
+            buttonY + (buttonHeight - ICON_SIZE) / 2);
+    }
+
     static void drawGunSettingsIcon(GuiGraphicsExtractor graphics, int x, int y, int color) {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.CONFIGURE_GUN, x - 3, y - 2);
     }
@@ -192,7 +201,7 @@ final class PortalGuiIcons {
     }
 
     static void drawPencil(GuiGraphicsExtractor graphics, int x, int y, int color) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.EDIT, x - 4, y - 3);
+        PortalGuiSprites.draw(graphics, PortalGuiSprites.EDIT, x - 3, y - 5);
     }
 
     private PortalGuiIcons() {}

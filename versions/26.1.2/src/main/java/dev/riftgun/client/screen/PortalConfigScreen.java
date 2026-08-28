@@ -61,7 +61,6 @@ import org.jetbrains.annotations.Nullable;
 public final class PortalConfigScreen extends Screen {
     private static final int HEADER_HEIGHT = 48;
     private static final int FOOTER_HEIGHT = 36;
-    private static final int FUNCTION_MODE_ROW_HEIGHT = 22;
     private static final int ROW_HEIGHT = 18;
     private static final int ROW_ACTION_SIZE = 14;
     private static final int DETAIL_LINE_HEIGHT = 31;
@@ -329,28 +328,31 @@ public final class PortalConfigScreen extends Screen {
             Component.empty(), false, ignored -> PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS));
 
         int footerY = panelY + panelHeight - 28;
-        button(panelX + 10, footerY, 54, 19, "screen.riftgun.settings", false,
-            ignored -> openForm(Modal.SETTINGS, null));
-        int sortWidth = Math.max(12, Math.min(82, listWidth - 120));
-        button(panelX + 67, footerY, sortWidth, 19,
+        boolean showFunctionMode = pairingInstalled();
+        int modeControlStart = panelX + listWidth - (showFunctionMode ? 72 : 50);
+        int settingsWidth = showFunctionMode
+            ? Math.max(18, Math.min(54, (modeControlStart - panelX - 16) / 2)) : 54;
+        ThemedButton settingsButton = button(panelX + 10, footerY, settingsWidth, 19,
+            "screen.riftgun.settings", false, ignored -> openForm(Modal.SETTINGS, null));
+        settingsButton.horizontalMarquee();
+        int sortX = panelX + 13 + settingsWidth;
+        int sortWidth = showFunctionMode
+            ? Math.max(12, Math.min(82, modeControlStart - sortX - 3))
+            : Math.max(12, Math.min(82, listWidth - 120));
+        ThemedButton sortButton = button(sortX, footerY, sortWidth, 19,
             Component.translatable("screen.riftgun.sort_mode", Component.translatable(
                 "screen.riftgun.sort." + PortalClientState.data().settings().sort().name().toLowerCase(Locale.ROOT))),
             false, ignored -> cycleSort());
+        sortButton.horizontalMarquee();
+        if (showFunctionMode) {
+            functionModeButton = button(panelX + listWidth - 72, footerY, 19, 19,
+                Component.empty(), false,
+                ignored -> PortalNetworking.sendRequest(PortalAction.TOGGLE_FUNCTION_MODE));
+        }
         motionPredictionButton = button(panelX + listWidth - 50, footerY, 19, 19,
             Component.empty(), false, ignored -> cycleMotionPrediction());
         placementModeButton = button(panelX + listWidth - 28, footerY, 19, 19,
             Component.empty(), false, ignored -> cyclePlacementMode());
-        if (pairingInstalled()) {
-            boolean pairing = Nbt.getString(PortalClientState.gun(), "FunctionMode")
-                .equals("PORTAL_PAIRING");
-            functionModeButton = button(panelX + 10, footerY - FUNCTION_MODE_ROW_HEIGHT,
-                listWidth - 20, 19, Component.translatable("screen.riftgun.function_mode_button",
-                    Component.translatable("screen.riftgun.function_mode."
-                        + (pairing ? "portal_pairing" : "coordinate_travel"))), false,
-                ignored -> PortalNetworking.sendRequest(PortalAction.TOGGLE_FUNCTION_MODE));
-            functionModeButton.accented(pairing ? PortalTheme.AMBER_DARK : PortalTheme.ICE_DARK,
-                pairing ? PortalTheme.AMBER : PortalTheme.ICE, PortalTheme.TEXT).horizontalMarquee();
-        }
         fuelGaugeX = rightX;
         fuelGaugeY = footerY;
         bucketModeButton = button(rightX + FUEL_GAUGE_WIDTH + 3, footerY, 19, 19, Component.empty(), false,
@@ -1326,6 +1328,11 @@ public final class PortalConfigScreen extends Screen {
                     != dev.riftgun.data.PortalPredictionMode.OFF;
                 drawPredictionIcon(graphics, motionPredictionButton.getX() + 5,
                     motionPredictionButton.getY() + 5, active ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
+            }
+            if (functionModeButton != null) {
+                drawFunctionModeIcon(graphics, functionModeButton.getX(), functionModeButton.getY(),
+                    functionModeButton.getWidth(), functionModeButton.getHeight(),
+                    Nbt.getString(PortalClientState.gun(), "FunctionMode").equals("PORTAL_PAIRING"));
             }
             int x = placementModeButton.getX() + 5;
             int y = placementModeButton.getY() + 5;
@@ -2623,7 +2630,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private int footerHeight() {
-        return FOOTER_HEIGHT + (pairingInstalled() ? FUNCTION_MODE_ROW_HEIGHT : 0);
+        return FOOTER_HEIGHT;
     }
 
     private boolean hasCrossDimensionFuel() {

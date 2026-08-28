@@ -1,7 +1,5 @@
 package dev.riftgun.pairing;
 
-import net.minecraft.network.chat.Component;
-
 public enum PortalPairingEndpoint {
     NONE,
     A,
@@ -20,8 +18,4 @@ public enum PortalPairingEndpoint {
         return ordinal >= 0 && ordinal < values().length ? values()[ordinal] : NONE;
     }
 
-    public Component translationComponent() {
-        return Component.translatable("message.riftgun.pairing_endpoint."
-            + name().toLowerCase(java.util.Locale.ROOT));
-    }
 }
