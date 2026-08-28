@@ -127,9 +127,9 @@ final class PortalGunActions {
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, data.settings().smartDistance());
         PortalFunctionMode next = settings.portalPairing().functionMode().toggle();
         settings.withPortalPairing(settings.portalPairing().withFunctionMode(next)).save(gun);
-        Msg.displayClientMessage(player, Component.translatable("message.riftgun.function_mode",
-            Component.translatable("screen.riftgun.function_mode."
-                + next.name().toLowerCase(Locale.ROOT))), true);
+        Msg.displayClientMessage(player, Component.translatable("message.riftgun.pairing_mode",
+            Component.translatable(next == PortalFunctionMode.PORTAL_PAIRING
+                ? "screen.riftgun.on" : "screen.riftgun.off")), true);
         return true;
     }
 

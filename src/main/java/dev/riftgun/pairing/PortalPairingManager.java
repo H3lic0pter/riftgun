@@ -125,7 +125,7 @@ public final class PortalPairingManager {
             return fail(player, "message.riftgun.entity_relocation_module_required");
         }
         // A full-range SMART capture means a valid face is preferred; a ray miss routes to
-        // fixed REMOTE placement. Prediction is deliberately disabled for a fixed target.
+        // Fixed REMOTE target. Prediction is deliberately disabled for a fixed target.
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             capabilities.configuredSurfaceRange(), capabilities.configuredSurfaceRange(),
             PortalPredictionMode.OFF, capabilities.aperture(),

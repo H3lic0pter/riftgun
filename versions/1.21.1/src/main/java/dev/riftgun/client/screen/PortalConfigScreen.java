@@ -1063,13 +1063,6 @@ public final class PortalConfigScreen extends Screen {
         drawDetailText(graphics, Component.translatable("screen.riftgun.details"),
             x, right - 8, y, PortalTheme.TEXT_MUTED, false);
         y += 19;
-        if (Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled")) {
-            String function = Nbt.getString(PortalClientState.gun(), "FunctionMode");
-            y = detailField(graphics, "screen.riftgun.function_mode",
-                Component.translatable("screen.riftgun.function_mode."
-                    + function.toLowerCase(Locale.ROOT)), x, y,
-                panelWidth - listWidth - 20);
-        }
         Destination destination = viewed();
         ExternalDestination external = viewedExternal();
         if (playerTargets.selectedId() != null) {
@@ -1461,11 +1454,12 @@ public final class PortalConfigScreen extends Screen {
                     mouseX, mouseY);
             }
             if (functionModeButton != null && functionModeButton.isHovered()) {
-                String mode = Nbt.getString(PortalClientState.gun(), "FunctionMode");
+                boolean pairing = Nbt.getString(PortalClientState.gun(), "FunctionMode")
+                    .equals("PORTAL_PAIRING");
                 graphics.renderTooltip(font, Component.translatable(
-                    "screen.riftgun.function_mode_tooltip",
-                    Component.translatable("screen.riftgun.function_mode."
-                        + mode.toLowerCase(Locale.ROOT))), mouseX, mouseY);
+                    "screen.riftgun.pairing_mode_tooltip",
+                    Component.translatable(pairing ? "screen.riftgun.on" : "screen.riftgun.off")),
+                    mouseX, mouseY);
             }
             if (openPortalButton != null && openPortalButton.isHovered()) {
                 graphics.renderTooltip(font, Component.translatable("screen.riftgun.open_front_tooltip"),

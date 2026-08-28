@@ -168,8 +168,10 @@ public final class ModeRadialScreen extends Screen {
         int centerY = height / 2;
         Component pageLabel = Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.placement" : "screen.riftgun.mode_radial.prediction");
-        centeredText(graphics, Component.translatable("screen.riftgun.function_mode."
-            + functionMode.name().toLowerCase(Locale.ROOT)), centerX, centerY - 18,
+        boolean pairing = functionMode == PortalFunctionMode.PORTAL_PAIRING;
+        centeredText(graphics, Component.translatable(pairing
+            ? "screen.riftgun.mode_radial.pairing" : "screen.riftgun.mode_radial.coordinate"),
+            centerX, centerY - 18,
             functionMode == PortalFunctionMode.PORTAL_PAIRING ? PortalTheme.AMBER : PortalTheme.ICE);
         centeredText(graphics, pageLabel, centerX, centerY - 7,
             functionMode == PortalFunctionMode.PORTAL_PAIRING ? PortalTheme.AMBER : PortalTheme.ICE);
@@ -177,9 +179,18 @@ public final class ModeRadialScreen extends Screen {
             : page == Page.PLACEMENT ? PortalClientState.data().settings().placementMode()
                 : PortalClientState.data().settings().predictionMode();
         centeredWrappedText(graphics, label(current), centerX, centerY + 6, 80, PortalTheme.TEXT);
+        boolean pairingInstalled = Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled");
+        int hintY = Math.min(centerY + OUTER_RADIUS + 12,
+            height - (pairingInstalled ? 22 : 12));
         centeredText(graphics, Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.switch_prediction" : "screen.riftgun.mode_radial.switch_placement"),
-            centerX, centerY + OUTER_RADIUS + 12, PortalTheme.TEXT_MUTED);
+            centerX, hintY, PortalTheme.TEXT_MUTED);
+        if (pairingInstalled) {
+            centeredText(graphics, Component.translatable(functionMode == PortalFunctionMode.PORTAL_PAIRING
+                    ? "screen.riftgun.mode_radial.switch_to_coordinate"
+                    : "screen.riftgun.mode_radial.switch_to_pairing"),
+                centerX, hintY + 10, PortalTheme.TEXT_MUTED);
+        }
     }
 
     private Component label(Object mode) {
