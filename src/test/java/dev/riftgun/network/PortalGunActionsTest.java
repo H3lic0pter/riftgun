@@ -21,4 +21,14 @@ class PortalGunActionsTest {
         assertEquals(PortalPlacementMode.SURFACE,
             PortalGunActions.adjacentAvailableMode(PortalPlacementMode.SMART, true, false));
     }
+
+    @Test
+    void remoteAvailabilityIsIndependentFromOtherOptionalModes() {
+        assertEquals(PortalPlacementMode.SURFACE,
+            PortalGunActions.adjacentAvailableMode(
+                PortalPlacementMode.FRONT, false, true, false));
+        assertEquals(PortalPlacementMode.REMOTE,
+            PortalGunActions.adjacentAvailableMode(
+                PortalPlacementMode.FRONT, false, false, true));
+    }
 }

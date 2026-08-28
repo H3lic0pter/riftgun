@@ -17,6 +17,8 @@ import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModules;
+import dev.riftgun.module.PortalGunModuleSettings;
+import dev.riftgun.module.PortalGunModules;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -27,6 +29,7 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
@@ -88,6 +91,24 @@ public final class ClientGameEvents {
         if (minecraft.player == null || minecraft.getConnection() == null) return;
         PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED,
             tag -> tag.putString("PlacementMode", mode.name()));
+    }
+
+    @SubscribeEvent
+    public static void mouseScrolled(InputEvent.MouseScrollingEvent event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.getConnection() == null
+            || !minecraft.player.isShiftKeyDown() || event.getScrollDeltaY() == 0.0) return;
+        var gun = minecraft.player.getMainHandItem();
+        if (!gun.is(RiftContent.PORTAL_GUN.get())
+            || PortalClientState.data().settings().placementMode() != PortalPlacementMode.REMOTE
+            || PortalGunModules.activeCount(gun, PortalModuleKind.REMOTE,
+                PortalClientState.moduleRules()) <= 0
+            || !PortalGunModuleSettings.get(gun,
+                PortalClientState.data().settings().smartDistance())
+                .portalPairing().remote().scrollAdjustmentEnabled()) return;
+        event.setCanceled(true);
+        PortalNetworking.sendShortcutRequest(PortalAction.ADJUST_SURFACE_RANGE,
+            tag -> tag.putInt("Step", event.getScrollDeltaY() > 0.0 ? 1 : -1));
     }
 
     private static void refreshJourneyMapSelection(Minecraft minecraft) {

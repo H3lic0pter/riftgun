@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ASA", "QMQ", "RER"],
+  "key": {
+    "A": "#c:gems/amethyst",
+    "S": "minecraft:spyglass",
+    "Q": "#c:gems/quartz",
+    "M": "riftgun:basic_module",
+    "R": "#c:dusts/redstone",
+    "E": "minecraft:ender_pearl"
+  },
+  "result": { "id": "riftgun:remote_module", "count": 1 }
+}

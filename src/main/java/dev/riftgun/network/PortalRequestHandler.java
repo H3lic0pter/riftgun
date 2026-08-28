@@ -12,6 +12,7 @@ import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalOpenOrigin;
 import dev.riftgun.service.PortalShortcutGunMode;
 import dev.riftgun.service.PortalShortcutGunSelection;
+import dev.riftgun.service.VanillaInventoryPortalGunLocator;
 import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.service.CoordinateSharingService;
 import dev.riftgun.module.PortalGunCapabilities;
@@ -53,9 +54,10 @@ public final class PortalRequestHandler {
         }
 
         boolean keyboardShortcut = isKeyboardShortcut(action, request);
-        PortalGunLocator.LocatedGun gun = keyboardShortcut
-            ? PortalShortcutGunSelection.locate(player).orElse(null)
-            : locateGun(player, request);
+        PortalGunLocator.LocatedGun gun = action == PortalAction.ADJUST_SURFACE_RANGE
+            ? VanillaInventoryPortalGunLocator.locateMainHand(player).orElse(null)
+            : keyboardShortcut ? PortalShortcutGunSelection.locate(player).orElse(null)
+                : locateGun(player, request);
         if (gun == null) {
             if (!keyboardShortcut && request.contains("GunReference")) {
                 PortalNetworking.sendGunReferenceInvalid(player);
@@ -216,6 +218,8 @@ public final class PortalRequestHandler {
             case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(
                 player, data, gun.stack(), Nbt.getBoolean(request, "Reverse"));
             case SET_RADIAL_MODE -> PortalGunActions.setRadialMode(player, data, gun.stack(), request);
+            case ADJUST_SURFACE_RANGE -> PortalGunActions.adjustSurfaceRange(
+                player, data, gun.stack(), Nbt.getInt(request, "Step"));
             case CREATE_GROUP -> PortalDestinationActions.createGroup(data, request);
             case RENAME_GROUP -> PortalDestinationActions.renameGroup(data, request);
             case DELETE_GROUP -> PortalDestinationActions.deleteGroup(data, request);

@@ -130,8 +130,8 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton closePortalsButton;
     private @Nullable ThemedButton gunSettingsBackButton;
     private @Nullable ThemedButton portalDurationSettingsButton;
-    private @Nullable ThemedButton smartDistanceSettingsButton;
-    private @Nullable ThemedButton surfaceRangeSettingsButton;
+    private @Nullable ThemedButton placementRangesSettingsButton;
+    private @Nullable ThemedButton remoteSettingsButton;
     private @Nullable ThemedButton entityTransitSettingsButton;
     private @Nullable ThemedButton apertureSettingsButton;
     private @Nullable ThemedButton fallGuardSettingsButton;
@@ -159,6 +159,8 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton portalPairingSettingsButton;
     private @Nullable ThemedButton coordinateFallbackButton;
     private @Nullable ThemedButton pairingFallbackButton;
+    private @Nullable ThemedButton remoteScrollAdjustmentButton;
+    private @Nullable ThemedButton remoteRadialSliderButton;
     private @Nullable ThemedButton visualSettingsButton;
     private @Nullable ThemedButton soundSettingsButton;
     private @Nullable ThemedButton soundBackButton;
@@ -234,8 +236,8 @@ public final class PortalConfigScreen extends Screen {
         closePortalsButton = null;
         gunSettingsBackButton = null;
         portalDurationSettingsButton = null;
-        smartDistanceSettingsButton = null;
-        surfaceRangeSettingsButton = null;
+        placementRangesSettingsButton = null;
+        remoteSettingsButton = null;
         entityTransitSettingsButton = null;
         apertureSettingsButton = null;
         fallGuardSettingsButton = null;
@@ -243,6 +245,8 @@ public final class PortalConfigScreen extends Screen {
         portalPairingSettingsButton = null;
         coordinateFallbackButton = null;
         pairingFallbackButton = null;
+        remoteScrollAdjustmentButton = null;
+        remoteRadialSliderButton = null;
         moduleSettingBackButton = null;
         passiveTransitButton = null;
         hostileTransitButton = null;
@@ -491,12 +495,12 @@ public final class PortalConfigScreen extends Screen {
             portalDurationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                 ignored -> openGunSetting(Modal.PORTAL_DURATION_SETTINGS));
             buttonX += 31;
-            smartDistanceSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+            placementRangesSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                 ignored -> openGunSetting(Modal.SMART_DISTANCE_SETTINGS));
             buttonX += 31;
-            if (moduleCount("SURFACE_RANGE") > 0) {
-                surfaceRangeSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.SURFACE_RANGE_SETTINGS));
+            if (remoteInstalled()) {
+                remoteSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                    ignored -> openGunSetting(Modal.REMOTE_SETTINGS));
                 buttonX += 31;
             }
             if (hasEntityTransitModule()) {
@@ -524,7 +528,7 @@ public final class PortalConfigScreen extends Screen {
                     ignored -> openGunSetting(Modal.ENTITY_RELOCATION_SETTINGS));
                 buttonX += 31;
             }
-            if (moduleCount("PORTAL_PAIRING") > 0) {
+            if (moduleCount("PORTAL_PAIRING") > 0 || remoteInstalled()) {
                 portalPairingSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                     ignored -> openGunSetting(Modal.PORTAL_PAIRING_SETTINGS));
             }
@@ -540,15 +544,13 @@ public final class PortalConfigScreen extends Screen {
                 "TransitCooldown", "screen.riftgun.transit_cooldown_value", 0, cooldownMaximum,
                 PortalClientState.gun().getInt("TransitCooldownTenths"), 10.0));
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
+            int maximum = Math.max(1, PortalClientState.gun().getInt("MaximumSurfaceRange"));
             addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
                 "SmartDistance", "screen.riftgun.smart_distance_value", 1,
-                Math.max(1, PortalClientState.gun().getInt("SurfaceRange")),
+                maximum,
                 PortalClientState.gun().getInt("SmartDistance")));
-        } else if (modal == Modal.SURFACE_RANGE_SETTINGS) {
-            int minimum = PortalClientState.moduleRules().baseSurfaceRange();
-            int maximum = Math.max(minimum, PortalClientState.gun().getInt("MaximumSurfaceRange"));
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
-                "SurfaceRange", "screen.riftgun.surface_range_value", minimum, maximum,
+            addRenderableWidget(new GunDistanceSlider(x + 18, y + 69, fieldWidth, 18,
+                "SurfaceRange", "screen.riftgun.maximum_surface_range_value", 1, maximum,
                 PortalClientState.gun().getInt("SurfaceRange")));
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
             addEntityTransitButtons(x + 18, y + 45);
@@ -574,12 +576,30 @@ public final class PortalConfigScreen extends Screen {
                 ignored -> toggleGunBoolean(
                     "EntityRelocationSmartRouting", "EntityRelocationSmartRouting"));
         } else if (modal == Modal.PORTAL_PAIRING_SETTINGS) {
-            coordinateFallbackButton = button(x + 18, y + 42, fieldWidth, 19,
-                fallbackLabel("screen.riftgun.pairing.coordinate_fallback", "CoordinateSmartFallback"),
-                false, ignored -> cyclePairingFallback("CoordinateSmartFallback"));
-            pairingFallbackButton = button(x + 18, y + 66, fieldWidth, 19,
-                fallbackLabel("screen.riftgun.pairing.pairing_fallback", "PairingSmartFallback"),
-                false, ignored -> cyclePairingFallback("PairingSmartFallback"));
+            int optionY = y + 42;
+            if (remoteInstalled()) {
+                coordinateFallbackButton = button(x + 18, optionY, fieldWidth, 19,
+                    fallbackLabel("screen.riftgun.pairing.coordinate_fallback", "CoordinateSmartFallback"),
+                    false, ignored -> cyclePairingFallback("CoordinateSmartFallback"));
+                optionY += 24;
+            }
+            if (pairingInstalled()) {
+                pairingFallbackButton = button(x + 18, optionY, fieldWidth, 19,
+                    fallbackLabel("screen.riftgun.pairing.pairing_fallback", "PairingSmartFallback"),
+                    false, ignored -> cyclePairingFallback("PairingSmartFallback"));
+                pairingFallbackButton.active = remoteInstalled();
+            }
+        } else if (modal == Modal.REMOTE_SETTINGS) {
+            remoteScrollAdjustmentButton = button(x + 18, y + 42, fieldWidth, 19,
+                toggleLabel("screen.riftgun.remote.scroll_adjustment",
+                    PortalClientState.gun().getBoolean("RemoteScrollAdjustmentEnabled")),
+                false, ignored -> toggleGunBoolean(
+                    "RemoteScrollAdjustment", "RemoteScrollAdjustmentEnabled"));
+            remoteRadialSliderButton = button(x + 18, y + 66, fieldWidth, 19,
+                toggleLabel("screen.riftgun.remote.radial_slider",
+                    PortalClientState.gun().getBoolean("RemoteRadialSliderEnabled")),
+                false, ignored -> toggleGunBoolean(
+                    "RemoteRadialSlider", "RemoteRadialSliderEnabled"));
         } else if (modal == Modal.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
@@ -1230,14 +1250,9 @@ public final class PortalConfigScreen extends Screen {
             graphics.drawString(font, Component.translatable("screen.riftgun.portal_timing_hint"),
                 x, y + 30, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
-            label(graphics, "screen.riftgun.smart_distance", x, y + 30);
-            graphics.drawString(font, Component.translatable("screen.riftgun.maximum_surface_range",
-                Math.max(1, PortalClientState.gun().getInt("SurfaceRange"))), x, y + 69,
+            graphics.drawString(font, Component.translatable("screen.riftgun.placement_ranges_hint",
+                Math.max(1, PortalClientState.gun().getInt("MaximumSurfaceRange"))), x, y + 30,
                 PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.SURFACE_RANGE_SETTINGS) {
-            label(graphics, "screen.riftgun.surface_range", x, y + 30);
-            graphics.drawString(font, Component.translatable("screen.riftgun.surface_range_modules",
-                moduleCount("SURFACE_RANGE")), x, y + 69, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.entity_transit_hint"),
                 x, y + 30, PortalTheme.TEXT_MUTED, false);
@@ -1255,6 +1270,9 @@ public final class PortalConfigScreen extends Screen {
                 x, y + 30, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.PORTAL_PAIRING_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.pairing.settings_hint"),
+                x, y + 27, PortalTheme.TEXT_MUTED, false);
+        } else if (modal == Modal.REMOTE_SETTINGS) {
+            graphics.drawString(font, Component.translatable("screen.riftgun.remote.settings_hint"),
                 x, y + 27, PortalTheme.TEXT_MUTED, false);
         } else if (modal == Modal.MAP_INTEGRATION_SETTINGS) {
             int statusY = y + 104;
@@ -1518,6 +1536,10 @@ public final class PortalConfigScreen extends Screen {
                         "screen.riftgun.entity_relocation_smart",
                         PortalClientState.gun().getBoolean("EntityRelocationSmartRouting"), mouseX, mouseY);
                 }
+            } else if (modal == Modal.PORTAL_PAIRING_SETTINGS && pairingFallbackButton != null
+                && !remoteInstalled() && pairingFallbackButton.isHovered()) {
+                graphics.renderTooltip(font,
+                    Component.translatable("message.riftgun.remote_module_required"), mouseX, mouseY);
             }
         }
         if (modal == Modal.VISUAL_SETTINGS) {
@@ -1584,13 +1606,13 @@ public final class PortalConfigScreen extends Screen {
             drawPortalDurationIcon(graphics, portalDurationSettingsButton.getX() + 7,
                 portalDurationSettingsButton.getY() + 7);
         }
-        if (smartDistanceSettingsButton != null) {
-            drawSmartDistanceIcon(graphics, smartDistanceSettingsButton.getX() + 7,
-                smartDistanceSettingsButton.getY() + 7, PortalTheme.ICE);
+        if (placementRangesSettingsButton != null) {
+            drawSmartDistanceIcon(graphics, placementRangesSettingsButton.getX() + 7,
+                placementRangesSettingsButton.getY() + 7, PortalTheme.ICE);
         }
-        if (surfaceRangeSettingsButton != null) {
-            drawSurfaceRangeIcon(graphics, surfaceRangeSettingsButton.getX() + 7,
-                surfaceRangeSettingsButton.getY() + 8, PortalTheme.WARNING);
+        if (remoteSettingsButton != null) {
+            PortalGuiIcons.drawPlacementModeIcon(graphics, remoteSettingsButton.getX() + 8,
+                remoteSettingsButton.getY() + 8, PortalPlacementMode.REMOTE);
         }
         if (entityTransitSettingsButton != null) {
             drawEntityAccessIcon(graphics, entityTransitSettingsButton.getX() + 7,
@@ -1626,10 +1648,10 @@ public final class PortalConfigScreen extends Screen {
     private void renderGunSettingTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
         settingTooltip(graphics, portalDurationSettingsButton,
             "screen.riftgun.portal_duration", mouseX, mouseY);
-        settingTooltip(graphics, smartDistanceSettingsButton,
-            "screen.riftgun.smart_distance", mouseX, mouseY);
-        settingTooltip(graphics, surfaceRangeSettingsButton,
-            "screen.riftgun.surface_range", mouseX, mouseY);
+        settingTooltip(graphics, placementRangesSettingsButton,
+            "screen.riftgun.placement_ranges", mouseX, mouseY);
+        settingTooltip(graphics, remoteSettingsButton,
+            "screen.riftgun.remote.settings", mouseX, mouseY);
         settingTooltip(graphics, entityTransitSettingsButton,
             "screen.riftgun.entity_transit", mouseX, mouseY);
         settingTooltip(graphics, playerTargetSettingsButton,
@@ -2553,7 +2575,7 @@ public final class PortalConfigScreen extends Screen {
         while ((mode == PortalPlacementMode.ENTITY_RELOCATION
                 && !Nbt.getBoolean(PortalClientState.gun(), "EntityRelocationEnabled"))
             || (mode == PortalPlacementMode.REMOTE
-                && !Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled"))) {
+                && !remoteInstalled())) {
             mode = mode.next();
         }
         PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
@@ -2649,6 +2671,10 @@ public final class PortalConfigScreen extends Screen {
         return Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled");
     }
 
+    private boolean remoteInstalled() {
+        return Nbt.getBoolean(PortalClientState.gun(), "RemoteInstalled");
+    }
+
     private int footerHeight() {
         return FOOTER_HEIGHT;
     }
@@ -2669,12 +2695,18 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void toggleGunBoolean(String setting, String snapshotKey) {
-        boolean enabled = !PortalClientState.gun().getBoolean(snapshotKey);
-        PortalClientState.gun().putBoolean(snapshotKey, enabled);
+        boolean enabled = applyGunBooleanToggle(snapshotKey);
         PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
             tag.putString("Setting", setting);
             tag.putBoolean("Enabled", enabled);
         });
+    }
+
+    private boolean applyGunBooleanToggle(String snapshotKey) {
+        boolean enabled = !PortalClientState.gun().getBoolean(snapshotKey);
+        PortalClientState.gun().putBoolean(snapshotKey, enabled);
+        rebuildWidgets();
+        return enabled;
     }
 
     private Component fallbackLabel(String labelKey, String snapshotKey) {
@@ -3301,7 +3333,13 @@ public final class PortalConfigScreen extends Screen {
 
     /** Used only by the opt-in visual QA harness. */
     public void openSurfaceRangeSettingsForQa() {
-        modal = Modal.SURFACE_RANGE_SETTINGS;
+        modal = Modal.SMART_DISTANCE_SETTINGS;
+        rebuildWidgets();
+    }
+
+    /** Used only by the opt-in visual QA harness. */
+    public void openRemoteSettingsForQa() {
+        modal = Modal.REMOTE_SETTINGS;
         rebuildWidgets();
     }
 
@@ -3484,7 +3522,7 @@ public final class PortalConfigScreen extends Screen {
             case CONFIRM_SETTINGS -> 140;
             case MAP_INTEGRATION_SETTINGS -> 170;
             case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
-                 SURFACE_RANGE_SETTINGS, APERTURE_SETTINGS,
+                 REMOTE_SETTINGS, APERTURE_SETTINGS,
                  PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS,
                  PORTAL_PAIRING_SETTINGS -> 132;
             case ENTITY_TRANSIT_SETTINGS -> 163;
@@ -3573,8 +3611,8 @@ public final class PortalConfigScreen extends Screen {
         MAP_INTEGRATION_SETTINGS("screen.riftgun.map_integration_settings", "", false, false),
         GUN_SETTINGS("screen.riftgun.configure_gun", "", false, false),
         PORTAL_DURATION_SETTINGS("screen.riftgun.portal_duration", "", false, false),
-        SMART_DISTANCE_SETTINGS("screen.riftgun.smart_distance", "", false, false),
-        SURFACE_RANGE_SETTINGS("screen.riftgun.surface_range", "", false, false),
+        SMART_DISTANCE_SETTINGS("screen.riftgun.placement_ranges", "", false, false),
+        REMOTE_SETTINGS("screen.riftgun.remote.settings", "", false, false),
         ENTITY_TRANSIT_SETTINGS("screen.riftgun.entity_transit", "", false, false),
         APERTURE_SETTINGS("screen.riftgun.aperture", "", false, false),
         FALL_GUARD_SETTINGS("screen.riftgun.fall_guard", "", false, false),
@@ -3604,7 +3642,7 @@ public final class PortalConfigScreen extends Screen {
         boolean isConfirmation() { return name().startsWith("CONFIRM_"); }
         boolean isGunSettingPage() {
             return this == PORTAL_DURATION_SETTINGS || this == SMART_DISTANCE_SETTINGS
-                || this == SURFACE_RANGE_SETTINGS || this == ENTITY_TRANSIT_SETTINGS
+                || this == REMOTE_SETTINGS || this == ENTITY_TRANSIT_SETTINGS
                 || this == APERTURE_SETTINGS || this == PLAYER_TARGET_SETTINGS
                 || this == FALL_GUARD_SETTINGS || this == ENTITY_RELOCATION_SETTINGS
                 || this == PORTAL_PAIRING_SETTINGS;

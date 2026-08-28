@@ -216,6 +216,9 @@ final class GuiCaptureHarness {
         gun.putBoolean("FallGuardEntitiesEnabled", false);
         gun.putBoolean("EntityRelocationEnabled", true);
         gun.putBoolean("PortalPairingInstalled", true);
+        gun.putBoolean("RemoteInstalled", true);
+        gun.putBoolean("RemoteScrollAdjustmentEnabled", true);
+        gun.putBoolean("RemoteRadialSliderEnabled", true);
         gun.putString("FunctionMode", "PORTAL_PAIRING");
         gun.putString("CoordinateSmartFallback", "FRONT");
         gun.putString("PairingSmartFallback", "REMOTE");
@@ -230,6 +233,7 @@ final class GuiCaptureHarness {
         modules.putInt("APERTURE_EXPANSION", 1);
         modules.putInt("PLAYER_TARGET", 1);
         modules.putInt("PORTAL_PAIRING", 1);
+        modules.putInt("REMOTE", 1);
         gun.put("Modules", modules);
         envelope.put("Gun", gun);
         envelope.put("ModuleRules", PortalModuleRules.defaults().save());

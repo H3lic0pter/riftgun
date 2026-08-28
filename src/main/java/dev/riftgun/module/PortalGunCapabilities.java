@@ -21,6 +21,8 @@ public record PortalGunCapabilities(
     int transitCooldownTicks,
     boolean entityRelocation,
     boolean entityRelocationSmartRouting,
+    boolean remote,
+    boolean remoteScrollAdjustment,
     boolean portalPairing,
     PortalFunctionMode functionMode,
     PortalFloatingFallback coordinateSmartFallback,
@@ -34,7 +36,7 @@ public record PortalGunCapabilities(
         int reservoirCount = PortalGunModules.activeCount(gun, PortalModuleKind.RESERVOIR_EXPANSION, rules);
         int rangeCount = PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules);
         int maximumRange = rules.maximumSurfaceRangeFor(rangeCount);
-        int configuredRange = Mth.clamp(settings.desiredSurfaceRange(), rules.baseSurfaceRange(), maximumRange);
+        int configuredRange = configuredSurfaceRange(settings.desiredSurfaceRange(), maximumRange);
         int durationSeconds = configuredDurationSeconds(gun, settings.portalDurationSeconds(), rules);
         boolean apertureInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
@@ -44,6 +46,8 @@ public record PortalGunCapabilities(
             gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0;
         boolean pairingInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.PORTAL_PAIRING, rules) > 0;
+        boolean remoteInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.REMOTE, rules) > 0;
         boolean fallGuardInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.FALL_GUARD, rules) > 0;
         return new PortalGunCapabilities(
@@ -51,7 +55,7 @@ public record PortalGunCapabilities(
             rules.capacityFor(reservoirCount),
             maximumRange,
             configuredRange,
-            Mth.clamp(settings.smartDistance(), 1, configuredRange),
+            configuredSmartDistance(settings.smartDistance(), maximumRange),
             new PortalEntityAccessSnapshot(
                 PortalGunModules.activeCount(gun, PortalModuleKind.PASSIVE_TRANSIT, rules) > 0
                     && settings.passiveTransitEnabled(),
@@ -71,10 +75,13 @@ public record PortalGunCapabilities(
             relocationInstalled && settings.entityRelocation().enabled(),
             relocationInstalled && settings.entityRelocation().enabled()
                 && settings.entityRelocation().smartRouting(),
+            remoteInstalled,
+            remoteInstalled && settings.portalPairing().remote().scrollAdjustmentEnabled(),
             pairingInstalled,
             pairingInstalled ? settings.portalPairing().functionMode() : PortalFunctionMode.COORDINATE_TRAVEL,
-            pairingInstalled ? settings.portalPairing().coordinateSmartFallback() : PortalFloatingFallback.FRONT,
-            pairingInstalled ? settings.portalPairing().pairingSmartFallback() : PortalFloatingFallback.FRONT,
+            remoteInstalled ? settings.portalPairing().coordinateSmartFallback() : PortalFloatingFallback.FRONT,
+            pairingInstalled && remoteInstalled
+                ? settings.portalPairing().pairingSmartFallback() : PortalFloatingFallback.FRONT,
             fallGuardInstalled && settings.fallGuardEnabled(),
             fallGuardInstalled && settings.fallGuardEntitiesEnabled()
         );
@@ -83,6 +90,14 @@ public record PortalGunCapabilities(
     public PortalFloatingFallback activeSmartFallback() {
         return functionMode == PortalFunctionMode.PORTAL_PAIRING
             ? pairingSmartFallback : coordinateSmartFallback;
+    }
+
+    static int configuredSurfaceRange(int desiredRange, int maximumRange) {
+        return Mth.clamp(desiredRange, 1, Math.max(1, maximumRange));
+    }
+
+    static int configuredSmartDistance(int desiredDistance, int maximumRange) {
+        return Mth.clamp(desiredDistance, 1, Math.max(1, maximumRange));
     }
 
     public static int configuredDurationSeconds(ItemStack gun, int requestedSeconds) {

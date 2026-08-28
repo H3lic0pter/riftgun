@@ -49,6 +49,17 @@ public final class VanillaInventoryPortalGunLocator implements PortalGunLocator 
                 ? Optional.of(located(inventory, Inventory.SLOT_OFFHAND)) : Optional.empty());
     }
 
+    public static Optional<LocatedGun> locateMainHand(ServerPlayer player) {
+        Inventory inventory = player.getInventory();
+        //? if >=1.21.11 {
+        /*int selected = inventory.getSelectedSlot();
+        *///?} else {
+        int selected = inventory.selected;
+        //?}
+        return isGun(inventory.getItem(selected))
+            ? Optional.of(located(inventory, selected)) : Optional.empty();
+    }
+
     @Override
     public Optional<ItemStack> resolve(ServerPlayer player, CompoundTag token) {
         if (!token.contains("Slot")) return Optional.empty();

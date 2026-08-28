@@ -75,6 +75,8 @@ public final class PortalGunModuleContainer extends SimpleContainer {
         int newActiveRelocation = activeCount(getItems(), PortalModuleKind.ENTITY_RELOCATION, rules);
         int oldActivePairing = activeCount(previous, PortalModuleKind.PORTAL_PAIRING, rules);
         int newActivePairing = activeCount(getItems(), PortalModuleKind.PORTAL_PAIRING, rules);
+        int oldActiveRemote = activeCount(previous, PortalModuleKind.REMOTE, rules);
+        int newActiveRemote = activeCount(getItems(), PortalModuleKind.REMOTE, rules);
 
         PortalGunModules.save(gun(), getItems());
         if (newActiveRange > oldActiveRange) {
@@ -106,6 +108,9 @@ public final class PortalGunModuleContainer extends SimpleContainer {
                 PortalOwnerIndex.closeOwnedMatching(server, owner.getUUID(),
                     portal -> gunId.equals(portal.pairingGunId()));
             }
+            PortalNetworking.sendSnapshot(owner, false, locatedGun);
+        }
+        if (oldActiveRemote > 0 && newActiveRemote == 0) {
             var data = PortalDataStore.load(owner);
             if (data.settings().placementMode() == PortalPlacementMode.REMOTE) {
                 data.settings(data.settings().withPlacementMode(PortalPlacementMode.FRONT));

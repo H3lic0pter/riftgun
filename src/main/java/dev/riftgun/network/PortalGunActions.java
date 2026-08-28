@@ -33,7 +33,7 @@ final class PortalGunActions {
         PortalPlayerSettings old = data.settings();
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, old.smartDistance());
         PortalPlacementMode next = adjacentAvailableMode(
-            old.placementMode(), reverse, capabilities.entityRelocation(), capabilities.portalPairing());
+            old.placementMode(), reverse, capabilities.entityRelocation(), capabilities.remote());
         data.settings(new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
             old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(),
             old.soundsEnabled(), old.sort(), next, old.smartDistance(), old.predictionMode(),
@@ -90,8 +90,8 @@ final class PortalGunActions {
                 && !capabilities.entityRelocation()) {
                 throw PortalRequestFields.error("message.riftgun.entity_relocation_module_required");
             }
-            if (mode == PortalPlacementMode.REMOTE && !capabilities.portalPairing()) {
-                throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+            if (mode == PortalPlacementMode.REMOTE && !capabilities.remote()) {
+                throw PortalRequestFields.error("message.riftgun.remote_module_required");
             }
             nextPlayer = old.withPlacementMode(mode);
         } else if (page.equals("PREDICTION")) {
@@ -145,8 +145,8 @@ final class PortalGunActions {
             Nbt.getString(request, "PlacementMode"));
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun, data.settings().smartDistance());
-        if (placementMode == PortalPlacementMode.REMOTE && !capabilities.portalPairing()) {
-            throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+        if (placementMode == PortalPlacementMode.REMOTE && !capabilities.remote()) {
+            throw PortalRequestFields.error("message.riftgun.remote_module_required");
         }
         if (placementMode == PortalPlacementMode.ENTITY_RELOCATION
             && !capabilities.entityRelocation()) {
@@ -180,16 +180,14 @@ final class PortalGunActions {
         switch (setting) {
             case "SmartDistance" -> {
                 int maximum = PortalGunCapabilities.resolve(
-                    gun, data.settings().smartDistance()).configuredSurfaceRange();
+                    gun, data.settings().smartDistance()).maximumSurfaceRange();
                 settings = settings.withSmartDistance(Math.clamp(Nbt.getInt(request, "Value"), 1, maximum));
             }
             case "SurfaceRange" -> {
-                requireModule(gun, PortalModuleKind.SURFACE_RANGE, rules,
-                    "message.riftgun.surface_range_module_required");
                 int maximum = rules.maximumSurfaceRangeFor(
                     PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules));
                 settings = settings.withDesiredSurfaceRange(
-                    Math.clamp(Nbt.getInt(request, "Value"), rules.baseSurfaceRange(), maximum));
+                    Math.clamp(Nbt.getInt(request, "Value"), 1, maximum));
             }
             case "PortalDuration" -> settings = settings.withPortalDurationSeconds(
                 PortalGunCapabilities.configuredDurationSeconds(gun, Nbt.getInt(request, "Value")));
@@ -247,22 +245,65 @@ final class PortalGunActions {
                 settings = settings.withEntityRelocationSmartRouting(Nbt.getBoolean(request, "Enabled"));
             }
             case "CoordinateSmartFallback", "PairingSmartFallback" -> {
-                requireModule(gun, PortalModuleKind.PORTAL_PAIRING, rules,
-                    "message.riftgun.portal_pairing_module_required");
+                PortalModuleKind required = setting.equals("CoordinateSmartFallback")
+                    ? PortalModuleKind.REMOTE : PortalModuleKind.PORTAL_PAIRING;
+                requireModule(gun, required, rules, setting.equals("CoordinateSmartFallback")
+                    ? "message.riftgun.remote_module_required"
+                    : "message.riftgun.portal_pairing_module_required");
                 PortalFloatingFallback fallback;
                 try {
                     fallback = PortalFloatingFallback.valueOf(Nbt.getString(request, "Value"));
                 } catch (IllegalArgumentException exception) {
                     throw PortalRequestFields.error("message.riftgun.invalid_request");
                 }
+                if (fallback == PortalFloatingFallback.REMOTE) {
+                    requireModule(gun, PortalModuleKind.REMOTE, rules,
+                        "message.riftgun.remote_module_required");
+                }
                 var pairing = settings.portalPairing();
                 settings = settings.withPortalPairing(setting.equals("CoordinateSmartFallback")
                     ? pairing.withCoordinateSmartFallback(fallback)
                     : pairing.withPairingSmartFallback(fallback));
             }
+            case "RemoteScrollAdjustment" -> {
+                requireModule(gun, PortalModuleKind.REMOTE, rules,
+                    "message.riftgun.remote_module_required");
+                settings = settings.withPortalPairing(settings.portalPairing().withRemote(
+                    settings.portalPairing().remote().withScrollAdjustmentEnabled(
+                        Nbt.getBoolean(request, "Enabled"))));
+            }
+            case "RemoteRadialSlider" -> {
+                requireModule(gun, PortalModuleKind.REMOTE, rules,
+                    "message.riftgun.remote_module_required");
+                settings = settings.withPortalPairing(settings.portalPairing().withRemote(
+                    settings.portalPairing().remote().withRadialSliderEnabled(
+                        Nbt.getBoolean(request, "Enabled"))));
+            }
             default -> throw PortalRequestFields.error("message.riftgun.invalid_request");
         }
         settings.save(gun);
+        return true;
+    }
+
+    static boolean adjustSurfaceRange(ServerPlayer player, PortalPlayerData data,
+                                      ItemStack gun, int requestedStep) {
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun, data.settings().smartDistance());
+        if (!capabilities.remote()) {
+            throw PortalRequestFields.error("message.riftgun.remote_module_required");
+        }
+        if (!capabilities.remoteScrollAdjustment()
+            || data.settings().placementMode() != PortalPlacementMode.REMOTE) return false;
+        PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(
+            gun, data.settings().smartDistance());
+        int current = Math.clamp(settings.desiredSurfaceRange(), 1,
+            capabilities.maximumSurfaceRange());
+        int step = Integer.signum(requestedStep);
+        int next = Math.clamp(current + step, 1, capabilities.maximumSurfaceRange());
+        Msg.displayClientMessage(player, Component.translatable(
+            "message.riftgun.surface_range_adjusted", next, capabilities.maximumSurfaceRange()), true);
+        if (step == 0 || next == current) return false;
+        settings.withDesiredSurfaceRange(next).save(gun);
         return true;
     }
 

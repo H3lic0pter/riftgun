@@ -82,6 +82,27 @@ final class PortalGunModuleSettingsTest {
         assertTrue(settings.expandedApertureEnabled());
         assertEquals(PlayerExcludeMode.ENTRY_AND_EXIT, settings.playerExcludeMode());
         assertFalse(settings.fallGuardEntitiesEnabled());
+        assertTrue(settings.portalPairing().remote().scrollAdjustmentEnabled());
+        assertTrue(settings.portalPairing().remote().radialSliderEnabled());
+    }
+
+    @Test
+    void legacyCoordinateFallbackMigratesIntoRemoteSettings() {
+        var json = JsonParser.parseString("""
+            {
+              "portal_pairing": {
+                "coordinate_smart_fallback": "REMOTE"
+              }
+            }
+            """);
+
+        PortalGunModuleSettings settings = PortalGunModuleSettings.CODEC.parse(JsonOps.INSTANCE, json)
+            .result().orElseThrow();
+
+        assertEquals(dev.riftgun.pairing.PortalFloatingFallback.REMOTE,
+            settings.portalPairing().remote().coordinateSmartFallback());
+        assertTrue(settings.portalPairing().remote().scrollAdjustmentEnabled());
+        assertTrue(settings.portalPairing().remote().radialSliderEnabled());
     }
 
     @Test

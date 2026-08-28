@@ -111,27 +111,44 @@ final class GuiCaptureHarness {
                 minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 222 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-            screen.openEntityTransitSettingsForQa();
+            screen.openRemoteSettingsForQa();
         }
         if (ticks == 228) {
-            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-entity-transit"),
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-remote-settings"),
+                minecraft.getMainRenderTarget(), 1, message -> {});
+        }
+        if (ticks == 229 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.toggleRemoteRadialSliderForQa();
+        }
+        if (ticks == 231) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-remote-settings-toggled"),
                 minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 232 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-            screen.openApertureSettingsForQa();
+            screen.openPairingSettingsForQa();
         }
         if (ticks == 238) {
+            Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-pairing-settings"),
+                minecraft.getMainRenderTarget(), 1, message -> {});
+        }
+        if (ticks == 240 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.toggleRemoteRadialSliderForQa();
+        }
+        if (ticks == 242 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.openApertureSettingsForQa();
+        }
+        if (ticks == 248) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-aperture"),
                 minecraft.getMainRenderTarget(), 1, message -> {});
         }
-        if (ticks == 242) {
+        if (ticks == 252) {
             minecraft.setScreen(new dev.riftgun.client.screen.ModeRadialScreen());
         }
-        if (ticks == 248) {
+        if (ticks == 258) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-mode-radial"),
                 minecraft.getMainRenderTarget(), 1, message -> {});
         }
-        if (ticks == 260) {
+        if (ticks == 270) {
             completed = true;
             minecraft.stop();
         }
@@ -190,6 +207,9 @@ final class GuiCaptureHarness {
         gun.putBoolean("FallGuardEntitiesEnabled", false);
         gun.putBoolean("EntityRelocationEnabled", true);
         gun.putBoolean("PortalPairingInstalled", true);
+        gun.putBoolean("RemoteInstalled", true);
+        gun.putBoolean("RemoteScrollAdjustmentEnabled", true);
+        gun.putBoolean("RemoteRadialSliderEnabled", true);
         gun.putString("FunctionMode", "PORTAL_PAIRING");
         gun.putString("CoordinateSmartFallback", "FRONT");
         gun.putString("PairingSmartFallback", "REMOTE");
@@ -204,6 +224,7 @@ final class GuiCaptureHarness {
         modules.putInt("APERTURE_EXPANSION", 1);
         modules.putInt("PLAYER_TARGET", 1);
         modules.putInt("PORTAL_PAIRING", 1);
+        modules.putInt("REMOTE", 1);
         gun.put("Modules", modules);
         envelope.put("Gun", gun);
         envelope.put("ModuleRules", PortalModuleRules.defaults().save());

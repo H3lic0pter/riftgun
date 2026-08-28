@@ -57,6 +57,11 @@ public final class PortalGunSnapshot {
             gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0);
         tag.putBoolean("EntityRelocationEnabled", capabilities.entityRelocation());
         tag.putBoolean("EntityRelocationSmartRouting", settings.entityRelocation().smartRouting());
+        tag.putBoolean("RemoteInstalled", capabilities.remote());
+        tag.putBoolean("RemoteScrollAdjustmentEnabled",
+            settings.portalPairing().remote().scrollAdjustmentEnabled());
+        tag.putBoolean("RemoteRadialSliderEnabled",
+            settings.portalPairing().remote().radialSliderEnabled());
         tag.putBoolean("PortalPairingInstalled", capabilities.portalPairing());
         tag.putString("FunctionMode", capabilities.functionMode().name());
         tag.putString("CoordinateSmartFallback", settings.portalPairing().coordinateSmartFallback().name());

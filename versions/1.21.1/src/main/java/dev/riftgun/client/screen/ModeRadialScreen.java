@@ -27,16 +27,32 @@ public final class ModeRadialScreen extends Screen {
     private static final int LABEL_RADIUS = 73;
     private static final int SAMPLE = 3;
     private static final int PLACEMENT_ART_HALF_SIZE = 5;
+    private static final int RANGE_SLIDER_WIDTH = 160;
+    private static final int RANGE_SLIDER_MIN_Y = 15;
+    private static final int RANGE_SLIDER_RING_GAP = 8;
+    private static final int RANGE_EMPTY_COLOR = 0xD8383B40;
+    private static final int RANGE_FILLED_COLOR = 0xD86E7278;
+    private static final long RANGE_SEND_INTERVAL_NANOS = 100_000_000L;
     private Page page = Page.PLACEMENT;
     private int selection = -1;
     private int lastAudibleSelection = -1;
     private final long openedNanos = System.nanoTime();
     private boolean cancelled;
     private PortalFunctionMode functionMode;
+    private int surfaceRange;
+    private final int maximumSurfaceRange;
+    private boolean draggingRange;
+    private int lastSentRange;
+    private long lastRangeSendNanos;
 
     public ModeRadialScreen() {
         super(Component.translatable("screen.riftgun.mode_radial.title"));
         functionMode = parseFunctionMode(Nbt.getString(PortalClientState.gun(), "FunctionMode"));
+        maximumSurfaceRange = Math.max(1,
+            PortalClientState.gun().getInt("MaximumSurfaceRange"));
+        surfaceRange = Math.clamp(PortalClientState.gun().getInt("SurfaceRange"),
+            1, maximumSurfaceRange);
+        lastSentRange = surfaceRange;
     }
 
     @Override
@@ -46,8 +62,9 @@ public final class ModeRadialScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
         graphics.fill(0, 0, width, height, 0x78101115);
         List<?> options = options();
-        OptionalInt hovered = RadialModeGeometry.selectionIndex(
-            mouseX - width / 2.0, mouseY - height / 2.0, options.size(), INNER_RADIUS);
+        OptionalInt hovered = overRangeSlider(mouseX, mouseY) || draggingRange
+            ? OptionalInt.empty() : RadialModeGeometry.selectionIndex(
+                mouseX - width / 2.0, mouseY - centerY(), options.size(), INNER_RADIUS);
         selection = hovered.orElse(-1);
         if (selection != lastAudibleSelection) {
             if (selection >= 0) playUi(1.25F);
@@ -58,9 +75,11 @@ public final class ModeRadialScreen extends Screen {
         drawRing(graphics, options.size(), animation);
         drawOptions(graphics, options);
         drawCenter(graphics);
+        drawRangeSlider(graphics);
     }
 
     public void commitAndClose() {
+        sendRange(true);
         if (!cancelled) {
             PortalNetworking.sendShortcutRequest(PortalAction.SET_RADIAL_MODE, tag -> {
                 tag.putString("FunctionMode", functionMode.name());
@@ -76,7 +95,10 @@ public final class ModeRadialScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
+        if (button == 0 && overRangeSlider(mouseX, mouseY)) {
+            draggingRange = true;
+            updateRange(mouseX, false);
+        } else if (button == 0 && PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
             functionMode = functionMode.toggle();
             playUi(functionMode == PortalFunctionMode.PORTAL_PAIRING ? 1.15F : 0.85F);
         } else if (button == 1) {
@@ -86,6 +108,25 @@ public final class ModeRadialScreen extends Screen {
             playUi(0.9F);
         }
         return true;
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (draggingRange && button == 0) {
+            updateRange(mouseX, false);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (draggingRange && button == 0) {
+            updateRange(mouseX, true);
+            draggingRange = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
@@ -100,6 +141,7 @@ public final class ModeRadialScreen extends Screen {
 
     @Override
     public void onClose() {
+        sendRange(true);
         cancelled = true;
         ModeRadialInput.cancelFromScreen();
         super.onClose();
@@ -116,7 +158,7 @@ public final class ModeRadialScreen extends Screen {
         if (!PortalClientState.gun().getBoolean("EntityRelocationEnabled")) {
             modes.remove(PortalPlacementMode.ENTITY_RELOCATION);
         }
-        if (!PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
+        if (!remoteInstalled()) {
             modes.remove(PortalPlacementMode.REMOTE);
         }
         return modes;
@@ -124,7 +166,7 @@ public final class ModeRadialScreen extends Screen {
 
     private void drawRing(GuiGraphics graphics, int count, float animation) {
         int centerX = width / 2;
-        int centerY = height / 2;
+        int centerY = centerY();
         int outer = Math.max(INNER_RADIUS + 1, Math.round(OUTER_RADIUS * animation));
         for (int y = -outer; y <= outer; y += SAMPLE) {
             for (int x = -outer; x <= outer; x += SAMPLE) {
@@ -145,7 +187,7 @@ public final class ModeRadialScreen extends Screen {
 
     private void drawOptions(GuiGraphics graphics, List<?> options) {
         int centerX = width / 2;
-        int centerY = height / 2;
+        int centerY = centerY();
         for (int index = 0; index < options.size(); index++) {
             double angle = Math.toRadians(-90.0 + index * 360.0 / options.size());
             int x = centerX + (int) Math.round(Math.cos(angle) * LABEL_RADIUS);
@@ -165,7 +207,7 @@ public final class ModeRadialScreen extends Screen {
 
     private void drawCenter(GuiGraphics graphics) {
         int centerX = width / 2;
-        int centerY = height / 2;
+        int centerY = centerY();
         Component pageLabel = Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.placement" : "screen.riftgun.mode_radial.prediction");
         boolean pairing = functionMode == PortalFunctionMode.PORTAL_PAIRING;
@@ -180,8 +222,8 @@ public final class ModeRadialScreen extends Screen {
                 : PortalClientState.data().settings().predictionMode();
         centeredWrappedText(graphics, label(current), centerX, centerY + 6, 80, PortalTheme.TEXT);
         boolean pairingInstalled = Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled");
-        int hintY = Math.min(centerY + OUTER_RADIUS + 12,
-            height - (pairingInstalled ? 22 : 12));
+        int hintReserve = pairingInstalled ? 22 : 12;
+        int hintY = Math.min(centerY + OUTER_RADIUS + 12, height - hintReserve);
         centeredText(graphics, Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.switch_prediction" : "screen.riftgun.mode_radial.switch_placement"),
             centerX, hintY, PortalTheme.TEXT_MUTED);
@@ -191,6 +233,67 @@ public final class ModeRadialScreen extends Screen {
                     : "screen.riftgun.mode_radial.switch_to_pairing"),
                 centerX, hintY + 10, PortalTheme.TEXT_MUTED);
         }
+    }
+
+    private void drawRangeSlider(GuiGraphics graphics) {
+        if (!rangeSliderEnabled()) return;
+        int x = rangeSliderX();
+        int y = rangeSliderY();
+        centeredText(graphics, Component.translatable("screen.riftgun.mode_radial.surface_range",
+            surfaceRange, maximumSurfaceRange), width / 2, y - 12, PortalTheme.TEXT_MUTED);
+        graphics.fill(x, y, x + RANGE_SLIDER_WIDTH, y + 4, RANGE_EMPTY_COLOR);
+        int filled = maximumSurfaceRange <= 1 ? RANGE_SLIDER_WIDTH
+            : Math.round((surfaceRange - 1.0F) / (maximumSurfaceRange - 1.0F) * RANGE_SLIDER_WIDTH);
+        graphics.fill(x, y, x + filled, y + 4, RANGE_FILLED_COLOR);
+        int thumbX = Math.clamp(x + filled, x + 1, x + RANGE_SLIDER_WIDTH - 1);
+        graphics.fill(thumbX - 1, y - 2, thumbX + 2, y + 6, PortalTheme.TEXT);
+    }
+
+    private void updateRange(double mouseX, boolean forceSend) {
+        double fraction = Math.clamp((mouseX - rangeSliderX()) / RANGE_SLIDER_WIDTH, 0.0, 1.0);
+        surfaceRange = 1 + (int) Math.round(fraction * (maximumSurfaceRange - 1));
+        PortalClientState.gun().putInt("SurfaceRange", surfaceRange);
+        sendRange(forceSend);
+    }
+
+    private void sendRange(boolean force) {
+        if (!rangeSliderEnabled() || surfaceRange == lastSentRange) return;
+        long now = System.nanoTime();
+        if (!force && now - lastRangeSendNanos < RANGE_SEND_INTERVAL_NANOS) return;
+        int value = surfaceRange;
+        PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
+            tag.putString("Setting", "SurfaceRange");
+            tag.putInt("Value", value);
+        });
+        lastSentRange = value;
+        lastRangeSendNanos = now;
+    }
+
+    private boolean overRangeSlider(double mouseX, double mouseY) {
+        return rangeSliderEnabled() && mouseX >= rangeSliderX()
+            && mouseX <= rangeSliderX() + RANGE_SLIDER_WIDTH
+            && mouseY >= rangeSliderY() - 4 && mouseY <= rangeSliderY() + 8;
+    }
+
+    private int centerY() {
+        return height / 2;
+    }
+
+    private int rangeSliderX() {
+        return width / 2 - RANGE_SLIDER_WIDTH / 2;
+    }
+
+    private int rangeSliderY() {
+        return Math.max(RANGE_SLIDER_MIN_Y, centerY() - OUTER_RADIUS - RANGE_SLIDER_RING_GAP);
+    }
+
+    private boolean remoteInstalled() {
+        return Nbt.getBoolean(PortalClientState.gun(), "RemoteInstalled");
+    }
+
+    private boolean rangeSliderEnabled() {
+        return remoteInstalled()
+            && Nbt.getBoolean(PortalClientState.gun(), "RemoteRadialSliderEnabled");
     }
 
     private Component label(Object mode) {

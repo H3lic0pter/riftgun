@@ -24,6 +24,7 @@
       "riftgun:module_bay_expansion",
       "riftgun:passive_transit_module",
       "riftgun:projectile_transit_module",
+      "riftgun:remote_module",
       "riftgun:player_target_module",
       "riftgun:portal_pairing_module",
       "riftgun:portal_aperture_module",

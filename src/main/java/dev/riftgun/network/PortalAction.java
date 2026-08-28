@@ -25,6 +25,7 @@ public enum PortalAction {
     CYCLE_PLACEMENT_MODE,
     OPEN_MODE_RADIAL,
     SET_RADIAL_MODE,
+    ADJUST_SURFACE_RANGE,
     CREATE_GROUP,
     RENAME_GROUP,
     DELETE_GROUP,
@@ -54,6 +55,7 @@ public enum PortalAction {
     public boolean isExclusiveKeyboardShortcut() {
         return this == OPEN_SELECTED || this == RELOCATE_ENTITY || this == PLACE_PAIRING_ENDPOINT
             || this == TOGGLE_FUNCTION_MODE || this == CYCLE_PLACEMENT_MODE
-            || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE;
+            || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE
+            || this == ADJUST_SURFACE_RANGE;
     }
 }
