@@ -202,7 +202,7 @@ public final class PortalConfigScreen extends Screen {
         detailScroll = scroll.detailScroll();
         PortalPlayerData data = PortalClientState.data();
         playerTargets = new PlayerTargetController(data);
-        expandedExternalGroups.removeIf(source -> !ClientMapWaypointIntegration.expanded(source));
+        syncExternalGroupExpansion(data);
         ExternalDestinationSelection externalSelection = ClientMapWaypointIntegration.selected();
         if (externalSelection != null) {
             selectedExternalRow = externalRowId(externalSelection.source(), externalSelection.stableId());
@@ -1611,7 +1611,7 @@ public final class PortalConfigScreen extends Screen {
                 placementRangesSettingsButton.getY() + 7, PortalTheme.ICE);
         }
         if (remoteSettingsButton != null) {
-            PortalGuiIcons.drawPlacementModeIcon(graphics, remoteSettingsButton.getX() + 8,
+            PortalGuiIcons.drawPlacementModeIcon(graphics, remoteSettingsButton.getX() + 7,
                 remoteSettingsButton.getY() + 8, PortalPlacementMode.REMOTE);
         }
         if (entityTransitSettingsButton != null) {
@@ -2117,12 +2117,7 @@ public final class PortalConfigScreen extends Screen {
                 }
                 if (row.kind() == RowKind.EXTERNAL_GROUP) {
                     ExternalDestinationSource source = externalSource(row.id());
-                    if (source != null) {
-                        if (expandedExternalGroups.contains(source)) expandedExternalGroups.remove(source);
-                        else expandedExternalGroups.add(source);
-                        ClientMapWaypointIntegration.expanded(source,
-                            expandedExternalGroups.contains(source));
-                    }
+                    if (source != null) toggleExternalGroup(source);
                     return true;
                 }
                 if (row.kind() == RowKind.EXTERNAL_DESTINATION) {
@@ -2355,12 +2350,7 @@ public final class PortalConfigScreen extends Screen {
             else if (focusedRowKind == RowKind.EXTERNAL_DESTINATION) selectExternalDestination(focusedRowId);
             else if (focusedRowKind == RowKind.EXTERNAL_GROUP) {
                 ExternalDestinationSource source = externalSource(focusedRowId);
-                if (source != null) {
-                    boolean expanded = !expandedExternalGroups.contains(source);
-                    ClientMapWaypointIntegration.expanded(source, expanded);
-                    if (expanded) expandedExternalGroups.add(source);
-                    else expandedExternalGroups.remove(source);
-                }
+                if (source != null) toggleExternalGroup(source);
             }
             else if (focusedRowKind == RowKind.PLAYER) {
                 PlayerListState.PlayerEntry entry = PlayerListState.player(focusedRowId);
@@ -2700,6 +2690,26 @@ public final class PortalConfigScreen extends Screen {
             tag.putString("Setting", setting);
             tag.putBoolean("Enabled", enabled);
         });
+    }
+
+    private void toggleExternalGroup(ExternalDestinationSource source) {
+        boolean expanded = !expandedExternalGroups.contains(source);
+        if (expanded) expandedExternalGroups.add(source);
+        else expandedExternalGroups.remove(source);
+        UUID sectionId = externalSectionId(source);
+        PortalNetworking.sendRequest(PortalAction.SET_GROUP_EXPANDED, tag -> {
+            tag.putUUID("Group", sectionId);
+            tag.putBoolean("Expanded", expanded);
+        });
+    }
+
+    private void syncExternalGroupExpansion(PortalPlayerData data) {
+        expandedExternalGroups.clear();
+        for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
+            if (data.expandedGroups().contains(externalSectionId(source))) {
+                expandedExternalGroups.add(source);
+            }
+        }
     }
 
     private boolean applyGunBooleanToggle(String snapshotKey) {
@@ -3229,6 +3239,7 @@ public final class PortalConfigScreen extends Screen {
     public void refreshFromServer(Set<UUID> ignoredInvalidatedSafety) {
         UUID previousSelectedPlayer = playerTargets.selectedId();
         playerTargets.sync(PortalClientState.data());
+        syncExternalGroupExpansion(PortalClientState.data());
         UUID serverSelectedPlayer = PortalClientState.data().selectedPlayerId();
         if (serverSelectedPlayer != null) {
             if (!serverSelectedPlayer.equals(previousSelectedPlayer)) {
@@ -3439,6 +3450,12 @@ public final class PortalConfigScreen extends Screen {
     private static UUID externalGroupId(ExternalDestinationSource source) {
         return UUID.nameUUIDFromBytes(("riftgun:external-group:" + source.name())
             .getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static UUID externalSectionId(ExternalDestinationSource source) {
+        return source == ExternalDestinationSource.JOURNEYMAP
+            ? PortalPlayerData.JOURNEYMAP_SECTION_ID
+            : PortalPlayerData.XAERO_MINIMAP_SECTION_ID;
     }
 
     private static UUID externalRowId(ExternalDestinationSource source, String stableId) {

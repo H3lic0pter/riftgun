@@ -1,6 +1,7 @@
 package dev.riftgun.client.screen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +31,16 @@ final class VersionedScreenParityTest {
     void radialScreensSendTheSameActionsAndUseTheSameText() throws Exception {
         assertContractParity("ModeRadialScreen.java", ACTION);
         assertContractParity("ModeRadialScreen.java", TRANSLATION);
+    }
+
+    @Test
+    void predictionStatesShareTheReviewedOpticalCorrection() throws Exception {
+        for (Path root : new Path[] { LEGACY, CURRENT }) {
+            String icons = Files.readString(root.resolve("PortalGuiIcons.java"));
+            assertTrue(icons.contains("PREDICTION_OPTICAL_X = -3"));
+            assertTrue(icons.contains("? PortalGuiSprites.PREDICTION_OFF : PortalGuiSprites.PREDICTION_ON,"));
+            assertTrue(icons.contains("x + PREDICTION_OPTICAL_X, y + PREDICTION_OPTICAL_Y"));
+        }
     }
 
     private static void assertContractParity(String file, Pattern pattern) throws Exception {

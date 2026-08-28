@@ -43,6 +43,24 @@ final class PortalPlayerDataTest {
         PortalPlayerData restored = PortalPlayerData.load(data.save());
         assertEquals("Location3", restored.nextLocationName());
         assertTrue(restored.expandedGroups().contains(PortalPlayerData.DEFAULT_GROUP_ID));
+        assertTrue(restored.expandedGroups().contains(PortalPlayerData.JOURNEYMAP_SECTION_ID));
+        assertTrue(restored.expandedGroups().contains(PortalPlayerData.XAERO_MINIMAP_SECTION_ID));
+    }
+
+    @Test
+    void mapSectionExpansionRoundTripsAndLegacyDataDefaultsOpen() {
+        PortalPlayerData data = new PortalPlayerData();
+        data.expandedGroups().remove(PortalPlayerData.JOURNEYMAP_SECTION_ID);
+
+        PortalPlayerData restored = PortalPlayerData.load(data.save());
+        assertFalse(restored.expandedGroups().contains(PortalPlayerData.JOURNEYMAP_SECTION_ID));
+        assertTrue(restored.expandedGroups().contains(PortalPlayerData.XAERO_MINIMAP_SECTION_ID));
+
+        CompoundTag legacy = data.save();
+        legacy.putInt("Version", 9);
+        PortalPlayerData migrated = PortalPlayerData.load(legacy);
+        assertTrue(migrated.expandedGroups().contains(PortalPlayerData.JOURNEYMAP_SECTION_ID));
+        assertTrue(migrated.expandedGroups().contains(PortalPlayerData.XAERO_MINIMAP_SECTION_ID));
     }
 
     @Test

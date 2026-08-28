@@ -23,7 +23,6 @@ public final class ClientMapWaypointIntegration {
     private static final ClientExternalDestinationCatalog CATALOG = new ClientExternalDestinationCatalog();
     private static final Map<ExternalDestinationSource, ClientExternalDestinationAdapter> ADAPTERS = new EnumMap<>(ExternalDestinationSource.class);
     private static final Set<ExternalDestinationSource> WARNED = EnumSet.noneOf(ExternalDestinationSource.class);
-    private static final Set<ExternalDestinationSource> EXPANDED = EnumSet.allOf(ExternalDestinationSource.class);
     private static boolean initialized;
     private static ExternalDestinationSelection selected;
     private static boolean journeyMapDirty;
@@ -40,8 +39,6 @@ public final class ClientMapWaypointIntegration {
     public static boolean reconcileSelection() { if (selected == null) return false; boolean present = CATALOG.destinations(selected.source()).stream().anyMatch(value -> value.stableId().equals(selected.stableId()) && value.selectable()); if (present) return false; selected = null; return true; }
     public static void clear() { CATALOG.clear(); selected = null; }
     public static boolean enabled(ExternalDestinationSource source) { return source == ExternalDestinationSource.JOURNEYMAP ? ClientConfig.VALUES.journeyMapWaypointsEnabled.get() : ClientConfig.VALUES.xaeroWaypointsEnabled.get(); }
-    public static boolean expanded(ExternalDestinationSource source) { return EXPANDED.contains(source); }
-    public static void expanded(ExternalDestinationSource source, boolean value) { if (value) EXPANDED.add(source); else EXPANDED.remove(source); }
     private static void initialize() { if (initialized) return; initialized = true; installAdapter(ExternalDestinationSource.JOURNEYMAP); installAdapter(ExternalDestinationSource.XAERO_MINIMAP); }
     private static String installedVersion(ExternalDestinationSource source) { return ModList.get().getModContainerById(source.modId()).map(value -> value.getModInfo().getVersion().toString()).orElse(""); }
     private static void refreshSource(ExternalDestinationSource source, Set<String> dimensions, int limit) { ClientExternalDestinationAdapter adapter = ADAPTERS.get(source); if (adapter == null) return; if (!enabled(source)) { CATALOG.clear(source); if (selected != null && selected.source() == source) selected = null; return; } try { CATALOG.replace(adapter.read(installedVersion(source)), dimensions, limit); } catch (LinkageError | RuntimeException exception) { disable(source, exception); } }

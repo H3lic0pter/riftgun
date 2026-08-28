@@ -21,12 +21,15 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 9;
+    public static final int CURRENT_VERSION = 10;
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
     /** Sentinel id for the Player section's collapsed/expanded state in {@link #expandedGroups()}. */
     public static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
     /** Virtual group shown only while imported destinations exist. */
     public static final UUID SHARED_SECTION_ID = new UUID(0L, 0x200L);
+    /** Sentinel ids for client-only map sections; their expansion follows Player persistence. */
+    public static final UUID JOURNEYMAP_SECTION_ID = new UUID(0L, 0x300L);
+    public static final UUID XAERO_MINIMAP_SECTION_ID = new UUID(0L, 0x400L);
 
     private final List<DestinationGroup> groups = new ArrayList<>();
     private final List<Destination> destinations = new ArrayList<>();
@@ -51,6 +54,8 @@ public final class PortalPlayerData {
         expandedGroups.add(DEFAULT_GROUP_ID);
         expandedGroups.add(PLAYER_SECTION_ID);
         expandedGroups.add(SHARED_SECTION_ID);
+        expandedGroups.add(JOURNEYMAP_SECTION_ID);
+        expandedGroups.add(XAERO_MINIMAP_SECTION_ID);
         PortalPermissions.definitions().forEach(definition ->
             globalPermissions.put(definition.id(), definition.fallbackGlobalPolicy()));
     }
@@ -471,6 +476,10 @@ public final class PortalPlayerData {
 
     private void migrate(int storedVersion) {
         // Settings, sound themes, and v4 safety history use missing-field defaults.
+        if (storedVersion < 10) {
+            expandedGroups.add(JOURNEYMAP_SECTION_ID);
+            expandedGroups.add(XAERO_MINIMAP_SECTION_ID);
+        }
     }
 
     private void repairReferences() {
@@ -489,7 +498,10 @@ public final class PortalPlayerData {
         if (lastViewedDestinationId != null && destination(lastViewedDestinationId).isEmpty()) lastViewedDestinationId = null;
         safetyResults.keySet().removeIf(id -> destination(id).isEmpty());
         shareProvenance.keySet().removeIf(id -> destination(id).isEmpty());
-        expandedGroups.removeIf(id -> !groupIds.contains(id) && !id.equals(PLAYER_SECTION_ID));
+        expandedGroups.removeIf(id -> !groupIds.contains(id)
+            && !id.equals(PLAYER_SECTION_ID)
+            && !id.equals(JOURNEYMAP_SECTION_ID)
+            && !id.equals(XAERO_MINIMAP_SECTION_ID));
     }
 
     /** Clears pinned flags, use timestamps, and selection for players that are no longer online. */

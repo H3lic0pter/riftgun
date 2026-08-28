@@ -24,7 +24,6 @@ public final class ClientMapWaypointIntegration {
     private static final Map<ExternalDestinationSource, ClientExternalDestinationAdapter> ADAPTERS =
         new EnumMap<>(ExternalDestinationSource.class);
     private static final Set<ExternalDestinationSource> WARNED = EnumSet.noneOf(ExternalDestinationSource.class);
-    private static final Set<ExternalDestinationSource> EXPANDED = EnumSet.allOf(ExternalDestinationSource.class);
     private static boolean initialized;
     private static ExternalDestinationSelection selected;
     private static boolean journeyMapDirty;
@@ -64,10 +63,6 @@ public final class ClientMapWaypointIntegration {
         return source == ExternalDestinationSource.JOURNEYMAP
             ? ClientConfig.VALUES.journeyMapWaypointsEnabled.get()
             : ClientConfig.VALUES.xaeroWaypointsEnabled.get();
-    }
-    public static boolean expanded(ExternalDestinationSource source) { return EXPANDED.contains(source); }
-    public static void expanded(ExternalDestinationSource source, boolean value) {
-        if (value) EXPANDED.add(source); else EXPANDED.remove(source);
     }
     private static void initialize() {
         if (initialized) return;

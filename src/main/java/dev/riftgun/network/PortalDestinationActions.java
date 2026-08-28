@@ -205,6 +205,8 @@ final class PortalDestinationActions {
         if (!groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && !groupId.equals(PortalPlayerData.PLAYER_SECTION_ID)
             && !groupId.equals(PortalPlayerData.SHARED_SECTION_ID)
+            && !groupId.equals(PortalPlayerData.JOURNEYMAP_SECTION_ID)
+            && !groupId.equals(PortalPlayerData.XAERO_MINIMAP_SECTION_ID)
             && data.group(groupId).isEmpty()) {
             throw PortalRequestFields.error("message.riftgun.group_missing");
         }

@@ -12,6 +12,9 @@ final class PortalGuiIcons {
     // The diagonal pencil stroke reads low-right unless its padded sprite is lifted and shifted left.
     private static final int EDIT_OPTICAL_X = -3;
     private static final int EDIT_OPTICAL_Y = -5;
+    // The prediction arc reads right-heavy at its previous padded position.
+    private static final int PREDICTION_OPTICAL_X = -3;
+    private static final int PREDICTION_OPTICAL_Y = -4;
 
     /** Accepts button bounds and centers the standard 16 x 16 random-rift sprite within them. */
     static void drawRandomRiftIcon(GuiGraphics graphics, int buttonX, int buttonY,
@@ -47,7 +50,8 @@ final class PortalGuiIcons {
 
     static void drawPredictionIcon(GuiGraphics graphics, int x, int y, int color) {
         PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
-            ? PortalGuiSprites.PREDICTION_OFF : PortalGuiSprites.PREDICTION_ON, x - 2, y - 4);
+            ? PortalGuiSprites.PREDICTION_OFF : PortalGuiSprites.PREDICTION_ON,
+            x + PREDICTION_OPTICAL_X, y + PREDICTION_OPTICAL_Y);
     }
 
     /** Accepts button bounds and mathematically centers the 16 x 16 function sprite. */
