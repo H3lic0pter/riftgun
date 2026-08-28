@@ -239,6 +239,11 @@ pair closes the target.
 - A and B have no marker, label, color, geometry, or animation difference.
 - Other players and entities traverse connected paired portals under exactly
   the normal portal transit/module rules.
+- Player camera rotation is independent from momentum transformation. If either
+  endpoint is TOP or BOTTOM, preserve the complete incoming yaw and pitch.
+  VERTICAL-to-VERTICAL traversal retains the existing mirrored view behavior.
+- Camera correction is instantaneous and does not change exit position or
+  velocity.
 - Portal Gun details and the configuration GUI show the current function mode.
   Do not recolor the gun body, whose color represents fluid.
 

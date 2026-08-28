@@ -319,24 +319,19 @@ final class PortalTransitOrchestrator {
                 target.normal().scale(0.12 - outwardSpeed));
         }
 
-        Vec3 look = portal.transformVector(entity.getLookAngle(), target).normalize();
+        PortalViewTransform.Rotation viewRotation;
         if (entity instanceof Player) {
             float dot = (float) entity.getLookAngle().normalize().dot(portal.normal());
-            if (dot > 0.0F) {
-                float blend = Mth.clamp(dot / FACING_THRESHOLD, 0.0F, 1.0F);
-                Vec3 mirrored = PortalTransform.betweenFactors(entity.getLookAngle(),
-                    portal.orientation(), portal.getYRot(), target.orientation(), target.getYRot(),
-                    -1.0F, 1.0F).normalize();
-                Vec3 flipped = PortalTransform.betweenFactors(entity.getLookAngle(),
-                    portal.orientation(), portal.getYRot(), target.orientation(), target.getYRot(),
-                    -1.0F, -1.0F).normalize();
-                look = mirrored.lerp(flipped, blend).normalize();
-            }
+            viewRotation = PortalViewTransform.playerRotation(
+                entity.getLookAngle(), entity.getYRot(), entity.getXRot(),
+                portal.orientation(), portal.getYRot(), target.orientation(), target.getYRot(),
+                dot, FACING_THRESHOLD);
+        } else {
+            viewRotation = PortalViewTransform.rotationFor(
+                portal.transformVector(entity.getLookAngle(), target), entity.getYRot());
         }
-        float yaw = (float) Math.toDegrees(Math.atan2(-look.x, look.z));
-        float pitch = (float) Math.toDegrees(Math.asin(Mth.clamp(-look.y, -1.0, 1.0)));
         return new PortalTransitService.TransitPlan(
-            target.outputPosition(entity), momentum, yaw, pitch);
+            target.outputPosition(entity), momentum, viewRotation.yaw(), viewRotation.pitch());
     }
 
     private @Nullable Entity transitSingle(Entity entity, ServerLevel targetLevel,

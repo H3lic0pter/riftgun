@@ -58,6 +58,18 @@ final class PortalTransformTest {
         }
     }
 
+    @Test
+    void topToTopPlayerViewKeepsWorldYaw() {
+        float inputYaw = 37.0F;
+        Vec3 inputLook = Vec3.directionFromRotation(0.0F, inputYaw);
+
+        float outputYaw = PortalViewTransform.playerRotation(inputLook, inputYaw, 0.0F,
+            PortalOrientation.TOP, 0.0F, PortalOrientation.TOP, 90.0F,
+            -1.0F, 0.35F).yaw();
+
+        assertEquals(inputYaw, outputYaw, 1.0E-4F);
+    }
+
     private static void assertVec(Vec3 expected, Vec3 actual) {
         assertEquals(expected.x, actual.x, 1.0E-8);
         assertEquals(expected.y, actual.y, 1.0E-8);
