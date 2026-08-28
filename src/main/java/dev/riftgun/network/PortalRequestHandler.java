@@ -41,6 +41,10 @@ public final class PortalRequestHandler {
             return;
         }
         if (player.isSpectator()) {
+            if (action == PortalAction.OPEN_MODE_RADIAL) {
+                PortalNetworking.sendRadialUnavailable(player,
+                    Nbt.getInt(request, "RadialRequestId"));
+            }
             Msg.displayClientMessage(player, Component.translatable("message.riftgun.spectator_denied"), true);
             return;
         }
@@ -59,6 +63,10 @@ public final class PortalRequestHandler {
             : keyboardShortcut ? PortalShortcutGunSelection.locate(player).orElse(null)
                 : locateGun(player, request);
         if (gun == null) {
+            if (action == PortalAction.OPEN_MODE_RADIAL) {
+                PortalNetworking.sendRadialUnavailable(player,
+                    Nbt.getInt(request, "RadialRequestId"));
+            }
             if (!keyboardShortcut && request.contains("GunReference")) {
                 PortalNetworking.sendGunReferenceInvalid(player);
             }
@@ -78,7 +86,8 @@ public final class PortalRequestHandler {
             return;
         }
         if (action == PortalAction.OPEN_MODE_RADIAL) {
-            PortalNetworking.sendRadialSnapshot(player, gun);
+            PortalNetworking.sendRadialSnapshot(player, gun,
+                Nbt.getInt(request, "RadialRequestId"));
             return;
         }
         if (action == PortalAction.OPEN_MODULES) {
@@ -89,7 +98,7 @@ public final class PortalRequestHandler {
         PortalPlayerData data = PortalDataStore.load(player);
         try {
             boolean changed = dispatch(player, data, gun, action, request);
-            if (changed) sendChangedState(player, data, gun, action);
+            if (changed) sendChangedState(player, data, gun, action, request);
         } catch (PortalRequestException exception) {
             Msg.displayClientMessage(player, Component.translatable(exception.translationKey()), true);
         } catch (NumberFormatException exception) {
@@ -262,7 +271,13 @@ public final class PortalRequestHandler {
     }
 
     private static void sendChangedState(ServerPlayer player, PortalPlayerData data,
-                                         PortalGunLocator.LocatedGun gun, PortalAction action) {
+                                         PortalGunLocator.LocatedGun gun, PortalAction action,
+                                         CompoundTag request) {
+        if (action == PortalAction.SET_GUN_MODULE_SETTINGS
+            && Nbt.getString(request, "Setting").equals("SurfaceRange")) {
+            PortalNetworking.sendGunSnapshot(player, data, gun);
+            return;
+        }
         PortalDataStore.save(player, data);
         if (action == PortalAction.SELECT_DESTINATION) {
             PortalNetworking.sendSelectionAccepted(player, data.selectedDestinationId());

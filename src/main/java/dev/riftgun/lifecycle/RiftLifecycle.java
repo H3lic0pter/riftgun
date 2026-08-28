@@ -15,6 +15,7 @@ import dev.riftgun.portal.PortalOwnerIndex;
 import dev.riftgun.portal.SweptPortalIndex;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.relocation.EntityRelocationManager;
+import dev.riftgun.service.CoordinateSharingService;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.sound.PortalSounds;
@@ -114,6 +115,7 @@ public final class RiftLifecycle {
     }
 
     public static void serverStopped(MinecraftServer server) {
+        CoordinateSharingService.reset();
         PortalPrivacyService.reset();
         ExternalDestinationActions.reset();
         RandomRiftManager.reset();

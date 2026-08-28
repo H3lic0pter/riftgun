@@ -63,16 +63,24 @@ public final class PortalNetworking {
         sendSnapshot(player, openScreen, false, locatedGun);
     }
 
-    public static void sendRadialSnapshot(ServerPlayer player, PortalGunLocator.LocatedGun locatedGun) {
-        sendSnapshot(player, false, true, locatedGun);
+    public static void sendRadialSnapshot(ServerPlayer player,
+                                          PortalGunLocator.LocatedGun locatedGun,
+                                          int requestId) {
+        sendSnapshot(player, false, true, locatedGun, requestId);
     }
 
     private static void sendSnapshot(ServerPlayer player, boolean openScreen, boolean openRadial,
                                      PortalGunLocator.LocatedGun locatedGun) {
+        sendSnapshot(player, openScreen, openRadial, locatedGun, 0);
+    }
+
+    private static void sendSnapshot(ServerPlayer player, boolean openScreen, boolean openRadial,
+                                     PortalGunLocator.LocatedGun locatedGun, int radialRequestId) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Snapshot");
         envelope.putBoolean("OpenScreen", openScreen);
         envelope.putBoolean("OpenRadial", openRadial);
+        if (openRadial) envelope.putInt("RadialRequestId", radialRequestId);
         PortalPlayerData data = PortalDataStore.load(player);
         envelope.put("Data", data.save());
         putDimensionLabels(envelope, player, data.destinations().stream().map(destination -> {
@@ -81,7 +89,7 @@ public final class PortalNetworking {
 *///?} else {
             return destination.dimension().location().toString();
 //?}
-        }).toList());
+        }).distinct().toList());
         envelope.put("ModuleRules", PortalModuleRules.current().save());
         RandomRiftManager.Snapshot randomRift = RandomRiftManager.snapshot(player);
         CompoundTag randomRiftTag = new CompoundTag();
@@ -93,6 +101,24 @@ public final class PortalNetworking {
             envelope.put("GunReference", locatedGun.saveReference());
             envelope.put("Gun", PortalGunSnapshot.create(locatedGun.stack(), data.settings().smartDistance()));
         }
+        RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    /** A focused acknowledgement for high-frequency per-gun controls such as radial sliders. */
+    public static void sendGunSnapshot(ServerPlayer player, PortalPlayerData data,
+                                       PortalGunLocator.LocatedGun locatedGun) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "GunSnapshot");
+        envelope.put("GunReference", locatedGun.saveReference());
+        envelope.put("Gun", PortalGunSnapshot.create(
+            locatedGun.stack(), data.settings().smartDistance()));
+        RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
+    }
+
+    public static void sendRadialUnavailable(ServerPlayer player, int requestId) {
+        CompoundTag envelope = new CompoundTag();
+        envelope.putString("Kind", "RadialUnavailable");
+        envelope.putInt("RadialRequestId", requestId);
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 

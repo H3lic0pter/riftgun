@@ -3411,12 +3411,12 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void refreshJourneyMapIfDirty() {
-        if (minecraft == null || minecraft.getConnection() == null) return;
+        if (!ClientMapWaypointIntegration.journeyMapDirty()
+            || minecraft == null || minecraft.getConnection() == null) return;
         Set<String> dimensions = minecraft.getConnection().levels().stream()
             .map(key -> key.location().toString()).collect(java.util.stream.Collectors.toSet());
-        ClientMapWaypointIntegration.refreshJourneyMapIfDirty(dimensions,
-            ClientConfig.VALUES.maximumMapWaypoints.get());
-        reconcileExternalSelection();
+        if (ClientMapWaypointIntegration.refreshJourneyMapIfDirty(dimensions,
+            ClientConfig.VALUES.maximumMapWaypoints.get())) reconcileExternalSelection();
     }
 
     private void reconcileExternalSelection() {

@@ -70,6 +70,7 @@ public final class CoordinateSharingService {
             return tell(player, Result.DIMENSION_UNAVAILABLE);
         }
         long now = server.getTickCount();
+        prune(now);
         int cooldownTicks = RiftConfigs.server().coordinateSharing().chatCooldownSeconds() * 20;
         long allowedAt = CHAT_COOLDOWNS.getOrDefault(player.getUUID(), 0L);
         if (now < allowedAt) return tell(player, Result.COOLDOWN);
@@ -80,7 +81,6 @@ public final class CoordinateSharingService {
         share.importedPlayers().add(player.getUUID());
         CHAT_SHARES.put(snapshot.snapshotId(), share);
         CHAT_COOLDOWNS.put(player.getUUID(), now + cooldownTicks);
-        prune(now);
 
         Component message = Component.translatable("chat.riftgun.coordinate_share",
             player.getDisplayName(), dimensionName(player, destination), destination.name())
@@ -189,6 +189,7 @@ public final class CoordinateSharingService {
         MinecraftServer server = server(player);
         if (server == null) return tell(player, Result.INVALID);
         long now = server.getTickCount();
+        prune(now);
         ChatShare share = CHAT_SHARES.get(shareId);
         if (share == null || now >= share.expiresAt()) {
             CHAT_SHARES.remove(shareId);
@@ -374,6 +375,13 @@ public final class CoordinateSharingService {
 
     private static void prune(long now) {
         CHAT_SHARES.entrySet().removeIf(entry -> now >= entry.getValue().expiresAt());
+        CHAT_COOLDOWNS.entrySet().removeIf(entry -> now >= entry.getValue());
+    }
+
+    /** Clears tick-based state that must never cross a logical server session. */
+    public static void reset() {
+        CHAT_SHARES.clear();
+        CHAT_COOLDOWNS.clear();
     }
 
     private record ChatShare(CoordinateSnapshot snapshot, long expiresAt, Set<UUID> importedPlayers) {}

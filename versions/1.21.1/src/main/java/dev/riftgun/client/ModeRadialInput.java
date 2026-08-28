@@ -1,6 +1,7 @@
 package dev.riftgun.client;
 
 import dev.riftgun.client.screen.ModeRadialScreen;
+import dev.riftgun.input.RadialRequestState;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -15,6 +16,7 @@ public final class ModeRadialInput {
     private static boolean radialWasDown;
     private static int cycleHeldTicks;
     private static Source pendingSource;
+    private static final RadialRequestState REQUEST = new RadialRequestState();
     private static boolean suppressUntilRelease;
 
     public static void tick(Minecraft minecraft) {
@@ -23,8 +25,10 @@ public final class ModeRadialInput {
 
         if (minecraft.screen instanceof ModeRadialScreen screen) {
             if (pendingSource != null && !sourceDown(pendingSource, cycleDown, radialDown)) {
-                screen.commitAndClose();
-                suppressUntilRelease = true;
+                if (REQUEST.release() == RadialRequestState.ReleaseResult.COMMIT) {
+                    screen.commitAndClose();
+                    suppressUntilRelease = true;
+                }
             }
             remember(cycleDown, radialDown);
             return;
@@ -64,22 +68,46 @@ public final class ModeRadialInput {
         remember(cycleDown, radialDown);
     }
 
-    public static void openFromServer() {
+    public static void openFromServer(int requestId) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (pendingSource != null && minecraft.screen == null
-            && sourceDown(pendingSource, keyDown(ClientModEvents.CYCLE_PLACEMENT),
-                keyDown(ClientModEvents.OPEN_MODE_RADIAL))) {
+        if (pendingSource == null) return;
+        RadialRequestState.AcknowledgeResult result = REQUEST.acknowledge(requestId,
+            sourceDown(pendingSource, keyDown(ClientModEvents.CYCLE_PLACEMENT),
+                keyDown(ClientModEvents.OPEN_MODE_RADIAL)));
+        if (result == RadialRequestState.AcknowledgeResult.IGNORE) return;
+        if (minecraft.screen == null) {
             minecraft.setScreen(new ModeRadialScreen());
+        }
+        if (minecraft.screen instanceof ModeRadialScreen screen) screen.refreshFromServer();
+        if (result == RadialRequestState.AcknowledgeResult.COMMIT
+            && minecraft.screen instanceof ModeRadialScreen screen) {
+            screen.commitAndClose();
+            suppressUntilRelease = true;
         }
     }
 
+    public static void rejectFromServer(int requestId) {
+        if (pendingSource == null || !REQUEST.reject(requestId)) return;
+        pendingSource = null;
+        suppressUntilRelease = true;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof ModeRadialScreen screen) screen.rejectAndClose();
+    }
+
     public static void cancelFromScreen() {
+        pendingSource = null;
+        REQUEST.cancel();
         suppressUntilRelease = true;
     }
 
+    public static boolean ready() { return pendingSource != null && REQUEST.ready(); }
+
     private static void request(Source source) {
         pendingSource = source;
-        PortalNetworking.sendShortcutRequest(PortalAction.OPEN_MODE_RADIAL);
+        int requestId = REQUEST.begin();
+        Minecraft.getInstance().setScreen(new ModeRadialScreen());
+        PortalNetworking.sendShortcutRequest(PortalAction.OPEN_MODE_RADIAL,
+            tag -> tag.putInt("RadialRequestId", requestId));
     }
 
     private static boolean sourceDown(Source source, boolean cycleDown, boolean radialDown) {
@@ -106,6 +134,7 @@ public final class ModeRadialInput {
 
     private static void reset(boolean cycleDown, boolean radialDown) {
         pendingSource = null;
+        REQUEST.cancel();
         cycleHeldTicks = 0;
         remember(cycleDown, radialDown);
     }

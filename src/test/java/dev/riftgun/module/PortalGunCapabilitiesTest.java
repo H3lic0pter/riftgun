@@ -2,6 +2,7 @@ package dev.riftgun.module;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import dev.riftgun.data.PortalPlacementMode;
 import org.junit.jupiter.api.Test;
 
 final class PortalGunCapabilitiesTest {
@@ -19,5 +20,16 @@ final class PortalGunCapabilitiesTest {
 
         assertEquals(12, configuredSurfaceRange);
         assertEquals(64, smartRange);
+    }
+
+    @Test
+    void unavailableRemoteUsesFrontWithoutChangingThePreferredValue() {
+        PortalPlacementMode preferred = PortalPlacementMode.REMOTE;
+
+        assertEquals(PortalPlacementMode.FRONT,
+            PortalGunCapabilities.effectivePlacementMode(preferred, false));
+        assertEquals(PortalPlacementMode.REMOTE,
+            PortalGunCapabilities.effectivePlacementMode(preferred, true));
+        assertEquals(PortalPlacementMode.REMOTE, preferred);
     }
 }

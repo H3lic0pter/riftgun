@@ -7,7 +7,6 @@ import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.portal.PortalOwnerIndex;
-import dev.riftgun.data.PortalPlacementMode;
 import java.util.UUID;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerPlayer;
@@ -111,11 +110,8 @@ public final class PortalGunModuleContainer extends SimpleContainer {
             PortalNetworking.sendSnapshot(owner, false, locatedGun);
         }
         if (oldActiveRemote > 0 && newActiveRemote == 0) {
-            var data = PortalDataStore.load(owner);
-            if (data.settings().placementMode() == PortalPlacementMode.REMOTE) {
-                data.settings(data.settings().withPlacementMode(PortalPlacementMode.FRONT));
-                PortalDataStore.save(owner, data);
-            }
+            // Preserve REMOTE as the saved preference. Capability resolution supplies the
+            // effective FRONT fallback until the module is installed again.
             PortalNetworking.sendSnapshot(owner, false, locatedGun);
         }
         previous = copyItems();

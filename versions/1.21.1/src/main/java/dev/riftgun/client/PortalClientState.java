@@ -34,10 +34,15 @@ public final class PortalClientState {
             if (envelope.getBoolean("OpenScreen")) {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PortalConfigScreen());
             } else if (envelope.getBoolean("OpenRadial")) {
-                ModeRadialInput.openFromServer();
+                ModeRadialInput.openFromServer(envelope.getInt("RadialRequestId"));
             } else if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.refreshFromServer(Set.of());
             }
+        } else if (kind.equals("GunSnapshot")) {
+            gunReference = envelope.getCompound("GunReference").copy();
+            gun = envelope.getCompound("Gun").copy();
+        } else if (kind.equals("RadialUnavailable")) {
+            ModeRadialInput.rejectFromServer(envelope.getInt("RadialRequestId"));
         } else if (kind.equals("PortalOpened")) {
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.onPortalOpened();

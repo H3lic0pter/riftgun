@@ -6,6 +6,7 @@ import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.pairing.PortalFloatingFallback;
 import dev.riftgun.pairing.PortalFunctionMode;
+import dev.riftgun.data.PortalPlacementMode;
 
 public record PortalGunCapabilities(
     boolean coordinateOverride,
@@ -90,6 +91,17 @@ public record PortalGunCapabilities(
     public PortalFloatingFallback activeSmartFallback() {
         return functionMode == PortalFunctionMode.PORTAL_PAIRING
             ? pairingSmartFallback : coordinateSmartFallback;
+    }
+
+    /** Applies availability without overwriting the player's persisted placement preference. */
+    public PortalPlacementMode effectivePlacementMode(PortalPlacementMode preferred) {
+        return effectivePlacementMode(preferred, remote);
+    }
+
+    static PortalPlacementMode effectivePlacementMode(PortalPlacementMode preferred,
+                                                        boolean remoteAvailable) {
+        return preferred == PortalPlacementMode.REMOTE && !remoteAvailable
+            ? PortalPlacementMode.FRONT : preferred;
     }
 
     static int configuredSurfaceRange(int desiredRange, int maximumRange) {

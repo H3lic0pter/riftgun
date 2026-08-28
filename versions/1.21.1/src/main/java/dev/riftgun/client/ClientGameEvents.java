@@ -116,12 +116,13 @@ public final class ClientGameEvents {
     }
 
     private static void refreshJourneyMapSelection(Minecraft minecraft) {
+        if (!ClientMapWaypointIntegration.journeyMapDirty()) return;
         var dimensions = minecraft.getConnection().levels().stream()
             .map(key -> key.location().toString())
             .collect(java.util.stream.Collectors.toSet());
-        ClientMapWaypointIntegration.refreshJourneyMapIfDirty(dimensions,
-            ClientConfig.VALUES.maximumMapWaypoints.get());
-        if (ClientMapWaypointIntegration.reconcileSelection()) {
+        if (ClientMapWaypointIntegration.refreshJourneyMapIfDirty(dimensions,
+            ClientConfig.VALUES.maximumMapWaypoints.get())
+            && ClientMapWaypointIntegration.reconcileSelection()) {
             PortalNetworking.sendRequest(PortalAction.CLEAR_EXTERNAL_DESTINATION);
         }
     }

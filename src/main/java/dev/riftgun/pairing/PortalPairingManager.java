@@ -47,12 +47,9 @@ public final class PortalPairingManager {
             return fail(player, "message.riftgun.pairing_mode_required");
         }
 
-        PortalPlacementMode mode = requestedMode;
+        PortalPlacementMode mode = capabilities.effectivePlacementMode(requestedMode);
         if (mode == PortalPlacementMode.ENTITY_RELOCATION) {
             return fail(player, "message.riftgun.pairing_target_required");
-        }
-        if (mode == PortalPlacementMode.REMOTE && !capabilities.remote()) {
-            return fail(player, "message.riftgun.remote_module_required");
         }
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             capabilities.smartDistance(), capabilities.configuredSurfaceRange(),

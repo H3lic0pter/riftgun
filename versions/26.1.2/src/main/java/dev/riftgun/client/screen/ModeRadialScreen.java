@@ -40,15 +40,20 @@ public final class ModeRadialScreen extends Screen {
     private int lastAudibleSelection = -1;
     private final long openedNanos = System.nanoTime();
     private boolean cancelled;
+    private boolean suppressFinalRange;
     private PortalFunctionMode functionMode;
     private int surfaceRange;
-    private final int maximumSurfaceRange;
+    private int maximumSurfaceRange;
     private boolean draggingRange;
     private int lastSentRange;
     private long lastRangeSendNanos;
 
     public ModeRadialScreen() {
         super(Component.translatable("screen.riftgun.mode_radial.title"));
+        refreshFromServer();
+    }
+
+    public void refreshFromServer() {
         functionMode = parseFunctionMode(Nbt.getString(PortalClientState.gun(), "FunctionMode"));
         maximumSurfaceRange = Math.max(1,
             Nbt.getInt(PortalClientState.gun(), "MaximumSurfaceRange"));
@@ -93,8 +98,15 @@ public final class ModeRadialScreen extends Screen {
         if (minecraft != null) minecraft.setScreen(null);
     }
 
+    public void rejectAndClose() {
+        cancelled = true;
+        suppressFinalRange = true;
+        if (minecraft != null) minecraft.setScreen(null);
+    }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (!ModeRadialInput.ready()) return true;
         if (event.button() == 0 && overRangeSlider(event.x(), event.y())) {
             draggingRange = true;
             updateRange(event.x(), false);
@@ -112,6 +124,7 @@ public final class ModeRadialScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (!ModeRadialInput.ready()) return true;
         if (draggingRange && event.button() == 0) {
             updateRange(event.x(), false);
             return true;
@@ -121,6 +134,7 @@ public final class ModeRadialScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (!ModeRadialInput.ready()) return true;
         if (draggingRange && event.button() == 0) {
             updateRange(event.x(), true);
             draggingRange = false;
@@ -141,7 +155,7 @@ public final class ModeRadialScreen extends Screen {
 
     @Override
     public void onClose() {
-        sendRange(true);
+        if (!suppressFinalRange) sendRange(true);
         cancelled = true;
         ModeRadialInput.cancelFromScreen();
         super.onClose();
@@ -257,7 +271,7 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private void sendRange(boolean force) {
-        if (!rangeSliderEnabled() || surfaceRange == lastSentRange) return;
+        if (!ModeRadialInput.ready() || !rangeSliderEnabled() || surfaceRange == lastSentRange) return;
         long now = System.nanoTime();
         if (!force && now - lastRangeSendNanos < RANGE_SEND_INTERVAL_NANOS) return;
         int value = surfaceRange;

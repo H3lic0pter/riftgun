@@ -77,12 +77,17 @@ public final class ClientExternalDestinationCatalog {
         ExternalWaypoint waypoint,
         Set<String> availableDimensions
     ) {
-        ExternalDestination.Availability availability = availableDimensions.contains(
-            waypoint.dimensionId())
+        String dimensionId = safe(waypoint.dimensionId());
+        ExternalDestination.Availability availability = !dimensionId.isBlank()
+            && availableDimensions.contains(dimensionId)
             ? ExternalDestination.Availability.AVAILABLE
             : ExternalDestination.Availability.UNKNOWN_DIMENSION;
-        return new ExternalDestination(source, waypoint.stableId(), waypoint.name(),
-            waypoint.sourceGroup(), waypoint.dimensionId(), waypoint.x(), waypoint.y(), waypoint.z(),
+        return new ExternalDestination(source, safe(waypoint.stableId()), safe(waypoint.name()),
+            safe(waypoint.sourceGroup()), dimensionId, waypoint.x(), waypoint.y(), waypoint.z(),
             availability);
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
     }
 }

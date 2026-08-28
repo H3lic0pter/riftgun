@@ -62,6 +62,28 @@ final class ClientExternalDestinationCatalogTest {
     }
 
     @Test
+    void missingDimensionsRemainVisibleAndSortWithoutCrashing() {
+        ClientExternalDestinationCatalog catalog = new ClientExternalDestinationCatalog();
+        catalog.replace(ExternalDestinationReadResult.available(
+            ExternalDestinationSource.JOURNEYMAP,
+            "2.0.0",
+            List.of(
+                waypoint("missing-a", "Home", "Shared", null, 1, 2, 3,
+                    true, true, false),
+                waypoint("missing-b", "Home", "Shared", null, 4, 5, 6,
+                    true, true, false)
+            )),
+            Set.of("minecraft:overworld"),
+            100);
+
+        List<ExternalDestination> destinations = catalog.destinations(
+            ExternalDestinationSource.JOURNEYMAP);
+        assertEquals(2, destinations.size());
+        assertTrue(destinations.stream().noneMatch(ExternalDestination::selectable));
+        assertTrue(destinations.stream().allMatch(value -> value.dimensionId().isEmpty()));
+    }
+
+    @Test
     void emptyAndIncompatibleSourcesHideTheirGroups() {
         ClientExternalDestinationCatalog catalog = new ClientExternalDestinationCatalog();
         catalog.replace(ExternalDestinationReadResult.available(

@@ -193,10 +193,7 @@ public final class PortalOpenCoordinator {
         PortalGunModuleSettings.ensure(locatedGun.stack(), data.settings().smartDistance());
         PortalGunCapabilities gunCapabilities = PortalGunCapabilities.resolve(
             locatedGun.stack(), data.settings().smartDistance());
-        if (mode == PortalPlacementMode.REMOTE && !gunCapabilities.remote()) {
-            return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED,
-                "message.riftgun.remote_module_required");
-        }
+        mode = gunCapabilities.effectivePlacementMode(mode);
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
             data.settings().predictionMode(), gunCapabilities.aperture(),
