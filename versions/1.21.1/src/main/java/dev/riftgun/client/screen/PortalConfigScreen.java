@@ -413,6 +413,7 @@ public final class PortalConfigScreen extends Screen {
         int x = box.x();
         int y = box.y();
         int fieldWidth = box.width() - 36;
+        int gunSettingControlY = gunSettingControlTop(box);
         groupDropdownOpen = false;
         visualDropdownOpen = false;
         soundDropdownChannel = null;
@@ -535,48 +536,48 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
             boolean eternal = PortalClientState.gun().getBoolean("EternalDurationInstalled");
             int maximum = eternal ? 301 : Math.max(1, PortalClientState.gun().getInt("MaximumPortalDurationSeconds"));
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
+            addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
                 "PortalDuration", "screen.riftgun.portal_duration_value", 1, maximum,
                 PortalClientState.gun().getInt("PortalDurationSeconds"), 1.0,
                 eternal ? 301 : 0, "screen.riftgun.portal_duration_permanent"));
             int cooldownMaximum = Math.max(1, PortalClientState.gun().getInt("MaximumTransitCooldownTenths"));
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 69, fieldWidth, 18,
+            addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY + 24, fieldWidth, 18,
                 "TransitCooldown", "screen.riftgun.transit_cooldown_value", 0, cooldownMaximum,
                 PortalClientState.gun().getInt("TransitCooldownTenths"), 10.0));
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
             int maximum = Math.max(1, PortalClientState.gun().getInt("MaximumSurfaceRange"));
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 45, fieldWidth, 18,
+            addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
                 "SmartDistance", "screen.riftgun.smart_distance_value", 1,
                 maximum,
                 PortalClientState.gun().getInt("SmartDistance")));
-            addRenderableWidget(new GunDistanceSlider(x + 18, y + 69, fieldWidth, 18,
+            addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY + 24, fieldWidth, 18,
                 "SurfaceRange", "screen.riftgun.maximum_surface_range_value", 1, maximum,
                 PortalClientState.gun().getInt("SurfaceRange")));
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
-            addEntityTransitButtons(x + 18, y + 45);
+            addEntityTransitButtons(x + 18, gunSettingControlY);
         } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
             int buttonX = x + 18;
-            playerTargetButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+            playerTargetButton = button(buttonX, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("PlayerTarget", "PlayerTargetEnabled"));
             buttonX += 31;
-            playerExcludeButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+            playerExcludeButton = button(buttonX, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> cyclePlayerExclude());
         } else if (modal == Modal.APERTURE_SETTINGS) {
-            apertureToggleButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
+            apertureToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("ExpandedAperture", "ExpandedApertureEnabled"));
         } else if (modal == Modal.FALL_GUARD_SETTINGS) {
-            fallGuardToggleButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
+            fallGuardToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("FallGuard", "FallGuardEnabled"));
-            entityFallGuardToggleButton = button(x + 49, y + 45, 26, 26, Component.empty(), false,
+            entityFallGuardToggleButton = button(x + 49, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("FallGuardEntities", "FallGuardEntitiesEnabled"));
         } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
-            entityRelocationEnabledButton = button(x + 18, y + 45, 26, 26, Component.empty(), false,
+            entityRelocationEnabledButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean("EntityRelocation", "EntityRelocationEnabled"));
-            entityRelocationSmartButton = button(x + 49, y + 45, 26, 26, Component.empty(), false,
+            entityRelocationSmartButton = button(x + 49, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(
                     "EntityRelocationSmartRouting", "EntityRelocationSmartRouting"));
         } else if (modal == Modal.PORTAL_PAIRING_SETTINGS) {
-            int optionY = y + 42;
+            int optionY = gunSettingControlY;
             if (remoteInstalled()) {
                 coordinateFallbackButton = button(x + 18, optionY, fieldWidth, 19,
                     fallbackLabel("screen.riftgun.pairing.coordinate_fallback", "CoordinateSmartFallback"),
@@ -590,12 +591,12 @@ public final class PortalConfigScreen extends Screen {
                 pairingFallbackButton.active = remoteInstalled();
             }
         } else if (modal == Modal.REMOTE_SETTINGS) {
-            remoteScrollAdjustmentButton = button(x + 18, y + 42, fieldWidth, 19,
+            remoteScrollAdjustmentButton = button(x + 18, gunSettingControlY, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.scroll_adjustment",
                     PortalClientState.gun().getBoolean("RemoteScrollAdjustmentEnabled")),
                 false, ignored -> toggleGunBoolean(
                     "RemoteScrollAdjustment", "RemoteScrollAdjustmentEnabled"));
-            remoteRadialSliderButton = button(x + 18, y + 66, fieldWidth, 19,
+            remoteRadialSliderButton = button(x + 18, gunSettingControlY + 24, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.radial_slider",
                     PortalClientState.gun().getBoolean("RemoteRadialSliderEnabled")),
                 false, ignored -> toggleGunBoolean(
@@ -1246,34 +1247,8 @@ public final class PortalConfigScreen extends Screen {
         } else if (modal == Modal.GUN_SETTINGS) {
             graphics.drawString(font, Component.translatable("screen.riftgun.gun_settings_hint"),
                 x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.portal_timing_hint"),
-                x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.placement_ranges_hint",
-                Math.max(1, PortalClientState.gun().getInt("MaximumSurfaceRange"))), x, y + 30,
-                PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.entity_transit_hint"),
-                x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.player_target_hint"),
-                x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.APERTURE_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.aperture_hint"),
-                x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.FALL_GUARD_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.fall_guard_hint"),
-                x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.entity_relocation_hint"),
-                x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.PORTAL_PAIRING_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.pairing.settings_hint"),
-                x, y + 27, PortalTheme.TEXT_MUTED, false);
-        } else if (modal == Modal.REMOTE_SETTINGS) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.remote.settings_hint"),
-                x, y + 27, PortalTheme.TEXT_MUTED, false);
+        } else if (modal.isGunSettingPage()) {
+            drawGunSettingDescription(graphics, box);
         } else if (modal == Modal.MAP_INTEGRATION_SETTINGS) {
             int statusY = y + 104;
             for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
@@ -1640,8 +1615,9 @@ public final class PortalConfigScreen extends Screen {
                 entityRelocationSettingsButton.getY() + 7, enabled);
         }
         if (portalPairingSettingsButton != null) {
-            graphics.drawString(font, "A↔B", portalPairingSettingsButton.getX() + 4,
-                portalPairingSettingsButton.getY() + 9, PortalTheme.AMBER, false);
+            drawFunctionModeIcon(graphics, portalPairingSettingsButton.getX(),
+                portalPairingSettingsButton.getY(), portalPairingSettingsButton.getWidth(),
+                portalPairingSettingsButton.getHeight(), true);
         }
     }
 
@@ -1948,6 +1924,40 @@ public final class PortalConfigScreen extends Screen {
         addExternalRows(rows, ExternalDestinationSource.XAERO_MINIMAP, normalizedQuery);
         rows.addAll(playerSectionRows(normalizedQuery));
         return rows;
+    }
+
+    private void drawGunSettingDescription(GuiGraphics graphics, ModalBox box) {
+        Component description = gunSettingDescription();
+        if (description == null) return;
+        graphics.drawWordWrap(font, description, box.x() + 18, box.y() + 30,
+            box.width() - 36, PortalTheme.TEXT_MUTED);
+    }
+
+    private Component gunSettingDescription() {
+        return switch (modal) {
+            case PORTAL_DURATION_SETTINGS -> Component.translatable("screen.riftgun.portal_timing_hint");
+            case SMART_DISTANCE_SETTINGS -> Component.translatable("screen.riftgun.placement_ranges_hint",
+                Math.max(1, PortalClientState.gun().getInt("MaximumSurfaceRange")));
+            case ENTITY_TRANSIT_SETTINGS -> Component.translatable("screen.riftgun.entity_transit_hint");
+            case PLAYER_TARGET_SETTINGS -> Component.translatable("screen.riftgun.player_target_hint");
+            case APERTURE_SETTINGS -> Component.translatable("screen.riftgun.aperture_hint");
+            case FALL_GUARD_SETTINGS -> Component.translatable("screen.riftgun.fall_guard_hint");
+            case ENTITY_RELOCATION_SETTINGS -> Component.translatable("screen.riftgun.entity_relocation_hint");
+            case PORTAL_PAIRING_SETTINGS -> Component.translatable("screen.riftgun.pairing.settings_hint");
+            case REMOTE_SETTINGS -> Component.translatable("screen.riftgun.remote.settings_hint");
+            default -> null;
+        };
+    }
+
+    private int gunSettingDescriptionExtraHeight(int boxWidth) {
+        Component description = gunSettingDescription();
+        if (description == null) return 0;
+        int lineCount = font.split(description, Math.max(1, boxWidth - 36)).size();
+        return Math.max(0, lineCount - 1) * font.lineHeight;
+    }
+
+    private int gunSettingControlTop(ModalBox box) {
+        return box.y() + 45 + gunSettingDescriptionExtraHeight(box.width());
     }
 
     private void addExternalRows(List<Row> rows, ExternalDestinationSource source, String normalizedQuery) {
@@ -3532,6 +3542,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private ModalBox modalBox() {
+        int boxWidth = Math.min(340, panelWidth - 16);
         int desiredHeight = switch (modal) {
             case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
             case CREATE_CURRENT -> 164;
@@ -3551,7 +3562,9 @@ public final class PortalConfigScreen extends Screen {
             case SHARE_DESTINATION -> 132;
             case NONE -> 0;
         };
-        int boxWidth = Math.min(340, panelWidth - 16);
+        if (modal.isGunSettingPage()) {
+            desiredHeight += gunSettingDescriptionExtraHeight(boxWidth);
+        }
         int boxHeight = Math.min(desiredHeight, height - 8);
         return new ModalBox((width - boxWidth) / 2, (height - boxHeight) / 2, boxWidth, boxHeight);
     }

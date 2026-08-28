@@ -45,7 +45,7 @@ public final class ModeRadialInput {
             return;
         }
         if (pendingSource != null) {
-            if (!sourceDown(pendingSource, cycleDown, radialDown)) pendingSource = null;
+            if (!sourceDown(pendingSource, cycleDown, radialDown)) REQUEST.release();
             remember(cycleDown, radialDown);
             return;
         }
@@ -101,7 +101,6 @@ public final class ModeRadialInput {
     private static void request(Source source) {
         pendingSource = source;
         int requestId = REQUEST.begin();
-        Minecraft.getInstance().setScreen(new ModeRadialScreen());
         PortalNetworking.sendShortcutRequest(PortalAction.OPEN_MODE_RADIAL,
             tag -> tag.putInt("RadialRequestId", requestId));
     }

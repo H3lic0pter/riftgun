@@ -70,7 +70,7 @@ public final class PortalRequestHandler {
             if (!keyboardShortcut && request.contains("GunReference")) {
                 PortalNetworking.sendGunReferenceInvalid(player);
             }
-            if (action == PortalAction.OPEN_GUI) {
+            if (keyboardShortcut || action == PortalAction.OPEN_GUI) {
                 String message = keyboardShortcut
                     && PortalShortcutGunSelection.mode() == PortalShortcutGunMode.HELD_HANDS
                     ? "message.riftgun.portal_gun_must_be_held"
