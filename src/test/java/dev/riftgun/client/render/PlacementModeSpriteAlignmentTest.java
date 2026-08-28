@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 final class PlacementModeSpriteAlignmentTest {
     @Test
-    void remoteArtworkHasSymmetricTransparentPadding() throws Exception {
+    void remoteArtworkKeepsReviewedOpticalBounds() throws Exception {
         BufferedImage image = ImageIO.read(Path.of(
             "src/main/resources/assets/riftgun/textures/gui/sprites/icons/placement_remote.png")
             .toFile());
@@ -17,10 +17,10 @@ final class PlacementModeSpriteAlignmentTest {
 
         assertEquals(16, image.getWidth());
         assertEquals(16, image.getHeight());
-        assertEquals(bounds.minX(), image.getWidth() - 1 - bounds.maxX(),
-            "REMOTE icon must remain horizontally centered in its 16 px canvas");
-        assertEquals(bounds.minY(), image.getHeight() - 1 - bounds.maxY(),
-            "REMOTE icon must remain vertically centered in its 16 px canvas");
+        // The redrawn sprite is intentionally optically asymmetric; callers that need
+        // correction own it locally instead of shifting every use of the shared artwork.
+        assertEquals(new Bounds(0, 3, 13, 12), bounds,
+            "REMOTE icon alpha bounds changed; re-check every GUI placement before accepting it");
     }
 
     private static Bounds alphaBounds(BufferedImage image) {
