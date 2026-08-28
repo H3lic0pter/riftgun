@@ -252,23 +252,27 @@ public final class CoordinateSharingService {
         stack.set(DataComponents.CUSTOM_NAME, Component.translatable("item.riftgun.coordinate_note.named", snapshot.name())
             .withStyle(style -> style.withItalic(false)));
         ArrayList<Component> lore = new ArrayList<>();
-        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.shared_by", snapshot.sharedByName())
-            .withStyle(ChatFormatting.GRAY));
-        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.original_author", snapshot.originalAuthorName())
-            .withStyle(ChatFormatting.DARK_GRAY));
-        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.dimension", dimensionName(player, snapshot))
-            .withStyle(ChatFormatting.GRAY));
+        lore.add(noteLore(Component.translatable(
+            "tooltip.riftgun.coordinate_note.shared_by", snapshot.sharedByName()), ChatFormatting.GRAY));
+        lore.add(noteLore(Component.translatable(
+            "tooltip.riftgun.coordinate_note.original_author", snapshot.originalAuthorName()), ChatFormatting.DARK_GRAY));
+        lore.add(noteLore(Component.translatable(
+            "tooltip.riftgun.coordinate_note.dimension", dimensionName(player, snapshot)), ChatFormatting.GRAY));
         if (dynamicDimensionName(player, dimensionId(snapshot)).isEmpty()) {
-            lore.add(Component.translatable("tooltip.riftgun.coordinate_note.dimension_id", dimensionId(snapshot))
-                .withStyle(ChatFormatting.DARK_GRAY));
+            lore.add(noteLore(Component.translatable(
+                "tooltip.riftgun.coordinate_note.dimension_id", dimensionId(snapshot)), ChatFormatting.DARK_GRAY));
         }
-        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.position",
-            format(snapshot.x()), format(snapshot.y()), format(snapshot.z())).withStyle(ChatFormatting.GRAY));
-        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.yaw", format(snapshot.yaw()))
-            .withStyle(ChatFormatting.GRAY));
-        lore.add(Component.translatable("tooltip.riftgun.coordinate_note.use").withStyle(ChatFormatting.AQUA));
+        lore.add(noteLore(Component.translatable("tooltip.riftgun.coordinate_note.position",
+            format(snapshot.x()), format(snapshot.y()), format(snapshot.z())), ChatFormatting.GRAY));
+        lore.add(noteLore(Component.translatable(
+            "tooltip.riftgun.coordinate_note.yaw", format(snapshot.yaw())), ChatFormatting.GRAY));
+        lore.add(noteLore(Component.translatable("tooltip.riftgun.coordinate_note.use"), ChatFormatting.AQUA));
         stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
+    }
+
+    private static Component noteLore(Component text, ChatFormatting color) {
+        return text.copy().withStyle(style -> style.withColor(color).withItalic(false));
     }
 
     private static Component clickAction(ServerPlayer player, CoordinateSnapshot snapshot) {
