@@ -477,6 +477,7 @@
   "message.riftgun.surface_range_adjusted": "Maximum Surface Range: %s / %s blocks",
   "message.riftgun.pairing_mode_required": "Turn on Pairing Mode first",
   "message.riftgun.pairing_connected": "Portal pair connected",
+  "message.riftgun.pairing_pending_replaced": "Previous endpoint became invalid; this endpoint is now pending",
   "message.riftgun.pairing_target_required": "Set a fixed relocation target first",
   "message.riftgun.pairing_relocation_target_set": "Fixed Entity Relocation target set",
   "screen.riftgun.pairing_mode_tooltip": "Pairing Mode: %s",

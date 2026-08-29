@@ -477,6 +477,7 @@
   "message.riftgun.surface_range_adjusted": "最大贴面射程：%s / %s 格",
   "message.riftgun.pairing_mode_required": "请先开启配对模式",
   "message.riftgun.pairing_connected": "传送门已连接",
+  "message.riftgun.pairing_pending_replaced": "原端点已失效，已将本次位置设为新的待配对端点",
   "message.riftgun.pairing_target_required": "请先设置固定实体转移目标点",
   "message.riftgun.pairing_relocation_target_set": "已设置固定实体转移目标点",
   "screen.riftgun.pairing_mode_tooltip": "配对模式：%s",

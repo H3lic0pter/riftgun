@@ -32,4 +32,16 @@ final class PortalPlacementPreviewGeometryTest {
         assertTrue(segments.stream().allMatch(segment -> segment.from().y > 0.0));
         assertTrue(segments.stream().allMatch(segment -> segment.to().y > 0.0));
     }
+
+    @Test
+    void offsetsLabelInFrontOfAttachedSurface() {
+        PortalPlacement placement = new PortalPlacement(new Vec3(4.0, 8.0, 12.0),
+            PortalOrientation.VERTICAL, PortalGeometry.SURFACE_VERTICAL,
+            0.0F, null, null);
+
+        Vec3 labelCenter = PortalPlacementPreviewGeometry.labelCenter(placement);
+
+        assertTrue(labelCenter.subtract(placement.center()).dot(placement.normal()) > 0.0,
+            "depth-tested label must sit in front of its backing surface");
+    }
 }

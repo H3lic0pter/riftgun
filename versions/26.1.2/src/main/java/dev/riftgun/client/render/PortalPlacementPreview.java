@@ -9,6 +9,9 @@ import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
+import dev.riftgun.pairing.PortalPairingPendingEndpoint;
+import dev.riftgun.pairing.PortalPairingPendingEndpoints;
+import dev.riftgun.pairing.PortalPairingPreviewGeometry;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
@@ -31,6 +34,7 @@ import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 
 import java.util.List;
+import java.util.Objects;
 
 /** Client-only MVP for the REMOTE placement footprint. */
 @EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
@@ -39,13 +43,17 @@ public final class PortalPlacementPreview {
     private static final ContextKey<RenderState> RENDER_STATE_KEY = new ContextKey<>(
         Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "remote_placement_preview"));
     private static final PortalPlacementPreviewCache CACHE = new PortalPlacementPreviewCache();
+    private static PortalPairingPendingEndpoint pendingEndpoint;
+    private static List<PortalPlacementPreviewGeometry.Segment> pendingSegments = List.of();
     private static Object levelIdentity;
 
     public static void tick(Minecraft minecraft) {
         if (minecraft.level != levelIdentity) {
             levelIdentity = minecraft.level;
             CACHE.clear();
+            clearPending();
         }
+        tickPending(minecraft);
         long tick = minecraft.level == null ? 0L : minecraft.level.getGameTime();
         if (tickSurfaceFace(minecraft, tick)) return;
         PortalPlacementPreviewCache.Input input = input(minecraft);
@@ -65,8 +73,9 @@ public final class PortalPlacementPreview {
     @SubscribeEvent
     public static void extractLevelRenderState(ExtractLevelRenderStateEvent event) {
         List<PortalPlacementPreviewGeometry.Segment> segments = CACHE.segments();
-        event.getRenderState().setRenderData(RENDER_STATE_KEY, segments.isEmpty() ? null
-            : new RenderState(segments, event.getCamera().position()));
+        event.getRenderState().setRenderData(RENDER_STATE_KEY,
+            segments.isEmpty() && pendingSegments.isEmpty() ? null
+                : new RenderState(segments, pendingSegments, event.getCamera().position()));
     }
 
     @SubscribeEvent
@@ -78,7 +87,33 @@ public final class PortalPlacementPreview {
         poses.translate(-state.camera().x, -state.camera().y, -state.camera().z);
         event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
             (pose, vertices) -> draw(pose, vertices, state.segments()));
+        event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
+            (pose, vertices) -> draw(pose, vertices, state.pendingSegments()));
         poses.popPose();
+    }
+
+    private static void tickPending(Minecraft minecraft) {
+        if (minecraft.level == null || minecraft.player == null) {
+            clearPending();
+            return;
+        }
+        ItemStack gun = heldGun(minecraft);
+        PortalPairingPendingEndpoint next = gun.isEmpty()
+            ? null : PortalPairingPendingEndpoints.get(gun);
+        if (next == null || !minecraft.level.dimension().equals(next.dimension())
+            || !minecraft.level.hasChunkAt(BlockPos.containing(next.placement().center()))) {
+            clearPending();
+            return;
+        }
+        if (Objects.equals(next, pendingEndpoint)) return;
+        pendingEndpoint = next;
+        pendingSegments = PortalPairingPreviewGeometry.segments(
+            next.placement(), next.endpoint());
+    }
+
+    private static void clearPending() {
+        pendingEndpoint = null;
+        pendingSegments = List.of();
     }
 
     private static PortalPlacementPreviewCache.Input input(Minecraft minecraft) {
@@ -170,7 +205,11 @@ public final class PortalPlacementPreview {
             .setLineWidth(2.5F);
     }
 
-    private record RenderState(List<PortalPlacementPreviewGeometry.Segment> segments, Vec3 camera) {}
+    private record RenderState(
+        List<PortalPlacementPreviewGeometry.Segment> segments,
+        List<PortalPlacementPreviewGeometry.Segment> pendingSegments,
+        Vec3 camera
+    ) {}
 
     private PortalPlacementPreview() {}
 }

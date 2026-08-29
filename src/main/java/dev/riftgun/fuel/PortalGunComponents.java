@@ -42,6 +42,12 @@ public final class PortalGunComponents {
             .persistent(UUIDUtil.CODEC)
             .networkSynchronized(UUIDUtil.STREAM_CODEC));
 
+    /** Persisted and synchronized lightweight A/B endpoint; decoded by PortalPairingPendingEndpoint. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CompoundTag>> PENDING_PAIRING_ENDPOINT =
+        COMPONENTS.registerComponentType("pending_pairing_endpoint", builder -> builder
+            .persistent(CompoundTag.CODEC)
+            .networkSynchronized(ByteBufCodecs.COMPOUND_TAG));
+
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<PortalGunVisualState>> VISUAL_STATE =
         COMPONENTS.registerComponentType("portal_gun_visual_state", builder -> builder
             .persistent(PortalGunVisualState.CODEC)

@@ -14,6 +14,7 @@ import dev.riftgun.module.PortalEntityAccessSnapshot;
 import dev.riftgun.api.PortalTransitAuthorization;
 import dev.riftgun.module.PortalTransitAuthorizationCodec;
 import dev.riftgun.pairing.PortalPairingEndpoint;
+import dev.riftgun.pairing.PortalPairingLegacyMigration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -452,6 +453,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     public void tick() {
         super.tick();
         if (level().isClientSide()) return;
+        if (tickCount % 20 == 0 && ownerId != null
+            && PortalPairingLegacyMigration.tryMigrate(this, ownerId)) return;
         if (!ticketHeld) acquireChunkTicket();
 
         long now = serverTime();

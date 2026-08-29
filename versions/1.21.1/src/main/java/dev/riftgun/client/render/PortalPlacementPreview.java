@@ -9,6 +9,9 @@ import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
+import dev.riftgun.pairing.PortalPairingPendingEndpoint;
+import dev.riftgun.pairing.PortalPairingPendingEndpoints;
+import dev.riftgun.pairing.PortalPairingPreviewGeometry;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
@@ -30,19 +33,24 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 
 import java.util.List;
+import java.util.Objects;
 
 /** Client-only MVP for the REMOTE placement footprint. */
 @EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
 public final class PortalPlacementPreview {
     private static final int COLOR = 0xD9F0F0F0;
     private static final PortalPlacementPreviewCache CACHE = new PortalPlacementPreviewCache();
+    private static PortalPairingPendingEndpoint pendingEndpoint;
+    private static List<PortalPlacementPreviewGeometry.Segment> pendingSegments = List.of();
     private static Object levelIdentity;
 
     public static void tick(Minecraft minecraft) {
         if (minecraft.level != levelIdentity) {
             levelIdentity = minecraft.level;
             CACHE.clear();
+            clearPending();
         }
+        tickPending(minecraft);
         long tick = minecraft.level == null ? 0L : minecraft.level.getGameTime();
         if (tickSurfaceFace(minecraft, tick)) return;
         PortalPlacementPreviewCache.Input input = input(minecraft);
@@ -62,7 +70,8 @@ public final class PortalPlacementPreview {
     @SubscribeEvent
     public static void renderLevel(RenderLevelStageEvent event) {
         List<PortalPlacementPreviewGeometry.Segment> segments = CACHE.segments();
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || segments.isEmpty()) return;
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
+            || segments.isEmpty() && pendingSegments.isEmpty()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
 
@@ -73,8 +82,33 @@ public final class PortalPlacementPreview {
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
         RenderType renderType = RenderType.lines();
         draw(poses.last(), buffers.getBuffer(renderType), segments);
+        draw(poses.last(), buffers.getBuffer(renderType), pendingSegments);
         buffers.endBatch(renderType);
         poses.popPose();
+    }
+
+    private static void tickPending(Minecraft minecraft) {
+        if (minecraft.level == null || minecraft.player == null) {
+            clearPending();
+            return;
+        }
+        ItemStack gun = heldGun(minecraft);
+        PortalPairingPendingEndpoint next = gun.isEmpty()
+            ? null : PortalPairingPendingEndpoints.get(gun);
+        if (next == null || !minecraft.level.dimension().equals(next.dimension())
+            || !minecraft.level.hasChunkAt(BlockPos.containing(next.placement().center()))) {
+            clearPending();
+            return;
+        }
+        if (Objects.equals(next, pendingEndpoint)) return;
+        pendingEndpoint = next;
+        pendingSegments = PortalPairingPreviewGeometry.segments(
+            next.placement(), next.endpoint());
+    }
+
+    private static void clearPending() {
+        pendingEndpoint = null;
+        pendingSegments = List.of();
     }
 
     private static PortalPlacementPreviewCache.Input input(Minecraft minecraft) {

@@ -34,6 +34,11 @@ public final class PortalPlacementPreviewGeometry {
         return List.copyOf(segments);
     }
 
+    /** World-space center used by the pending-endpoint label. */
+    public static Vec3 labelCenter(PortalPlacement placement) {
+        return placement.center().add(placement.normal().scale(NORMAL_OFFSET));
+    }
+
     public record Segment(Vec3 from, Vec3 to) {}
 
     private PortalPlacementPreviewGeometry() {}

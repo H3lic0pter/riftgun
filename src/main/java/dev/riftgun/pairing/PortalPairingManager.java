@@ -20,11 +20,13 @@ import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalPlacementCapture;
 import dev.riftgun.service.PortalPlacementConstraints;
+import dev.riftgun.service.PortalStoredPlacementValidator;
 import dev.riftgun.sound.PortalSoundSnapshot;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import dev.riftgun.network.SurfaceFaceOpenPlan;
 import dev.riftgun.network.SurfaceFaceRequest;
@@ -103,11 +105,15 @@ public final class PortalPairingManager {
         UUID gunId = PortalGunIdentity.ensure(locatedGun.stack());
         var active = dev.riftgun.portal.PortalOwnerIndex.owned(server, player.getUUID()).stream()
             .filter(portal -> gunId.equals(portal.pairingGunId()))
+            .filter(portal -> !portal.pairingDormant())
             .filter(PortalPairingManager::usable)
             .toList();
-        boolean hasA = active.stream().anyMatch(
+        PortalPairingPendingEndpoint pending = PortalPairingPendingEndpoints.get(locatedGun.stack());
+        boolean hasA = pending != null && pending.endpoint() == PortalPairingEndpoint.A
+            || active.stream().anyMatch(
             portal -> portal.pairingEndpoint() == PortalPairingEndpoint.A);
-        boolean hasB = active.stream().anyMatch(
+        boolean hasB = pending != null && pending.endpoint() == PortalPairingEndpoint.B
+            || active.stream().anyMatch(
             portal -> portal.pairingEndpoint() == PortalPairingEndpoint.B);
         PortalPairingStateMachine.State state = hasA && hasB
             ? PortalPairingStateMachine.State.CONNECTED
@@ -118,25 +124,41 @@ public final class PortalPairingManager {
         PortalEntity opposite = active.stream()
             .filter(portal -> portal.pairingEndpoint() == endpoint.opposite())
             .findFirst().orElse(null);
+        PortalPairingPendingEndpoint pendingOpposite = pending != null
+            && pending.endpoint() == endpoint.opposite() ? pending : null;
+
+        if (decision.consumesPairFuel() && opposite == null && pendingOpposite == null) {
+            return fail(player, "message.riftgun.portal_open_failed");
+        }
+        if (pendingOpposite != null && !validPending(player, server, pendingOpposite)) {
+            var recognized = PortalFuelManager.recognizedProfile(locatedGun.stack());
+            if (!recognized.successful()) return fail(player, recognized.errorKey());
+            savePending(player, server, locatedGun, placement.placement(), endpoint);
+            Msg.displayClientMessage(player,
+                Component.translatable("message.riftgun.pairing_pending_replaced"), true);
+            return true;
+        }
 
         var fuelPlan = decision.consumesPairFuel()
-            ? PortalFuelManager.plan(player, locatedGun.stack(), opposite.level().dimension())
+            ? PortalFuelManager.plan(player, locatedGun.stack(), opposite != null
+                ? opposite.level().dimension() : pendingOpposite.dimension())
             : PortalFuelManager.recognizedProfile(locatedGun.stack());
         if (!fuelPlan.successful()) return fail(player, fuelPlan.errorKey());
         PortalRuntimeOptions options = runtimeOptions(data, capabilities, locatedGun);
         boolean opened;
         if (!decision.consumesPairFuel()) {
-            opened = PortalEntity.openDormant(player, placement.placement(),
-                fuelPlan.use().profile(), options, gunId, endpoint);
+            savePending(player, server, locatedGun, placement.placement(), endpoint);
+            opened = true;
         } else {
-            if (opposite == null) return fail(player, "message.riftgun.portal_open_failed");
-            PortalPairPlacement pair = new PortalPairPlacement(opposite.level().dimension(),
-                placement.placement(), opposite.placement());
+            PortalPairPlacement pair = new PortalPairPlacement(
+                opposite != null ? opposite.level().dimension() : pendingOpposite.dimension(),
+                placement.placement(), opposite != null ? opposite.placement() : pendingOpposite.placement());
             opened = PortalEntity.openPairing(player, pair, fuelPlan.use().profile(), options,
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()), gunId, endpoint);
+            if (opened) PortalPairingPendingEndpoints.clear(locatedGun.stack());
         }
         if (!opened) return fail(player, "message.riftgun.portal_open_failed");
-        if (opposite != null) {
+        if (decision.consumesPairFuel()) {
             Msg.displayClientMessage(player,
                 Component.translatable("message.riftgun.pairing_connected"), true);
         }
@@ -225,6 +247,23 @@ public final class PortalPairingManager {
     private static boolean usable(PortalEntity portal) {
         return portal.phase() != dev.riftgun.portal.PortalLifecycle.Phase.CLOSING
             && portal.phase() != dev.riftgun.portal.PortalLifecycle.Phase.CLOSED;
+    }
+
+    private static boolean validPending(ServerPlayer player, MinecraftServer server,
+                                        PortalPairingPendingEndpoint pending) {
+        ServerLevel level = server.getLevel(pending.dimension());
+        return level != null
+            && PortalStoredPlacementValidator.valid(player, level, pending.placement());
+    }
+
+    private static void savePending(ServerPlayer player, MinecraftServer server,
+                                    PortalGunLocator.LocatedGun gun,
+                                    dev.riftgun.portal.PortalPlacement placement,
+                                    PortalPairingEndpoint endpoint) {
+        PortalPairingPendingEndpoints.save(
+            gun.stack(), player.level().dimension(), placement, endpoint);
+        dev.riftgun.portal.PortalOwnerIndex.closeOwned(
+            server, player.getUUID(), java.util.Set.of());
     }
 
     private static MinecraftServer server(ServerPlayer player) {

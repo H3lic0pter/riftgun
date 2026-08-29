@@ -7,6 +7,7 @@ import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.portal.PortalOwnerIndex;
+import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import java.util.UUID;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerPlayer;
@@ -98,6 +99,7 @@ public final class PortalGunModuleContainer extends SimpleContainer {
         }
         if (oldActivePairing > 0 && newActivePairing == 0) {
             UUID gunId = PortalGunIdentity.ensure(gun());
+            PortalPairingPendingEndpoints.clear(gun());
 //? if >=1.21.11 {
             /*var server = owner.level().getServer();
 *///?} else {
