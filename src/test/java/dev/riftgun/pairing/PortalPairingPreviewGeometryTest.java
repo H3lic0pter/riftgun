@@ -1,6 +1,7 @@
 package dev.riftgun.pairing;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.riftgun.portal.PortalGeometry;
@@ -23,11 +24,20 @@ final class PortalPairingPreviewGeometryTest {
         var a = PortalPairingPreviewGeometry.segments(placement, PortalPairingEndpoint.A);
         var b = PortalPairingPreviewGeometry.segments(placement, PortalPairingEndpoint.B);
 
-        assertTrue(a.size() > corners.size(), "A glyph must share the visible frame buffer");
-        assertTrue(b.size() > corners.size(), "B glyph must share the visible frame buffer");
+        assertEquals(corners.size() + 3, a.size(), "Ⅰ needs one stem and two bars");
+        assertEquals(corners.size() + 4, b.size(), "Ⅱ needs two stems and two bars");
         assertNotEquals(a, b, "A and B glyph geometry must differ");
-        assertTrue(a.subList(corners.size(), a.size()).stream().allMatch(segment ->
-            segment.from().subtract(placement.center()).dot(placement.normal()) > 0.0
-                && segment.to().subtract(placement.center()).dot(placement.normal()) > 0.0));
+        assertTrue(a.subList(corners.size(), a.size()).stream().allMatch(colored ->
+            colored.color() == 0xFF9CC9D8
+                && inFront(colored.geometry(), placement)));
+        assertTrue(b.subList(corners.size(), b.size()).stream().allMatch(colored ->
+            colored.color() == 0xFFE19A52
+                && inFront(colored.geometry(), placement)));
+    }
+
+    private static boolean inFront(PortalPlacementPreviewGeometry.Segment segment,
+                                   PortalPlacement placement) {
+        return segment.from().subtract(placement.center()).dot(placement.normal()) > 0.0
+            && segment.to().subtract(placement.center()).dot(placement.normal()) > 0.0;
     }
 }

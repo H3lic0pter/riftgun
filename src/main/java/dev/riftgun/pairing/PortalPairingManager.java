@@ -135,7 +135,8 @@ public final class PortalPairingManager {
             if (!recognized.successful()) return fail(player, recognized.errorKey());
             savePending(player, server, locatedGun, placement.placement(), endpoint);
             Msg.displayClientMessage(player,
-                Component.translatable("message.riftgun.pairing_pending_replaced"), true);
+                Component.translatable("message.riftgun.pairing_pending_replaced",
+                    PortalPairingLabels.forEndpoint(endpoint)), true);
             return true;
         }
 

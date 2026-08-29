@@ -21,6 +21,7 @@ import dev.riftgun.module.PortalModules;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.portal.CoordinateNoteItem;
+import dev.riftgun.pairing.PortalPairingLabels;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -168,7 +169,11 @@ public final class ClientGameEvents {
                 && !PortalClientState.moduleRules().matterAnchorPreventsDespawn()
                 ? "tooltip.riftgun.module.matter_anchor_module.damage_only_description"
                 : definition.descriptionKey();
-            event.getToolTip().add(Component.translatable(descriptionKey)
+            Component description = definition.kind() == PortalModuleKind.PORTAL_PAIRING
+                ? Component.translatable(descriptionKey,
+                    PortalPairingLabels.first(), PortalPairingLabels.second())
+                : Component.translatable(descriptionKey);
+            event.getToolTip().add(description.copy()
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             if (definition.kind() == PortalModuleKind.REMOTE) {
                 event.getToolTip().add(Component.translatable(
@@ -177,10 +182,12 @@ public final class ClientGameEvents {
             }
             if (definition.kind() == PortalModuleKind.PORTAL_PAIRING) {
                 event.getToolTip().add(Component.translatable(
-                    "tooltip.riftgun.module.portal_pairing_module.use")
+                    "tooltip.riftgun.module.portal_pairing_module.use",
+                    PortalPairingLabels.second())
                     .withStyle(ChatFormatting.GRAY));
                 event.getToolTip().add(Component.translatable(
-                    "tooltip.riftgun.module.portal_pairing_module.shift_use")
+                    "tooltip.riftgun.module.portal_pairing_module.shift_use",
+                    PortalPairingLabels.first())
                     .withStyle(ChatFormatting.GRAY));
             }
             event.getToolTip().add(Component.translatable("tooltip.riftgun.module.limit",

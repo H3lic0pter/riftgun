@@ -12,6 +12,7 @@ import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.pairing.PortalFunctionMode;
+import dev.riftgun.pairing.PortalPairingLabels;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -439,9 +440,11 @@ public final class ModeRadialScreen extends Screen {
                 : "screen.riftgun.mode_radial.surface_face_switch_relative");
         if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
             Component releaseB = Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_b");
+                "screen.riftgun.mode_radial.surface_face_release_pair_b",
+                PortalPairingLabels.second());
             Component releaseA = Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_a");
+                "screen.riftgun.mode_radial.surface_face_release_pair_a",
+                PortalPairingLabels.first());
             drawTextBackdrop(graphics, centerX, hintY, switchHint, releaseB, releaseA);
             centeredText(graphics, switchHint, centerX, hintY, PortalTheme.TEXT_MUTED);
             centeredText(graphics, releaseB, centerX, hintY + 9, PortalTheme.TEXT_MUTED);

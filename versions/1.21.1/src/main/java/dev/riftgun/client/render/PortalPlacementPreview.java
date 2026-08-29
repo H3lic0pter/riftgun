@@ -41,7 +41,7 @@ public final class PortalPlacementPreview {
     private static final int COLOR = 0xD9F0F0F0;
     private static final PortalPlacementPreviewCache CACHE = new PortalPlacementPreviewCache();
     private static PortalPairingPendingEndpoint pendingEndpoint;
-    private static List<PortalPlacementPreviewGeometry.Segment> pendingSegments = List.of();
+    private static List<PortalPairingPreviewGeometry.ColoredSegment> pendingSegments = List.of();
     private static Object levelIdentity;
 
     public static void tick(Minecraft minecraft) {
@@ -82,7 +82,7 @@ public final class PortalPlacementPreview {
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
         RenderType renderType = RenderType.lines();
         draw(poses.last(), buffers.getBuffer(renderType), segments);
-        draw(poses.last(), buffers.getBuffer(renderType), pendingSegments);
+        drawColored(poses.last(), buffers.getBuffer(renderType), pendingSegments);
         buffers.endBatch(renderType);
         poses.popPose();
     }
@@ -188,15 +188,26 @@ public final class PortalPlacementPreview {
         Matrix4f matrix = pose.pose();
         for (PortalPlacementPreviewGeometry.Segment segment : segments) {
             Vec3 direction = segment.to().subtract(segment.from()).normalize();
-            vertex(vertices, pose, matrix, segment.from(), direction);
-            vertex(vertices, pose, matrix, segment.to(), direction);
+            vertex(vertices, pose, matrix, segment.from(), direction, COLOR);
+            vertex(vertices, pose, matrix, segment.to(), direction, COLOR);
+        }
+    }
+
+    private static void drawColored(PoseStack.Pose pose, VertexConsumer vertices,
+                                    List<PortalPairingPreviewGeometry.ColoredSegment> segments) {
+        Matrix4f matrix = pose.pose();
+        for (PortalPairingPreviewGeometry.ColoredSegment colored : segments) {
+            var segment = colored.geometry();
+            Vec3 direction = segment.to().subtract(segment.from()).normalize();
+            vertex(vertices, pose, matrix, segment.from(), direction, colored.color());
+            vertex(vertices, pose, matrix, segment.to(), direction, colored.color());
         }
     }
 
     private static void vertex(VertexConsumer vertices, PoseStack.Pose pose, Matrix4f matrix,
-                               Vec3 point, Vec3 direction) {
+                               Vec3 point, Vec3 direction, int color) {
         vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
-            .setColor(COLOR)
+            .setColor(color)
             .setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
     }
 

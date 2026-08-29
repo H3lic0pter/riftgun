@@ -21,6 +21,7 @@ import dev.riftgun.relocation.EntityRelocationManager;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingEndpoint;
 import dev.riftgun.pairing.PortalPairingManager;
+import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -325,6 +326,7 @@ public final class PortalRequestHandler {
     }
 
     private static void closePortals(ServerPlayer player) {
+        PortalPairingPendingEndpoints.clearAll(player.getInventory());
 //? if >=1.21.11 {
         /*if (player.level().getServer() != null) {
 *///?} else {
