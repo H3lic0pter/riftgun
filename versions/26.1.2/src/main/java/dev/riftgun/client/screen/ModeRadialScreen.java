@@ -2,6 +2,7 @@ package dev.riftgun.client.screen;
 
 import dev.riftgun.client.ModeRadialInput;
 import dev.riftgun.client.PortalClientState;
+import dev.riftgun.client.PortalInputLabels;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.input.SurfaceFacePreviewState;
@@ -445,6 +446,7 @@ public final class ModeRadialScreen extends Screen {
                 PortalPairingLabels.second());
             Component releaseA = Component.translatable(
                 "screen.riftgun.mode_radial.surface_face_release_pair_a",
+                PortalInputLabels.sneakKey(),
                 PortalPairingLabels.first());
             drawTextBackdrop(graphics, centerX, hintY, switchHint, releaseB, releaseA);
             centeredText(graphics, switchHint, centerX, hintY, PortalTheme.TEXT_MUTED);

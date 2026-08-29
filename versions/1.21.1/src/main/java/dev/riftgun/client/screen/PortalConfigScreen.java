@@ -7,6 +7,7 @@ import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.client.PlayerListState;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.PortalGuiScrollMemory;
+import dev.riftgun.client.PortalInputLabels;
 import dev.riftgun.client.external.ClientMapWaypointIntegration;
 import dev.riftgun.external.client.ExternalDestination;
 import dev.riftgun.client.render.PortalVisualPreferences;
@@ -596,7 +597,8 @@ public final class PortalConfigScreen extends Screen {
                 PortalClientState.gun().getInt("RemoteDistance")));
             remoteScrollAdjustmentButton = button(x + 18, gunSettingControlY + 24, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.scroll_adjustment",
-                    PortalClientState.gun().getBoolean("RemoteScrollAdjustmentEnabled")),
+                    PortalClientState.gun().getBoolean("RemoteScrollAdjustmentEnabled"),
+                    PortalInputLabels.sneakKey()),
                 false, ignored -> toggleGunBoolean(
                     "RemoteScrollAdjustment", "RemoteScrollAdjustmentEnabled"));
             remoteRadialSliderButton = button(x + 18, gunSettingControlY + 48, fieldWidth, 19,
@@ -3532,8 +3534,8 @@ public final class PortalConfigScreen extends Screen {
             dimensionId.substring(dimensionId.lastIndexOf(':') + 1)));
     }
 
-    private static Component toggleLabel(String key, boolean value) {
-        return Component.translatable(key).append(": ").append(Component.translatable(
+    private static Component toggleLabel(String key, boolean value, Object... arguments) {
+        return Component.translatable(key, arguments).append(": ").append(Component.translatable(
             value ? "screen.riftgun.on" : "screen.riftgun.off"));
     }
 

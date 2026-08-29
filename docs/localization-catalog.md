@@ -349,6 +349,7 @@
 | `screen.riftgun.mode_radial.pairing` | Pairing | 配对 |
 | `screen.riftgun.mode_radial.placement` | Placement | 放置模式 |
 | `screen.riftgun.mode_radial.prediction` | Prediction | 预测模式 |
+| `screen.riftgun.mode_radial.surface_face_release_pair_a` | Sneak (%s)+Release: Place portal %s | 潜行（%s）+松开：放置 %s 门 |
 | `screen.riftgun.mode_radial.remote_distance` | Remote Distance %s / %s | 远端距离 %s / %s |
 | `screen.riftgun.mode_radial.switch_placement` | Right-click: Placement modes | 右键：切换至放置模式 |
 | `screen.riftgun.mode_radial.switch_prediction` | Right-click: Prediction modes | 右键：切换至预测模式 |
@@ -420,7 +421,7 @@
 | `screen.riftgun.random_rift.searching` | Searching for a safe destination... | 正在寻找安全目的地…… |
 | `screen.riftgun.remember_scroll_position` | Remember scroll position | 记住滚动位置 |
 | `screen.riftgun.remote.radial_slider` | Show Remote Distance Slider in Radial | 在轮盘中显示远端距离滑块 |
-| `screen.riftgun.remote.scroll_adjustment` | Shift+Scroll Remote Distance Adjustment | Shift+滚轮调整远端距离 |
+| `screen.riftgun.remote.scroll_adjustment` | Sneak (%s)+Scroll Remote Distance Adjustment | 潜行（%s）+滚轮调整远端距离 |
 | `screen.riftgun.remote.settings` | Remote Module | 远端模块 |
 | `screen.riftgun.remote.settings_hint` | Configure Remote distance, previews, and quick controls. | 设置远端距离、预览与快捷操作。 |
 | `screen.riftgun.rename_group` | Rename group | 重命名分组 |
@@ -529,11 +530,11 @@
 | `tooltip.riftgun.module.player_target_module.description` | Adds online players as portal targets and lets you open a portal next to them. | 将在线玩家加入目标点列表，并可在目标玩家附近开启传送门。 |
 | `tooltip.riftgun.module.portal_aperture_module.description` | Opens a larger portal whenever placement conditions allow. | 在放置条件允许时开启更大的传送门。 |
 | `tooltip.riftgun.module.portal_pairing_module.description` | Allows direct placement of both ends of a linked portal pair. | 允许直接放置一对相互连接的传送门。 |
-| `tooltip.riftgun.module.portal_pairing_module.shift_use` | Shift + Use: Place the other portal | Shift + 互动键：放置另一扇门 |
+| `tooltip.riftgun.module.portal_pairing_module.sneak_use` | Sneak (%s) + Use: Place portal %s | 潜行（%s）+互动键：放置 %s 门 |
 | `tooltip.riftgun.module.portal_pairing_module.use` | Use: Place one portal | 互动键：放置一扇门 |
 | `tooltip.riftgun.module.projectile_transit_module.description` | Allows eligible projectiles to cross portals. | 允许符合条件的弹射物穿过传送门。 |
 | `tooltip.riftgun.module.remote_module.description` | Unlocks Remote placement, placement previews, and quick Remote Distance adjustment. | 解锁远端放置、落点预览与远端距离快捷调整。 |
-| `tooltip.riftgun.module.remote_module.scroll_control` | Shift + Scroll: Adjust Remote Distance | Shift + 滚轮：调整远端距离 |
+| `tooltip.riftgun.module.remote_module.scroll_control` | Sneak (%s) + Scroll: Adjust Remote Distance | 潜行（%s）+滚轮：调整远端距离 |
 | `tooltip.riftgun.module.reservoir_expansion_module.description` | Expands the Portal Gun fluid reservoir. | 扩展传送枪的流体储量。 |
 | `tooltip.riftgun.module.reservoir_warning` | Removing this module discards fluid above the reduced capacity | 拔出后会丢弃超过新容量上限的流体 |
 | `tooltip.riftgun.module.surface_range_amplifier.description` | Increases the Portal Gun's maximum range. | 提升传送枪的最大射程。 |

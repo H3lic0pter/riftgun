@@ -59,7 +59,7 @@
 
 - Key：`key.riftgun.portal_pairing_operation`
 - 现有：`Quick Action: Use Pairing Mode` / `快捷操作：使用配对模式`
-- 问题：没有说明普通按键与 `Shift + 按键` 分别操作哪一端，也没有说明实体转移时 `Shift` 用于设置固定目标。
+- 问题：没有说明普通按键与“潜行键 + 按键”分别操作哪一端，也没有说明实体转移时潜行键用于设置固定目标。
 - 建议至少改成“快速操作：放置配对传送门”；完整手势说明应出现在按键 tooltip 或模块说明中。
 
 ### 5. 配对设置页标题和说明没有覆盖 Remote 拆分后的职责
@@ -139,7 +139,7 @@
 ### 16. Entity Relocation 模块说明没有覆盖固定目标模式
 
 - Key：`tooltip.riftgun.module.entity_relocation_module.description`
-- 现有只描述转移到 selected destination；配对模式下还可通过 `Shift + 快速键` 设置固定目标。
+- 现有只描述转移到 selected destination；配对模式下还可通过“潜行键 + 快速键”设置固定目标。
 - 中文“演出传送门”也不自然。
 - 建议：`Opens a visual gate beneath the targeted entity and relocates it to the selected or fixed destination.` / `在目标实体脚下显示传送门，并将其转移到所选地点或固定目标点。`
 

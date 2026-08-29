@@ -78,9 +78,9 @@ portals:
 | Input | Action |
 | --- | --- |
 | Right-click | Place or replace endpoint B |
-| Shift + right-click | Place or replace endpoint A |
+| Sneak + right-click | Place or replace endpoint A |
 | Portal Pairing operation key | Place or replace endpoint B |
-| Shift + operation key | Place or replace endpoint A |
+| Sneak + operation key | Place or replace endpoint A |
 
 The new operation key is unbound by default. Right-click always uses the held
 gun. The operation key follows the same server-side held/inventory gun lookup
@@ -208,7 +208,7 @@ selected saved or player destination.
 
 | Input | Action |
 | --- | --- |
-| Shift + right-click / Shift + operation key | Set or replace a fixed relocation target at the view ray |
+| Sneak + right-click / Sneak + operation key | Set or replace a fixed relocation target at the view ray |
 | Right-click / operation key | Relocate the aimed eligible entity to that target |
 
 The target uses a surface-safe exit when a face is hit; otherwise it uses the

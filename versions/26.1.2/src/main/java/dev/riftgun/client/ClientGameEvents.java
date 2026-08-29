@@ -173,7 +173,8 @@ public final class ClientGameEvents {
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             if (definition.kind() == PortalModuleKind.REMOTE) {
                 event.getToolTip().add(Component.translatable(
-                    "tooltip.riftgun.module.remote_module.scroll_control")
+                    "tooltip.riftgun.module.remote_module.scroll_control",
+                    PortalInputLabels.sneakKey())
                     .withStyle(ChatFormatting.GRAY));
             }
             if (definition.kind() == PortalModuleKind.PORTAL_PAIRING) {
@@ -182,7 +183,8 @@ public final class ClientGameEvents {
                     PortalPairingLabels.second())
                     .withStyle(ChatFormatting.GRAY));
                 event.getToolTip().add(Component.translatable(
-                    "tooltip.riftgun.module.portal_pairing_module.shift_use",
+                    "tooltip.riftgun.module.portal_pairing_module.sneak_use",
+                    PortalInputLabels.sneakKey(),
                     PortalPairingLabels.first())
                     .withStyle(ChatFormatting.GRAY));
             }
