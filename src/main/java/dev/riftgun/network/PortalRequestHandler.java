@@ -204,7 +204,8 @@ public final class PortalRequestHandler {
                 yield false;
             }
             case OPEN_SELECTED_SURFACE_FACE -> {
-                openSelectedSurfaceFace(player, data, gun, SurfaceFaceRequest.decode(request));
+                openSelectedSurfaceFace(player, data, gun, SurfaceFaceRequest.decode(request),
+                    Nbt.getBoolean(request, "EndpointA"));
                 yield false;
             }
             case CLEAR_EXTERNAL_DESTINATION -> {
@@ -285,13 +286,13 @@ public final class PortalRequestHandler {
 
     private static void openSelectedSurfaceFace(ServerPlayer player, PortalPlayerData data,
                                                 PortalGunLocator.LocatedGun gun,
-                                                SurfaceFaceRequest request) {
+                                                SurfaceFaceRequest request, boolean endpointA) {
         PortalPlacementMode mode = data.settings().placementMode();
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun.stack(), data.settings().smartDistance());
         if (capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
             PortalPairingManager.placeSurfaceFace(player, data, gun, mode,
-                player.isShiftKeyDown() ? PortalPairingEndpoint.A : PortalPairingEndpoint.B,
+                endpointA ? PortalPairingEndpoint.A : PortalPairingEndpoint.B,
                 request);
             return;
         }

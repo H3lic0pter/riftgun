@@ -129,8 +129,11 @@ public final class ModeRadialScreen extends Screen {
         if (!cancelled && surfacePreviewOnly && surfaceAnchor != null) {
             SurfaceFaceRequest request = new SurfaceFaceRequest(
                 surfaceAnchor, facePreview.selectedFace());
-            PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_SURFACE_FACE,
-                request::writeTo);
+            boolean endpointA = ModeRadialInput.sneakDown();
+            PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_SURFACE_FACE, tag -> {
+                request.writeTo(tag);
+                tag.putBoolean("EndpointA", endpointA);
+            });
             if (minecraft != null) minecraft.setScreen(null);
             return;
         }

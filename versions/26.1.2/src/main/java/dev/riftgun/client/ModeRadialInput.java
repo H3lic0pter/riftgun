@@ -125,6 +125,11 @@ public final class ModeRadialInput {
 
     public static boolean ready() { return pendingSource != null && REQUEST.ready(); }
 
+    /** Reads the configured Sneak binding directly while a Screen owns keyboard input. */
+    public static boolean sneakDown() {
+        return keyDown(Minecraft.getInstance().options.keyShift);
+    }
+
     private static void request(Source source) {
         pendingSource = source;
         int requestId = REQUEST.begin();
