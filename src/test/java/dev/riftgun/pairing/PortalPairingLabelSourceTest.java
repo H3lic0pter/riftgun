@@ -1,5 +1,6 @@
 package dev.riftgun.pairing;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -10,6 +11,8 @@ import org.junit.jupiter.api.Test;
 final class PortalPairingLabelSourceTest {
     @Test
     void everyEndpointFacingClientTextUsesTheSharedColoredNumerals() throws IOException {
+        assertEquals("I", PortalPairingLabels.FIRST_TEXT);
+        assertEquals("II", PortalPairingLabels.SECOND_TEXT);
         String manager = read("src/main/java/dev/riftgun/pairing/PortalPairingManager.java");
         assertTrue(manager.contains("PortalPairingLabels.forEndpoint(endpoint)"));
 

@@ -4,8 +4,8 @@ import net.minecraft.network.chat.Component;
 
 /** Shared endpoint numerals and colors sourced from the pairing-mode icon. */
 public final class PortalPairingLabels {
-    public static final String FIRST_TEXT = "Ⅰ";
-    public static final String SECOND_TEXT = "Ⅱ";
+    public static final String FIRST_TEXT = "I";
+    public static final String SECOND_TEXT = "II";
     public static final int FIRST_RGB = 0x9CC9D8;
     public static final int SECOND_RGB = 0xE19A52;
 
