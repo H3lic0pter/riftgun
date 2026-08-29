@@ -220,17 +220,15 @@ public final class PortalRequestHandler {
                 if (!pairingCapabilities.portalPairing()) {
                     throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
                 }
-                if (pairingCapabilities.functionMode() != PortalFunctionMode.PORTAL_PAIRING) {
-                    throw PortalRequestFields.error("message.riftgun.pairing_mode_required");
-                }
                 if (data.settings().placementMode() == PortalPlacementMode.ENTITY_RELOCATION) {
                     if (Nbt.getBoolean(request, "EndpointA")) {
-                        PortalPairingManager.setRelocationTarget(player, data, gun);
+                        PortalPairingManager.setRelocationTargetFromShortcut(player, data, gun);
                     } else {
                         EntityRelocationManager.tryStart(player, data, gun, true);
                     }
                 } else {
-                    PortalPairingManager.place(player, data, gun, data.settings().placementMode(),
+                    PortalPairingManager.placeFromShortcut(
+                        player, data, gun, data.settings().placementMode(),
                         Nbt.getBoolean(request, "EndpointA")
                             ? PortalPairingEndpoint.A : PortalPairingEndpoint.B);
                 }

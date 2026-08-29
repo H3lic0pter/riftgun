@@ -35,7 +35,16 @@ public final class PortalPairingManager {
                                 PortalGunLocator.LocatedGun locatedGun,
                                 PortalPlacementMode requestedMode,
                                 PortalPairingEndpoint endpoint) {
-        return place(player, data, locatedGun, requestedMode, endpoint, null);
+        return place(player, data, locatedGun, requestedMode, endpoint, null,
+            PortalPairingInvocation.MODE_BOUND);
+    }
+
+    public static boolean placeFromShortcut(ServerPlayer player, PortalPlayerData data,
+                                            PortalGunLocator.LocatedGun locatedGun,
+                                            PortalPlacementMode requestedMode,
+                                            PortalPairingEndpoint endpoint) {
+        return place(player, data, locatedGun, requestedMode, endpoint, null,
+            PortalPairingInvocation.SHORTCUT);
     }
 
     public static boolean placeSurfaceFace(ServerPlayer player, PortalPlayerData data,
@@ -43,14 +52,16 @@ public final class PortalPairingManager {
                                            PortalPlacementMode requestedMode,
                                            PortalPairingEndpoint endpoint,
                                            SurfaceFaceRequest request) {
-        return place(player, data, locatedGun, requestedMode, endpoint, request);
+        return place(player, data, locatedGun, requestedMode, endpoint, request,
+            PortalPairingInvocation.MODE_BOUND);
     }
 
     private static boolean place(ServerPlayer player, PortalPlayerData data,
                                  PortalGunLocator.LocatedGun locatedGun,
                                  PortalPlacementMode requestedMode,
                                  PortalPairingEndpoint endpoint,
-                                 SurfaceFaceRequest surfaceFaceRequest) {
+                                 SurfaceFaceRequest surfaceFaceRequest,
+                                 PortalPairingInvocation invocation) {
         if (!sourceAllowed(player)) return false;
         if (endpoint == PortalPairingEndpoint.NONE || endpoint == PortalPairingEndpoint.ENTITY_TARGET) {
             return fail(player, "message.riftgun.invalid_request");
@@ -61,7 +72,7 @@ public final class PortalPairingManager {
         if (!capabilities.portalPairing()) {
             return fail(player, "message.riftgun.portal_pairing_module_required");
         }
-        if (capabilities.functionMode() != PortalFunctionMode.PORTAL_PAIRING) {
+        if (!invocation.allows(capabilities.functionMode())) {
             return fail(player, "message.riftgun.pairing_mode_required");
         }
 
@@ -134,6 +145,20 @@ public final class PortalPairingManager {
 
     public static boolean setRelocationTarget(ServerPlayer player, PortalPlayerData data,
                                               PortalGunLocator.LocatedGun locatedGun) {
+        return setRelocationTarget(player, data, locatedGun,
+            PortalPairingInvocation.MODE_BOUND);
+    }
+
+    public static boolean setRelocationTargetFromShortcut(
+        ServerPlayer player, PortalPlayerData data, PortalGunLocator.LocatedGun locatedGun
+    ) {
+        return setRelocationTarget(player, data, locatedGun,
+            PortalPairingInvocation.SHORTCUT);
+    }
+
+    private static boolean setRelocationTarget(ServerPlayer player, PortalPlayerData data,
+                                               PortalGunLocator.LocatedGun locatedGun,
+                                               PortalPairingInvocation invocation) {
         if (!sourceAllowed(player)) return false;
         PortalGunModuleSettings.ensure(locatedGun.stack(), data.settings().smartDistance());
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
@@ -141,7 +166,7 @@ public final class PortalPairingManager {
         if (!capabilities.portalPairing()) {
             return fail(player, "message.riftgun.portal_pairing_module_required");
         }
-        if (capabilities.functionMode() != PortalFunctionMode.PORTAL_PAIRING) {
+        if (!invocation.allows(capabilities.functionMode())) {
             return fail(player, "message.riftgun.pairing_mode_required");
         }
         if (!capabilities.entityRelocation()) {
