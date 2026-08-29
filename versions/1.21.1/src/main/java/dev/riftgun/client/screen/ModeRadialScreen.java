@@ -9,6 +9,7 @@ import dev.riftgun.math.RadialModeGeometry;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.network.SurfaceFaceRequest;
+import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.pairing.PortalFunctionMode;
 import java.util.ArrayList;
@@ -30,6 +31,12 @@ public final class ModeRadialScreen extends Screen {
     private static final int INNER_RADIUS = 42;
     private static final int OUTER_RADIUS = 100;
     private static final int LABEL_RADIUS = 73;
+    private static final int SURFACE_INNER_RADIUS = 35;
+    private static final int SURFACE_OUTER_RADIUS = 66;
+    private static final int SURFACE_LABEL_RADIUS = 48;
+    private static final int SURFACE_EDGE_GAP = 8;
+    private static final int SURFACE_TOP_MARGIN = 23;
+    private static final int SURFACE_BOTTOM_MARGIN = 31;
     private static final int SAMPLE = 3;
     private static final int PLACEMENT_ART_HALF_SIZE = 5;
     private static final int RANGE_SLIDER_WIDTH = 160;
@@ -65,7 +72,8 @@ public final class ModeRadialScreen extends Screen {
         Direction referenceFace = surfaceRequest == null ? Direction.NORTH : surfaceRequest.face();
         Direction playerHeading = Minecraft.getInstance().player == null
             ? Direction.NORTH : Minecraft.getInstance().player.getDirection();
-        facePreview = new SurfaceFacePreviewState(referenceFace, playerHeading);
+        facePreview = new SurfaceFacePreviewState(referenceFace, playerHeading,
+            RiftConfigs.client().surfaceFaceRadialOrder());
         if (surfaceRequest != null) {
             page = Page.SURFACE_FACE;
         }
@@ -86,7 +94,7 @@ public final class ModeRadialScreen extends Screen {
         // 1.21.1 Screen.render applies the background blur. Run it first so the
         // blur never samples the radial UI drawn below.
         super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.fill(0, 0, width, height, 0x78101115);
+        if (!surfacePreviewOnly) graphics.fill(0, 0, width, height, 0x78101115);
         List<?> options = options();
         selection = selectionAt(mouseX, mouseY, options.size());
         if (page == Page.SURFACE_FACE && selection >= 0) {
@@ -102,6 +110,11 @@ public final class ModeRadialScreen extends Screen {
         drawOptions(graphics, options);
         drawCenter(graphics);
         drawRangeSlider(graphics);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (!surfacePreviewOnly) super.renderBackground(graphics, mouseX, mouseY, partialTick);
     }
 
     public void commitAndClose() {
@@ -223,19 +236,23 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private void drawRing(GuiGraphics graphics, int count, float animation) {
-        int centerX = width / 2;
+        int centerX = centerX();
         int centerY = centerY();
-        int outer = Math.max(INNER_RADIUS + 1, Math.round(OUTER_RADIUS * animation));
+        int inner = innerRadius();
+        int outer = Math.max(inner + 1, Math.round(outerRadius() * animation));
         for (int y = -outer; y <= outer; y += SAMPLE) {
             for (int x = -outer; x <= outer; x += SAMPLE) {
                 int distanceSquared = x * x + y * y;
-                if (distanceSquared < INNER_RADIUS * INNER_RADIUS || distanceSquared > outer * outer) continue;
-                int index = RadialModeGeometry.selectionIndex(x, y, count, INNER_RADIUS).orElse(-1);
-                int selected = functionMode == PortalFunctionMode.PORTAL_PAIRING
+                if (distanceSquared < inner * inner || distanceSquared > outer * outer) continue;
+                int index = RadialModeGeometry.selectionIndex(x, y, count, inner).orElse(-1);
+                int selected = surfacePreviewOnly ? 0x906F9AA8
+                    : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xDC84502D : 0xDC416775;
-                int baseA = functionMode == PortalFunctionMode.PORTAL_PAIRING
+                int baseA = surfacePreviewOnly ? 0x4425272D
+                    : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xD82F2925 : 0xD825272D;
-                int baseB = functionMode == PortalFunctionMode.PORTAL_PAIRING
+                int baseB = surfacePreviewOnly ? 0x4A30333A
+                    : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xD83A3028 : 0xD830333A;
                 int color = index == selection ? selected : (index & 1) == 0 ? baseA : baseB;
                 graphics.fill(centerX + x, centerY + y, centerX + x + SAMPLE, centerY + y + SAMPLE, color);
@@ -244,12 +261,12 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private void drawOptions(GuiGraphics graphics, List<?> options) {
-        int centerX = width / 2;
+        int centerX = centerX();
         int centerY = centerY();
         for (int index = 0; index < options.size(); index++) {
             double angle = Math.toRadians(-90.0 + index * 360.0 / options.size());
-            int x = centerX + (int) Math.round(Math.cos(angle) * LABEL_RADIUS);
-            int y = centerY + (int) Math.round(Math.sin(angle) * LABEL_RADIUS);
+            int x = centerX + (int) Math.round(Math.cos(angle) * labelRadius());
+            int y = centerY + (int) Math.round(Math.sin(angle) * labelRadius());
             Object option = options.get(index);
             Component label = label(option);
             int color = index == selection ? PortalTheme.TEXT : PortalTheme.TEXT_MUTED;
@@ -264,7 +281,7 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private void drawCenter(GuiGraphics graphics) {
-        int centerX = width / 2;
+        int centerX = centerX();
         int centerY = centerY();
         if (page == Page.SURFACE_FACE) {
             drawFacePreview(graphics, centerX, centerY);
@@ -285,7 +302,7 @@ public final class ModeRadialScreen extends Screen {
         centeredWrappedText(graphics, label(current), centerX, centerY + 6, 80, PortalTheme.TEXT);
         boolean pairingInstalled = Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled");
         int hintReserve = pairingInstalled ? 22 : 12;
-        int hintY = Math.min(centerY + OUTER_RADIUS + 12, height - hintReserve);
+        int hintY = Math.min(centerY + outerRadius() + 12, height - hintReserve);
         centeredText(graphics, Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.switch_prediction" : "screen.riftgun.mode_radial.switch_placement"),
             centerX, hintY, PortalTheme.TEXT_MUTED);
@@ -338,7 +355,31 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private int centerY() {
-        return height / 2;
+        if (!surfacePreviewOnly) return height / 2;
+        int minimum = SURFACE_OUTER_RADIUS + SURFACE_TOP_MARGIN;
+        int maximum = Math.max(minimum, height - SURFACE_OUTER_RADIUS - SURFACE_BOTTOM_MARGIN);
+        return Math.clamp(height / 2 + RiftConfigs.client().surfaceFaceRadialOffsetY(),
+            minimum, maximum);
+    }
+
+    private int centerX() {
+        if (!surfacePreviewOnly) return width / 2;
+        int minimum = SURFACE_OUTER_RADIUS + SURFACE_EDGE_GAP;
+        int maximum = Math.max(minimum, width - SURFACE_OUTER_RADIUS - SURFACE_EDGE_GAP);
+        return Math.clamp(width / 2 + RiftConfigs.client().surfaceFaceRadialOffsetX(),
+            minimum, maximum);
+    }
+
+    private int innerRadius() {
+        return surfacePreviewOnly ? SURFACE_INNER_RADIUS : INNER_RADIUS;
+    }
+
+    private int outerRadius() {
+        return surfacePreviewOnly ? SURFACE_OUTER_RADIUS : OUTER_RADIUS;
+    }
+
+    private int labelRadius() {
+        return surfacePreviewOnly ? SURFACE_LABEL_RADIUS : LABEL_RADIUS;
     }
 
     private int rangeSliderX() {
@@ -361,24 +402,50 @@ public final class ModeRadialScreen extends Screen {
     private int selectionAt(int mouseX, int mouseY, int optionCount) {
         OptionalInt hovered = overRangeSlider(mouseX, mouseY) || draggingRange
             ? OptionalInt.empty() : RadialModeGeometry.selectionIndex(
-                mouseX - width / 2.0, mouseY - centerY(), optionCount, INNER_RADIUS);
+                mouseX - centerX(), mouseY - centerY(), optionCount, innerRadius());
         return hovered.orElse(-1);
     }
 
     private void drawFacePreview(GuiGraphics graphics, int centerX, int centerY) {
-        centeredText(graphics, Component.translatable("screen.riftgun.mode_radial.surface_face_frame",
-                Component.translatable(facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
-                    ? "screen.riftgun.mode_radial.surface_face_relative"
-                    : "screen.riftgun.mode_radial.surface_face_absolute")),
-            centerX, centerY - 38, PortalTheme.ICE);
+        Component heading = Component.translatable("screen.riftgun.mode_radial.surface_face");
+        Component frame = Component.translatable(
+            facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
+                ? "screen.riftgun.mode_radial.surface_face_relative"
+                : "screen.riftgun.mode_radial.surface_face_absolute");
+        int headingY = centerY - outerRadius() - 20;
+        drawTextBackdrop(graphics, centerX, headingY, heading, frame);
+        centeredText(graphics, heading, centerX, headingY, PortalTheme.ICE);
+        centeredText(graphics, frame, centerX, headingY + 9, PortalTheme.TEXT);
         drawFaceWireframe(graphics, centerX, centerY - 4, facePreview.selectedFace());
         centeredText(graphics, label(facePreview.selectedChoice()), centerX, centerY + 27,
             PortalTheme.TEXT);
+        int hintY = Math.min(centerY + outerRadius() + 4,
+            height - (functionMode == PortalFunctionMode.PORTAL_PAIRING ? 29 : 20));
         centeredText(graphics, Component.translatable(
                 facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
                     ? "screen.riftgun.mode_radial.surface_face_switch_absolute"
                     : "screen.riftgun.mode_radial.surface_face_switch_relative"),
-            centerX, Math.min(centerY + OUTER_RADIUS + 12, height - 12), PortalTheme.TEXT_MUTED);
+            centerX, hintY, PortalTheme.TEXT_MUTED);
+        if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
+            centeredText(graphics, Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release_pair_b"),
+                centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release_pair_a"),
+                centerX, hintY + 18, PortalTheme.TEXT_MUTED);
+        } else {
+            centeredText(graphics, Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release"),
+                centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+        }
+    }
+
+    private void drawTextBackdrop(GuiGraphics graphics, int centerX, int topY,
+                                  Component... lines) {
+        int textWidth = 0;
+        for (Component line : lines) textWidth = Math.max(textWidth, font.width(line));
+        graphics.fill(centerX - textWidth / 2 - 4, topY - 3,
+            centerX + (textWidth + 1) / 2 + 4, topY + lines.length * 9 + 3, 0xA00A0D10);
     }
 
     private void drawFaceWireframe(GuiGraphics graphics, int centerX, int centerY, Direction face) {
@@ -399,7 +466,7 @@ public final class ModeRadialScreen extends Screen {
             case EAST -> new int[] {1, 5, 6, 2};
         };
         for (int[] edge : edges) {
-            line(graphics, centerX, centerY, points[edge[0]], points[edge[1]], 0x8059616B);
+            line(graphics, centerX, centerY, points[edge[0]], points[edge[1]], 0xD0D9DDE0);
         }
         for (int index = 0; index < selected.length; index++) {
             int[] from = points[selected[index]];

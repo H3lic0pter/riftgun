@@ -2,6 +2,8 @@ package dev.riftgun.config;
 
 import dev.riftgun.core.config.ClientVisualConfig;
 import dev.riftgun.core.config.RiftConfigs;
+import java.util.List;
+import java.util.Locale;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class ClientConfig {
@@ -22,7 +24,9 @@ public final class ClientConfig {
             VALUES.swirlInwardPeriod.get(), VALUES.swirlInwardDirection.get(),
             VALUES.endframeRotationEnabled.get(), VALUES.endframeRotationPeriod.get(),
             VALUES.endframeRotationReverse.get(),
-            VALUES.portalDynamicLightLevel.get()));
+            VALUES.portalDynamicLightLevel.get(),
+            List.copyOf(VALUES.surfaceFaceRadialOrder.get()),
+            VALUES.surfaceFaceRadialOffsetX.get(), VALUES.surfaceFaceRadialOffsetY.get()));
     }
 
     public static final class Values {
@@ -37,6 +41,9 @@ public final class ClientConfig {
         public final ModConfigSpec.BooleanValue endframeRotationReverse;
         public final ModConfigSpec.IntValue portalDynamicLightLevel;
         public final ModConfigSpec.BooleanValue rememberGuiScrollPosition;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> surfaceFaceRadialOrder;
+        public final ModConfigSpec.IntValue surfaceFaceRadialOffsetX;
+        public final ModConfigSpec.IntValue surfaceFaceRadialOffsetY;
         public final ModConfigSpec.BooleanValue journeyMapWaypointsEnabled;
         public final ModConfigSpec.BooleanValue xaeroWaypointsEnabled;
         public final ModConfigSpec.IntValue maximumMapWaypoints;
@@ -77,7 +84,19 @@ public final class ClientConfig {
             rememberGuiScrollPosition = builder.comment(
                     "Remember the main portal GUI list and detail scroll positions for this client session")
                 .define("rememberScrollPosition", true);
-            builder.pop();
+            builder.push("surfaceFaceRadial");
+            surfaceFaceRadialOrder = builder.comment(
+                    "Six radial slots, clockwise from the top. Each of top, front, right, bottom, back, and left must appear once.")
+                .defineListAllowEmpty("clockwiseOrder",
+                    List.of("top", "front", "right", "bottom", "back", "left"),
+                    () -> "front", ClientConfig::validSurfaceFaceChoice);
+            surfaceFaceRadialOffsetX = builder.comment(
+                    "Horizontal GUI-pixel offset from the crosshair; positive values move right")
+                .defineInRange("offsetX", 110, -1000, 1000);
+            surfaceFaceRadialOffsetY = builder.comment(
+                    "Vertical GUI-pixel offset from the crosshair; positive values move down")
+                .defineInRange("offsetY", 0, -1000, 1000);
+            builder.pop(2);
 
             builder.push("mapIntegration");
             journeyMapWaypointsEnabled = builder.comment("Show read-only JourneyMap waypoints")
@@ -88,6 +107,14 @@ public final class ClientConfig {
                 .defineInRange("maximumWaypointsPerSource", 100, 1, 1000);
             builder.pop();
         }
+    }
+
+    private static boolean validSurfaceFaceChoice(Object value) {
+        if (!(value instanceof String token)) return false;
+        return switch (token.trim().toLowerCase(Locale.ROOT)) {
+            case "top", "up", "front", "right", "bottom", "down", "back", "left" -> true;
+            default -> false;
+        };
     }
 
     private ClientConfig() {}
