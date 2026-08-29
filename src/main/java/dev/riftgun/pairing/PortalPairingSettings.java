@@ -89,7 +89,7 @@ public record PortalPairingSettings(
 
         PortalPairingSettings toSettings() {
             return new PortalPairingSettings(functionMode, pairingSmartFallback,
-                remote.orElseGet(() -> new RemoteSettings(coordinateSmartFallback, true, true)));
+                remote.orElseGet(() -> new RemoteSettings(coordinateSmartFallback, true, true, true)));
         }
 
         static Stored fromSettings(PortalPairingSettings settings) {

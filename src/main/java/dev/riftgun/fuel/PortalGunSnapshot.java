@@ -62,6 +62,8 @@ public final class PortalGunSnapshot {
             settings.portalPairing().remote().scrollAdjustmentEnabled());
         tag.putBoolean("RemoteRadialSliderEnabled",
             settings.portalPairing().remote().radialSliderEnabled());
+        tag.putBoolean("RemotePlacementPreviewEnabled",
+            settings.portalPairing().remote().placementPreviewEnabled());
         tag.putBoolean("PortalPairingInstalled", capabilities.portalPairing());
         tag.putString("FunctionMode", capabilities.functionMode().name());
         tag.putString("CoordinateSmartFallback", settings.portalPairing().coordinateSmartFallback().name());

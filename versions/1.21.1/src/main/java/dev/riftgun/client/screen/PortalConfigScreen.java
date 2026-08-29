@@ -161,6 +161,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton pairingFallbackButton;
     private @Nullable ThemedButton remoteScrollAdjustmentButton;
     private @Nullable ThemedButton remoteRadialSliderButton;
+    private @Nullable ThemedButton remotePlacementPreviewButton;
     private @Nullable ThemedButton visualSettingsButton;
     private @Nullable ThemedButton soundSettingsButton;
     private @Nullable ThemedButton soundBackButton;
@@ -247,6 +248,7 @@ public final class PortalConfigScreen extends Screen {
         pairingFallbackButton = null;
         remoteScrollAdjustmentButton = null;
         remoteRadialSliderButton = null;
+        remotePlacementPreviewButton = null;
         moduleSettingBackButton = null;
         passiveTransitButton = null;
         hostileTransitButton = null;
@@ -601,6 +603,11 @@ public final class PortalConfigScreen extends Screen {
                     PortalClientState.gun().getBoolean("RemoteRadialSliderEnabled")),
                 false, ignored -> toggleGunBoolean(
                     "RemoteRadialSlider", "RemoteRadialSliderEnabled"));
+            remotePlacementPreviewButton = button(x + 18, gunSettingControlY + 48, fieldWidth, 19,
+                toggleLabel("screen.riftgun.remote.placement_preview",
+                    PortalClientState.gun().getBoolean("RemotePlacementPreviewEnabled")),
+                false, ignored -> toggleGunBoolean(
+                    "RemotePlacementPreview", "RemotePlacementPreviewEnabled"));
         } else if (modal == Modal.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
@@ -3550,9 +3557,10 @@ public final class PortalConfigScreen extends Screen {
             case CONFIRM_SETTINGS -> 140;
             case MAP_INTEGRATION_SETTINGS -> 170;
             case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
-                 REMOTE_SETTINGS, APERTURE_SETTINGS,
+                 APERTURE_SETTINGS,
                  PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS,
                  PORTAL_PAIRING_SETTINGS -> 132;
+            case REMOTE_SETTINGS -> 156;
             case ENTITY_TRANSIT_SETTINGS -> 163;
             case VISUAL_SETTINGS -> 132;
             case SWIRL_ANIMATION_SETTINGS -> 210;

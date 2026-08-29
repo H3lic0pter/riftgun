@@ -437,7 +437,7 @@
   "tooltip.riftgun.module.portal_pairing_module.use": "互动键：放置一扇门",
   "tooltip.riftgun.module.portal_pairing_module.shift_use": "Shift + 互动键：放置另一扇门",
   "item.riftgun.remote_module": "远端模块",
-  "tooltip.riftgun.module.remote_module.description": "解锁远端放置，并提供即时贴面射程调整。",
+  "tooltip.riftgun.module.remote_module.description": "解锁远端放置、落点预览与即时贴面射程调整。",
   "tooltip.riftgun.module.remote_module.scroll_control": "Shift + 滚轮：调整最大贴面射程",
   "key.riftgun.portal_pairing_operation": "快捷操作：放置配对传送门",
   "key.riftgun.toggle_function_mode": "切换传送枪配对模式",
@@ -466,8 +466,9 @@
   "screen.riftgun.placement_ranges_hint": "智能射程与最大贴面射程相互独立 - 能力上限：%s 格。",
   "screen.riftgun.maximum_surface_range_value": "最大贴面射程：%s 格",
   "screen.riftgun.remote.settings": "远端模块",
-  "screen.riftgun.remote.settings_hint": "设置快速射程操作。",
+  "screen.riftgun.remote.settings_hint": "设置远端预览与快速射程操作。",
   "screen.riftgun.remote.scroll_adjustment": "Shift+滚轮调整射程",
   "screen.riftgun.remote.radial_slider": "在轮盘中显示射程滑块",
+  "screen.riftgun.remote.placement_preview": "远端放置预览",
   "screen.riftgun.mode_radial.surface_range": "贴面射程 %s / %s"
 }

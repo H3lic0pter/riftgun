@@ -210,6 +210,7 @@ final class GuiCaptureHarness {
         gun.putBoolean("RemoteInstalled", true);
         gun.putBoolean("RemoteScrollAdjustmentEnabled", true);
         gun.putBoolean("RemoteRadialSliderEnabled", true);
+        gun.putBoolean("RemotePlacementPreviewEnabled", true);
         gun.putString("FunctionMode", "PORTAL_PAIRING");
         gun.putString("CoordinateSmartFallback", "FRONT");
         gun.putString("PairingSmartFallback", "REMOTE");

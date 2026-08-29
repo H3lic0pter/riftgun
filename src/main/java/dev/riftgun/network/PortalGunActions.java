@@ -279,6 +279,13 @@ final class PortalGunActions {
                     settings.portalPairing().remote().withRadialSliderEnabled(
                         Nbt.getBoolean(request, "Enabled"))));
             }
+            case "RemotePlacementPreview" -> {
+                requireModule(gun, PortalModuleKind.REMOTE, rules,
+                    "message.riftgun.remote_module_required");
+                settings = settings.withPortalPairing(settings.portalPairing().withRemote(
+                    settings.portalPairing().remote().withPlacementPreviewEnabled(
+                        Nbt.getBoolean(request, "Enabled"))));
+            }
             default -> throw PortalRequestFields.error("message.riftgun.invalid_request");
         }
         settings.save(gun);

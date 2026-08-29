@@ -7,6 +7,7 @@ import dev.riftgun.client.PortalClientState;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
@@ -74,8 +75,11 @@ public final class PortalPlacementPreview {
             || minecraft.isPaused()) return null;
         ItemStack gun = heldGun(minecraft);
         if (gun.isEmpty()) return null;
+        int smartDistance = PortalClientState.data().settings().smartDistance();
+        if (!PortalGunModuleSettings.get(gun, smartDistance)
+            .portalPairing().remote().placementPreviewEnabled()) return null;
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun,
-            PortalClientState.data().settings().smartDistance(), PortalClientState.moduleRules());
+            smartDistance, PortalClientState.moduleRules());
         if (!capabilities.remote()
             || capabilities.effectivePlacementMode(PortalClientState.data().settings().placementMode())
                 != PortalPlacementMode.REMOTE) return null;

@@ -84,6 +84,7 @@ final class PortalGunModuleSettingsTest {
         assertFalse(settings.fallGuardEntitiesEnabled());
         assertTrue(settings.portalPairing().remote().scrollAdjustmentEnabled());
         assertTrue(settings.portalPairing().remote().radialSliderEnabled());
+        assertTrue(settings.portalPairing().remote().placementPreviewEnabled());
     }
 
     @Test
@@ -103,6 +104,7 @@ final class PortalGunModuleSettingsTest {
             settings.portalPairing().remote().coordinateSmartFallback());
         assertTrue(settings.portalPairing().remote().scrollAdjustmentEnabled());
         assertTrue(settings.portalPairing().remote().radialSliderEnabled());
+        assertTrue(settings.portalPairing().remote().placementPreviewEnabled());
     }
 
     @Test

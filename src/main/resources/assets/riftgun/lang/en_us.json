@@ -437,7 +437,7 @@
   "tooltip.riftgun.module.portal_pairing_module.use": "Use: Place one portal",
   "tooltip.riftgun.module.portal_pairing_module.shift_use": "Shift + Use: Place the other portal",
   "item.riftgun.remote_module": "Remote Module",
-  "tooltip.riftgun.module.remote_module.description": "Unlocks Remote placement and immediate surface-range adjustment.",
+  "tooltip.riftgun.module.remote_module.description": "Unlocks Remote placement, placement previews, and immediate surface-range adjustment.",
   "tooltip.riftgun.module.remote_module.scroll_control": "Shift + Scroll: Adjust maximum surface range",
   "key.riftgun.portal_pairing_operation": "Quick Action: Place Paired Portal",
   "key.riftgun.toggle_function_mode": "Toggle Portal Gun Pairing Mode",
@@ -466,8 +466,9 @@
   "screen.riftgun.placement_ranges_hint": "SMART and Surface ranges are independent - capability limit: %s blocks.",
   "screen.riftgun.maximum_surface_range_value": "Maximum Surface Range: %s blocks",
   "screen.riftgun.remote.settings": "Remote Module",
-  "screen.riftgun.remote.settings_hint": "Configure quick range controls.",
+  "screen.riftgun.remote.settings_hint": "Configure the placement preview and quick range controls.",
   "screen.riftgun.remote.scroll_adjustment": "Shift+Scroll Range Adjustment",
   "screen.riftgun.remote.radial_slider": "Show Range Slider in Radial",
+  "screen.riftgun.remote.placement_preview": "Remote Placement Preview",
   "screen.riftgun.mode_radial.surface_range": "Surface Range %s / %s"
 }
