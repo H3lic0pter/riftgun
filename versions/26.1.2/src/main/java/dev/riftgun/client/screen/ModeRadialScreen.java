@@ -37,8 +37,13 @@ public final class ModeRadialScreen extends Screen {
     private static final int SURFACE_OUTER_RADIUS = 66;
     private static final int SURFACE_LABEL_RADIUS = 48;
     private static final int SURFACE_EDGE_GAP = 8;
-    private static final int SURFACE_TOP_MARGIN = 23;
+    private static final int SURFACE_TOP_MARGIN = 26;
     private static final int SURFACE_BOTTOM_MARGIN = 31;
+    private static final int SURFACE_RING_BACKGROUND_A = 0xA80A0D10;
+    private static final int SURFACE_RING_BACKGROUND_B = 0xA812171D;
+    private static final int SURFACE_CENTER_BACKGROUND = 0x78333B43;
+    private static final int SURFACE_TEXT_BACKGROUND = 0xA012171D;
+    private static final int SURFACE_SELECTED_COLOR = 0x906F9AA8;
     private static final int SAMPLE = 3;
     private static final int PLACEMENT_ART_HALF_SIZE = 5;
     private static final int RANGE_SLIDER_WIDTH = 160;
@@ -240,22 +245,28 @@ public final class ModeRadialScreen extends Screen {
         int centerY = centerY();
         int inner = innerRadius();
         int outer = Math.max(inner + 1, Math.round(outerRadius() * animation));
-        for (int y = -outer; y <= outer; y += SAMPLE) {
-            for (int x = -outer; x <= outer; x += SAMPLE) {
-                int distanceSquared = x * x + y * y;
+        int sample = surfacePreviewOnly ? 1 : SAMPLE;
+        int maximumCoordinate = surfacePreviewOnly ? outer - 1 : outer;
+        for (int y = -outer; y <= maximumCoordinate; y += sample) {
+            for (int x = -outer; x <= maximumCoordinate; x += sample) {
+                double radialX = surfacePreviewOnly ? x + 0.5 : x;
+                double radialY = surfacePreviewOnly ? y + 0.5 : y;
+                double distanceSquared = radialX * radialX + radialY * radialY;
                 if (distanceSquared < inner * inner || distanceSquared > outer * outer) continue;
-                int index = RadialModeGeometry.selectionIndex(x, y, count, inner).orElse(-1);
-                int selected = surfacePreviewOnly ? 0x906F9AA8
+                int index = RadialModeGeometry.selectionIndex(
+                    radialX, radialY, count, inner).orElse(-1);
+                int selected = surfacePreviewOnly ? SURFACE_SELECTED_COLOR
                     : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xDC84502D : 0xDC416775;
-                int baseA = surfacePreviewOnly ? 0x4425272D
+                int baseA = surfacePreviewOnly ? SURFACE_RING_BACKGROUND_A
                     : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xD82F2925 : 0xD825272D;
-                int baseB = surfacePreviewOnly ? 0x4A30333A
+                int baseB = surfacePreviewOnly ? SURFACE_RING_BACKGROUND_B
                     : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xD83A3028 : 0xD830333A;
                 int color = index == selection ? selected : (index & 1) == 0 ? baseA : baseB;
-                graphics.fill(centerX + x, centerY + y, centerX + x + SAMPLE, centerY + y + SAMPLE, color);
+                graphics.fill(centerX + x, centerY + y,
+                    centerX + x + sample, centerY + y + sample, color);
             }
         }
     }
@@ -407,36 +418,51 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private void drawFacePreview(GuiGraphicsExtractor graphics, int centerX, int centerY) {
+        drawSurfaceCenterBackdrop(graphics, centerX, centerY);
         Component heading = Component.translatable("screen.riftgun.mode_radial.surface_face");
         Component frame = Component.translatable(
             facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
                 ? "screen.riftgun.mode_radial.surface_face_relative"
                 : "screen.riftgun.mode_radial.surface_face_absolute");
-        int headingY = centerY - outerRadius() - 20;
+        int headingY = centerY - outerRadius() - 23;
         drawTextBackdrop(graphics, centerX, headingY, heading, frame);
         centeredText(graphics, heading, centerX, headingY, PortalTheme.ICE);
         centeredText(graphics, frame, centerX, headingY + 9, PortalTheme.TEXT);
-        drawFaceWireframe(graphics, centerX, centerY - 4, facePreview.selectedFace());
-        centeredText(graphics, label(facePreview.selectedChoice()), centerX, centerY + 27,
+        drawFaceWireframe(graphics, centerX - 4, centerY - 4, facePreview.selectedFace());
+        centeredText(graphics, label(facePreview.selectedChoice()), centerX, centerY + 22,
             PortalTheme.TEXT);
         int hintY = Math.min(centerY + outerRadius() + 4,
             height - (functionMode == PortalFunctionMode.PORTAL_PAIRING ? 29 : 20));
-        centeredText(graphics, Component.translatable(
-                facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
-                    ? "screen.riftgun.mode_radial.surface_face_switch_absolute"
-                    : "screen.riftgun.mode_radial.surface_face_switch_relative"),
-            centerX, hintY, PortalTheme.TEXT_MUTED);
+        Component switchHint = Component.translatable(
+            facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
+                ? "screen.riftgun.mode_radial.surface_face_switch_absolute"
+                : "screen.riftgun.mode_radial.surface_face_switch_relative");
         if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
-            centeredText(graphics, Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_b"),
-                centerX, hintY + 9, PortalTheme.TEXT_MUTED);
-            centeredText(graphics, Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_a"),
-                centerX, hintY + 18, PortalTheme.TEXT_MUTED);
+            Component releaseB = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release_pair_b");
+            Component releaseA = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release_pair_a");
+            drawTextBackdrop(graphics, centerX, hintY, switchHint, releaseB, releaseA);
+            centeredText(graphics, switchHint, centerX, hintY, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, releaseB, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, releaseA, centerX, hintY + 18, PortalTheme.TEXT_MUTED);
         } else {
-            centeredText(graphics, Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release"),
-                centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+            Component release = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release");
+            drawTextBackdrop(graphics, centerX, hintY, switchHint, release);
+            centeredText(graphics, switchHint, centerX, hintY, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, release, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+        }
+    }
+
+    private void drawSurfaceCenterBackdrop(GuiGraphicsExtractor graphics, int centerX, int centerY) {
+        int radius = innerRadius() + 1;
+        for (int y = -radius; y < radius; y++) {
+            double radialY = y + 0.5;
+            int maximumX = (int) Math.floor(
+                Math.sqrt(radius * radius - radialY * radialY) - 0.5);
+            graphics.fill(centerX - maximumX - 1, centerY + y,
+                centerX + maximumX + 1, centerY + y + 1, SURFACE_CENTER_BACKGROUND);
         }
     }
 
@@ -445,7 +471,8 @@ public final class ModeRadialScreen extends Screen {
         int textWidth = 0;
         for (Component line : lines) textWidth = Math.max(textWidth, font.width(line));
         graphics.fill(centerX - textWidth / 2 - 4, topY - 3,
-            centerX + (textWidth + 1) / 2 + 4, topY + lines.length * 9 + 3, 0xA00A0D10);
+            centerX + (textWidth + 1) / 2 + 4, topY + lines.length * 9 + 3,
+            SURFACE_TEXT_BACKGROUND);
     }
 
     private void drawFaceWireframe(GuiGraphicsExtractor graphics, int centerX, int centerY, Direction face) {
