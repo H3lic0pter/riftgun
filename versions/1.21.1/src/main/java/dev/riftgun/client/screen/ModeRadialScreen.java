@@ -4,9 +4,11 @@ import dev.riftgun.client.ModeRadialInput;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
+import dev.riftgun.input.SurfaceFacePreviewState;
 import dev.riftgun.math.RadialModeGeometry;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.pairing.PortalFunctionMode;
 import java.util.ArrayList;
@@ -14,9 +16,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.OptionalInt;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
@@ -45,9 +50,25 @@ public final class ModeRadialScreen extends Screen {
     private boolean draggingRange;
     private int lastSentRange;
     private long lastRangeSendNanos;
+    private final SurfaceFacePreviewState facePreview;
+    private final boolean surfacePreviewOnly;
+    private final BlockPos surfaceAnchor;
 
     public ModeRadialScreen() {
+        this(null);
+    }
+
+    public ModeRadialScreen(SurfaceFaceRequest surfaceRequest) {
         super(Component.translatable("screen.riftgun.mode_radial.title"));
+        surfacePreviewOnly = surfaceRequest != null;
+        surfaceAnchor = surfaceRequest == null ? null : surfaceRequest.anchor();
+        Direction referenceFace = surfaceRequest == null ? Direction.NORTH : surfaceRequest.face();
+        Direction playerHeading = Minecraft.getInstance().player == null
+            ? Direction.NORTH : Minecraft.getInstance().player.getDirection();
+        facePreview = new SurfaceFacePreviewState(referenceFace, playerHeading);
+        if (surfaceRequest != null) {
+            page = Page.SURFACE_FACE;
+        }
         refreshFromServer();
     }
 
@@ -67,10 +88,10 @@ public final class ModeRadialScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
         graphics.fill(0, 0, width, height, 0x78101115);
         List<?> options = options();
-        OptionalInt hovered = overRangeSlider(mouseX, mouseY) || draggingRange
-            ? OptionalInt.empty() : RadialModeGeometry.selectionIndex(
-                mouseX - width / 2.0, mouseY - centerY(), options.size(), INNER_RADIUS);
-        selection = hovered.orElse(-1);
+        selection = selectionAt(mouseX, mouseY, options.size());
+        if (page == Page.SURFACE_FACE && selection >= 0) {
+            facePreview.select((SurfaceFacePreviewState.Choice) options.get(selection));
+        }
         if (selection != lastAudibleSelection) {
             if (selection >= 0) playUi(1.25F);
             lastAudibleSelection = selection;
@@ -85,10 +106,21 @@ public final class ModeRadialScreen extends Screen {
 
     public void commitAndClose() {
         sendRange(true);
+        if (!cancelled && surfacePreviewOnly && surfaceAnchor != null) {
+            SurfaceFaceRequest request = new SurfaceFaceRequest(
+                surfaceAnchor, facePreview.selectedFace());
+            PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_SURFACE_FACE,
+                request::writeTo);
+            if (minecraft != null) minecraft.setScreen(null);
+            return;
+        }
         if (!cancelled) {
             PortalNetworking.sendShortcutRequest(PortalAction.SET_RADIAL_MODE, tag -> {
                 tag.putString("FunctionMode", functionMode.name());
-                if (selection >= 0) {
+                if (page == Page.SURFACE_FACE) {
+                    tag.putString("Page", Page.PLACEMENT.name());
+                    tag.putString("Mode", PortalPlacementMode.SURFACE.name());
+                } else if (selection >= 0) {
                     Object mode = options().get(selection);
                     tag.putString("Page", page.name());
                     tag.putString("Mode", ((Enum<?>) mode).name());
@@ -110,11 +142,18 @@ public final class ModeRadialScreen extends Screen {
         if (button == 0 && overRangeSlider(mouseX, mouseY)) {
             draggingRange = true;
             updateRange(mouseX, false);
-        } else if (button == 0 && PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
+        } else if (button == 0 && page != Page.SURFACE_FACE
+            && PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
             functionMode = functionMode.toggle();
             playUi(functionMode == PortalFunctionMode.PORTAL_PAIRING ? 1.15F : 0.85F);
-        } else if (button == 1) {
-            page = page == Page.PLACEMENT ? Page.PREDICTION : Page.PLACEMENT;
+        } else if (button == 1 && page == Page.SURFACE_FACE) {
+            facePreview.toggleFrame();
+            selection = -1;
+            lastAudibleSelection = -1;
+            playUi(facePreview.frame() == SurfaceFacePreviewState.Frame.ABSOLUTE ? 1.1F : 0.9F);
+        } else if (button == 1 && !surfacePreviewOnly) {
+            page = page == Page.SURFACE_FACE ? Page.PLACEMENT
+                : page == Page.PLACEMENT ? Page.PREDICTION : Page.PLACEMENT;
             selection = -1;
             lastAudibleSelection = -1;
             playUi(0.9F);
@@ -166,7 +205,12 @@ public final class ModeRadialScreen extends Screen {
         return false;
     }
 
+    public boolean surfaceFacePreviewOpen() { return surfacePreviewOnly && surfaceAnchor != null; }
+    public BlockPos surfaceAnchor() { return surfaceAnchor; }
+    public Direction selectedSurfaceFace() { return facePreview.selectedFace(); }
+
     private List<?> options() {
+        if (page == Page.SURFACE_FACE) return facePreview.choices();
         if (page == Page.PREDICTION) return Arrays.asList(PortalPredictionMode.values());
         List<PortalPlacementMode> modes = new ArrayList<>(Arrays.asList(PortalPlacementMode.values()));
         if (!PortalClientState.gun().getBoolean("EntityRelocationEnabled")) {
@@ -222,6 +266,10 @@ public final class ModeRadialScreen extends Screen {
     private void drawCenter(GuiGraphics graphics) {
         int centerX = width / 2;
         int centerY = centerY();
+        if (page == Page.SURFACE_FACE) {
+            drawFacePreview(graphics, centerX, centerY);
+            return;
+        }
         Component pageLabel = Component.translatable(page == Page.PLACEMENT
             ? "screen.riftgun.mode_radial.placement" : "screen.riftgun.mode_radial.prediction");
         boolean pairing = functionMode == PortalFunctionMode.PORTAL_PAIRING;
@@ -306,14 +354,101 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private boolean rangeSliderEnabled() {
-        return remoteInstalled()
+        return page != Page.SURFACE_FACE && remoteInstalled()
             && Nbt.getBoolean(PortalClientState.gun(), "RemoteRadialSliderEnabled");
+    }
+
+    private int selectionAt(int mouseX, int mouseY, int optionCount) {
+        OptionalInt hovered = overRangeSlider(mouseX, mouseY) || draggingRange
+            ? OptionalInt.empty() : RadialModeGeometry.selectionIndex(
+                mouseX - width / 2.0, mouseY - centerY(), optionCount, INNER_RADIUS);
+        return hovered.orElse(-1);
+    }
+
+    private void drawFacePreview(GuiGraphics graphics, int centerX, int centerY) {
+        centeredText(graphics, Component.translatable("screen.riftgun.mode_radial.surface_face_frame",
+                Component.translatable(facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
+                    ? "screen.riftgun.mode_radial.surface_face_relative"
+                    : "screen.riftgun.mode_radial.surface_face_absolute")),
+            centerX, centerY - 38, PortalTheme.ICE);
+        drawFaceWireframe(graphics, centerX, centerY - 4, facePreview.selectedFace());
+        centeredText(graphics, label(facePreview.selectedChoice()), centerX, centerY + 27,
+            PortalTheme.TEXT);
+        centeredText(graphics, Component.translatable(
+                facePreview.frame() == SurfaceFacePreviewState.Frame.RELATIVE
+                    ? "screen.riftgun.mode_radial.surface_face_switch_absolute"
+                    : "screen.riftgun.mode_radial.surface_face_switch_relative"),
+            centerX, Math.min(centerY + OUTER_RADIUS + 12, height - 12), PortalTheme.TEXT_MUTED);
+    }
+
+    private void drawFaceWireframe(GuiGraphics graphics, int centerX, int centerY, Direction face) {
+        int[][] points = {
+            {-12, -8}, {12, -8}, {12, 16}, {-12, 16},
+            {-4, -16}, {20, -16}, {20, 8}, {-4, 8}
+        };
+        int[][] edges = {
+            {0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6},
+            {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7}
+        };
+        int[] selected = switch (face) {
+            case NORTH -> new int[] {0, 1, 2, 3};
+            case SOUTH -> new int[] {4, 5, 6, 7};
+            case UP -> new int[] {4, 5, 1, 0};
+            case DOWN -> new int[] {3, 2, 6, 7};
+            case WEST -> new int[] {4, 0, 3, 7};
+            case EAST -> new int[] {1, 5, 6, 2};
+        };
+        for (int[] edge : edges) {
+            line(graphics, centerX, centerY, points[edge[0]], points[edge[1]], 0x8059616B);
+        }
+        for (int index = 0; index < selected.length; index++) {
+            int[] from = points[selected[index]];
+            int[] to = points[selected[(index + 1) % selected.length]];
+            line(graphics, centerX, centerY, from, to, 0xFF9CD4E5);
+        }
+    }
+
+    private void line(GuiGraphics graphics, int centerX, int centerY,
+                      int[] from, int[] to, int color) {
+        int x = from[0];
+        int y = from[1];
+        int dx = Math.abs(to[0] - x);
+        int sx = x < to[0] ? 1 : -1;
+        int dy = -Math.abs(to[1] - y);
+        int sy = y < to[1] ? 1 : -1;
+        int error = dx + dy;
+        while (true) {
+            graphics.fill(centerX + x, centerY + y, centerX + x + 1, centerY + y + 1, color);
+            if (x == to[0] && y == to[1]) return;
+            int twiceError = error * 2;
+            if (twiceError >= dy) {
+                error += dy;
+                x += sx;
+            }
+            if (twiceError <= dx) {
+                error += dx;
+                y += sy;
+            }
+        }
     }
 
     private Component label(Object mode) {
         if (mode instanceof PortalPlacementMode placement) {
             return Component.translatable("screen.riftgun.placement_mode."
                 + placement.name().toLowerCase(Locale.ROOT));
+        }
+        if (mode instanceof Direction direction) {
+            return Component.translatable("screen.riftgun.surface_face."
+                + direction.getName());
+        }
+        if (mode instanceof SurfaceFacePreviewState.Choice choice) {
+            if (facePreview.frame() == SurfaceFacePreviewState.Frame.ABSOLUTE
+                || choice == SurfaceFacePreviewState.Choice.UP
+                || choice == SurfaceFacePreviewState.Choice.DOWN) {
+                return label(facePreview.resolve(choice));
+            }
+            return Component.translatable("screen.riftgun.surface_face.relative."
+                + choice.name().toLowerCase(Locale.ROOT));
         }
         PortalPredictionMode prediction = (PortalPredictionMode) mode;
         return Component.translatable("screen.riftgun.prediction."
@@ -351,5 +486,5 @@ public final class ModeRadialScreen extends Screen {
         }
     }
 
-    private enum Page { PLACEMENT, PREDICTION }
+    private enum Page { PLACEMENT, PREDICTION, SURFACE_FACE }
 }

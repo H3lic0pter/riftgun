@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.PortalClientState;
+import dev.riftgun.client.screen.ModeRadialScreen;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.module.PortalGunCapabilities;
@@ -13,6 +14,10 @@ import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
 import dev.riftgun.service.PortalPlacementCapabilities;
 import dev.riftgun.service.RemotePortalPlacementResolver;
+import dev.riftgun.service.SurfaceFacePlacementPlanner;
+import dev.riftgun.service.PortalSupportArea;
+import dev.riftgun.network.SurfaceFaceRequest;
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -38,12 +43,14 @@ public final class PortalPlacementPreview {
             levelIdentity = minecraft.level;
             CACHE.clear();
         }
+        long tick = minecraft.level == null ? 0L : minecraft.level.getGameTime();
+        if (tickSurfaceFace(minecraft, tick)) return;
         PortalPlacementPreviewCache.Input input = input(minecraft);
         if (input == null) {
             CACHE.clear();
             return;
         }
-        long tick = minecraft.level.getGameTime();
+        tick = minecraft.level.getGameTime();
         if (!CACHE.shouldRefresh(tick, input)) return;
         PortalPlacement placement = RemotePortalPlacementResolver.resolve(
             minecraft.level, minecraft.player, input.range(), input.aperture(),
@@ -87,6 +94,52 @@ public final class PortalPlacementPreview {
             minecraft.player.getEyePosition(), minecraft.player.getLookAngle(),
             capabilities.configuredSurfaceRange(), capabilities.aperture(),
             minecraft.player.getXRot(), minecraft.player.getYRot());
+    }
+
+    private static boolean tickSurfaceFace(Minecraft minecraft, long tick) {
+        if (!(minecraft.screen instanceof ModeRadialScreen screen)
+            || !screen.surfaceFacePreviewOpen()) return false;
+        ItemStack gun = heldGun(minecraft);
+        if (gun.isEmpty()) {
+            CACHE.clear();
+            return true;
+        }
+        int smartDistance = PortalClientState.data().settings().smartDistance();
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun, smartDistance, PortalClientState.moduleRules());
+        BlockPos anchor = screen.surfaceAnchor();
+        var face = screen.selectedSurfaceFace();
+        int range = capabilities.configuredSurfaceRange();
+        PortalPlacementPreviewCache.Input input = new PortalPlacementPreviewCache.Input(
+            minecraft.player.getEyePosition(), minecraft.player.getLookAngle(), range,
+            capabilities.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),
+            anchor, face);
+        if (!CACHE.shouldRefresh(tick, input)) return true;
+        Vec3 faceCenter = Vec3.atCenterOf(anchor).add(new Vec3(
+            face.getStepX(), face.getStepY(), face.getStepZ()).scale(0.5));
+        SurfaceFacePlacementPlanner.Result result = SurfaceFacePlacementPlanner.resolve(
+            new SurfaceFaceRequest(anchor, face), capabilities.aperture(),
+            minecraft.player.getYRot(), minecraft.player.getBoundingBox(),
+            new SurfaceFacePlacementPlanner.Probe() {
+                @Override public boolean anchorSolid(BlockPos position) {
+                    return !minecraft.level.getBlockState(position)
+                        .getCollisionShape(minecraft.level, position).isEmpty();
+                }
+                @Override public boolean blocked(PortalPlacement placement) {
+                    return minecraft.level.getBlockCollisions(null,
+                        placement.bounds().deflate(0.002)).iterator().hasNext();
+                }
+                @Override public int backingBlocks(BlockPos position) {
+                    return minecraft.level.getBlockState(position)
+                        .getCollisionShape(minecraft.level, position).isEmpty() ? 0 : 1;
+                }
+                @Override public boolean expandedSupport(PortalPlacement placement) {
+                    return PortalSupportArea.hasFullExpandedSupport(minecraft.level, placement);
+                }
+            }, new SurfaceFacePlacementPlanner.Validation(
+                minecraft.player.getEyePosition().distanceTo(faceCenter), range, true));
+        CACHE.update(tick, input, result.placement());
+        return true;
     }
 
     private static ItemStack heldGun(Minecraft minecraft) {

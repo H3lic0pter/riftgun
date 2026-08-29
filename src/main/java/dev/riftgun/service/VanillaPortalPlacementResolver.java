@@ -10,6 +10,7 @@ import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPairPlacement;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalLifecycle;
+import dev.riftgun.network.SurfaceFaceRequest;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -133,6 +134,50 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     /** Projection axis for the front door: the view heading in the xz plane. */
     private static Vec3 frontProjectionAxis(ServerPlayer player) {
         return Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
+    }
+
+    @Override
+    public PortalPlacementCapture captureSurfaceFace(ServerPlayer player, SurfaceFaceRequest request,
+                                                     PortalPlacementConstraints constraints) {
+        ServerLevel level = serverLevel(player);
+        Vec3 eye = player.getEyePosition();
+        Vec3 faceCenter = Vec3.atCenterOf(request.anchor())
+            .add(new Vec3(request.face().getStepX(), request.face().getStepY(),
+                request.face().getStepZ()).scale(0.5));
+        double rayRange = constraints.maximumSurfaceRange() + 16.0;
+        HitResult raw = level.clip(new ClipContext(eye,
+            eye.add(player.getLookAngle().scale(rayRange)), ClipContext.Block.COLLIDER,
+            ClipContext.Fluid.NONE, player));
+        boolean lineOfSight = raw instanceof BlockHitResult hit
+            && raw.getType() == HitResult.Type.BLOCK
+            && hit.getBlockPos().equals(request.anchor());
+        SurfaceFacePlacementPlanner.Result result = SurfaceFacePlacementPlanner.resolve(
+            request, constraints.aperture(), player.getYRot(), player.getBoundingBox(),
+            new SurfaceFacePlacementPlanner.Probe() {
+                @Override
+                public boolean anchorSolid(BlockPos position) {
+                    return !level.getBlockState(position).getCollisionShape(level, position).isEmpty();
+                }
+
+                @Override
+                public boolean blocked(PortalPlacement placement) {
+                    return VanillaPortalPlacementResolver.blocked(level, placement.bounds());
+                }
+
+                @Override
+                public int backingBlocks(BlockPos position) {
+                    return VanillaPortalPlacementResolver.backingBlock(level, position);
+                }
+
+                @Override
+                public boolean expandedSupport(PortalPlacement placement) {
+                    return PortalSupportArea.hasFullExpandedSupport(level, placement);
+                }
+            }, new SurfaceFacePlacementPlanner.Validation(eye.distanceTo(faceCenter),
+                constraints.maximumSurfaceRange(), lineOfSight));
+        return result.successful()
+            ? PortalPlacementCapture.success(PortalPlacementIntent.surface(result.placement()))
+            : PortalPlacementCapture.failure(result.errorKey());
     }
 
     private static Vec3 horizontalViewAxis(PortalOrientation orientation) {

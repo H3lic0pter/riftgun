@@ -32,6 +32,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent;
 import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
@@ -87,6 +88,14 @@ public final class ClientGameEvents {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendShortcutRequest(PortalAction.TOGGLE_FUNCTION_MODE);
             }
+        }
+    }
+
+    @SubscribeEvent
+    public static void hideSurfacePreviewBlockHighlight(ExtractBlockOutlineRenderStateEvent event) {
+        if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.ModeRadialScreen screen
+            && screen.surfaceFacePreviewOpen()) {
+            event.setCanceled(true);
         }
     }
 

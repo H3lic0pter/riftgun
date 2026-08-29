@@ -26,6 +26,8 @@ import java.util.UUID;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import dev.riftgun.network.SurfaceFaceOpenPlan;
+import dev.riftgun.network.SurfaceFaceRequest;
 
 /** Server-authoritative orchestration for directly placed A/B portal pairs. */
 public final class PortalPairingManager {
@@ -33,6 +35,22 @@ public final class PortalPairingManager {
                                 PortalGunLocator.LocatedGun locatedGun,
                                 PortalPlacementMode requestedMode,
                                 PortalPairingEndpoint endpoint) {
+        return place(player, data, locatedGun, requestedMode, endpoint, null);
+    }
+
+    public static boolean placeSurfaceFace(ServerPlayer player, PortalPlayerData data,
+                                           PortalGunLocator.LocatedGun locatedGun,
+                                           PortalPlacementMode requestedMode,
+                                           PortalPairingEndpoint endpoint,
+                                           SurfaceFaceRequest request) {
+        return place(player, data, locatedGun, requestedMode, endpoint, request);
+    }
+
+    private static boolean place(ServerPlayer player, PortalPlayerData data,
+                                 PortalGunLocator.LocatedGun locatedGun,
+                                 PortalPlacementMode requestedMode,
+                                 PortalPairingEndpoint endpoint,
+                                 SurfaceFaceRequest surfaceFaceRequest) {
         if (!sourceAllowed(player)) return false;
         if (endpoint == PortalPairingEndpoint.NONE || endpoint == PortalPairingEndpoint.ENTITY_TARGET) {
             return fail(player, "message.riftgun.invalid_request");
@@ -57,9 +75,14 @@ public final class PortalPairingManager {
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),
             capabilities.pairingSmartFallback());
-        PortalPlacementCapture capture = RiftRuntime.current().placementResolver()
-            .capture(player, mode, constraints);
+        PortalPlacementCapture capture = surfaceFaceRequest == null
+            ? RiftRuntime.current().placementResolver().capture(player, mode, constraints)
+            : RiftRuntime.current().placementResolver().captureSurfaceFace(
+                player, surfaceFaceRequest, constraints);
         if (!capture.successful()) return fail(player, capture.errorKey());
+        if (surfaceFaceRequest != null) {
+            SurfaceFaceOpenPlan.create(mode, PortalFunctionMode.PORTAL_PAIRING, capture.intent());
+        }
         PortalEntryPlacementResult placement = RiftRuntime.current().placementResolver()
             .resolveEntry(player, capture.intent(), constraints);
         if (!placement.successful()) return fail(player, placement.errorKey());

@@ -31,6 +31,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.RenderHighlightEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
@@ -98,6 +99,14 @@ public final class ClientGameEvents {
         if (minecraft.player == null || minecraft.getConnection() == null) return;
         PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED,
             tag -> tag.putString("PlacementMode", mode.name()));
+    }
+
+    @SubscribeEvent
+    public static void hideSurfacePreviewBlockHighlight(RenderHighlightEvent.Block event) {
+        if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.ModeRadialScreen screen
+            && screen.surfaceFacePreviewOpen()) {
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent

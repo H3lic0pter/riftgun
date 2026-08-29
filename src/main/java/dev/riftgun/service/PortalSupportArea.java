@@ -5,11 +5,11 @@ import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacement;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 
 public final class PortalSupportArea {
-    public static boolean hasFullExpandedSupport(ServerLevel level, PortalPlacement placement) {
+    public static boolean hasFullExpandedSupport(BlockGetter level, PortalPlacement placement) {
         BlockPos origin = placement.anchor();
         Direction face = placement.anchorFace();
         if (origin == null || face == null || !placement.geometry().expanded()) return false;
@@ -32,7 +32,7 @@ public final class PortalSupportArea {
         return false;
     }
 
-    static boolean fullFace(ServerLevel level, BlockPos position, Direction face) {
+    static boolean fullFace(BlockGetter level, BlockPos position, Direction face) {
         return Block.isFaceFull(level.getBlockState(position).getCollisionShape(level, position), face);
     }
 

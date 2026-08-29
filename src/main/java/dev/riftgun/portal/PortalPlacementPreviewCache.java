@@ -1,6 +1,9 @@
 package dev.riftgun.portal;
 
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -45,5 +48,11 @@ public final class PortalPlacementPreviewCache {
     }
 
     public record Input(Vec3 eye, Vec3 look, int range, PortalAperture aperture,
-                        float pitch, float yaw) {}
+                        float pitch, float yaw, @Nullable BlockPos anchor,
+                        @Nullable Direction face) {
+        public Input(Vec3 eye, Vec3 look, int range, PortalAperture aperture,
+                     float pitch, float yaw) {
+            this(eye, look, range, aperture, pitch, yaw, null, null);
+        }
+    }
 }

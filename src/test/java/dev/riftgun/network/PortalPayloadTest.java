@@ -2,9 +2,12 @@ package dev.riftgun.network;
 
 import dev.riftgun.core.nbt.Nbt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.neoforge.network.connection.ConnectionType;
@@ -25,5 +28,28 @@ final class PortalPayloadTest {
         assertEquals(PortalAction.CREATE_COORDINATE.name(), Nbt.getString(decoded.data(), "Action"));
         assertEquals("~12.5", Nbt.getString(decoded.data(), "X"));
         buffer.release();
+    }
+
+    @Test
+    void surfaceFaceRequestRoundTripsAnchorAndFace() {
+        SurfaceFaceRequest request = new SurfaceFaceRequest(
+            new BlockPos(12, 64, -9), Direction.WEST);
+
+        SurfaceFaceRequest decoded = SurfaceFaceRequest.decode(request.encode());
+
+        assertEquals(request, decoded);
+    }
+
+    @Test
+    void surfaceFaceRequestRejectsMissingOrInvalidFields() {
+        assertThrows(PortalRequestException.class,
+            () -> SurfaceFaceRequest.decode(new CompoundTag()));
+        CompoundTag invalid = new CompoundTag();
+        invalid.putInt("AnchorX", 0);
+        invalid.putInt("AnchorY", 64);
+        invalid.putInt("AnchorZ", 0);
+        invalid.putString("Face", "SIDEWAYS");
+        assertThrows(PortalRequestException.class,
+            () -> SurfaceFaceRequest.decode(invalid));
     }
 }

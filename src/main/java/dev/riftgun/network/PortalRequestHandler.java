@@ -15,6 +15,7 @@ import dev.riftgun.service.PortalShortcutGunSelection;
 import dev.riftgun.service.VanillaInventoryPortalGunLocator;
 import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.service.CoordinateSharingService;
+import dev.riftgun.input.SurfaceFacePreviewState;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.relocation.EntityRelocationManager;
 import dev.riftgun.pairing.PortalFunctionMode;
@@ -86,6 +87,15 @@ public final class PortalRequestHandler {
             return;
         }
         if (action == PortalAction.OPEN_MODE_RADIAL) {
+            if (Nbt.getBoolean(request, "SurfaceFacePreview")
+                && !SurfaceFacePreviewState.canOpen(
+                    PortalDataStore.load(player).settings().placementMode())) {
+                PortalNetworking.sendRadialUnavailable(player,
+                    Nbt.getInt(request, "RadialRequestId"));
+                Msg.displayClientMessage(player,
+                    Component.translatable("message.riftgun.surface_mode_required"), true);
+                return;
+            }
             PortalNetworking.sendRadialSnapshot(player, gun,
                 Nbt.getInt(request, "RadialRequestId"));
             return;
@@ -192,6 +202,10 @@ public final class PortalRequestHandler {
                 openSelected(player, data, requestedPlacement(request), gun);
                 yield false;
             }
+            case OPEN_SELECTED_SURFACE_FACE -> {
+                openSelectedSurfaceFace(player, data, gun, SurfaceFaceRequest.decode(request));
+                yield false;
+            }
             case CLEAR_EXTERNAL_DESTINATION -> {
                 ExternalDestinationActions.clearSelection(player.getUUID());
                 yield false;
@@ -268,6 +282,29 @@ public final class PortalRequestHandler {
         }
         PortalOpenCoordinator.request(player, data, selected, false,
             PortalOpenOrigin.ITEM.resolvePlacement(mode), gun);
+    }
+
+    private static void openSelectedSurfaceFace(ServerPlayer player, PortalPlayerData data,
+                                                PortalGunLocator.LocatedGun gun,
+                                                SurfaceFaceRequest request) {
+        PortalPlacementMode mode = data.settings().placementMode();
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun.stack(), data.settings().smartDistance());
+        if (capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
+            PortalPairingManager.placeSurfaceFace(player, data, gun, mode,
+                player.isShiftKeyDown() ? PortalPairingEndpoint.A : PortalPairingEndpoint.B,
+                request);
+            return;
+        }
+        if (PortalPlayerTargetActions.openSelectedSurfaceFace(
+            player, data, mode, gun, request)) return;
+        if (ExternalDestinationActions.openSelectedSurfaceFace(
+            player, data, mode, gun, request)) return;
+        UUID selected = data.selectedDestinationId();
+        if (selected == null) {
+            throw PortalRequestFields.error("message.riftgun.no_destination_selected");
+        }
+        PortalOpenCoordinator.requestSurfaceFace(player, data, selected, mode, gun, request);
     }
 
     private static void sendChangedState(ServerPlayer player, PortalPlayerData data,

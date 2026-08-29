@@ -41,6 +41,20 @@ public final class ExternalDestinationActions {
         PortalGunLocator.LocatedGun gun,
         boolean fromGui
     ) {
+        return openSelected(player, data, mode, gun, fromGui, null);
+    }
+
+    static boolean openSelectedSurfaceFace(
+        ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode,
+        PortalGunLocator.LocatedGun gun, SurfaceFaceRequest request
+    ) {
+        return openSelected(player, data, mode, gun, false, request);
+    }
+
+    private static boolean openSelected(
+        ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode,
+        PortalGunLocator.LocatedGun gun, boolean fromGui, SurfaceFaceRequest surfaceFaceRequest
+    ) {
         ExternalDestinationSelection selection = SESSION.selected(player.getUUID()).orElse(null);
         if (selection == null) return false;
         if (!RiftConfigs.server().mapWaypointIntegration().enabled()
@@ -49,8 +63,10 @@ public final class ExternalDestinationActions {
             throw PortalRequestFields.error("message.riftgun.external_destination_unavailable");
         }
         Destination destination = destination(player, selection);
-        boolean opened = PortalOpenCoordinator.openTransient(player, data, destination, mode, gun,
-            fromGui);
+        boolean opened = surfaceFaceRequest == null
+            ? PortalOpenCoordinator.openTransient(player, data, destination, mode, gun, fromGui)
+            : PortalOpenCoordinator.openTransientSurfaceFace(
+                player, data, destination, mode, gun, surfaceFaceRequest);
         if (opened) {
             PortalNetworking.sendSnapshot(player, false, gun);
             if (fromGui) PortalNetworking.sendPortalOpened(player);
