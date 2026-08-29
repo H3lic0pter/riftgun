@@ -3,7 +3,7 @@ package dev.riftgun.service;
 import dev.riftgun.portal.PortalPlacement;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.CollisionGetter;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -15,7 +15,7 @@ final class PortalFaceExposure {
 
     private PortalFaceExposure() {}
 
-    static boolean hasMinimumExposure(ServerLevel level, PortalPlacement placement,
+    static boolean hasMinimumExposure(CollisionGetter level, PortalPlacement placement,
                                       double minimumExposedFraction) {
         List<AABB> collisionBoxes = new ArrayList<>();
         for (VoxelShape shape : level.getBlockCollisions(null, placement.bounds().inflate(0.002))) {

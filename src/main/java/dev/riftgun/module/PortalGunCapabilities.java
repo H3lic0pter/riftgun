@@ -32,7 +32,11 @@ public record PortalGunCapabilities(
     boolean entityFallGuard
 ) {
     public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance) {
-        PortalModuleRules rules = PortalModuleRules.current();
+        return resolve(gun, legacySmartDistance, PortalModuleRules.current());
+    }
+
+    public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance,
+                                                PortalModuleRules rules) {
         PortalGunModuleSettings settings = PortalGunModuleSettings.get(gun, legacySmartDistance);
         int reservoirCount = PortalGunModules.activeCount(gun, PortalModuleKind.RESERVOIR_EXPANSION, rules);
         int rangeCount = PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules);

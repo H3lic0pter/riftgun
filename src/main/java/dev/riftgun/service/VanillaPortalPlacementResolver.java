@@ -247,39 +247,12 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
     private EntryResult remote(ServerPlayer player, double maximumRange, PortalAperture aperture) {
         ServerLevel level = serverLevel(player);
-        Vec3 eye = player.getEyePosition();
-        Vec3 look = player.getLookAngle().normalize();
-        Vec3 rayEnd = eye.add(look.scale(maximumRange));
-        HitResult hit = level.clip(new ClipContext(
-            eye, rayEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-        double distance = hit.getType() == HitResult.Type.BLOCK
-            ? Math.max(1.5, eye.distanceTo(hit.getLocation()) - 0.18) : maximumRange;
-        PortalOrientation orientation = horizontalOrientation(player.getXRot(),
-            RiftRuntime.current().placementCapabilities().downshotMinimumPitch(player));
-        PortalGeometry standard = orientation == PortalOrientation.VERTICAL
-            ? PortalGeometry.FLOATING_VERTICAL : PortalGeometry.HORIZONTAL;
-        PortalGeometry expanded = orientation == PortalOrientation.VERTICAL
-            ? PortalAperturePolicy.floatingVertical() : PortalAperturePolicy.horizontal();
-        double minimum = RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player);
-        for (double candidateDistance = distance; candidateDistance >= 1.5; candidateDistance -= 0.25) {
-            Vec3 center = eye.add(look.scale(candidateDistance));
-            if (PortalAperturePolicy.expanded(aperture)) {
-                PortalPlacement placement = new PortalPlacement(center, orientation, expanded,
-                    player.getYRot(), null, null);
-                if (!outsideWorld(level, placement.bounds())
-                    && !floatingObstructed(level, placement,
-                        PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)) {
-                    return EntryResult.success(placement);
-                }
-            }
-            PortalPlacement placement = new PortalPlacement(center, orientation, standard,
-                player.getYRot(), null, null);
-            if (!outsideWorld(level, placement.bounds())
-                && !floatingObstructed(level, placement, minimum)) {
-                return EntryResult.success(placement);
-            }
-        }
-        return EntryResult.failure("message.riftgun.remote_obstructed");
+        var capabilities = RiftRuntime.current().placementCapabilities();
+        return RemotePortalPlacementResolver.resolve(level, player, maximumRange, aperture,
+            capabilities.downshotMinimumPitch(player),
+            capabilities.minimumFloatingPortalExposure(player))
+            .map(EntryResult::success)
+            .orElseGet(() -> EntryResult.failure("message.riftgun.remote_obstructed"));
     }
 
     private EntryResult revalidateRemote(ServerPlayer player, PortalPlacement placement,
