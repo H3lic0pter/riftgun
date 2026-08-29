@@ -72,6 +72,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> PAIRING_DORMANT =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> PAIRING_GUN =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Integer> ANCHOR_FACE =
@@ -308,6 +310,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         builder.define(FUEL_ID, "riftgun:dimensional_portal_fluid");
         builder.define(PAIRING_ENDPOINT, PortalPairingEndpoint.NONE.ordinal());
         builder.define(PAIRING_DORMANT, false);
+        builder.define(PAIRING_GUN, "");
         builder.define(ANCHOR, Optional.empty());
         builder.define(ANCHOR_FACE, -1);
     }
@@ -403,11 +406,20 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     private void setPairing(UUID gunId, PortalPairingEndpoint endpoint, boolean dormant) {
         pairingGunId = gunId;
+        entityData.set(PAIRING_GUN, gunId.toString());
         entityData.set(PAIRING_ENDPOINT, endpoint.ordinal());
         entityData.set(PAIRING_DORMANT, dormant);
     }
 
     public @Nullable UUID pairingGunId() {
+        String synced = entityData.get(PAIRING_GUN);
+        if (!synced.isEmpty()) {
+            try {
+                return UUID.fromString(synced);
+            } catch (IllegalArgumentException ignored) {
+                // Fall through to the server-side field for malformed legacy data.
+            }
+        }
         return pairingGunId;
     }
 
@@ -806,7 +818,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         }
         if (tag.contains("LinkedBlockPos")) linkedBlockPos = BlockPos.of(Nbt.getLong(tag, "LinkedBlockPos"));
         if (Nbt.hasUUID(tag, "Owner")) ownerId = Nbt.getUUID(tag, "Owner");
-        if (Nbt.hasUUID(tag, "PairingGun")) pairingGunId = Nbt.getUUID(tag, "PairingGun");
+        if (Nbt.hasUUID(tag, "PairingGun")) {
+            pairingGunId = Nbt.getUUID(tag, "PairingGun");
+            entityData.set(PAIRING_GUN, pairingGunId.toString());
+        }
         entityData.set(PAIRING_ENDPOINT, tag.contains("PairingEndpoint")
             ? Nbt.getInt(tag, "PairingEndpoint") : PortalPairingEndpoint.NONE.ordinal());
         entityData.set(PAIRING_DORMANT, Nbt.getBoolean(tag, "PairingDormant"));

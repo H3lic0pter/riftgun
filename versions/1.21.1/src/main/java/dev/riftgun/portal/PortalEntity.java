@@ -64,6 +64,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> PAIRING_DORMANT =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Optional<UUID>> PAIRING_GUN =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_UUID);
     private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR =
         SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Integer> ANCHOR_FACE =
@@ -307,6 +309,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         builder.define(FUEL_ID, "riftgun:dimensional_portal_fluid");
         builder.define(PAIRING_ENDPOINT, PortalPairingEndpoint.NONE.ordinal());
         builder.define(PAIRING_DORMANT, false);
+        builder.define(PAIRING_GUN, Optional.empty());
         builder.define(ANCHOR, Optional.empty());
         builder.define(ANCHOR_FACE, -1);
         builder.define(LINKED_PORTAL, Optional.empty());
@@ -425,12 +428,13 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     private void setPairing(UUID gunId, PortalPairingEndpoint endpoint, boolean dormant) {
         pairingGunId = gunId;
+        entityData.set(PAIRING_GUN, Optional.of(gunId));
         entityData.set(PAIRING_ENDPOINT, endpoint.ordinal());
         entityData.set(PAIRING_DORMANT, dormant);
     }
 
     public @Nullable UUID pairingGunId() {
-        return pairingGunId;
+        return entityData.get(PAIRING_GUN).orElse(pairingGunId);
     }
 
     public PortalPairingEndpoint pairingEndpoint() {
@@ -826,7 +830,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         entityData.set(LINKED_DIMENSION,
             linkedDimension == null ? "" : linkedDimension.location().toString());
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
-        if (tag.hasUUID("PairingGun")) pairingGunId = tag.getUUID("PairingGun");
+        if (tag.hasUUID("PairingGun")) {
+            pairingGunId = tag.getUUID("PairingGun");
+            entityData.set(PAIRING_GUN, Optional.of(pairingGunId));
+        }
         entityData.set(PAIRING_ENDPOINT, tag.contains("PairingEndpoint")
             ? tag.getInt("PairingEndpoint") : PortalPairingEndpoint.NONE.ordinal());
         entityData.set(PAIRING_DORMANT, tag.getBoolean("PairingDormant"));

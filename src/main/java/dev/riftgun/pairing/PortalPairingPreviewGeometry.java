@@ -16,6 +16,19 @@ public final class PortalPairingPreviewGeometry {
         List<ColoredSegment> segments = new ArrayList<>();
         PortalPlacementPreviewGeometry.corners(placement).forEach(
             segment -> segments.add(new ColoredSegment(segment, FRAME_COLOR)));
+        addGlyph(segments, placement, endpoint);
+        return List.copyOf(segments);
+    }
+
+    /** Entity relocation uses only its fixed-target numeral, without a portal footprint. */
+    public static List<ColoredSegment> entityTargetSegments(PortalPlacement placement) {
+        List<ColoredSegment> segments = new ArrayList<>();
+        addGlyph(segments, placement, PortalPairingEndpoint.A);
+        return List.copyOf(segments);
+    }
+
+    private static void addGlyph(List<ColoredSegment> segments, PortalPlacement placement,
+                                 PortalPairingEndpoint endpoint) {
         Vec3 center = PortalPlacementPreviewGeometry.labelCenter(placement);
         double scale = Math.min(placement.geometry().width(), placement.geometry().height());
         Vec3 right = placement.right().scale(scale * 0.13);
@@ -23,7 +36,6 @@ public final class PortalPairingPreviewGeometry {
         int color = PortalPairingLabels.colorArgb(endpoint);
         if (endpoint == PortalPairingEndpoint.A) addOne(segments, center, right, up, color);
         else if (endpoint == PortalPairingEndpoint.B) addTwo(segments, center, right, up, color);
-        return List.copyOf(segments);
     }
 
     private static void addOne(List<ColoredSegment> segments, Vec3 center,

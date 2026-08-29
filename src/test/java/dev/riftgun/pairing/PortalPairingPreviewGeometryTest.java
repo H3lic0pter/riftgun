@@ -35,6 +35,19 @@ final class PortalPairingPreviewGeometryTest {
                 && inFront(colored.geometry(), placement)));
     }
 
+    @Test
+    void entityTargetContainsOnlyTheBlueFirstNumeral() {
+        PortalPlacement placement = new PortalPlacement(Vec3.ZERO,
+            PortalOrientation.VERTICAL, PortalGeometry.SURFACE_VERTICAL,
+            0.0F, null, null);
+
+        var marker = PortalPairingPreviewGeometry.entityTargetSegments(placement);
+
+        assertEquals(3, marker.size(), "entity target must omit all four frame corners");
+        assertTrue(marker.stream().allMatch(segment ->
+            segment.color() == 0xFF9CC9D8 && inFront(segment.geometry(), placement)));
+    }
+
     private static boolean inFront(PortalPlacementPreviewGeometry.Segment segment,
                                    PortalPlacement placement) {
         return segment.from().subtract(placement.center()).dot(placement.normal()) > 0.0

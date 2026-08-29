@@ -985,7 +985,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
     private static Optional<Entity> findTarget(ServerPlayer owner, PortalGunCapabilities capabilities,
             SpecialEntityTransitPolicy<EntityType<?>> specialEntities) {
-        double range = capabilities.configuredSurfaceRange();
+        double range = capabilities.maximumSurfaceRange();
         Vec3 start = owner.getEyePosition();
         Vec3 end = start.add(owner.getLookAngle().scale(range));
         HitResult block = owner.pick(range, 0.0F, false);

@@ -195,10 +195,10 @@ public final class PortalPairingManager {
         if (!capabilities.entityRelocation()) {
             return fail(player, "message.riftgun.entity_relocation_module_required");
         }
-        // A full-range SMART capture means a valid face is preferred; a ray miss routes to
-        // Fixed REMOTE target. Prediction is deliberately disabled for a fixed target.
+        // Entity relocation always uses the module's full range. A valid face is preferred;
+        // a ray miss routes to Fixed REMOTE. Prediction is disabled for a fixed target.
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
-            capabilities.configuredSurfaceRange(), capabilities.configuredSurfaceRange(),
+            capabilities.maximumSurfaceRange(), capabilities.maximumSurfaceRange(),
             PortalPredictionMode.OFF, capabilities.aperture(),
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),

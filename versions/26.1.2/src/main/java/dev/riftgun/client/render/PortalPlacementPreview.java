@@ -45,6 +45,7 @@ public final class PortalPlacementPreview {
     private static final PortalPlacementPreviewCache CACHE = new PortalPlacementPreviewCache();
     private static PortalPairingPendingEndpoint pendingEndpoint;
     private static List<PortalPairingPreviewGeometry.ColoredSegment> pendingSegments = List.of();
+    private static List<PortalPairingPreviewGeometry.ColoredSegment> entityTargetSegments = List.of();
     private static Object levelIdentity;
 
     public static void tick(Minecraft minecraft) {
@@ -52,8 +53,10 @@ public final class PortalPlacementPreview {
             levelIdentity = minecraft.level;
             CACHE.clear();
             clearPending();
+            clearEntityTarget();
         }
         tickPending(minecraft);
+        tickEntityTarget(minecraft);
         long tick = minecraft.level == null ? 0L : minecraft.level.getGameTime();
         if (tickSurfaceFace(minecraft, tick)) return;
         PortalPlacementPreviewCache.Input input = input(minecraft);
@@ -74,8 +77,9 @@ public final class PortalPlacementPreview {
     public static void extractLevelRenderState(ExtractLevelRenderStateEvent event) {
         List<PortalPlacementPreviewGeometry.Segment> segments = CACHE.segments();
         event.getRenderState().setRenderData(RENDER_STATE_KEY,
-            segments.isEmpty() && pendingSegments.isEmpty() ? null
-                : new RenderState(segments, pendingSegments, event.getCamera().position()));
+            segments.isEmpty() && pendingSegments.isEmpty() && entityTargetSegments.isEmpty() ? null
+                : new RenderState(segments, pendingSegments, entityTargetSegments,
+                    event.getCamera().position()));
     }
 
     @SubscribeEvent
@@ -89,6 +93,8 @@ public final class PortalPlacementPreview {
             (pose, vertices) -> draw(pose, vertices, state.segments()));
         event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
             (pose, vertices) -> drawColored(pose, vertices, state.pendingSegments()));
+        event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
+            (pose, vertices) -> drawColored(pose, vertices, state.entityTargetSegments()));
         poses.popPose();
     }
 
@@ -98,6 +104,10 @@ public final class PortalPlacementPreview {
             return;
         }
         ItemStack gun = heldGun(minecraft);
+        if (!portalEndpointMode(minecraft, gun)) {
+            clearPending();
+            return;
+        }
         PortalPairingPendingEndpoint next = gun.isEmpty()
             ? null : PortalPairingPendingEndpoints.get(gun);
         if (next == null || !minecraft.level.dimension().equals(next.dimension())
@@ -114,6 +124,24 @@ public final class PortalPlacementPreview {
     private static void clearPending() {
         pendingEndpoint = null;
         pendingSegments = List.of();
+    }
+
+    private static void tickEntityTarget(Minecraft minecraft) {
+        entityTargetSegments = PortalPairingEntityTargetPreview.segments(minecraft);
+    }
+
+    private static void clearEntityTarget() {
+        entityTargetSegments = List.of();
+    }
+
+    private static boolean portalEndpointMode(Minecraft minecraft, ItemStack gun) {
+        if (gun.isEmpty()) return false;
+        int smartDistance = PortalClientState.data().settings().smartDistance();
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun, smartDistance, PortalClientState.moduleRules());
+        return capabilities.effectivePlacementMode(
+                PortalClientState.data().settings().placementMode())
+                != PortalPlacementMode.ENTITY_RELOCATION;
     }
 
     private static PortalPlacementPreviewCache.Input input(Minecraft minecraft) {
@@ -218,6 +246,7 @@ public final class PortalPlacementPreview {
     private record RenderState(
         List<PortalPlacementPreviewGeometry.Segment> segments,
         List<PortalPairingPreviewGeometry.ColoredSegment> pendingSegments,
+        List<PortalPairingPreviewGeometry.ColoredSegment> entityTargetSegments,
         Vec3 camera
     ) {}
 
