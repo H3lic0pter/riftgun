@@ -119,12 +119,13 @@ whose modules are unavailable.
 
 ### 5.1 REMOTE
 
-REMOTE projects along the player's view ray using the existing maximum surface
-range. It does not attach to a block and stores no surface anchor.
+REMOTE projects along the player's view ray using the configured Remote Distance,
+clamped by the Portal Gun's maximum range. It does not attach to a block and stores
+no surface anchor.
 
 - If the ray hits a block, begin at a floating point immediately before the hit
   rather than attaching to the face.
-- If the ray misses, begin at maximum range.
+- If the ray misses, begin at the configured Remote Distance.
 - If the candidate is obstructed, search back along the ray toward the player
   for the nearest valid floating placement.
 - If no valid placement exists, fail without changing an existing portal.

@@ -82,8 +82,8 @@ public final class PortalGunModuleContainer extends SimpleContainer {
         if (newActiveRange > oldActiveRange) {
             PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun(), legacySmartDistance);
             int oldMaximum = rules.maximumSurfaceRangeFor(oldActiveRange);
-            if (settings.desiredSurfaceRange() == oldMaximum) {
-                settings.withDesiredSurfaceRange(rules.maximumSurfaceRangeFor(newActiveRange)).save(gun());
+            if (settings.desiredRemoteDistance() == oldMaximum) {
+                settings.withDesiredRemoteDistance(rules.maximumSurfaceRangeFor(newActiveRange)).save(gun());
             }
         }
         if (newReservoirCount < oldReservoirCount) new PortalGunTank(gun()).truncateToNominalCapacity();

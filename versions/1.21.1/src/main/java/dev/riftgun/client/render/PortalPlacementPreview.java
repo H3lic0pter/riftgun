@@ -153,7 +153,7 @@ public final class PortalPlacementPreview {
                 != PortalPlacementMode.REMOTE) return null;
         return new PortalPlacementPreviewCache.Input(
             minecraft.player.getEyePosition(), minecraft.player.getLookAngle(),
-            capabilities.configuredSurfaceRange(), capabilities.aperture(),
+            capabilities.remoteDistance(), capabilities.aperture(),
             minecraft.player.getXRot(), minecraft.player.getYRot());
     }
 
@@ -170,7 +170,7 @@ public final class PortalPlacementPreview {
             gun, smartDistance, PortalClientState.moduleRules());
         BlockPos anchor = screen.surfaceAnchor();
         var face = screen.selectedSurfaceFace();
-        int range = capabilities.configuredSurfaceRange();
+        int range = capabilities.maximumSurfaceRange();
         PortalPlacementPreviewCache.Input input = new PortalPlacementPreviewCache.Input(
             minecraft.player.getEyePosition(), minecraft.player.getLookAngle(), range,
             capabilities.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),

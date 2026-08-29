@@ -64,8 +64,8 @@ public record PortalGunModuleSettings(
         return placement.smartDistance();
     }
 
-    public int desiredSurfaceRange() {
-        return placement.desiredSurfaceRange();
+    public int desiredRemoteDistance() {
+        return placement.desiredRemoteDistance();
     }
 
     public boolean passiveTransitEnabled() {
@@ -106,8 +106,8 @@ public record PortalGunModuleSettings(
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
-    public PortalGunModuleSettings withDesiredSurfaceRange(int value) {
-        return new PortalGunModuleSettings(placement.withDesiredSurfaceRange(value), transit, duration,
+    public PortalGunModuleSettings withDesiredRemoteDistance(int value) {
+        return new PortalGunModuleSettings(placement.withDesiredRemoteDistance(value), transit, duration,
             expandedApertureEnabled, playerTarget, entityRelocation, portalPairing,
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
@@ -178,10 +178,10 @@ public record PortalGunModuleSettings(
             portalPairing, fallGuardEnabled, enabled);
     }
 
-    public record Placement(int smartDistance, int desiredSurfaceRange) {
+    public record Placement(int smartDistance, int desiredRemoteDistance) {
         public Placement {
             smartDistance = Math.max(1, smartDistance);
-            desiredSurfaceRange = Math.max(1, desiredSurfaceRange);
+            desiredRemoteDistance = Math.max(1, desiredRemoteDistance);
         }
 
         static Placement defaults(int legacySmartDistance) {
@@ -190,10 +190,10 @@ public record PortalGunModuleSettings(
         }
 
         Placement withSmartDistance(int value) {
-            return new Placement(value, desiredSurfaceRange);
+            return new Placement(value, desiredRemoteDistance);
         }
 
-        Placement withDesiredSurfaceRange(int value) {
+        Placement withDesiredRemoteDistance(int value) {
             return new Placement(smartDistance, value);
         }
     }

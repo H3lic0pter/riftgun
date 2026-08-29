@@ -13,6 +13,7 @@ final class PortalGunModuleSettingsCodec {
 
     private record Stored(
         int smartDistance,
+        // Legacy field name retained on disk; its value now configures Remote placement distance.
         int desiredSurfaceRange,
         boolean passiveTransitEnabled,
         boolean hostileTransitEnabled,
@@ -74,7 +75,7 @@ final class PortalGunModuleSettingsCodec {
         }
 
         static Stored fromSettings(PortalGunModuleSettings settings) {
-            return new Stored(settings.smartDistance(), settings.desiredSurfaceRange(),
+            return new Stored(settings.smartDistance(), settings.desiredRemoteDistance(),
                 settings.passiveTransitEnabled(), settings.hostileTransitEnabled(),
                 settings.bossTransitEnabled(), settings.projectileTransitEnabled(),
                 settings.portalDurationSeconds(),

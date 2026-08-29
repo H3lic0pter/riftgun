@@ -83,7 +83,8 @@ public final class PortalPairingManager {
             return fail(player, "message.riftgun.pairing_target_required");
         }
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
-            capabilities.smartDistance(), capabilities.configuredSurfaceRange(),
+            capabilities.smartDistance(), capabilities.maximumSurfaceRange(),
+            capabilities.remoteDistance(),
             data.settings().predictionMode(), capabilities.aperture(),
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),
@@ -199,6 +200,7 @@ public final class PortalPairingManager {
         // a ray miss routes to Fixed REMOTE. Prediction is disabled for a fixed target.
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             capabilities.maximumSurfaceRange(), capabilities.maximumSurfaceRange(),
+            capabilities.maximumSurfaceRange(),
             PortalPredictionMode.OFF, capabilities.aperture(),
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),

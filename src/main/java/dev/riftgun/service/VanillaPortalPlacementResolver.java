@@ -36,11 +36,12 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                                           PortalPlacementConstraints constraints) {
         EntryResult entry = switch (mode) {
             case FRONT -> EntryResult.frontRoute();
-            case REMOTE -> remote(player, constraints.maximumSurfaceRange(), constraints.aperture());
+            case REMOTE -> remote(player, constraints.remoteDistance(), constraints.aperture());
             case SURFACE -> surface(player, false, constraints.smartDistance(),
                 constraints.maximumSurfaceRange(), constraints.aperture());
             case SMART -> surface(player, true, constraints.smartDistance(),
-                constraints.maximumSurfaceRange(), constraints.aperture(), constraints.smartFallback());
+                constraints.maximumSurfaceRange(), constraints.remoteDistance(),
+                constraints.aperture(), constraints.smartFallback());
             case ENTITY_RELOCATION -> EntryResult.failure("message.riftgun.entity_relocation_target_required");
         };
         if (entry.front) return PortalPlacementCapture.success(
@@ -56,7 +57,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
                                                    PortalPlacementConstraints constraints) {
         EntryResult entry = switch (intent.route()) {
             case FRONT -> front(player, intent.predictionMode(), constraints);
-            case REMOTE -> revalidateRemote(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
+            case REMOTE -> revalidateRemote(player, intent.attachedPlacement(), constraints.remoteDistance());
             case SURFACE -> revalidateSurface(player, intent.attachedPlacement(), constraints.maximumSurfaceRange());
         };
         return entry.placement == null
@@ -244,12 +245,12 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
     private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance,
                                 double maximumRange, PortalAperture aperture) {
-        return surface(player, smart, requestedSmartDistance, maximumRange, aperture,
+        return surface(player, smart, requestedSmartDistance, maximumRange, maximumRange, aperture,
             dev.riftgun.pairing.PortalFloatingFallback.FRONT);
     }
 
     private EntryResult surface(ServerPlayer player, boolean smart, int requestedSmartDistance,
-                                double maximumRange, PortalAperture aperture,
+                                double maximumRange, double remoteDistance, PortalAperture aperture,
                                 dev.riftgun.pairing.PortalFloatingFallback fallback) {
         double rayRange = smart ? maximumRange : maximumRange + 16.0;
         Vec3 eye = player.getEyePosition();
@@ -261,13 +262,13 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 //?}
             eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         if (!(raw instanceof BlockHitResult hit) || raw.getType() != HitResult.Type.BLOCK) {
-            return smart ? floatingFallback(player, maximumRange, aperture, fallback)
+            return smart ? floatingFallback(player, remoteDistance, aperture, fallback)
                 : EntryResult.failure("message.riftgun.surface_missing");
         }
 
         double distance = eye.distanceTo(hit.getLocation());
         if (smart && distance > Math.min(requestedSmartDistance, maximumRange)) {
-            return floatingFallback(player, maximumRange, aperture, fallback);
+            return floatingFallback(player, remoteDistance, aperture, fallback);
         }
         if (distance > maximumRange) return EntryResult.failure("message.riftgun.surface_out_of_range");
 //? if >=1.21.11 {
@@ -276,7 +277,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         EntryResult attached = attached(player.serverLevel(), player, hit, aperture);
 //?}
         return shouldUseFloatingFallback(smart, attached.placement != null)
-            ? floatingFallback(player, maximumRange, aperture, fallback) : attached;
+            ? floatingFallback(player, remoteDistance, aperture, fallback) : attached;
     }
 
     static boolean shouldUseFloatingFallback(boolean smart, boolean attachedPlacementSuccessful) {

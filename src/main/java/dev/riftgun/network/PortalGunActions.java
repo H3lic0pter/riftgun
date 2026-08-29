@@ -183,10 +183,10 @@ final class PortalGunActions {
                     gun, data.settings().smartDistance()).maximumSurfaceRange();
                 settings = settings.withSmartDistance(Math.clamp(Nbt.getInt(request, "Value"), 1, maximum));
             }
-            case "SurfaceRange" -> {
+            case "RemoteDistance", "SurfaceRange" -> {
                 int maximum = rules.maximumSurfaceRangeFor(
                     PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules));
-                settings = settings.withDesiredSurfaceRange(
+                settings = settings.withDesiredRemoteDistance(
                     Math.clamp(Nbt.getInt(request, "Value"), 1, maximum));
             }
             case "PortalDuration" -> settings = settings.withPortalDurationSeconds(
@@ -292,8 +292,8 @@ final class PortalGunActions {
         return true;
     }
 
-    static boolean adjustSurfaceRange(ServerPlayer player, PortalPlayerData data,
-                                      ItemStack gun, int requestedStep) {
+    static boolean adjustRemoteDistance(ServerPlayer player, PortalPlayerData data,
+                                        ItemStack gun, int requestedStep) {
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun, data.settings().smartDistance());
         if (!capabilities.remote()) {
@@ -303,14 +303,14 @@ final class PortalGunActions {
             || data.settings().placementMode() != PortalPlacementMode.REMOTE) return false;
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(
             gun, data.settings().smartDistance());
-        int current = Math.clamp(settings.desiredSurfaceRange(), 1,
+        int current = Math.clamp(settings.desiredRemoteDistance(), 1,
             capabilities.maximumSurfaceRange());
         int step = Integer.signum(requestedStep);
         int next = Math.clamp(current + step, 1, capabilities.maximumSurfaceRange());
         Msg.displayClientMessage(player, Component.translatable(
-            "message.riftgun.surface_range_adjusted", next, capabilities.maximumSurfaceRange()), true);
+            "message.riftgun.remote_distance_adjusted", next, capabilities.maximumSurfaceRange()), true);
         if (step == 0 || next == current) return false;
-        settings.withDesiredSurfaceRange(next).save(gun);
+        settings.withDesiredRemoteDistance(next).save(gun);
         return true;
     }
 

@@ -28,7 +28,7 @@ public final class PortalGunSnapshot {
         tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid.getFluid()));
         tag.putBoolean("CoordinateOverride", capabilities.coordinateOverride());
         tag.putInt("MaximumSurfaceRange", capabilities.maximumSurfaceRange());
-        tag.putInt("SurfaceRange", capabilities.configuredSurfaceRange());
+        tag.putInt("RemoteDistance", capabilities.remoteDistance());
         tag.putInt("SmartDistance", capabilities.smartDistance());
         tag.putInt("EntityAccess", capabilities.entityAccess().mask());
         tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());

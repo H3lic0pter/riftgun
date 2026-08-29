@@ -240,7 +240,7 @@ public final class PortalRequestHandler {
             case CYCLE_PLACEMENT_MODE -> PortalGunActions.cyclePlacementMode(
                 player, data, gun.stack(), Nbt.getBoolean(request, "Reverse"));
             case SET_RADIAL_MODE -> PortalGunActions.setRadialMode(player, data, gun.stack(), request);
-            case ADJUST_SURFACE_RANGE -> PortalGunActions.adjustSurfaceRange(
+            case ADJUST_SURFACE_RANGE -> PortalGunActions.adjustRemoteDistance(
                 player, data, gun.stack(), Nbt.getInt(request, "Step"));
             case CREATE_GROUP -> PortalDestinationActions.createGroup(data, request);
             case RENAME_GROUP -> PortalDestinationActions.renameGroup(data, request);
@@ -310,7 +310,8 @@ public final class PortalRequestHandler {
                                          PortalGunLocator.LocatedGun gun, PortalAction action,
                                          CompoundTag request) {
         if (action == PortalAction.SET_GUN_MODULE_SETTINGS
-            && Nbt.getString(request, "Setting").equals("SurfaceRange")) {
+            && (Nbt.getString(request, "Setting").equals("RemoteDistance")
+                || Nbt.getString(request, "Setting").equals("SurfaceRange"))) {
             PortalNetworking.sendGunSnapshot(player, data, gun);
             return;
         }

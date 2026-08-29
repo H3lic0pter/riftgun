@@ -104,7 +104,7 @@ final class GuiCaptureHarness {
                 minecraft.getMainRenderTarget(), 1, message -> {});
         }
         if (ticks == 212 && minecraft.screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
-            screen.openSurfaceRangeSettingsForQa();
+            screen.openSmartRangeSettingsForQa();
         }
         if (ticks == 218) {
             Screenshot.grab(minecraft.gameDirectory, screenshotName("riftgun-gui-surface-range"),
@@ -189,7 +189,7 @@ final class GuiCaptureHarness {
         gun.putInt("Capacity", 24000);
         gun.putBoolean("CoordinateOverride", true);
         gun.putInt("MaximumSurfaceRange", 80);
-        gun.putInt("SurfaceRange", 64);
+        gun.putInt("RemoteDistance", 64);
         gun.putInt("SmartDistance", 12);
         gun.putInt("PortalDurationSeconds", 8);
         gun.putInt("MaximumPortalDurationSeconds", 15);

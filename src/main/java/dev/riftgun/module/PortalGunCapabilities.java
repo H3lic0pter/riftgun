@@ -12,7 +12,7 @@ public record PortalGunCapabilities(
     boolean coordinateOverride,
     int nominalCapacity,
     int maximumSurfaceRange,
-    int configuredSurfaceRange,
+    int remoteDistance,
     int smartDistance,
     PortalEntityAccessSnapshot entityAccess,
     int openDurationTicks,
@@ -41,7 +41,7 @@ public record PortalGunCapabilities(
         int reservoirCount = PortalGunModules.activeCount(gun, PortalModuleKind.RESERVOIR_EXPANSION, rules);
         int rangeCount = PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules);
         int maximumRange = rules.maximumSurfaceRangeFor(rangeCount);
-        int configuredRange = configuredSurfaceRange(settings.desiredSurfaceRange(), maximumRange);
+        int remoteDistance = configuredRemoteDistance(settings.desiredRemoteDistance(), maximumRange);
         int durationSeconds = configuredDurationSeconds(gun, settings.portalDurationSeconds(), rules);
         boolean apertureInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
@@ -59,7 +59,7 @@ public record PortalGunCapabilities(
             PortalGunModules.activeCount(gun, PortalModuleKind.COORDINATE_OVERRIDE, rules) > 0,
             rules.capacityFor(reservoirCount),
             maximumRange,
-            configuredRange,
+            remoteDistance,
             configuredSmartDistance(settings.smartDistance(), maximumRange),
             new PortalEntityAccessSnapshot(
                 PortalGunModules.activeCount(gun, PortalModuleKind.PASSIVE_TRANSIT, rules) > 0
@@ -108,7 +108,7 @@ public record PortalGunCapabilities(
             ? PortalPlacementMode.FRONT : preferred;
     }
 
-    static int configuredSurfaceRange(int desiredRange, int maximumRange) {
+    static int configuredRemoteDistance(int desiredRange, int maximumRange) {
         return Mth.clamp(desiredRange, 1, Math.max(1, maximumRange));
     }
 

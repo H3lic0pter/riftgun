@@ -14,14 +14,14 @@ final class PortalGunModuleSettingsTest {
         PortalGunModuleSettings original = PortalGunModuleSettings.defaults(8);
         PortalGunModuleSettings changed = original
             .withSmartDistance(12)
-            .withDesiredSurfaceRange(64)
+            .withDesiredRemoteDistance(64)
             .withTransit(PortalModuleKind.HOSTILE_TRANSIT, false)
             .withTransit(PortalModuleKind.PROJECTILE_TRANSIT, false)
             .withPortalDurationSeconds(12)
             .withExpandedApertureEnabled(false);
 
         assertEquals(12, changed.smartDistance());
-        assertEquals(64, changed.desiredSurfaceRange());
+        assertEquals(64, changed.desiredRemoteDistance());
         assertTrue(changed.passiveTransitEnabled());
         assertFalse(changed.hostileTransitEnabled());
         assertTrue(changed.bossTransitEnabled());
@@ -52,7 +52,7 @@ final class PortalGunModuleSettingsTest {
             dev.riftgun.pairing.PortalPairingSettings.defaults(), true, false);
 
         assertEquals(1, settings.smartDistance());
-        assertEquals(1, settings.desiredSurfaceRange());
+        assertEquals(1, settings.desiredRemoteDistance());
         assertEquals(1, settings.portalDurationSeconds());
         assertEquals(0, settings.transitCooldownTenths());
         assertFalse(settings.fallGuardEntitiesEnabled());
@@ -118,7 +118,7 @@ final class PortalGunModuleSettingsTest {
     @Test
     void groupedModelKeepsTheOriginalFlatCodecSchema() {
         PortalGunModuleSettings settings = PortalGunModuleSettings.defaults(11)
-            .withDesiredSurfaceRange(48)
+            .withDesiredRemoteDistance(48)
             .withTransitCooldownTenths(7);
 
         var encoded = PortalGunModuleSettings.CODEC.encodeStart(JsonOps.INSTANCE, settings)

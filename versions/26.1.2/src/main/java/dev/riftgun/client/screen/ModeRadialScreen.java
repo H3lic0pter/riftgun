@@ -60,7 +60,7 @@ public final class ModeRadialScreen extends Screen {
     private boolean cancelled;
     private boolean suppressFinalRange;
     private PortalFunctionMode functionMode;
-    private int surfaceRange;
+    private int remoteDistance;
     private int maximumSurfaceRange;
     private boolean draggingRange;
     private int lastSentRange;
@@ -92,9 +92,9 @@ public final class ModeRadialScreen extends Screen {
         functionMode = parseFunctionMode(Nbt.getString(PortalClientState.gun(), "FunctionMode"));
         maximumSurfaceRange = Math.max(1,
             Nbt.getInt(PortalClientState.gun(), "MaximumSurfaceRange"));
-        surfaceRange = Math.clamp(Nbt.getInt(PortalClientState.gun(), "SurfaceRange"),
+        remoteDistance = Math.clamp(Nbt.getInt(PortalClientState.gun(), "RemoteDistance"),
             1, maximumSurfaceRange);
-        lastSentRange = surfaceRange;
+        lastSentRange = remoteDistance;
     }
 
     @Override
@@ -330,11 +330,11 @@ public final class ModeRadialScreen extends Screen {
         if (!rangeSliderEnabled()) return;
         int x = rangeSliderX();
         int y = rangeSliderY();
-        centeredText(graphics, Component.translatable("screen.riftgun.mode_radial.surface_range",
-            surfaceRange, maximumSurfaceRange), width / 2, y - 12, PortalTheme.TEXT_MUTED);
+        centeredText(graphics, Component.translatable("screen.riftgun.mode_radial.remote_distance",
+            remoteDistance, maximumSurfaceRange), width / 2, y - 12, PortalTheme.TEXT_MUTED);
         graphics.fill(x, y, x + RANGE_SLIDER_WIDTH, y + 4, RANGE_EMPTY_COLOR);
         int filled = maximumSurfaceRange <= 1 ? RANGE_SLIDER_WIDTH
-            : Math.round((surfaceRange - 1.0F) / (maximumSurfaceRange - 1.0F) * RANGE_SLIDER_WIDTH);
+            : Math.round((remoteDistance - 1.0F) / (maximumSurfaceRange - 1.0F) * RANGE_SLIDER_WIDTH);
         graphics.fill(x, y, x + filled, y + 4, RANGE_FILLED_COLOR);
         int thumbX = Math.clamp(x + filled, x + 1, x + RANGE_SLIDER_WIDTH - 1);
         graphics.fill(thumbX - 1, y - 2, thumbX + 2, y + 6, PortalTheme.TEXT);
@@ -342,18 +342,18 @@ public final class ModeRadialScreen extends Screen {
 
     private void updateRange(double mouseX, boolean forceSend) {
         double fraction = Math.clamp((mouseX - rangeSliderX()) / RANGE_SLIDER_WIDTH, 0.0, 1.0);
-        surfaceRange = 1 + (int) Math.round(fraction * (maximumSurfaceRange - 1));
-        PortalClientState.gun().putInt("SurfaceRange", surfaceRange);
+        remoteDistance = 1 + (int) Math.round(fraction * (maximumSurfaceRange - 1));
+        PortalClientState.gun().putInt("RemoteDistance", remoteDistance);
         sendRange(forceSend);
     }
 
     private void sendRange(boolean force) {
-        if (!ModeRadialInput.ready() || !rangeSliderEnabled() || surfaceRange == lastSentRange) return;
+        if (!ModeRadialInput.ready() || !rangeSliderEnabled() || remoteDistance == lastSentRange) return;
         long now = System.nanoTime();
         if (!force && now - lastRangeSendNanos < RANGE_SEND_INTERVAL_NANOS) return;
-        int value = surfaceRange;
+        int value = remoteDistance;
         PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
-            tag.putString("Setting", "SurfaceRange");
+            tag.putString("Setting", "RemoteDistance");
             tag.putInt("Value", value);
         });
         lastSentRange = value;
@@ -408,6 +408,7 @@ public final class ModeRadialScreen extends Screen {
 
     private boolean rangeSliderEnabled() {
         return page != Page.SURFACE_FACE && remoteInstalled()
+            && PortalClientState.data().settings().placementMode() == PortalPlacementMode.REMOTE
             && Nbt.getBoolean(PortalClientState.gun(), "RemoteRadialSliderEnabled");
     }
 

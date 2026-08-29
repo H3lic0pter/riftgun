@@ -122,12 +122,12 @@
 - 当前已有独立的配对模式、Prediction 和 Placement 层级，“传送枪模式”无法说明这里显示的是 Placement。
 - 建议：`Placement: %s` / `放置模式：%s`
 
-### 14. 合并后的射程页面没有解释两个滑块的边界
+### 14. SMART 与 Remote 距离需要明确分开
 
-- Key：`screen.riftgun.placement_ranges_hint`
-- 现有只说 `Current capability limit: %s blocks`。
-- 页面同时管理 SMART distance 与玩家设定的 maximum surface range；并且 SMART 只受 capability maximum 约束，不受当前 surface range 设定约束。现有说明没有传达这个关键差异。
-- 建议增加第二行说明，或改为：`SMART and Surface ranges are adjusted independently; capability limit: %s blocks.` / `智能射程与最大贴面射程相互独立；能力上限：%s 格。`
+- Keys：`screen.riftgun.smart_range_hint`、`screen.riftgun.remote.settings_hint`
+- 原说明把 SMART distance 与玩家设定的 Remote distance 放在同一页面，容易误解为 Surface 射程设置。
+- SMART Range 页面仅管理智能模式识别贴面的距离；Remote Distance 已移入 Remote Module 页面。两者均受传送枪最大射程约束，但只有 Remote Distance 控制 Remote 放置及 SMART→REMOTE 回退。
+- 当前说明分别使用 `Sets how far SMART mode searches for a surface.` / `设置智能模式识别贴面的距离。` 与 Remote Distance 专用文案，避免再暗示它会改变 Surface 射程。
 
 ### 15. 地图坐标上限说明对象含糊
 
@@ -232,6 +232,6 @@
 
 1. 已补齐 3 个 REMOTE 运行时错误，避免原始 key 暴露给玩家。
 2. 已修正术语、语法、笔误和既有明确要求；Duration Module 名称按要求保留。
-3. 已重写 Pairing/Remote、Placement Ranges、Player Target 三组说明，使其覆盖当前功能边界。
+3. 已重写 Pairing/Remote、SMART Range、Player Target 三组说明，使其覆盖当前功能边界。
 4. 已增加本地化契约测试：双语 key/占位符一致、production message key 存在、分隔符统一。
 5. 已在测试保护下删除 43 个旧 key。

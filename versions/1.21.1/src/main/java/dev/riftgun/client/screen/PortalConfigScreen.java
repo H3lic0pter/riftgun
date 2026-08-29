@@ -130,7 +130,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton closePortalsButton;
     private @Nullable ThemedButton gunSettingsBackButton;
     private @Nullable ThemedButton portalDurationSettingsButton;
-    private @Nullable ThemedButton placementRangesSettingsButton;
+    private @Nullable ThemedButton smartRangeSettingsButton;
     private @Nullable ThemedButton remoteSettingsButton;
     private @Nullable ThemedButton entityTransitSettingsButton;
     private @Nullable ThemedButton apertureSettingsButton;
@@ -237,7 +237,7 @@ public final class PortalConfigScreen extends Screen {
         closePortalsButton = null;
         gunSettingsBackButton = null;
         portalDurationSettingsButton = null;
-        placementRangesSettingsButton = null;
+        smartRangeSettingsButton = null;
         remoteSettingsButton = null;
         entityTransitSettingsButton = null;
         apertureSettingsButton = null;
@@ -498,7 +498,7 @@ public final class PortalConfigScreen extends Screen {
             portalDurationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                 ignored -> openGunSetting(Modal.PORTAL_DURATION_SETTINGS));
             buttonX += 31;
-            placementRangesSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+            smartRangeSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                 ignored -> openGunSetting(Modal.SMART_DISTANCE_SETTINGS));
             buttonX += 31;
             if (remoteInstalled()) {
@@ -552,9 +552,6 @@ public final class PortalConfigScreen extends Screen {
                 "SmartDistance", "screen.riftgun.smart_distance_value", 1,
                 maximum,
                 PortalClientState.gun().getInt("SmartDistance")));
-            addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY + 24, fieldWidth, 18,
-                "SurfaceRange", "screen.riftgun.maximum_surface_range_value", 1, maximum,
-                PortalClientState.gun().getInt("SurfaceRange")));
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
             addEntityTransitButtons(x + 18, gunSettingControlY);
         } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
@@ -593,17 +590,21 @@ public final class PortalConfigScreen extends Screen {
                 pairingFallbackButton.active = remoteInstalled();
             }
         } else if (modal == Modal.REMOTE_SETTINGS) {
-            remoteScrollAdjustmentButton = button(x + 18, gunSettingControlY, fieldWidth, 19,
+            int maximum = Math.max(1, PortalClientState.gun().getInt("MaximumSurfaceRange"));
+            addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
+                "RemoteDistance", "screen.riftgun.remote_distance_value", 1, maximum,
+                PortalClientState.gun().getInt("RemoteDistance")));
+            remoteScrollAdjustmentButton = button(x + 18, gunSettingControlY + 24, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.scroll_adjustment",
                     PortalClientState.gun().getBoolean("RemoteScrollAdjustmentEnabled")),
                 false, ignored -> toggleGunBoolean(
                     "RemoteScrollAdjustment", "RemoteScrollAdjustmentEnabled"));
-            remoteRadialSliderButton = button(x + 18, gunSettingControlY + 24, fieldWidth, 19,
+            remoteRadialSliderButton = button(x + 18, gunSettingControlY + 48, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.radial_slider",
                     PortalClientState.gun().getBoolean("RemoteRadialSliderEnabled")),
                 false, ignored -> toggleGunBoolean(
                     "RemoteRadialSlider", "RemoteRadialSliderEnabled"));
-            remotePlacementPreviewButton = button(x + 18, gunSettingControlY + 48, fieldWidth, 19,
+            remotePlacementPreviewButton = button(x + 18, gunSettingControlY + 72, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.placement_preview",
                     PortalClientState.gun().getBoolean("RemotePlacementPreviewEnabled")),
                 false, ignored -> toggleGunBoolean(
@@ -1588,9 +1589,9 @@ public final class PortalConfigScreen extends Screen {
             drawPortalDurationIcon(graphics, portalDurationSettingsButton.getX() + 7,
                 portalDurationSettingsButton.getY() + 7);
         }
-        if (placementRangesSettingsButton != null) {
-            drawSmartDistanceIcon(graphics, placementRangesSettingsButton.getX() + 7,
-                placementRangesSettingsButton.getY() + 7, PortalTheme.ICE);
+        if (smartRangeSettingsButton != null) {
+            drawSmartDistanceIcon(graphics, smartRangeSettingsButton.getX() + 7,
+                smartRangeSettingsButton.getY() + 7, PortalTheme.ICE);
         }
         if (remoteSettingsButton != null) {
             PortalGuiIcons.drawPlacementModeIcon(graphics, remoteSettingsButton.getX() + 7,
@@ -1631,8 +1632,8 @@ public final class PortalConfigScreen extends Screen {
     private void renderGunSettingTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
         settingTooltip(graphics, portalDurationSettingsButton,
             "screen.riftgun.portal_duration", mouseX, mouseY);
-        settingTooltip(graphics, placementRangesSettingsButton,
-            "screen.riftgun.placement_ranges", mouseX, mouseY);
+        settingTooltip(graphics, smartRangeSettingsButton,
+            "screen.riftgun.smart_range", mouseX, mouseY);
         settingTooltip(graphics, remoteSettingsButton,
             "screen.riftgun.remote.settings", mouseX, mouseY);
         settingTooltip(graphics, entityTransitSettingsButton,
@@ -1943,8 +1944,7 @@ public final class PortalConfigScreen extends Screen {
     private Component gunSettingDescription() {
         return switch (modal) {
             case PORTAL_DURATION_SETTINGS -> Component.translatable("screen.riftgun.portal_timing_hint");
-            case SMART_DISTANCE_SETTINGS -> Component.translatable("screen.riftgun.placement_ranges_hint",
-                Math.max(1, PortalClientState.gun().getInt("MaximumSurfaceRange")));
+            case SMART_DISTANCE_SETTINGS -> Component.translatable("screen.riftgun.smart_range_hint");
             case ENTITY_TRANSIT_SETTINGS -> Component.translatable("screen.riftgun.entity_transit_hint");
             case PLAYER_TARGET_SETTINGS -> Component.translatable("screen.riftgun.player_target_hint");
             case APERTURE_SETTINGS -> Component.translatable("screen.riftgun.aperture_hint");
@@ -3360,7 +3360,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     /** Used only by the opt-in visual QA harness. */
-    public void openSurfaceRangeSettingsForQa() {
+    public void openSmartRangeSettingsForQa() {
         modal = Modal.SMART_DISTANCE_SETTINGS;
         rebuildWidgets();
     }
@@ -3560,7 +3560,7 @@ public final class PortalConfigScreen extends Screen {
                  APERTURE_SETTINGS,
                  PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS,
                  PORTAL_PAIRING_SETTINGS -> 132;
-            case REMOTE_SETTINGS -> 156;
+            case REMOTE_SETTINGS -> 180;
             case ENTITY_TRANSIT_SETTINGS -> 163;
             case VISUAL_SETTINGS -> 132;
             case SWIRL_ANIMATION_SETTINGS -> 210;
@@ -3649,7 +3649,7 @@ public final class PortalConfigScreen extends Screen {
         MAP_INTEGRATION_SETTINGS("screen.riftgun.map_integration_settings", "", false, false),
         GUN_SETTINGS("screen.riftgun.configure_gun", "", false, false),
         PORTAL_DURATION_SETTINGS("screen.riftgun.portal_duration", "", false, false),
-        SMART_DISTANCE_SETTINGS("screen.riftgun.placement_ranges", "", false, false),
+        SMART_DISTANCE_SETTINGS("screen.riftgun.smart_range", "", false, false),
         REMOTE_SETTINGS("screen.riftgun.remote.settings", "", false, false),
         ENTITY_TRANSIT_SETTINGS("screen.riftgun.entity_transit", "", false, false),
         APERTURE_SETTINGS("screen.riftgun.aperture", "", false, false),

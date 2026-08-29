@@ -247,7 +247,8 @@ public final class PortalOpenCoordinator {
             locatedGun.stack(), data.settings().smartDistance());
         mode = gunCapabilities.effectivePlacementMode(mode);
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
-            gunCapabilities.smartDistance(), gunCapabilities.configuredSurfaceRange(),
+            gunCapabilities.smartDistance(), gunCapabilities.maximumSurfaceRange(),
+            gunCapabilities.remoteDistance(),
             data.settings().predictionMode(), gunCapabilities.aperture(),
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),

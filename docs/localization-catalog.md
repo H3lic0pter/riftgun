@@ -144,7 +144,7 @@
 | `item.riftgun.projectile_transit_module` | Projectile Transit Module | 弹射物通行模块 |
 | `item.riftgun.remote_module` | Remote Module | 远端模块 |
 | `item.riftgun.reservoir_expansion_module` | Reservoir Expansion Module | 储液扩展模块 |
-| `item.riftgun.surface_range_amplifier` | Surface Range Amplifier | 贴面射程增幅模块 |
+| `item.riftgun.surface_range_amplifier` | Range Amplifier | 射程增幅模块 |
 | `item.riftgun.unstable_portal_fluid_bucket` | Unstable Portal Fluid Bucket | 不稳定传送液桶 |
 | `item.riftgun.zero_point_fuel_module` | Zero-Point Fuel Module | 零点燃料模块 |
 
@@ -277,7 +277,7 @@
 | `message.riftgun.surface_missing` | No block surface in sight | 视线内没有可用方块表面 |
 | `message.riftgun.surface_obstructed` | There is not enough room on that surface | 该表面没有足够的开门空间 |
 | `message.riftgun.surface_out_of_range` | The targeted surface is out of range | 目标表面超出射程 |
-| `message.riftgun.surface_range_adjusted` | Maximum Surface Range: %s / %s blocks | 最大贴面射程：%s / %s 格 |
+| `message.riftgun.remote_distance_adjusted` | Remote Distance: %s / %s blocks | 远端距离：%s / %s 格 |
 | `message.riftgun.void_portal_too_late` | It is too late to stabilize a portal in the void | 已无法及时在虚空中稳定传送门 |
 
 ## screen
@@ -344,12 +344,12 @@
 | `screen.riftgun.map.journeymap` | JourneyMap Waypoints | JourneyMap 坐标 |
 | `screen.riftgun.map.maximum_waypoints` | Maximum waypoints per map mod: %s | 每个地图模组最多读取 %s 个坐标点 |
 | `screen.riftgun.map.xaero` | Xaero's Minimap Waypoints (Experimental) | Xaero's Minimap 坐标（实验性） |
-| `screen.riftgun.maximum_surface_range_value` | Maximum Surface Range: %s blocks | 最大贴面射程：%s 格 |
+| `screen.riftgun.remote_distance_value` | Remote Distance: %s blocks | 远端距离：%s 格 |
 | `screen.riftgun.mode_radial.coordinate` | Coordinate | 坐标 |
 | `screen.riftgun.mode_radial.pairing` | Pairing | 配对 |
 | `screen.riftgun.mode_radial.placement` | Placement | 放置模式 |
 | `screen.riftgun.mode_radial.prediction` | Prediction | 预测模式 |
-| `screen.riftgun.mode_radial.surface_range` | Surface Range %s / %s | 贴面射程 %s / %s |
+| `screen.riftgun.mode_radial.remote_distance` | Remote Distance %s / %s | 远端距离 %s / %s |
 | `screen.riftgun.mode_radial.switch_placement` | Right-click: Placement modes | 右键：切换至放置模式 |
 | `screen.riftgun.mode_radial.switch_prediction` | Right-click: Prediction modes | 右键：切换至预测模式 |
 | `screen.riftgun.mode_radial.switch_to_coordinate` | Left-click: Switch to Coordinate Mode | 左键：切换到坐标模式 |
@@ -381,8 +381,8 @@
 | `screen.riftgun.placement_mode.remote` | Remote | 远端浮空 |
 | `screen.riftgun.placement_mode.smart` | Smart | 智能 |
 | `screen.riftgun.placement_mode.surface` | Surface | 贴面 |
-| `screen.riftgun.placement_ranges` | Placement Ranges | 放置射程 |
-| `screen.riftgun.placement_ranges_hint` | SMART and Surface ranges are independent - capability limit: %s blocks. | 智能射程与最大贴面射程相互独立 - 能力上限：%s 格。 |
+| `screen.riftgun.smart_range` | SMART Range | 智能射程 |
+| `screen.riftgun.smart_range_hint` | Sets how far SMART mode searches for a surface. | 设置智能模式识别贴面的距离。 |
 | `screen.riftgun.player_exclude_entry_exit` | Player exclusion: Entry & exit | 玩家排除：入口与出口 |
 | `screen.riftgun.player_exclude_exit_only` | Player exclusion: Exit only | 玩家排除：仅出口 |
 | `screen.riftgun.player_exclude_off` | Player exclusion: Off | 玩家排除：关 |
@@ -419,10 +419,10 @@
 | `screen.riftgun.random_rift.description` | Search for a safe unknown destination in this dimension | 在当前维度寻找安全的未知目的地 |
 | `screen.riftgun.random_rift.searching` | Searching for a safe destination... | 正在寻找安全目的地…… |
 | `screen.riftgun.remember_scroll_position` | Remember scroll position | 记住滚动位置 |
-| `screen.riftgun.remote.radial_slider` | Show Range Slider in Radial | 在轮盘中显示射程滑块 |
-| `screen.riftgun.remote.scroll_adjustment` | Shift+Scroll Range Adjustment | Shift+滚轮调整射程 |
+| `screen.riftgun.remote.radial_slider` | Show Remote Distance Slider in Radial | 在轮盘中显示远端距离滑块 |
+| `screen.riftgun.remote.scroll_adjustment` | Shift+Scroll Remote Distance Adjustment | Shift+滚轮调整远端距离 |
 | `screen.riftgun.remote.settings` | Remote Module | 远端模块 |
-| `screen.riftgun.remote.settings_hint` | Configure quick range controls. | 设置快速射程操作。 |
+| `screen.riftgun.remote.settings_hint` | Configure Remote distance, previews, and quick controls. | 设置远端距离、预览与快捷操作。 |
 | `screen.riftgun.rename_group` | Rename group | 重命名分组 |
 | `screen.riftgun.safety` | Safety warnings | 安全提示 |
 | `screen.riftgun.save` | Save | 保存 |
@@ -532,11 +532,11 @@
 | `tooltip.riftgun.module.portal_pairing_module.shift_use` | Shift + Use: Place the other portal | Shift + 互动键：放置另一扇门 |
 | `tooltip.riftgun.module.portal_pairing_module.use` | Use: Place one portal | 互动键：放置一扇门 |
 | `tooltip.riftgun.module.projectile_transit_module.description` | Allows eligible projectiles to cross portals. | 允许符合条件的弹射物穿过传送门。 |
-| `tooltip.riftgun.module.remote_module.description` | Unlocks Remote placement and immediate surface-range adjustment. | 解锁远端放置，并提供即时贴面射程调整。 |
-| `tooltip.riftgun.module.remote_module.scroll_control` | Shift + Scroll: Adjust maximum surface range | Shift + 滚轮：调整最大贴面射程 |
+| `tooltip.riftgun.module.remote_module.description` | Unlocks Remote placement, placement previews, and quick Remote Distance adjustment. | 解锁远端放置、落点预览与远端距离快捷调整。 |
+| `tooltip.riftgun.module.remote_module.scroll_control` | Shift + Scroll: Adjust Remote Distance | Shift + 滚轮：调整远端距离 |
 | `tooltip.riftgun.module.reservoir_expansion_module.description` | Expands the Portal Gun fluid reservoir. | 扩展传送枪的流体储量。 |
 | `tooltip.riftgun.module.reservoir_warning` | Removing this module discards fluid above the reduced capacity | 拔出后会丢弃超过新容量上限的流体 |
-| `tooltip.riftgun.module.surface_range_amplifier.description` | Extends the maximum range of surface placement. | 提升贴面开门的最大射程。 |
+| `tooltip.riftgun.module.surface_range_amplifier.description` | Increases the Portal Gun's maximum range. | 提升传送枪的最大射程。 |
 | `tooltip.riftgun.module.zero_point_fuel_module.description` | Provides unlimited portal fluid. | 提供无限的传送液。 |
 | `tooltip.riftgun.no_target` | No target selected | 未选择目标 |
 | `tooltip.riftgun.privacy_terminal.description` | Opens your Player Portal privacy settings: who may open portals next to you and how other players' portals can pull you. | 配置你的玩家传送隐私：谁可以在你身旁开启传送门，以及他人的传送门能否拉动你。 |

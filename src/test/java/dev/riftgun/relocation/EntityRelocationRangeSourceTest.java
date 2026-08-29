@@ -15,14 +15,14 @@ final class EntityRelocationRangeSourceTest {
         String findTarget = relocation.substring(relocation.indexOf("private static Optional<Entity> findTarget"),
             relocation.indexOf("private static boolean isRelocatableType"));
         assertTrue(findTarget.contains("capabilities.maximumSurfaceRange()"));
-        assertFalse(findTarget.contains("capabilities.configuredSurfaceRange()"));
+        assertFalse(findTarget.contains("capabilities.remoteDistance()"));
 
         String pairing = read("src/main/java/dev/riftgun/pairing/PortalPairingManager.java");
         String fixedTarget = pairing.substring(pairing.indexOf("private static boolean setRelocationTarget"),
             pairing.indexOf("private static PortalRuntimeOptions runtimeOptions"));
         assertTrue(fixedTarget.contains(
             "capabilities.maximumSurfaceRange(), capabilities.maximumSurfaceRange()"));
-        assertFalse(fixedTarget.contains("capabilities.configuredSurfaceRange()"));
+        assertFalse(fixedTarget.contains("capabilities.remoteDistance()"));
     }
 
     private static String read(String path) throws IOException {

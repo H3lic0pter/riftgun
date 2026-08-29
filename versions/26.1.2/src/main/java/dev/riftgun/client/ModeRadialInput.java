@@ -158,7 +158,7 @@ public final class ModeRadialInput {
     }
 
     private static SurfaceFaceRequest captureSurfaceTarget(Minecraft minecraft) {
-        int range = Math.max(1, Nbt.getInt(PortalClientState.gun(), "SurfaceRange"));
+        int range = Math.max(1, Nbt.getInt(PortalClientState.gun(), "MaximumSurfaceRange"));
         Vec3 eye = minecraft.player.getEyePosition();
         HitResult raw = minecraft.level.clip(new ClipContext(eye,
             eye.add(minecraft.player.getLookAngle().scale(range)),

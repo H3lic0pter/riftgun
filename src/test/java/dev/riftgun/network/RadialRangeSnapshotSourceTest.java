@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 final class RadialRangeSnapshotSourceTest {
     @Test
-    void surfaceRangeUsesFocusedGunSnapshotInsteadOfFullPlayerSnapshot() throws Exception {
+    void remoteDistanceUsesFocusedGunSnapshotInsteadOfFullPlayerSnapshot() throws Exception {
         String handler = Files.readString(Path.of(
             "src/main/java/dev/riftgun/network/PortalRequestHandler.java"));
         String networking = Files.readString(Path.of(
