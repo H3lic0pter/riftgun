@@ -6,104 +6,114 @@ import dev.riftgun.client.compat.xaero.XaeroExternalDestinationAdapter;
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.external.ExternalDestinationSelection;
 import dev.riftgun.external.ExternalDestinationSource;
-import dev.riftgun.external.client.ClientExternalDestinationAdapter;
+import dev.riftgun.external.client.ClientExternalDestinationCoordinator;
 import dev.riftgun.external.client.ClientExternalDestinationCatalog;
 import dev.riftgun.external.client.ExternalDestination;
-import dev.riftgun.external.client.ExternalDestinationReadResult;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 
+/** Version adapter for the shared waypoint integration coordinator. */
 public final class ClientMapWaypointIntegration {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ClientExternalDestinationCatalog CATALOG = new ClientExternalDestinationCatalog();
-    private static final Map<ExternalDestinationSource, ClientExternalDestinationAdapter> ADAPTERS =
-        new EnumMap<>(ExternalDestinationSource.class);
-    private static final Set<ExternalDestinationSource> WARNED = EnumSet.noneOf(ExternalDestinationSource.class);
+    private static final ClientExternalDestinationCoordinator COORDINATOR =
+        new ClientExternalDestinationCoordinator();
     private static boolean initialized;
-    private static ExternalDestinationSelection selected;
-    private static boolean journeyMapDirty;
 
-    public static ClientExternalDestinationCatalog catalog() { initialize(); return CATALOG; }
-    public static boolean installed(ExternalDestinationSource source) { return ModList.get().isLoaded(source.modId()); }
-    public static boolean anyInstalled() { return installed(ExternalDestinationSource.JOURNEYMAP) || installed(ExternalDestinationSource.XAERO_MINIMAP); }
+    public static ClientExternalDestinationCatalog catalog() {
+        initialize();
+        return COORDINATOR.catalog();
+    }
+
+    public static boolean installed(ExternalDestinationSource source) {
+        return ModList.get().isLoaded(source.modId());
+    }
+
+    public static boolean anyInstalled() {
+        return installed(ExternalDestinationSource.JOURNEYMAP)
+            || installed(ExternalDestinationSource.XAERO_MINIMAP);
+    }
+
     public static void refresh(Set<String> dimensions, int limit) {
         initialize();
-        for (ExternalDestinationSource source : ExternalDestinationSource.values()) refreshSource(source, dimensions, limit);
-        journeyMapDirty = false;
+        for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
+            refreshSource(source, dimensions, limit);
+        }
+        COORDINATOR.markJourneyMapClean();
     }
+
     public static boolean refreshJourneyMapIfDirty(Set<String> dimensions, int limit) {
-        if (!journeyMapDirty) return false;
+        if (!COORDINATOR.journeyMapDirty()) return false;
         refreshSource(ExternalDestinationSource.JOURNEYMAP, dimensions, limit);
-        journeyMapDirty = false;
+        COORDINATOR.markJourneyMapClean();
         return true;
     }
-    public static boolean journeyMapDirty() { return journeyMapDirty; }
-    public static void markJourneyMapDirty() { journeyMapDirty = true; }
-    public static ExternalDestinationSelection selected() { return selected; }
+
+    public static boolean journeyMapDirty() {
+        return COORDINATOR.journeyMapDirty();
+    }
+
+    public static void markJourneyMapDirty() {
+        COORDINATOR.markJourneyMapDirty();
+    }
+
+    public static ExternalDestinationSelection selected() {
+        return COORDINATOR.selected();
+    }
+
     public static void select(ExternalDestination destination) {
-        selected = new ExternalDestinationSelection(destination.source(), destination.stableId(), destination.name(),
-            destination.dimensionId(), destination.x(), destination.y(), destination.z());
+        COORDINATOR.select(destination);
     }
-    public static void clearSelection() { selected = null; }
+
+    public static void clearSelection() {
+        COORDINATOR.clearSelection();
+    }
+
     public static boolean reconcileSelection() {
-        if (selected == null) return false;
-        boolean present = CATALOG.destinations(selected.source()).stream()
-            .anyMatch(value -> value.stableId().equals(selected.stableId()) && value.selectable());
-        if (present) return false;
-        selected = null;
-        return true;
+        return COORDINATOR.reconcileSelection();
     }
-    public static void clear() { CATALOG.clear(); selected = null; }
+
+    public static void clear() {
+        COORDINATOR.clear();
+    }
+
     public static boolean enabled(ExternalDestinationSource source) {
         return source == ExternalDestinationSource.JOURNEYMAP
             ? ClientConfig.VALUES.journeyMapWaypointsEnabled.get()
             : ClientConfig.VALUES.xaeroWaypointsEnabled.get();
     }
+
     private static void initialize() {
         if (initialized) return;
         initialized = true;
         installAdapter(ExternalDestinationSource.JOURNEYMAP);
         installAdapter(ExternalDestinationSource.XAERO_MINIMAP);
     }
-    private static String installedVersion(ExternalDestinationSource source) {
-        return ModList.get().getModContainerById(source.modId()).map(value -> value.getModInfo().getVersion().toString()).orElse("");
-    }
-    private static void refreshSource(ExternalDestinationSource source, Set<String> dimensions, int limit) {
-        ClientExternalDestinationAdapter adapter = ADAPTERS.get(source);
-        if (adapter == null) return;
-        if (!enabled(source)) { CATALOG.clear(source); if (selected != null && selected.source() == source) selected = null; return; }
-        try {
-            CATALOG.replace(adapter.read(installedVersion(source)), dimensions, limit);
-        }
-        catch (LinkageError | RuntimeException exception) {
-            disable(source, exception);
-        }
-    }
+
     private static void installAdapter(ExternalDestinationSource source) {
         if (!installed(source)) return;
-        try {
-            ClientExternalDestinationAdapter adapter = switch (source) {
-                case JOURNEYMAP -> new JourneyMapExternalDestinationAdapter();
-                case XAERO_MINIMAP -> new XaeroExternalDestinationAdapter();
-            };
-            ADAPTERS.put(source, adapter);
-        } catch (LinkageError | RuntimeException exception) {
-            disable(source, exception);
-        }
+        COORDINATOR.install(source, () -> switch (source) {
+            case JOURNEYMAP -> new JourneyMapExternalDestinationAdapter();
+            case XAERO_MINIMAP -> new XaeroExternalDestinationAdapter();
+        }, installedVersion(source), ClientMapWaypointIntegration::reportFailure);
     }
-    private static void disable(ExternalDestinationSource source, Throwable exception) {
-        ADAPTERS.remove(source);
-        CATALOG.replace(new ExternalDestinationReadResult(source,
-            ExternalDestinationReadResult.Status.INCOMPATIBLE, installedVersion(source),
-            exception.getClass().getSimpleName(), List.of()), Set.of(), 1);
-        if (WARNED.add(source)) LOGGER.warn(
-            "RiftGun disabled {} waypoint integration for version {}",
+
+    private static void refreshSource(ExternalDestinationSource source,
+                                      Set<String> dimensions, int limit) {
+        COORDINATOR.refresh(source, enabled(source), installedVersion(source),
+            dimensions, limit, ClientMapWaypointIntegration::reportFailure);
+    }
+
+    private static String installedVersion(ExternalDestinationSource source) {
+        return ModList.get().getModContainerById(source.modId())
+            .map(value -> value.getModInfo().getVersion().toString())
+            .orElse("");
+    }
+
+    private static void reportFailure(ExternalDestinationSource source, Throwable exception) {
+        LOGGER.warn("RiftGun disabled {} waypoint integration for version {}",
             source.displayName(), installedVersion(source), exception);
     }
+
     private ClientMapWaypointIntegration() {}
 }

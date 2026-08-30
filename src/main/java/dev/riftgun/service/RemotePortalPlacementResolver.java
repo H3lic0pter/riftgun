@@ -12,6 +12,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.BlockPos;
 
 import java.util.Optional;
+import java.util.function.DoubleFunction;
 import org.jetbrains.annotations.Nullable;
 
 /** Shared REMOTE candidate search used by server authority and client-only previews. */
@@ -19,7 +20,6 @@ public final class RemotePortalPlacementResolver {
     private static final double MINIMUM_DISTANCE = 1.5;
     private static final double HIT_OFFSET = 0.18;
     private static final double SEARCH_STEP = 0.25;
-    private static final int MAXIMUM_COARSE_CANDIDATES = 1024;
     private static final double CLIENT_CHUNK_PROBE_STEP = 8.0;
 
     public static Optional<PortalPlacement> resolve(Level level, Entity viewer,
@@ -55,31 +55,20 @@ public final class RemotePortalPlacementResolver {
         double distance = hit.getType() == HitResult.Type.BLOCK
             ? Math.max(MINIMUM_DISTANCE, eye.distanceTo(hit.getLocation()) - HIT_OFFSET)
             : boundedRange;
-        double coarseStep = coarseStep(distance);
-
-        for (double candidateDistance = distance;
-             candidateDistance >= MINIMUM_DISTANCE;
-             candidateDistance -= coarseStep) {
-            Optional<PortalPlacement> candidate = availableAt(level, eye, look, candidateDistance,
-                orientation, standard, expanded, aperture, viewer.getYRot(), minimumExposure);
-            if (candidate.isEmpty()) continue;
-            if (coarseStep <= SEARCH_STEP || candidateDistance == distance) return candidate;
-
-            // Recover the furthest valid quarter-block position inside the coarse interval.
-            double upper = Math.min(distance, candidateDistance + coarseStep);
-            for (double refined = upper; refined > candidateDistance; refined -= SEARCH_STEP) {
-                Optional<PortalPlacement> precise = availableAt(level, eye, look, refined,
-                    orientation, standard, expanded, aperture, viewer.getYRot(), minimumExposure);
-                if (precise.isPresent()) return precise;
-            }
-            return candidate;
-        }
-        return Optional.empty();
+        return findFurthest(distance, candidateDistance -> availableAt(
+            level, eye, look, candidateDistance, orientation, standard, expanded, aperture,
+            viewer.getYRot(), minimumExposure));
     }
 
-    static double coarseStep(double distance) {
-        return Math.max(SEARCH_STEP,
-            Math.max(0.0, distance - MINIMUM_DISTANCE) / MAXIMUM_COARSE_CANDIDATES);
+    static <T> Optional<T> findFurthest(double distance,
+                                        DoubleFunction<Optional<T>> candidateAt) {
+        for (double candidateDistance = distance;
+             candidateDistance >= MINIMUM_DISTANCE;
+             candidateDistance -= SEARCH_STEP) {
+            Optional<T> candidate = candidateAt.apply(candidateDistance);
+            if (candidate.isPresent()) return candidate;
+        }
+        return Optional.empty();
     }
 
     private static Optional<PortalPlacement> availableAt(

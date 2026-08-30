@@ -17,8 +17,8 @@ final class PlacementModeSpriteAlignmentTest {
 
         assertEquals(16, image.getWidth());
         assertEquals(16, image.getHeight());
-        // The redrawn sprite is intentionally optically asymmetric; callers that need
-        // correction own it locally instead of shifting every use of the shared artwork.
+        // The artwork remains intentionally asymmetric inside its standard 16 x 16 canvas.
+        // Every caller renders that canvas at the same centered coordinates.
         assertEquals(new Bounds(0, 3, 13, 12), bounds,
             "REMOTE icon alpha bounds changed; re-check every GUI placement before accepting it");
     }

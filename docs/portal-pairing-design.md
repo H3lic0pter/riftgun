@@ -101,12 +101,14 @@ SURFACE while the other is REMOTE, for example.
 
 ### 4.3 Radial selector
 
-- Hover continues to select a concrete mode; releasing the radial key commits.
-- Right-click continues to switch between placement and prediction pages.
-- Left-click toggles Coordinate Travel / Portal Pairing locally.
-- Releasing the radial key atomically submits the previewed function and
-  concrete/prediction selection.
-- Escape cancels every previewed change.
+- The normal mode radial keeps hover selection and radial-key-release commit.
+- Right-click switches the page or face reference frame offered by the current radial.
+- Left-click toggles Coordinate Travel / Portal Pairing on the normal mode radial.
+- The Precision Placement radial previews the hovered face/orientation and opens
+  the selected portal on left-click without immediately closing the screen.
+- Releasing the Precision Placement key only closes the screen; releasing before
+  a click therefore cancels without opening a portal.
+- Escape cancels every uncommitted previewed change.
 - Coordinate Travel uses the current cyan-blue theme.
 - Portal Pairing uses an amber-orange theme.
 - The center label, selected text, ring highlight, and center icon all change,
@@ -155,8 +157,15 @@ resolved fallback is FRONT.
 
 ### 5.4 Client preview
 
-Portal Pairing does not render a projected placement preview. The server
-recomputes and validates every placement when the operation is requested.
+Portal Pairing uses the same client placement preview as Coordinate Travel for
+SURFACE, FRONT, REMOTE, and SMART routing. Shared placement planners keep the
+preview geometry consistent with the server request, while the server still
+recomputes and validates every placement authoritatively.
+
+A pending A/B endpoint is stored on the gun and rendered only when its dimension
+and chunk are available to the client. Normal portal endpoints use a white portal
+frame plus a colored Roman numeral: blue `I` for A and orange `II` for B. A fixed
+Entity Relocation target renders only its centered numeral, without a portal frame.
 
 ## 6. Pair state and lifecycle
 
@@ -170,9 +179,9 @@ the old route. Merely changing a mode does not close world state.
 
 | Current state | Successful operation | Result |
 | --- | --- | --- |
-| No endpoints | Place A or B | One dormant endpoint; start full portal duration |
-| One endpoint | Place other endpoint | Charge once; connect; reset both to full duration |
-| One endpoint | Replace same endpoint | Replace it; restart its full duration; no charge |
+| No endpoints | Place A or B | Store one lightweight pending endpoint; start full portal duration |
+| One pending endpoint | Place other endpoint | Charge once; connect; reset both to full duration |
+| One pending endpoint | Replace same endpoint | Replace it; restart its full duration; no charge |
 | Connected | Replace A or B | Charge once; atomically replace pair; reset both |
 | Any | Close portals | Close endpoints and fixed relocation target |
 | Any | Open a coordinate pair | Close pairing state after the coordinate open succeeds |
@@ -234,10 +243,13 @@ pair closes the target.
 ## 8. Visual and feedback rules
 
 - Portal-fluid color keeps its current meaning and never identifies A versus B.
-- Dormant endpoints and fixed entity targets are not rendered and cannot be
-  traversed.
+- Pending endpoints and fixed entity targets are lightweight ItemStack state;
+  they do not create a PortalEntity, chunk ticket, or transit participant.
+- Pending A/B endpoints render a white frame and their colored `I`/`II` marker;
+  fixed entity targets render only the centered marker.
 - Connected endpoints use the selected normal portal visual and animation.
-- A and B have no marker, label, color, geometry, or animation difference.
+- A and B retain identical portal geometry and behavior; their preview numerals
+  use the pairing module's blue/orange identity colors.
 - Other players and entities traverse connected paired portals under exactly
   the normal portal transit/module rules.
 - Player camera rotation is independent from momentum transformation. If either
@@ -300,9 +312,10 @@ screens and entity ticks:
    versus fixed pairing target.
 6. Client presentation: snapshots, input, radial theme, and GUI page.
 
-The existing `PortalEntity` transit implementation remains the single normal
-portal runtime. A dormant endpoint should be a deliberate lifecycle/link state,
-not a parallel entity type unless version constraints make that unavoidable.
+The existing `PortalEntity` transit implementation remains the single connected
+portal runtime. An incomplete pair is serialized as lightweight, owner- and
+gun-bound ItemStack state and becomes PortalEntity state only after both endpoints
+have been validated and connected.
 
 ## 12. Verification
 
@@ -329,10 +342,11 @@ not a parallel entity type unless version constraints make that unavoidable.
 ### Client and integration coverage
 
 - Module-gated concrete modes, cycle order, GUI entry, and key requests.
-- Radial left/right/Escape/release semantics and atomic commit payload.
+- Normal radial release-commit semantics and Precision radial left-click action,
+  release-to-close, right-click switching, and Escape cancellation.
 - Cyan/amber text and ring themes at normal and maximum GUI scale.
-- No projected placement particles or endpoint helper rendering.
-- Dormant and fixed-target entities are invisible; connected A/B visuals match.
+- Shared projected placement geometry and loaded-chunk visibility checks.
+- Pending A/B frame plus colored `I`/`II` markers; marker-only fixed entity target.
 - Function icons remain centered at normal and maximum GUI scale.
 - 1.21.1 radial render-order regression remains covered so background blur
   cannot blur the wheel itself.

@@ -12,8 +12,8 @@ public record RemoteSettings(
     boolean placementPreviewEnabled
 ) {
     public static final Codec<RemoteSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-        Codec.STRING.optionalFieldOf("coordinate_smart_fallback", PortalFloatingFallback.FRONT.name())
-            .xmap(RemoteSettings::parseFallback, PortalFloatingFallback::name)
+        PortalFloatingFallback.CODEC.optionalFieldOf(
+                "coordinate_smart_fallback", PortalFloatingFallback.FRONT)
             .forGetter(RemoteSettings::coordinateSmartFallback),
         Codec.BOOL.optionalFieldOf("scroll_adjustment_enabled", true)
             .forGetter(RemoteSettings::scrollAdjustmentEnabled),
@@ -51,11 +51,4 @@ public record RemoteSettings(
             radialSliderEnabled, value);
     }
 
-    private static PortalFloatingFallback parseFallback(String value) {
-        try {
-            return PortalFloatingFallback.valueOf(value);
-        } catch (IllegalArgumentException ignored) {
-            return PortalFloatingFallback.FRONT;
-        }
-    }
 }

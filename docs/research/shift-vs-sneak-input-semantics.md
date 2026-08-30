@@ -14,7 +14,7 @@
 因此，文案应按实际判定命名：
 
 - 使用 `Screen.hasShiftDown()` 的 tooltip 展开、GUI 多选等 modifier：写 `Shift`。
-- 使用 `player.isShiftKeyDown()` 或 `options.keyShift.isDown()` 的世界交互、滚轮组合、按住并释放：写“潜行键”/`Sneak`，最好显示动态绑定键名。
+- 使用 `player.isShiftKeyDown()` 或 `options.keyShift.isDown()` 的世界交互与滚轮组合：写“潜行键”/`Sneak`，最好显示动态绑定键名。
 - 服务端不能调用 `Screen.hasShiftDown()`；应使用服务端已同步的 `ServerPlayer.isShiftKeyDown()`，或把一次性 modifier 明确放进经过校验的客户端 packet。
 
 ## Minecraft / NeoForge
@@ -71,7 +71,7 @@ Mekanism 的 GUI 文案经常直接写 `Shift`，且对应实现确实是 `Scree
 | 场景 | 当前判定 | 正确语义 | 建议文案 |
 | --- | --- | --- | --- |
 | 模块详情展开 | `Screen.hasShiftDown()` / `Minecraft.hasShiftDown()` | 物理 Shift modifier | 保留“按住 Shift 查看模块详情” / `Hold Shift ...` |
-| 配对模式选择 A/B（按住并释放） | 客户端及服务端 `player.isShiftKeyDown()` | 潜行 binding | “潜行键+松开” / `Sneak + Release`；优先动态显示绑定键 |
+| 配对模式选择 A/B（左键触发） | 客户端及服务端 `player.isShiftKeyDown()` | 潜行 binding | 动态显示当前潜行键，并组合“潜行键+左键” |
 | Pairing module 快速放置 A 门 | `player.isShiftKeyDown()` | 潜行 binding | “潜行键 + 互动键” / `Sneak + Use`；优先动态显示绑定键 |
 | Remote distance 滚轮 | `player.isShiftKeyDown()`、`options.keyShift.isDown()` | 潜行 binding | “潜行键 + 滚轮” / `Sneak + Scroll`；优先动态显示绑定键 |
 | GUI 搜索框反向 Tab 等 | `Screen.hasShiftDown()` | 物理 Shift modifier | 若需要提示，应写 Shift |

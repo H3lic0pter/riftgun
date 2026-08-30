@@ -37,7 +37,7 @@ import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import java.util.List;
 import java.util.Objects;
 
-/** Client-only MVP for the REMOTE placement footprint. */
+/** Client renderer for live placement previews and lightweight pairing markers. */
 @EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
 public final class PortalPlacementPreview {
     private static final int COLOR = 0xD9F0F0F0;

@@ -5,6 +5,7 @@ import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.pairing.PortalPairingSettings;
 import dev.riftgun.relocation.EntityRelocationSettings;
+import dev.riftgun.remote.RemoteSettings;
 import net.minecraft.world.item.ItemStack;
 
 /** Persisted per-gun preferences grouped by the capability that owns each value. */
@@ -15,6 +16,7 @@ public record PortalGunModuleSettings(
     boolean expandedApertureEnabled,
     PlayerTarget playerTarget,
     EntityRelocationSettings entityRelocation,
+    RemoteSettings remote,
     PortalPairingSettings portalPairing,
     boolean fallGuardEnabled,
     boolean fallGuardEntitiesEnabled
@@ -34,6 +36,7 @@ public record PortalGunModuleSettings(
         if (duration == null) duration = Duration.defaults();
         if (playerTarget == null) playerTarget = PlayerTarget.defaults();
         if (entityRelocation == null) entityRelocation = EntityRelocationSettings.defaults();
+        if (remote == null) remote = RemoteSettings.defaults();
         if (portalPairing == null) portalPairing = PortalPairingSettings.defaults();
     }
 
@@ -41,7 +44,7 @@ public record PortalGunModuleSettings(
         return new PortalGunModuleSettings(
             Placement.defaults(legacySmartDistance), Transit.defaults(), Duration.defaults(),
             true, PlayerTarget.defaults(), EntityRelocationSettings.defaults(),
-            PortalPairingSettings.defaults(), true, false);
+            RemoteSettings.defaults(), PortalPairingSettings.defaults(), true, false);
     }
 
     public static PortalGunModuleSettings get(ItemStack gun, int legacySmartDistance) {
@@ -102,13 +105,13 @@ public record PortalGunModuleSettings(
 
     public PortalGunModuleSettings withSmartDistance(int value) {
         return new PortalGunModuleSettings(placement.withSmartDistance(value), transit, duration,
-            expandedApertureEnabled, playerTarget, entityRelocation, portalPairing,
+            expandedApertureEnabled, playerTarget, entityRelocation, remote, portalPairing,
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withDesiredRemoteDistance(int value) {
         return new PortalGunModuleSettings(placement.withDesiredRemoteDistance(value), transit, duration,
-            expandedApertureEnabled, playerTarget, entityRelocation, portalPairing,
+            expandedApertureEnabled, playerTarget, entityRelocation, remote, portalPairing,
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
@@ -116,66 +119,72 @@ public record PortalGunModuleSettings(
         Transit updated = transit.withEnabled(kind, enabled);
         return updated == transit ? this : new PortalGunModuleSettings(
             placement, updated, duration, expandedApertureEnabled, playerTarget, entityRelocation,
-            portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
+            remote, portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withTransitCooldownTenths(int value) {
         return new PortalGunModuleSettings(placement, transit.withCooldown(value), duration,
-            expandedApertureEnabled, playerTarget, entityRelocation, portalPairing,
+            expandedApertureEnabled, playerTarget, entityRelocation, remote, portalPairing,
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withPortalDurationSeconds(int value) {
         return new PortalGunModuleSettings(placement, transit, new Duration(value),
-            expandedApertureEnabled, playerTarget, entityRelocation, portalPairing,
+            expandedApertureEnabled, playerTarget, entityRelocation, remote, portalPairing,
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withExpandedApertureEnabled(boolean enabled) {
         return new PortalGunModuleSettings(
             placement, transit, duration, enabled, playerTarget, entityRelocation,
-            portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
+            remote, portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withPlayerTargetEnabled(boolean enabled) {
         return new PortalGunModuleSettings(placement, transit, duration,
             expandedApertureEnabled, playerTarget.withEnabled(enabled), entityRelocation,
-            portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
+            remote, portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withPlayerExcludeMode(PlayerExcludeMode mode) {
         return new PortalGunModuleSettings(placement, transit, duration,
             expandedApertureEnabled, playerTarget.withExcludeMode(mode), entityRelocation,
-            portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
+            remote, portalPairing, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withEntityRelocationEnabled(boolean enabled) {
         return new PortalGunModuleSettings(placement, transit, duration, expandedApertureEnabled,
-            playerTarget, entityRelocation.withEnabled(enabled), portalPairing,
+            playerTarget, entityRelocation.withEnabled(enabled), remote, portalPairing,
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withEntityRelocationSmartRouting(boolean enabled) {
         return new PortalGunModuleSettings(placement, transit, duration, expandedApertureEnabled,
-            playerTarget, entityRelocation.withSmartRouting(enabled), portalPairing,
+            playerTarget, entityRelocation.withSmartRouting(enabled), remote, portalPairing,
+            fallGuardEnabled, fallGuardEntitiesEnabled);
+    }
+
+    public PortalGunModuleSettings withRemote(RemoteSettings value) {
+        return new PortalGunModuleSettings(placement, transit, duration, expandedApertureEnabled,
+            playerTarget, entityRelocation, value, portalPairing,
             fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withPortalPairing(PortalPairingSettings value) {
         return new PortalGunModuleSettings(placement, transit, duration, expandedApertureEnabled,
-            playerTarget, entityRelocation, value, fallGuardEnabled, fallGuardEntitiesEnabled);
+            playerTarget, entityRelocation, remote, value, fallGuardEnabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withFallGuardEnabled(boolean enabled) {
         return new PortalGunModuleSettings(
             placement, transit, duration, expandedApertureEnabled, playerTarget, entityRelocation,
-            portalPairing, enabled, fallGuardEntitiesEnabled);
+            remote, portalPairing, enabled, fallGuardEntitiesEnabled);
     }
 
     public PortalGunModuleSettings withFallGuardEntitiesEnabled(boolean enabled) {
         return new PortalGunModuleSettings(
             placement, transit, duration, expandedApertureEnabled, playerTarget, entityRelocation,
-            portalPairing, fallGuardEnabled, enabled);
+            remote, portalPairing, fallGuardEnabled, enabled);
     }
 
     public record Placement(int smartDistance, int desiredRemoteDistance) {

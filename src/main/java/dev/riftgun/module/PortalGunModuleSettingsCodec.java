@@ -1,10 +1,15 @@
 package dev.riftgun.module;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.pairing.PortalFloatingFallback;
+import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingSettings;
+import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.relocation.EntityRelocationSettings;
+import dev.riftgun.remote.RemoteSettings;
+import java.util.Optional;
 
 /** Compatibility adapter between the grouped domain model and the original flat data schema. */
 final class PortalGunModuleSettingsCodec {
@@ -26,7 +31,7 @@ final class PortalGunModuleSettingsCodec {
         int transitCooldownTenths,
         boolean entityRelocationEnabled,
         boolean entityRelocationSmartRouting,
-        PortalPairingSettings portalPairing,
+        PairingAndRemote pairingAndRemote,
         boolean fallGuardEnabled,
         boolean fallGuardEntitiesEnabled
     ) {
@@ -55,8 +60,7 @@ final class PortalGunModuleSettingsCodec {
                 .forGetter(Stored::entityRelocationEnabled),
             Codec.BOOL.optionalFieldOf("entity_relocation_smart_routing", false)
                 .forGetter(Stored::entityRelocationSmartRouting),
-            PortalPairingSettings.CODEC.optionalFieldOf("portal_pairing", PortalPairingSettings.defaults())
-                .forGetter(Stored::portalPairing),
+            PairingAndRemote.MAP_CODEC.forGetter(Stored::pairingAndRemote),
             Codec.BOOL.optionalFieldOf("fall_guard_enabled", true).forGetter(Stored::fallGuardEnabled),
             Codec.BOOL.optionalFieldOf("fall_guard_entities_enabled", false)
                 .forGetter(Stored::fallGuardEntitiesEnabled)
@@ -70,7 +74,7 @@ final class PortalGunModuleSettingsCodec {
                 new PortalGunModuleSettings.Duration(portalDurationSeconds), expandedApertureEnabled,
                 new PortalGunModuleSettings.PlayerTarget(playerTargetEnabled, playerExcludeMode),
                 new EntityRelocationSettings(entityRelocationEnabled, entityRelocationSmartRouting),
-                portalPairing,
+                pairingAndRemote.remoteSettings(), pairingAndRemote.pairing().settings(),
                 fallGuardEnabled, fallGuardEntitiesEnabled);
         }
 
@@ -82,9 +86,69 @@ final class PortalGunModuleSettingsCodec {
                 settings.expandedApertureEnabled(), settings.playerTargetEnabled(),
                 settings.playerExcludeMode(), settings.transitCooldownTenths(),
                 settings.entityRelocation().enabled(), settings.entityRelocation().smartRouting(),
-                settings.portalPairing(),
+                PairingAndRemote.fromSettings(settings),
                 settings.fallGuardEnabled(), settings.fallGuardEntitiesEnabled());
         }
+    }
+
+    /** Reads Remote's old nested location while writing it at module-settings scope. */
+    private record PairingAndRemote(PersistedPairing pairing, Optional<RemoteSettings> remote) {
+        private static final MapCodec<PairingAndRemote> MAP_CODEC = RecordCodecBuilder.mapCodec(instance ->
+            instance.group(
+                PersistedPairing.CODEC.optionalFieldOf("portal_pairing", PersistedPairing.defaults())
+                    .forGetter(PairingAndRemote::pairing),
+                RemoteSettings.CODEC.optionalFieldOf("remote").forGetter(PairingAndRemote::remote)
+            ).apply(instance, PairingAndRemote::new));
+
+        RemoteSettings remoteSettings() {
+            return remote.orElseGet(pairing::legacyRemote);
+        }
+
+        static PairingAndRemote fromSettings(PortalGunModuleSettings settings) {
+            return new PairingAndRemote(PersistedPairing.fromSettings(settings.portalPairing()),
+                Optional.of(settings.remote()));
+        }
+    }
+
+    /** Current Pairing fields plus Remote's legacy nested read path. */
+    private record PersistedPairing(
+        PortalFunctionMode functionMode,
+        PortalFloatingFallback coordinateSmartFallback,
+        PortalFloatingFallback pairingSmartFallback,
+        Optional<RemoteSettings> remote
+    ) {
+        private static final Codec<PersistedPairing> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            PortalFunctionMode.CODEC.optionalFieldOf(
+                    "function_mode", PortalFunctionMode.COORDINATE_TRAVEL)
+                .forGetter(PersistedPairing::functionMode),
+            PortalFloatingFallback.CODEC.optionalFieldOf(
+                    "coordinate_smart_fallback", PortalFloatingFallback.FRONT)
+                .forGetter(PersistedPairing::coordinateSmartFallback),
+            PortalFloatingFallback.CODEC.optionalFieldOf(
+                    "pairing_smart_fallback", PortalFloatingFallback.FRONT)
+                .forGetter(PersistedPairing::pairingSmartFallback),
+            RemoteSettings.CODEC.optionalFieldOf("remote").forGetter(PersistedPairing::remote)
+        ).apply(instance, PersistedPairing::new));
+
+        static PersistedPairing defaults() {
+            return new PersistedPairing(PortalFunctionMode.COORDINATE_TRAVEL,
+                PortalFloatingFallback.FRONT, PortalFloatingFallback.FRONT, Optional.empty());
+        }
+
+        PortalPairingSettings settings() {
+            return new PortalPairingSettings(functionMode, pairingSmartFallback);
+        }
+
+        RemoteSettings legacyRemote() {
+            return remote.orElseGet(() -> new RemoteSettings(
+                coordinateSmartFallback, true, true, true));
+        }
+
+        static PersistedPairing fromSettings(PortalPairingSettings settings) {
+            return new PersistedPairing(settings.functionMode(), PortalFloatingFallback.FRONT,
+                settings.smartFallback(), Optional.empty());
+        }
+
     }
 
     private PortalGunModuleSettingsCodec() {}

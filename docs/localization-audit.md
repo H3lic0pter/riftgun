@@ -2,11 +2,11 @@
 
 审计对象：`src/main/resources/assets/riftgun/lang/en_us.json` 与 `zh_cn.json`，并对照共享代码及两个版本节点中的实际调用。
 
-修复后的 471 项双语对照见 [localization-catalog.md](localization-catalog.md)。
+当前双语对照见 [localization-catalog.md](localization-catalog.md)。
 
 ## 修复结果
 
-- `en_us`：471 项；`zh_cn`：471 项。
+- `en_us`：506 项；`zh_cn`：506 项。
 - 两边 key 集一致，没有单边缺项。
 - 所有格式占位符一致，没有 `%s`、`%1$s` 等参数错位。
 - P0 的 3 个 REMOTE 错误 key 已补齐；测试中的虚构 key 已改为生产代码实际使用的 key。

@@ -122,7 +122,7 @@ public final class ClientGameEvents {
                 PortalClientState.moduleRules()) <= 0
             || !PortalGunModuleSettings.get(gun,
                 PortalClientState.data().settings().smartDistance())
-                .portalPairing().remote().scrollAdjustmentEnabled()) return;
+                .remote().scrollAdjustmentEnabled()) return;
         event.setCanceled(true);
         PortalNetworking.sendShortcutRequest(PortalAction.ADJUST_SURFACE_RANGE,
             tag -> tag.putInt("Step", event.getScrollDeltaY() > 0.0 ? 1 : -1));

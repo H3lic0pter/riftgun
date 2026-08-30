@@ -35,8 +35,9 @@ final class PortalGuiIcons {
             ? PortalGuiSprites.DRAIN_OFF : PortalGuiSprites.DRAIN_ON, x - 3, y - 3);
     }
 
-    /** x/y are the intended top-left of the visible artwork; offsets compensate PNG padding. */
-    static void drawPlacementModeIcon(GuiGraphics graphics, int x, int y, PortalPlacementMode mode) {
+    /** Accepts the 16 x 16 sprite canvas top-left; all placement icons share this contract. */
+    static void drawPlacementModeIcon(GuiGraphics graphics, int spriteX, int spriteY,
+                                      PortalPlacementMode mode) {
         ResourceLocation sprite = switch (mode) {
             case SMART -> PortalGuiSprites.PLACEMENT_SMART;
             case FRONT -> PortalGuiSprites.PLACEMENT_FRONT;
@@ -44,8 +45,7 @@ final class PortalGuiIcons {
             case SURFACE -> PortalGuiSprites.PLACEMENT_SURFACE;
             case ENTITY_RELOCATION -> PortalGuiSprites.PLACEMENT_ENTITY_RELOCATION;
         };
-        PortalGuiSprites.draw(graphics, sprite,
-            x - (mode == PortalPlacementMode.FRONT ? 4 : 3), y - 3);
+        PortalGuiSprites.draw(graphics, sprite, spriteX, spriteY);
     }
 
     static void drawPredictionIcon(GuiGraphics graphics, int x, int y, int color) {

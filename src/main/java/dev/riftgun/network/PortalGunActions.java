@@ -261,30 +261,27 @@ final class PortalGunActions {
                         "message.riftgun.remote_module_required");
                 }
                 var pairing = settings.portalPairing();
-                settings = settings.withPortalPairing(setting.equals("CoordinateSmartFallback")
-                    ? pairing.withCoordinateSmartFallback(fallback)
-                    : pairing.withPairingSmartFallback(fallback));
+                settings = setting.equals("CoordinateSmartFallback")
+                    ? settings.withRemote(settings.remote().withCoordinateSmartFallback(fallback))
+                    : settings.withPortalPairing(pairing.withSmartFallback(fallback));
             }
             case "RemoteScrollAdjustment" -> {
                 requireModule(gun, PortalModuleKind.REMOTE, rules,
                     "message.riftgun.remote_module_required");
-                settings = settings.withPortalPairing(settings.portalPairing().withRemote(
-                    settings.portalPairing().remote().withScrollAdjustmentEnabled(
-                        Nbt.getBoolean(request, "Enabled"))));
+                settings = settings.withRemote(settings.remote().withScrollAdjustmentEnabled(
+                    Nbt.getBoolean(request, "Enabled")));
             }
             case "RemoteRadialSlider" -> {
                 requireModule(gun, PortalModuleKind.REMOTE, rules,
                     "message.riftgun.remote_module_required");
-                settings = settings.withPortalPairing(settings.portalPairing().withRemote(
-                    settings.portalPairing().remote().withRadialSliderEnabled(
-                        Nbt.getBoolean(request, "Enabled"))));
+                settings = settings.withRemote(settings.remote().withRadialSliderEnabled(
+                    Nbt.getBoolean(request, "Enabled")));
             }
             case "RemotePlacementPreview" -> {
                 requireModule(gun, PortalModuleKind.REMOTE, rules,
                     "message.riftgun.remote_module_required");
-                settings = settings.withPortalPairing(settings.portalPairing().withRemote(
-                    settings.portalPairing().remote().withPlacementPreviewEnabled(
-                        Nbt.getBoolean(request, "Enabled"))));
+                settings = settings.withRemote(settings.remote().withPlacementPreviewEnabled(
+                    Nbt.getBoolean(request, "Enabled")));
             }
             default -> throw PortalRequestFields.error("message.riftgun.invalid_request");
         }

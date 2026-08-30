@@ -49,6 +49,7 @@ final class PortalGunModuleSettingsTest {
             new PortalGunModuleSettings.Duration(0), true,
             new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT),
             dev.riftgun.relocation.EntityRelocationSettings.defaults(),
+            dev.riftgun.remote.RemoteSettings.defaults(),
             dev.riftgun.pairing.PortalPairingSettings.defaults(), true, false);
 
         assertEquals(1, settings.smartDistance());
@@ -59,7 +60,7 @@ final class PortalGunModuleSettingsTest {
         assertEquals(dev.riftgun.pairing.PortalFunctionMode.COORDINATE_TRAVEL,
             settings.portalPairing().functionMode());
         assertEquals(dev.riftgun.pairing.PortalFloatingFallback.FRONT,
-            settings.portalPairing().coordinateSmartFallback());
+            settings.remote().coordinateSmartFallback());
         assertTrue(settings.projectileTransitEnabled());
     }
 
@@ -82,9 +83,9 @@ final class PortalGunModuleSettingsTest {
         assertTrue(settings.expandedApertureEnabled());
         assertEquals(PlayerExcludeMode.ENTRY_AND_EXIT, settings.playerExcludeMode());
         assertFalse(settings.fallGuardEntitiesEnabled());
-        assertTrue(settings.portalPairing().remote().scrollAdjustmentEnabled());
-        assertTrue(settings.portalPairing().remote().radialSliderEnabled());
-        assertTrue(settings.portalPairing().remote().placementPreviewEnabled());
+        assertTrue(settings.remote().scrollAdjustmentEnabled());
+        assertTrue(settings.remote().radialSliderEnabled());
+        assertTrue(settings.remote().placementPreviewEnabled());
     }
 
     @Test
@@ -101,10 +102,10 @@ final class PortalGunModuleSettingsTest {
             .result().orElseThrow();
 
         assertEquals(dev.riftgun.pairing.PortalFloatingFallback.REMOTE,
-            settings.portalPairing().remote().coordinateSmartFallback());
-        assertTrue(settings.portalPairing().remote().scrollAdjustmentEnabled());
-        assertTrue(settings.portalPairing().remote().radialSliderEnabled());
-        assertTrue(settings.portalPairing().remote().placementPreviewEnabled());
+            settings.remote().coordinateSmartFallback());
+        assertTrue(settings.remote().scrollAdjustmentEnabled());
+        assertTrue(settings.remote().radialSliderEnabled());
+        assertTrue(settings.remote().placementPreviewEnabled());
     }
 
     @Test
@@ -129,5 +130,8 @@ final class PortalGunModuleSettingsTest {
         assertFalse(encoded.has("projectile_transit_enabled"));
         assertFalse(encoded.has("placement"));
         assertFalse(encoded.has("transit"));
+        assertTrue(encoded.has("remote"));
+        assertFalse(encoded.has("portal_pairing")
+            && encoded.getAsJsonObject("portal_pairing").has("remote"));
     }
 }

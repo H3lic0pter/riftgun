@@ -1,6 +1,6 @@
 # RiftGun 双语文本完整目录
 
-来源：`en_us.json` 与 `zh_cn.json`。共 471 项；按 key 排序，不省略任何本地化文本。
+来源：`en_us.json` 与 `zh_cn.json`。共 506 项；按 key 排序，不省略任何本地化文本。
 
 ## block
 
@@ -140,6 +140,7 @@
 | `item.riftgun.portal_fluid_bucket` | Portal Fluid Bucket | 传送液桶 |
 | `item.riftgun.portal_gun` | Portal Gun | 传送枪 |
 | `item.riftgun.portal_pairing_module` | Portal Pairing Module | 传送门配对模块 |
+| `item.riftgun.precision_placement_module` | Precision Placement Module | 精确放置模块 |
 | `item.riftgun.privacy_terminal` | Privacy Terminal | 隐私终端 |
 | `item.riftgun.projectile_transit_module` | Projectile Transit Module | 弹射物通行模块 |
 | `item.riftgun.remote_module` | Remote Module | 远端模块 |
@@ -174,6 +175,7 @@
 | `key.riftgun.force_surface` | Quick Action: Open Portal on a Surface | 快捷操作：在方块表面开启传送门 |
 | `key.riftgun.open_config` | Open portal configuration | 打开传送配置 |
 | `key.riftgun.open_mode_radial` | Open Portal Gun Radial | 打开传送枪轮盘 |
+| `key.riftgun.open_surface_face_preview` | Precision Placement | 精确放置 |
 | `key.riftgun.portal_pairing_operation` | Quick Action: Place Paired Portal | 快捷操作：放置配对传送门 |
 | `key.riftgun.toggle_function_mode` | Toggle Portal Gun Pairing Mode | 切换传送枪配对模式 |
 
@@ -240,9 +242,10 @@
 | `message.riftgun.name_too_long` | Name is too long | 名称过长 |
 | `message.riftgun.no_destination_selected` | No portal destination selected | 尚未选择传送目的地 |
 | `message.riftgun.no_portal_gun` | No Portal Gun in your inventory | 背包中没有传送枪 |
-| `message.riftgun.pairing_connected` | Portal pair connected | 传送门已连接 |
+| `message.riftgun.pairing_connected` | Portals connected | 传送门已连接 |
 | `message.riftgun.pairing_mode` | Pairing Mode: %s | 配对模式：%s |
 | `message.riftgun.pairing_mode_required` | Turn on Pairing Mode first | 请先开启配对模式 |
+| `message.riftgun.pairing_pending_replaced` | Previous endpoint became invalid; this location is now pending portal %s | 原端点已失效，已将本次位置设为新的待配对端点 %s |
 | `message.riftgun.pairing_relocation_target_set` | Fixed Entity Relocation target set | 已设置固定实体转移目标点 |
 | `message.riftgun.pairing_target_required` | Set a fixed relocation target first | 请先设置固定实体转移目标点 |
 | `message.riftgun.placement_mode` | Portal placement mode: %s | 传送门放置模式：%s |
@@ -252,7 +255,9 @@
 | `message.riftgun.portal_gun_must_be_held` | Hold a Portal Gun to configure | 需要持有传送枪 |
 | `message.riftgun.portal_open_failed` | The portal could not be opened; no fuel was consumed | 传送门开启失败，未消耗燃料 |
 | `message.riftgun.portal_pairing_module_required` | An enabled Portal Pairing Module is required | 需要已启用的传送门配对模块 |
-| `message.riftgun.portals_closed` | Portals closed | 传送门已关闭 |
+| `message.riftgun.portals_closed` | Portals cleared | 传送门已清除 |
+| `message.riftgun.precision_placement_module_required` | An enabled Precision Placement Module is required | 需要已启用的精确放置模块 |
+| `message.riftgun.precision_placement_unavailable` | Precision placement is unavailable in the current mode | 当前模式无法使用精确放置 |
 | `message.riftgun.privacy_respond_denied` | Only players can respond to portal requests | 只有玩家可以回应传送门请求 |
 | `message.riftgun.random_rift_canceled` | Random rift search canceled | 随机裂隙搜索已取消 |
 | `message.riftgun.random_rift_cooldown` | Random rift cooling down: %s seconds | 随机裂隙冷却中：%s 秒 |
@@ -261,6 +266,7 @@
 | `message.riftgun.random_rift_search_started` | Searching for an unknown safe destination... | 正在寻找未知的安全目的地…… |
 | `message.riftgun.random_rift_searching` | A random rift search is already running | 随机裂隙仍在搜索中 |
 | `message.riftgun.random_rift_too_many_searches` | Too many random rifts are searching; try again later | 当前正在搜索的随机裂隙过多，请稍后再试 |
+| `message.riftgun.remote_distance_adjusted` | Remote Distance: %s / %s blocks | 远端距离：%s / %s 格 |
 | `message.riftgun.remote_invalid` | Remote portal placement is no longer valid | 远端传送门位置已失效 |
 | `message.riftgun.remote_module_required` | An enabled Remote Module is required | 需要已启用的远端模块 |
 | `message.riftgun.remote_obstructed` | Not enough room to open a remote portal | 远端位置空间不足，无法开启传送门 |
@@ -275,9 +281,9 @@
 | `message.riftgun.spectator_denied` | Spectators cannot use the Portal Gun | 旁观者无法使用传送枪 |
 | `message.riftgun.surface_invalid` | That block face cannot anchor a portal | 该方块表面无法锚定传送门 |
 | `message.riftgun.surface_missing` | No block surface in sight | 视线内没有可用方块表面 |
+| `message.riftgun.surface_mode_required` | Surface face selection requires Surface or Smart mode | 贴面方向选择仅能在贴面或智能模式下使用 |
 | `message.riftgun.surface_obstructed` | There is not enough room on that surface | 该表面没有足够的开门空间 |
 | `message.riftgun.surface_out_of_range` | The targeted surface is out of range | 目标表面超出射程 |
-| `message.riftgun.remote_distance_adjusted` | Remote Distance: %s / %s blocks | 远端距离：%s / %s 格 |
 | `message.riftgun.void_portal_too_late` | It is too late to stabilize a portal in the void | 已无法及时在虚空中稳定传送门 |
 
 ## screen
@@ -344,13 +350,21 @@
 | `screen.riftgun.map.journeymap` | JourneyMap Waypoints | JourneyMap 坐标 |
 | `screen.riftgun.map.maximum_waypoints` | Maximum waypoints per map mod: %s | 每个地图模组最多读取 %s 个坐标点 |
 | `screen.riftgun.map.xaero` | Xaero's Minimap Waypoints (Experimental) | Xaero's Minimap 坐标（实验性） |
-| `screen.riftgun.remote_distance_value` | Remote Distance: %s blocks | 远端距离：%s 格 |
 | `screen.riftgun.mode_radial.coordinate` | Coordinate | 坐标 |
 | `screen.riftgun.mode_radial.pairing` | Pairing | 配对 |
 | `screen.riftgun.mode_radial.placement` | Placement | 放置模式 |
+| `screen.riftgun.mode_radial.portal_direction` | Portal Direction | 传送门方向 |
+| `screen.riftgun.mode_radial.portal_position` | Portal Position | 传送门位置 |
 | `screen.riftgun.mode_radial.prediction` | Prediction | 预测模式 |
-| `screen.riftgun.mode_radial.surface_face_release_pair_a` | %s+Release: Place portal %s | %s+松开：放置 %s 门 |
 | `screen.riftgun.mode_radial.remote_distance` | Remote Distance %s / %s | 远端距离 %s / %s |
+| `screen.riftgun.mode_radial.surface_face` | Surface Face | 贴面方向 |
+| `screen.riftgun.mode_radial.surface_face_absolute` | Absolute | 绝对面 |
+| `screen.riftgun.mode_radial.surface_face_action` | Left-click: Open portal | 左键：开启传送门 |
+| `screen.riftgun.mode_radial.surface_face_action_pair_a` | %s+Left-click: Place portal %s | %s+左键：放置 %s 门 |
+| `screen.riftgun.mode_radial.surface_face_action_pair_b` | Left-click: Place portal %s | 左键：放置 %s 门 |
+| `screen.riftgun.mode_radial.surface_face_relative` | Relative | 相对面 |
+| `screen.riftgun.mode_radial.surface_face_switch_absolute` | Right-click: Absolute | 右键：切换至绝对面 |
+| `screen.riftgun.mode_radial.surface_face_switch_relative` | Right-click: Relative | 右键：切换至相对面 |
 | `screen.riftgun.mode_radial.switch_placement` | Right-click: Placement modes | 右键：切换至放置模式 |
 | `screen.riftgun.mode_radial.switch_prediction` | Right-click: Prediction modes | 右键：切换至预测模式 |
 | `screen.riftgun.mode_radial.switch_to_coordinate` | Left-click: Switch to Coordinate Mode | 左键：切换到坐标模式 |
@@ -382,8 +396,6 @@
 | `screen.riftgun.placement_mode.remote` | Remote | 远端浮空 |
 | `screen.riftgun.placement_mode.smart` | Smart | 智能 |
 | `screen.riftgun.placement_mode.surface` | Surface | 贴面 |
-| `screen.riftgun.smart_range` | SMART Range | 智能射程 |
-| `screen.riftgun.smart_range_hint` | Sets how far SMART mode searches for a surface. | 设置智能模式识别贴面的距离。 |
 | `screen.riftgun.player_exclude_entry_exit` | Player exclusion: Entry & exit | 玩家排除：入口与出口 |
 | `screen.riftgun.player_exclude_exit_only` | Player exclusion: Exit only | 玩家排除：仅出口 |
 | `screen.riftgun.player_exclude_off` | Player exclusion: Off | 玩家排除：关 |
@@ -394,6 +406,12 @@
 | `screen.riftgun.portal_duration` | Portal Timing | 传送时长与冷却 |
 | `screen.riftgun.portal_duration_permanent` | Open duration: Permanent | 开放时间：永久 |
 | `screen.riftgun.portal_duration_value` | Open duration: %s s | 开放时间：%s 秒 |
+| `screen.riftgun.portal_orientation.front.bottom` | Above head | 在头上 |
+| `screen.riftgun.portal_orientation.front.top` | Below feet | 在脚下 |
+| `screen.riftgun.portal_orientation.front.vertical` | In front | 在面前 |
+| `screen.riftgun.portal_orientation.remote.bottom` | Bottom-up | 自底向上 |
+| `screen.riftgun.portal_orientation.remote.top` | Top-down | 自上到下 |
+| `screen.riftgun.portal_orientation.remote.vertical` | Sideways | 侧向 |
 | `screen.riftgun.portal_timing_hint` | Open duration and transit cooldown | 持续时长与传送冷却 |
 | `screen.riftgun.portal_visual` | Portal visual type | 传送门视觉类型 |
 | `screen.riftgun.prediction.off` | Off | 关闭 |
@@ -420,6 +438,8 @@
 | `screen.riftgun.random_rift.description` | Search for a safe unknown destination in this dimension | 在当前维度寻找安全的未知目的地 |
 | `screen.riftgun.random_rift.searching` | Searching for a safe destination... | 正在寻找安全目的地…… |
 | `screen.riftgun.remember_scroll_position` | Remember scroll position | 记住滚动位置 |
+| `screen.riftgun.remote_distance_value` | Remote Distance: %s blocks | 远端距离：%s 格 |
+| `screen.riftgun.remote.placement_preview` | Remote Placement Preview | 远端放置预览 |
 | `screen.riftgun.remote.radial_slider` | Show Remote Distance Slider in Radial | 在轮盘中显示远端距离滑块 |
 | `screen.riftgun.remote.scroll_adjustment` | %s+Scroll Remote Distance Adjustment | %s+滚轮调整远端距离 |
 | `screen.riftgun.remote.settings` | Remote Module | 远端模块 |
@@ -436,6 +456,8 @@
 | `screen.riftgun.share_item` | Create coordinate note | 生成坐标纸条 |
 | `screen.riftgun.shared_group` | Shared | 分享 |
 | `screen.riftgun.smart_distance_value` | SMART Range: %s blocks | 智能射程：%s 格 |
+| `screen.riftgun.smart_range` | SMART Range | 智能射程 |
+| `screen.riftgun.smart_range_hint` | Sets how far SMART mode searches for a surface. | 设置智能模式识别贴面的距离。 |
 | `screen.riftgun.sort` | Sort | 排序 |
 | `screen.riftgun.sort_mode` | Sort: %s | 排序：%s |
 | `screen.riftgun.sort.created` | Created | 创建 |
@@ -452,6 +474,16 @@
 | `screen.riftgun.sound.splash` | Splash Sound | 水花音效 |
 | `screen.riftgun.sound.transit` | Transit Sound | 穿过音效 |
 | `screen.riftgun.sounds` | UI sounds | UI 音效 |
+| `screen.riftgun.surface_face.down` | Bottom | 底面 |
+| `screen.riftgun.surface_face.east` | East | 东面 |
+| `screen.riftgun.surface_face.north` | North | 北面 |
+| `screen.riftgun.surface_face.relative.back` | Back | 后面 |
+| `screen.riftgun.surface_face.relative.front` | Front | 前面 |
+| `screen.riftgun.surface_face.relative.left` | Left | 左面 |
+| `screen.riftgun.surface_face.relative.right` | Right | 右面 |
+| `screen.riftgun.surface_face.south` | South | 南面 |
+| `screen.riftgun.surface_face.up` | Top | 顶面 |
+| `screen.riftgun.surface_face.west` | West | 西面 |
 | `screen.riftgun.transit_cooldown_value` | Transit cooldown: %s s | 传送冷却：%s 秒 |
 | `screen.riftgun.unsaved` | Discard changes? | 放弃修改？ |
 | `screen.riftgun.unsaved_body` | There are unsaved changes. Discard them? | 尚有未保存的修改。确定放弃吗？ |
@@ -529,9 +561,11 @@
 | `tooltip.riftgun.module.passive_transit_module.description` | Allows passive and friendly mobs to use portals when enabled. | 启用时允许温和与友好生物穿过传送门。 |
 | `tooltip.riftgun.module.player_target_module.description` | Adds online players as portal targets and lets you open a portal next to them. | 将在线玩家加入目标点列表，并可在目标玩家附近开启传送门。 |
 | `tooltip.riftgun.module.portal_aperture_module.description` | Opens a larger portal whenever placement conditions allow. | 在放置条件允许时开启更大的传送门。 |
-| `tooltip.riftgun.module.portal_pairing_module.description` | Allows direct placement of both ends of a linked portal pair. | 允许直接放置一对相互连接的传送门。 |
+| `tooltip.riftgun.module.portal_pairing_module.description` | Allows direct placement of linked portal %s and %s. | 允许直接放置相互连接的 %s 与 %s 传送门。 |
 | `tooltip.riftgun.module.portal_pairing_module.sneak_use` | %s+Use: Place portal %s | %s+互动键：放置 %s 门 |
-| `tooltip.riftgun.module.portal_pairing_module.use` | Use: Place one portal | 互动键：放置一扇门 |
+| `tooltip.riftgun.module.portal_pairing_module.use` | Use: Place portal %s | 互动键：放置 %s 门 |
+| `tooltip.riftgun.module.precision_placement_module.description` | Unlocks precision placement: choose an exact surface face or floating portal orientation. | 解锁精确放置：选择指定贴面，或选择浮空传送门的朝向。 |
+| `tooltip.riftgun.module.precision_placement_module.use` | %s: Open precision placement | %s：打开精确放置轮盘 |
 | `tooltip.riftgun.module.projectile_transit_module.description` | Allows eligible projectiles to cross portals. | 允许符合条件的弹射物穿过传送门。 |
 | `tooltip.riftgun.module.remote_module.description` | Unlocks Remote placement, placement previews, and quick Remote Distance adjustment. | 解锁远端放置、落点预览与远端距离快捷调整。 |
 | `tooltip.riftgun.module.remote_module.scroll_control` | %s+Scroll: Adjust Remote Distance | %s+滚轮：调整远端距离 |

@@ -82,13 +82,13 @@ public record PortalGunCapabilities(
             relocationInstalled && settings.entityRelocation().enabled()
                 && settings.entityRelocation().smartRouting(),
             remoteInstalled,
-            remoteInstalled && settings.portalPairing().remote().scrollAdjustmentEnabled(),
+            remoteInstalled && settings.remote().scrollAdjustmentEnabled(),
             PortalGunModules.activeCount(gun, PortalModuleKind.PRECISION_PLACEMENT, rules) > 0,
             pairingInstalled,
             pairingInstalled ? settings.portalPairing().functionMode() : PortalFunctionMode.COORDINATE_TRAVEL,
-            remoteInstalled ? settings.portalPairing().coordinateSmartFallback() : PortalFloatingFallback.FRONT,
+            remoteInstalled ? settings.remote().coordinateSmartFallback() : PortalFloatingFallback.FRONT,
             pairingInstalled && remoteInstalled
-                ? settings.portalPairing().pairingSmartFallback() : PortalFloatingFallback.FRONT,
+                ? settings.portalPairing().smartFallback() : PortalFloatingFallback.FRONT,
             fallGuardInstalled && settings.fallGuardEnabled(),
             fallGuardInstalled && settings.fallGuardEntitiesEnabled()
         );

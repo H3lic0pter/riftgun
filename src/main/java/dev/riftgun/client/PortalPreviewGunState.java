@@ -43,8 +43,7 @@ public record PortalPreviewGunState(
             capabilities.effectivePlacementMode(data.settings().placementMode()),
             capabilities.activeSmartFallback(), capabilities.maximumSurfaceRange(),
             capabilities.remoteDistance(), capabilities.aperture(), capabilities.remote(),
-            PortalGunModuleSettings.get(gun, smartDistance)
-                .portalPairing().remote().placementPreviewEnabled(), pending);
+            PortalGunModuleSettings.get(gun, smartDistance).remote().placementPreviewEnabled(), pending);
     }
 
     public static @Nullable PortalPreviewGunState fromSnapshot(

@@ -1596,8 +1596,8 @@ public final class PortalConfigScreen extends Screen {
                 smartRangeSettingsButton.getY() + 7, PortalTheme.ICE);
         }
         if (remoteSettingsButton != null) {
-            PortalGuiIcons.drawPlacementModeIcon(graphics, remoteSettingsButton.getX() + 7,
-                remoteSettingsButton.getY() + 8, PortalPlacementMode.REMOTE);
+            PortalGuiIcons.drawPlacementModeIcon(graphics, remoteSettingsButton.getX() + 5,
+                remoteSettingsButton.getY() + 5, PortalPlacementMode.REMOTE);
         }
         if (entityTransitSettingsButton != null) {
             drawEntityAccessIcon(graphics, entityTransitSettingsButton.getX() + 7,

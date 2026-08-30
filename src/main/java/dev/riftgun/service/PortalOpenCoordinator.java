@@ -18,9 +18,8 @@ import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.network.PrecisionPlacementRequest;
-import dev.riftgun.network.SurfaceFaceOpenPlan;
+import dev.riftgun.network.SurfaceFaceRequestValidator;
 import dev.riftgun.network.SurfaceFaceRequest;
-import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalExclusions;
@@ -308,7 +307,7 @@ public final class PortalOpenCoordinator {
             return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED, capture.errorKey());
         }
         if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.SURFACE) {
-            SurfaceFaceOpenPlan.create(mode, PortalFunctionMode.COORDINATE_TRAVEL, capture.intent());
+            SurfaceFaceRequestValidator.validate(mode, capture.intent());
         }
         PortalEntryPlacementResult entry = RiftRuntime.current().placementResolver().resolveEntry(
             player, capture.intent(), constraints);

@@ -29,7 +29,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import dev.riftgun.network.SurfaceFaceOpenPlan;
+import dev.riftgun.network.SurfaceFaceRequestValidator;
 import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.network.PrecisionPlacementRequest;
 import dev.riftgun.network.PortalNetworking;
@@ -115,7 +115,7 @@ public final class PortalPairingManager {
                 player, precisionRequest.surface(), constraints);
         if (!capture.successful()) return fail(player, capture.errorKey());
         if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.SURFACE) {
-            SurfaceFaceOpenPlan.create(mode, PortalFunctionMode.PORTAL_PAIRING, capture.intent());
+            SurfaceFaceRequestValidator.validate(mode, capture.intent());
         }
         PortalEntryPlacementResult placement = RiftRuntime.current().placementResolver()
             .resolveEntry(player, capture.intent(), constraints);

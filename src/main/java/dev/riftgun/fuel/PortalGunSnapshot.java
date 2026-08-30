@@ -65,16 +65,16 @@ public final class PortalGunSnapshot {
         tag.putBoolean("EntityRelocationSmartRouting", settings.entityRelocation().smartRouting());
         tag.putBoolean("RemoteInstalled", capabilities.remote());
         tag.putBoolean("RemoteScrollAdjustmentEnabled",
-            settings.portalPairing().remote().scrollAdjustmentEnabled());
+            settings.remote().scrollAdjustmentEnabled());
         tag.putBoolean("RemoteRadialSliderEnabled",
-            settings.portalPairing().remote().radialSliderEnabled());
+            settings.remote().radialSliderEnabled());
         tag.putBoolean("RemotePlacementPreviewEnabled",
-            settings.portalPairing().remote().placementPreviewEnabled());
+            settings.remote().placementPreviewEnabled());
         tag.putBoolean("PrecisionPlacementInstalled", capabilities.precisionPlacement());
         tag.putBoolean("PortalPairingInstalled", capabilities.portalPairing());
         tag.putString("FunctionMode", capabilities.functionMode().name());
-        tag.putString("CoordinateSmartFallback", settings.portalPairing().coordinateSmartFallback().name());
-        tag.putString("PairingSmartFallback", settings.portalPairing().pairingSmartFallback().name());
+        tag.putString("CoordinateSmartFallback", settings.remote().coordinateSmartFallback().name());
+        tag.putString("PairingSmartFallback", settings.portalPairing().smartFallback().name());
         CompoundTag modules = new CompoundTag();
         for (PortalModuleKind kind : PortalModuleKind.values()) {
             modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));

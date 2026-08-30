@@ -49,7 +49,7 @@ public final class ModeRadialScreen extends Screen {
     private static final int SURFACE_TEXT_BACKGROUND = 0xA012171D;
     private static final int SURFACE_SELECTED_COLOR = 0x906F9AA8;
     private static final int SAMPLE = 3;
-    private static final int PLACEMENT_ART_HALF_SIZE = 5;
+    private static final int PLACEMENT_SPRITE_HALF_SIZE = 8;
     private static final int RANGE_SLIDER_WIDTH = 160;
     private static final int RANGE_SLIDER_MIN_Y = 15;
     private static final int RANGE_SLIDER_RING_GAP = 8;
@@ -139,7 +139,6 @@ public final class ModeRadialScreen extends Screen {
 
     public void commitSelection() {
         if (cancelled || !precisionPreviewOnly) return;
-        sendRange(true);
         PrecisionPlacementRequest request = surfacePreviewOnly
             ? PrecisionPlacementRequest.surface(new SurfaceFaceRequest(
                 surfaceAnchor, facePreview.selectedFace()))
@@ -170,7 +169,6 @@ public final class ModeRadialScreen extends Screen {
     }
 
     public void closeFromShortcutRelease() {
-        sendRange(true);
         cancelled = true;
         if (minecraft != null) minecraft.setScreen(null);
     }
@@ -306,7 +304,7 @@ public final class ModeRadialScreen extends Screen {
             int color = index == selection ? PortalTheme.TEXT : PortalTheme.TEXT_MUTED;
             if (option instanceof PortalPlacementMode mode) {
                 PortalGuiIcons.drawPlacementModeIcon(graphics,
-                    x - PLACEMENT_ART_HALF_SIZE, y - PLACEMENT_ART_HALF_SIZE, mode);
+                    x - PLACEMENT_SPRITE_HALF_SIZE, y - PLACEMENT_SPRITE_HALF_SIZE, mode);
                 centeredWrappedText(graphics, label, x, y + 8, layout.maximumWidth(), color);
             } else {
                 centeredWrappedText(graphics, label, x, y - 4, layout.maximumWidth(), color);
@@ -466,23 +464,23 @@ public final class ModeRadialScreen extends Screen {
                 ? "screen.riftgun.mode_radial.surface_face_switch_absolute"
                 : "screen.riftgun.mode_radial.surface_face_switch_relative");
         if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
-            Component releaseB = Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_b",
+            Component actionB = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_action_pair_b",
                 PortalPairingLabels.second());
-            Component releaseA = Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_a",
+            Component actionA = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_action_pair_a",
                 PortalInputLabels.sneakKey(),
                 PortalPairingLabels.first());
-            drawTextBackdrop(graphics, centerX, hintY, switchHint, releaseB, releaseA);
+            drawTextBackdrop(graphics, centerX, hintY, switchHint, actionB, actionA);
             centeredText(graphics, switchHint, centerX, hintY, PortalTheme.TEXT_MUTED);
-            centeredText(graphics, releaseB, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
-            centeredText(graphics, releaseA, centerX, hintY + 18, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, actionB, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, actionA, centerX, hintY + 18, PortalTheme.TEXT_MUTED);
         } else {
-            Component release = Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release");
-            drawTextBackdrop(graphics, centerX, hintY, switchHint, release);
+            Component action = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_action");
+            drawTextBackdrop(graphics, centerX, hintY, switchHint, action);
             centeredText(graphics, switchHint, centerX, hintY, PortalTheme.TEXT_MUTED);
-            centeredText(graphics, release, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, action, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
         }
     }
 
@@ -501,25 +499,25 @@ public final class ModeRadialScreen extends Screen {
         PrecisionRadialSprites.draw(graphics, centerX, centerY, floatingMode,
             selectedOrientation);
         centeredText(graphics, label(selectedOrientation), centerX, centerY + 22, PortalTheme.TEXT);
-        drawReleaseHints(graphics, centerX);
+        drawActionHints(graphics, centerX);
     }
 
-    private void drawReleaseHints(GuiGraphics graphics, int centerX) {
+    private void drawActionHints(GuiGraphics graphics, int centerX) {
         int hintY = Math.min(centerY() + outerRadius() + 4,
             height - (functionMode == PortalFunctionMode.PORTAL_PAIRING ? 20 : 11));
         if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
-            Component releaseB = Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_b", PortalPairingLabels.second());
-            Component releaseA = Component.translatable(
-                "screen.riftgun.mode_radial.surface_face_release_pair_a",
+            Component actionB = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_action_pair_b", PortalPairingLabels.second());
+            Component actionA = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_action_pair_a",
                 PortalInputLabels.sneakKey(), PortalPairingLabels.first());
-            drawTextBackdrop(graphics, centerX, hintY, releaseB, releaseA);
-            centeredText(graphics, releaseB, centerX, hintY, PortalTheme.TEXT_MUTED);
-            centeredText(graphics, releaseA, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+            drawTextBackdrop(graphics, centerX, hintY, actionB, actionA);
+            centeredText(graphics, actionB, centerX, hintY, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, actionA, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
         } else {
-            Component release = Component.translatable("screen.riftgun.mode_radial.surface_face_release");
-            drawTextBackdrop(graphics, centerX, hintY, release);
-            centeredText(graphics, release, centerX, hintY, PortalTheme.TEXT_MUTED);
+            Component action = Component.translatable("screen.riftgun.mode_radial.surface_face_action");
+            drawTextBackdrop(graphics, centerX, hintY, action);
+            centeredText(graphics, action, centerX, hintY, PortalTheme.TEXT_MUTED);
         }
     }
 
