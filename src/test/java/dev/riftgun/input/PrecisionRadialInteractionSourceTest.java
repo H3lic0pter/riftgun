@@ -1,5 +1,6 @@
 package dev.riftgun.input;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -21,7 +22,7 @@ final class PrecisionRadialInteractionSourceTest {
     }
 
     @Test
-    void precisionPlacementCommitsOnLeftClickAndStaysOpenAfterShortcutRelease() throws Exception {
+    void precisionPlacementCommitsOnLeftClickAndClosesOnShortcutRelease() throws Exception {
         for (String version : new String[] {"1.21.1", "26.1.2"}) {
             Path client = Path.of("versions", version, "src", "main", "java", "dev",
                 "riftgun", "client");
@@ -34,23 +35,25 @@ final class PrecisionRadialInteractionSourceTest {
             String mouseClicked = screen.substring(mouseStart, mouseEnd);
             assertTrue(mouseClicked.contains("button == 0 && precisionPreviewOnly")
                 || mouseClicked.contains("button() == 0 && precisionPreviewOnly"));
-            assertTrue(mouseClicked.contains("commitAndClose()"));
+            assertTrue(mouseClicked.contains("commitSelection()"));
+            assertFalse(mouseClicked.contains("commitAndClose()"));
 
             int openScreenBranch = input.indexOf(
                 "if (minecraft.screen instanceof ModeRadialScreen screen)");
             int nextBranch = input.indexOf("if (suppressUntilRelease)", openScreenBranch);
             String releaseHandling = input.substring(openScreenBranch, nextBranch);
             assertTrue(releaseHandling.contains(
-                "pendingSource != Source.PRECISION_PREVIEW"));
+                "pendingSource == Source.PRECISION_PREVIEW"));
+            assertTrue(releaseHandling.contains("closePrecisionFromShortcutRelease(screen)"));
             assertTrue(releaseHandling.contains("screen.commitAndClose()"));
-            assertTrue(!releaseHandling.contains("cancelFromShortcutRelease"));
 
             int acknowledgeStart = input.indexOf("public static void openFromServer");
             int rejectStart = input.indexOf("public static void rejectFromServer", acknowledgeStart);
             String acknowledgement = input.substring(acknowledgeStart, rejectStart);
             assertTrue(acknowledgement.contains(
-                "pendingSource != Source.PRECISION_PREVIEW"));
-            assertTrue(!acknowledgement.contains("cancelFromShortcutRelease"));
+                "pendingSource == Source.PRECISION_PREVIEW"));
+            assertTrue(acknowledgement.contains("closePrecisionFromShortcutRelease(screen)"));
+            assertTrue(input.contains("screen.closeFromShortcutRelease();"));
         }
     }
 }

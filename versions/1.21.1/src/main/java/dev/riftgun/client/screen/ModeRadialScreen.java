@@ -7,6 +7,7 @@ import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.input.SurfaceFacePreviewState;
 import dev.riftgun.math.RadialModeGeometry;
+import dev.riftgun.math.RadialOptionLabelLayout;
 import dev.riftgun.math.RadialRingSpans;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
@@ -136,22 +137,22 @@ public final class ModeRadialScreen extends Screen {
         if (!precisionPreviewOnly) super.renderBackground(graphics, mouseX, mouseY, partialTick);
     }
 
+    public void commitSelection() {
+        if (cancelled || !precisionPreviewOnly) return;
+        sendRange(true);
+        PrecisionPlacementRequest request = surfacePreviewOnly
+            ? PrecisionPlacementRequest.surface(new SurfaceFaceRequest(
+                surfaceAnchor, facePreview.selectedFace()))
+            : PrecisionPlacementRequest.floating(selectedOrientation);
+        boolean endpointA = ModeRadialInput.sneakDown();
+        PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_PRECISION, tag -> {
+            request.writeTo(tag);
+            tag.putBoolean("EndpointA", endpointA);
+        });
+    }
+
     public void commitAndClose() {
         sendRange(true);
-        if (!cancelled && precisionPreviewOnly) {
-            PrecisionPlacementRequest request = surfacePreviewOnly
-                ? PrecisionPlacementRequest.surface(new SurfaceFaceRequest(
-                    surfaceAnchor, facePreview.selectedFace()))
-                : PrecisionPlacementRequest.floating(selectedOrientation);
-            boolean endpointA = ModeRadialInput.sneakDown();
-            PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_PRECISION, tag -> {
-                request.writeTo(tag);
-                tag.putBoolean("EndpointA", endpointA);
-            });
-            ModeRadialInput.confirmFromScreen();
-            if (minecraft != null) minecraft.setScreen(null);
-            return;
-        }
         if (!cancelled) {
             PortalNetworking.sendShortcutRequest(PortalAction.SET_RADIAL_MODE, tag -> {
                 tag.putString("FunctionMode", functionMode.name());
@@ -168,6 +169,12 @@ public final class ModeRadialScreen extends Screen {
         if (minecraft != null) minecraft.setScreen(null);
     }
 
+    public void closeFromShortcutRelease() {
+        sendRange(true);
+        cancelled = true;
+        if (minecraft != null) minecraft.setScreen(null);
+    }
+
     public void rejectAndClose() {
         cancelled = true;
         suppressFinalRange = true;
@@ -178,7 +185,7 @@ public final class ModeRadialScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!ModeRadialInput.ready()) return true;
         if (button == 0 && precisionPreviewOnly) {
-            commitAndClose();
+            commitSelection();
         } else if (button == 0 && overRangeSlider(mouseX, mouseY)) {
             draggingRange = true;
             updateRange(mouseX, false);
@@ -289,18 +296,20 @@ public final class ModeRadialScreen extends Screen {
         int centerX = centerX();
         int centerY = centerY();
         for (int index = 0; index < options.size(); index++) {
-            double angle = Math.toRadians(-90.0 + index * 360.0 / options.size());
-            int x = centerX + (int) Math.round(Math.cos(angle) * labelRadius());
-            int y = centerY + (int) Math.round(Math.sin(angle) * labelRadius());
             Object option = options.get(index);
             Component label = label(option);
+            RadialOptionLabelLayout.Placement layout = RadialOptionLabelLayout.resolve(
+                index, options.size(), centerX, centerY, labelRadius(), outerRadius(),
+                precisionPreviewOnly && page == Page.FLOATING_ORIENTATION, font.width(label));
+            int x = layout.x();
+            int y = layout.y();
             int color = index == selection ? PortalTheme.TEXT : PortalTheme.TEXT_MUTED;
             if (option instanceof PortalPlacementMode mode) {
                 PortalGuiIcons.drawPlacementModeIcon(graphics,
                     x - PLACEMENT_ART_HALF_SIZE, y - PLACEMENT_ART_HALF_SIZE, mode);
-                centeredWrappedText(graphics, label, x, y + 8, 72, color);
+                centeredWrappedText(graphics, label, x, y + 8, layout.maximumWidth(), color);
             } else {
-                centeredWrappedText(graphics, label, x, y - 4, 72, color);
+                centeredWrappedText(graphics, label, x, y - 4, layout.maximumWidth(), color);
             }
         }
     }

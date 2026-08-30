@@ -38,10 +38,13 @@ public final class ModeRadialInput {
         if (minecraft.screen instanceof ModeRadialScreen screen) {
             if (pendingSource != null
                 && !sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
-                if (pendingSource != Source.PRECISION_PREVIEW
-                    && REQUEST.release() == RadialRequestState.ReleaseResult.COMMIT) {
-                    screen.commitAndClose();
-                    suppressUntilRelease = true;
+                if (REQUEST.release() == RadialRequestState.ReleaseResult.COMMIT) {
+                    if (pendingSource == Source.PRECISION_PREVIEW) {
+                        closePrecisionFromShortcutRelease(screen);
+                    } else {
+                        screen.commitAndClose();
+                        suppressUntilRelease = true;
+                    }
                 }
             }
             remember(cycleDown, radialDown, surfacePreviewDown);
@@ -103,11 +106,14 @@ public final class ModeRadialInput {
             }
         }
         if (minecraft.screen instanceof ModeRadialScreen screen) screen.refreshFromServer();
-        if (pendingSource != Source.PRECISION_PREVIEW
-            && result == RadialRequestState.AcknowledgeResult.COMMIT
+        if (result == RadialRequestState.AcknowledgeResult.COMMIT
             && minecraft.screen instanceof ModeRadialScreen screen) {
-            screen.commitAndClose();
-            suppressUntilRelease = true;
+            if (pendingSource == Source.PRECISION_PREVIEW) {
+                closePrecisionFromShortcutRelease(screen);
+            } else {
+                screen.commitAndClose();
+                suppressUntilRelease = true;
+            }
         }
     }
 
@@ -127,11 +133,12 @@ public final class ModeRadialInput {
         suppressUntilRelease = true;
     }
 
-    public static void confirmFromScreen() {
+    private static void closePrecisionFromShortcutRelease(ModeRadialScreen screen) {
         pendingSource = null;
         pendingPrecisionRequest = null;
         REQUEST.cancel();
         suppressUntilRelease = true;
+        screen.closeFromShortcutRelease();
     }
 
     public static boolean ready() { return pendingSource != null && REQUEST.ready(); }
