@@ -8,15 +8,15 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-final class PortalFaceExposure {
+public final class PortalFaceExposure {
     private static final int SAMPLES_PER_BLOCK = 16;
     private static final double FACE_OFFSET = PortalPlacement.DEPTH * 0.5;
     private static final double INSIDE_EPSILON = 1.0E-5;
 
     private PortalFaceExposure() {}
 
-    static boolean hasMinimumExposure(CollisionGetter level, PortalPlacement placement,
-                                      double minimumExposedFraction) {
+    public static boolean hasMinimumExposure(CollisionGetter level, PortalPlacement placement,
+                                             double minimumExposedFraction) {
         List<AABB> collisionBoxes = new ArrayList<>();
         for (VoxelShape shape : level.getBlockCollisions(null, placement.bounds().inflate(0.002))) {
             collisionBoxes.addAll(shape.toAabbs());

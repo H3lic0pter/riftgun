@@ -106,7 +106,7 @@ public final class PortalPairingManager {
             RiftConfigs.server().prediction().downshotProjectionFactor(),
             capabilities.pairingSmartFallback());
         if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING) {
-            constraints = constraints.withFloatingOrientation(precisionRequest.orientation());
+            constraints = constraints.forPrecisionFloating(precisionRequest.orientation());
         }
         PortalPlacementCapture capture = precisionRequest == null
             || precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING
@@ -144,14 +144,14 @@ public final class PortalPairingManager {
             : hasA ? PortalPairingStateMachine.State.A_ONLY
             : hasB ? PortalPairingStateMachine.State.B_ONLY
             : PortalPairingStateMachine.State.EMPTY;
-        PortalPairingStateMachine.Decision decision = PortalPairingStateMachine.place(state, endpoint);
+        boolean connectsPair = PortalPairingStateMachine.connectsPair(state, endpoint);
         PortalEntity opposite = active.stream()
             .filter(portal -> portal.pairingEndpoint() == endpoint.opposite())
             .findFirst().orElse(null);
         PortalPairingPendingEndpoint pendingOpposite = pending != null
             && pending.endpoint() == endpoint.opposite() ? pending : null;
 
-        if (decision.consumesPairFuel() && opposite == null && pendingOpposite == null) {
+        if (connectsPair && opposite == null && pendingOpposite == null) {
             return fail(player, "message.riftgun.portal_open_failed");
         }
         PortalRuntimeOptions options = runtimeOptions(data, capabilities, locatedGun);
@@ -166,13 +166,13 @@ public final class PortalPairingManager {
             return true;
         }
 
-        var fuelPlan = decision.consumesPairFuel()
+        var fuelPlan = connectsPair
             ? PortalFuelManager.plan(player, locatedGun.stack(), opposite != null
                 ? opposite.level().dimension() : pendingOpposite.dimension())
             : PortalFuelManager.recognizedProfile(locatedGun.stack());
         if (!fuelPlan.successful()) return fail(player, fuelPlan.errorKey());
         boolean opened;
-        if (!decision.consumesPairFuel()) {
+        if (!connectsPair) {
             savePending(player, data, server, locatedGun, placement.placement(), endpoint,
                 now, options.openDurationTicks());
             opened = true;
@@ -188,7 +188,7 @@ public final class PortalPairingManager {
             }
         }
         if (!opened) return fail(player, "message.riftgun.portal_open_failed");
-        if (decision.consumesPairFuel()) {
+        if (connectsPair) {
             Msg.displayClientMessage(player,
                 Component.translatable("message.riftgun.pairing_connected"), true);
         }

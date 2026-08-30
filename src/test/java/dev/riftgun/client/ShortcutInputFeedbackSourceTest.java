@@ -13,23 +13,21 @@ final class ShortcutInputFeedbackSourceTest {
 
     @Test
     void radialWaitsForServerApprovalBeforeOpening() throws Exception {
-        for (String version : VERSIONS) {
-            String source = Files.readString(Path.of("versions", version, "src", "main", "java",
-                "dev", "riftgun", "client", "ModeRadialInput.java"));
-            String request = method(source, "private static void request(",
-                "private static boolean sourceDown(");
-            String approved = method(source, "public static void openFromServer(",
-                "public static void rejectFromServer(");
-            String pending = method(source, "if (pendingSource != null) {",
-                "if (radialDown && !radialWasDown)");
+        String source = Files.readString(Path.of("src", "main", "java",
+            "dev", "riftgun", "client", "ModeRadialInput.java"));
+        String request = method(source, "private static void request(",
+            "private static boolean sourceDown(");
+        String approved = method(source, "public static void openFromServer(",
+            "public static void rejectFromServer(");
+        String pending = method(source, "if (pendingSource != null) {",
+            "if (radialDown && !radialWasDown)");
 
-            assertFalse(request.contains("setScreen("),
-                version + " opens the radial before the server validates the gun");
-            assertTrue(approved.contains("setScreen(new ModeRadialScreen())"),
-                version + " must open the radial after server approval");
-            assertTrue(pending.contains("REQUEST.release()"),
-                version + " must preserve a request released before server approval");
-        }
+        assertFalse(request.contains("setScreen("),
+            "radial opens before the server validates the gun");
+        assertTrue(approved.contains("setScreen(new ModeRadialScreen())"),
+            "radial must open after server approval");
+        assertTrue(pending.contains("REQUEST.release()"),
+            "request released before server approval must be preserved");
     }
 
     @Test

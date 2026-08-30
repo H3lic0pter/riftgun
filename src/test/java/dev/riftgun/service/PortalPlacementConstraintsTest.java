@@ -29,18 +29,18 @@ final class PortalPlacementConstraintsTest {
     }
 
     @Test
-    void floatingOrientationOverridePreservesEveryOtherConstraint() {
+    void precisionFloatingOrientationDisablesPredictionAndPreservesOtherConstraints() {
         PortalPlacementConstraints original = new PortalPlacementConstraints(
             48, 80.0, 12.0, PortalPredictionMode.PROJECTION, PortalAperture.EXPANDED,
             0.5, 1.25, null);
 
-        PortalPlacementConstraints selected = original.withFloatingOrientation(PortalOrientation.TOP);
+        PortalPlacementConstraints selected = original.forPrecisionFloating(PortalOrientation.TOP);
 
         assertEquals(PortalOrientation.TOP, selected.floatingOrientation());
         assertEquals(original.smartDistance(), selected.smartDistance());
         assertEquals(original.maximumSurfaceRange(), selected.maximumSurfaceRange());
         assertEquals(original.remoteDistance(), selected.remoteDistance());
-        assertEquals(original.predictionMode(), selected.predictionMode());
+        assertEquals(PortalPredictionMode.OFF, selected.predictionMode());
         assertEquals(original.aperture(), selected.aperture());
     }
 }

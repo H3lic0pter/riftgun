@@ -8,11 +8,14 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.BlockPos;
 
 import java.util.Optional;
 import java.util.function.DoubleFunction;
+import java.util.function.DoublePredicate;
+import java.util.function.BiPredicate;
 import org.jetbrains.annotations.Nullable;
 
 /** Shared REMOTE candidate search used by server authority and client-only previews. */
@@ -20,7 +23,9 @@ public final class RemotePortalPlacementResolver {
     private static final double MINIMUM_DISTANCE = 1.5;
     private static final double HIT_OFFSET = 0.18;
     private static final double SEARCH_STEP = 0.25;
-    private static final double CLIENT_CHUNK_PROBE_STEP = 8.0;
+    private static final double FINE_SEARCH_DISTANCE = 32.0;
+    private static final double COARSE_SEARCH_STEP = 8.0;
+    private static final double CLIENT_LOADED_PROBE_STEP = 1.0;
 
     public static Optional<PortalPlacement> resolve(Level level, Entity viewer,
                                                     double maximumRange, PortalAperture aperture,
@@ -48,7 +53,9 @@ public final class RemotePortalPlacementResolver {
         PortalGeometry largest = PortalAperturePolicy.expanded(aperture) ? expanded : standard;
         double boundedRange = Math.max(MINIMUM_DISTANCE, maximumRange);
         boundedRange = worldHeightRange(level, eye, look, largest, viewer.getYRot(), boundedRange);
-        boundedRange = loadedClientRange(level, eye, look, boundedRange);
+        boundedRange = loadedClientRange(level, eye, look, boundedRange,
+            orientation, largest, viewer.getYRot());
+        if (boundedRange < MINIMUM_DISTANCE) return Optional.empty();
         Vec3 rayEnd = eye.add(look.scale(boundedRange));
         HitResult hit = level.clip(new ClipContext(
             eye, rayEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, viewer));
@@ -62,13 +69,44 @@ public final class RemotePortalPlacementResolver {
 
     static <T> Optional<T> findFurthest(double distance,
                                         DoubleFunction<Optional<T>> candidateAt) {
+        double fineMinimum = Math.max(MINIMUM_DISTANCE, distance - FINE_SEARCH_DISTANCE);
         for (double candidateDistance = distance;
-             candidateDistance >= MINIMUM_DISTANCE;
+             candidateDistance >= fineMinimum;
              candidateDistance -= SEARCH_STEP) {
             Optional<T> candidate = candidateAt.apply(candidateDistance);
             if (candidate.isPresent()) return candidate;
         }
-        return Optional.empty();
+
+        // Exact quarter-block probing is retained near the requested endpoint, where a wall or
+        // overhang normally forces the fallback. Beyond that window use bounded scouts, refining
+        // the first interval whose near edge is usable. This keeps the configured 9248-block
+        // maximum below ~1.4k collision probes instead of 36,987.
+        double upper = fineMinimum;
+        for (double coarse = fineMinimum - COARSE_SEARCH_STEP;
+             coarse > MINIMUM_DISTANCE;
+             coarse -= COARSE_SEARCH_STEP) {
+            Optional<T> candidate = candidateAt.apply(coarse);
+            if (candidate.isPresent()) {
+                return refineInterval(upper, coarse, candidate, candidateAt);
+            }
+            upper = coarse;
+        }
+        Optional<T> minimum = candidateAt.apply(MINIMUM_DISTANCE);
+        return minimum.isPresent()
+            ? refineInterval(upper, MINIMUM_DISTANCE, minimum, candidateAt)
+            : Optional.empty();
+    }
+
+    private static <T> Optional<T> refineInterval(double upper, double lower,
+                                                   Optional<T> lowerCandidate,
+                                                   DoubleFunction<Optional<T>> candidateAt) {
+        for (double candidateDistance = upper - SEARCH_STEP;
+             candidateDistance > lower;
+             candidateDistance -= SEARCH_STEP) {
+            Optional<T> candidate = candidateAt.apply(candidateDistance);
+            if (candidate.isPresent()) return candidate;
+        }
+        return lowerCandidate;
     }
 
     private static Optional<PortalPlacement> availableAt(
@@ -88,15 +126,58 @@ public final class RemotePortalPlacementResolver {
             ? Optional.of(placement) : Optional.empty();
     }
 
-    private static double loadedClientRange(Level level, Vec3 eye, Vec3 look, double maximumRange) {
+    private static double loadedClientRange(Level level, Vec3 eye, Vec3 look, double maximumRange,
+                                            PortalOrientation orientation, PortalGeometry geometry,
+                                            float yaw) {
         if (!level.isClientSide()) return maximumRange;
+        return furthestContinuousLoaded(maximumRange, distance -> chunksLoaded(level,
+            placement(eye.add(look.scale(distance)), orientation, geometry, yaw).bounds()));
+    }
+
+    static double furthestContinuousLoaded(double maximumRange, DoublePredicate loadedAt) {
+        double maximum = Math.max(MINIMUM_DISTANCE, maximumRange);
+        if (!loadedAt.test(MINIMUM_DISTANCE)) return 0.0;
         double loaded = MINIMUM_DISTANCE;
-        for (double distance = MINIMUM_DISTANCE; distance <= maximumRange;
-             distance += CLIENT_CHUNK_PROBE_STEP) {
-            if (!level.hasChunkAt(BlockPos.containing(eye.add(look.scale(distance))))) return loaded;
+        for (double distance = MINIMUM_DISTANCE + CLIENT_LOADED_PROBE_STEP;
+             distance < maximum;
+             distance += CLIENT_LOADED_PROBE_STEP) {
+            if (!loadedAt.test(distance)) return refineLoadedRange(loaded, distance, loadedAt);
             loaded = distance;
         }
-        return maximumRange;
+        return loadedAt.test(maximum) ? maximum : refineLoadedRange(loaded, maximum, loadedAt);
+    }
+
+    private static double refineLoadedRange(double loaded, double unavailable,
+                                            DoublePredicate loadedAt) {
+        double result = loaded;
+        for (double distance = loaded + SEARCH_STEP;
+             distance < unavailable;
+             distance += SEARCH_STEP) {
+            if (!loadedAt.test(distance)) break;
+            result = distance;
+        }
+        return result;
+    }
+
+    private static boolean chunksLoaded(Level level, AABB bounds) {
+        int y = BlockPos.containing(bounds.getCenter()).getY();
+        return chunksLoaded(bounds, (chunkX, chunkZ) ->
+            level.hasChunkAt(new BlockPos(chunkX << 4, y, chunkZ << 4)));
+    }
+
+    static boolean chunksLoaded(AABB bounds, BiPredicate<Integer, Integer> loadedChunk) {
+        int minChunkX = BlockPos.containing(bounds.minX, bounds.minY, bounds.minZ).getX() >> 4;
+        int maxChunkX = BlockPos.containing(bounds.maxX - 1.0E-7, bounds.minY,
+            bounds.minZ).getX() >> 4;
+        int minChunkZ = BlockPos.containing(bounds.minX, bounds.minY, bounds.minZ).getZ() >> 4;
+        int maxChunkZ = BlockPos.containing(bounds.minX, bounds.minY,
+            bounds.maxZ - 1.0E-7).getZ() >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (!loadedChunk.test(chunkX, chunkZ)) return false;
+            }
+        }
+        return true;
     }
 
     private static double worldHeightRange(Level level, Vec3 eye, Vec3 look,

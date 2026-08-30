@@ -296,7 +296,7 @@ public final class PortalOpenCoordinator {
             RiftConfigs.server().prediction().downshotProjectionFactor(),
             gunCapabilities.activeSmartFallback());
         if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING) {
-            constraints = constraints.withFloatingOrientation(precisionRequest.orientation());
+            constraints = constraints.forPrecisionFloating(precisionRequest.orientation());
         }
         PortalPlacementCapture capture = precisionRequest == null
             || precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING

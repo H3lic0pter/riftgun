@@ -10,14 +10,12 @@ import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.service.PortalPlacementCapabilities;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import org.lwjgl.glfw.GLFW;
 
 /** Owns tap/hold and dedicated preview behavior without coupling the screen to key bindings. */
 public final class ModeRadialInput {
@@ -35,6 +33,7 @@ public final class ModeRadialInput {
         boolean cycleDown = keyDown(ClientModEvents.CYCLE_PLACEMENT);
         boolean radialDown = keyDown(ClientModEvents.OPEN_MODE_RADIAL);
         boolean surfacePreviewDown = keyDown(ClientModEvents.OPEN_PRECISION_PLACEMENT);
+
         if (minecraft.screen instanceof ModeRadialScreen screen) {
             if (pendingSource != null
                 && !sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
@@ -63,6 +62,7 @@ public final class ModeRadialInput {
             reset(cycleDown, radialDown, surfacePreviewDown);
             return;
         }
+
         if (pendingSource != null) {
             if (!sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
                 REQUEST.release();
@@ -168,16 +168,7 @@ public final class ModeRadialInput {
     }
 
     private static boolean keyDown(KeyMapping mapping) {
-        InputConstants.Key key = mapping.getKey();
-        if (key.getValue() == InputConstants.UNKNOWN.getValue()) return false;
-        var window = Minecraft.getInstance().getWindow();
-        if (key.getType() == InputConstants.Type.KEYSYM) {
-            return InputConstants.isKeyDown(window, key.getValue());
-        }
-        if (key.getType() == InputConstants.Type.MOUSE) {
-            return GLFW.glfwGetMouseButton(window.handle(), key.getValue()) == GLFW.GLFW_PRESS;
-        }
-        return mapping.isDown();
+        return ClientKeyState.down(mapping);
     }
 
     private static PrecisionPlacementRequest capturePrecisionTarget(Minecraft minecraft) {

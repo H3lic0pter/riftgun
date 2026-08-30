@@ -95,25 +95,21 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             }
         }
         EntryResult last = null;
+        ServerLevel level = serverLevel(player);
+//? if >=1.21.11 {
+        /*int minimumBuildHeight = level.dimensionType().minY();
+*///?} else {
+        int minimumBuildHeight = level.getMinBuildHeight();
+//?}
+        double minimumExposure = RiftRuntime.current().placementCapabilities()
+            .minimumFloatingPortalExposure(player);
         for (Vec3 displacement : positions) {
-            if (PortalAperturePolicy.expanded(aperture)) {
-                EntryResult expanded = horizontalDoor
-                    ? horizontalFront(player, displacement, horizontal,
-                        PortalAperturePolicy.horizontal(),
-                        PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)
-                    : verticalFront(player, displacement, frontDistance, PortalAperturePolicy.floatingVertical(),
-                        PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE);
-                if (expanded.placement != null) return expanded;
-                last = expanded;
-            }
-            EntryResult standard = horizontalDoor
-                ? horizontalFront(player, displacement, horizontal,
-                    PortalGeometry.HORIZONTAL,
-                    RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player))
-                : verticalFront(player, displacement, frontDistance, PortalGeometry.FLOATING_VERTICAL,
-                    RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player));
-            if (standard.placement != null) return standard;
-            last = standard;
+            FrontPortalPlacementPlanner.Result planned = FrontPortalPlacementPlanner.resolve(
+                player.position(), player.getBoundingBox(), displacement, player.getYRot(),
+                horizontal, aperture, frontDistance, minimumBuildHeight, minimumExposure,
+                (placement, exposure) -> !floatingObstructed(level, placement, exposure));
+            if (planned.successful()) return EntryResult.success(planned.placement());
+            last = EntryResult.failure(planned.errorKey());
         }
         return last == null ? EntryResult.failure("message.riftgun.front_obstructed") : last;
     }
@@ -178,51 +174,6 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return result.successful()
             ? PortalPlacementCapture.success(PortalPlacementIntent.surface(result.placement()))
             : PortalPlacementCapture.failure(result.errorKey());
-    }
-
-    private EntryResult verticalFront(ServerPlayer player, Vec3 prediction, double frontDistance,
-                                      PortalGeometry geometry, double minimumExposure) {
-        Vec3 look = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
-        Vec3 normal = look.scale(-1.0);
-        Vec3 center = player.position()
-            .add(prediction)
-            .add(look.scale(frontDistance))
-            .add(0.0, geometry.height() * 0.5, 0.0);
-        PortalPlacement placement = new PortalPlacement(center, PortalOrientation.VERTICAL, geometry,
-            yawFromNormal(normal), null, null);
-//? if >=1.21.11 {
-        /*return !FloatingPortalBounds.allows(placement.bounds(), ((ServerLevel) player.level()).dimensionType().minY())
-        *///?} else {
-        return !FloatingPortalBounds.allows(placement.bounds(), player.serverLevel().getMinBuildHeight())
-        //?}
-            ? EntryResult.failure("message.riftgun.void_portal_too_late")
-//? if >=1.21.11 {
-            /*: floatingObstructed((ServerLevel) player.level(), placement, minimumExposure)
-*///?} else {
-            : floatingObstructed(player.serverLevel(), placement, minimumExposure)
-//?}
-            ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
-    }
-
-    private EntryResult horizontalFront(ServerPlayer player, Vec3 prediction,
-                                        PortalOrientation orientation, PortalGeometry geometry,
-                                        double minimumExposure) {
-        Vec3 center = FrontHorizontalPortalPlacement.center(
-            player.getBoundingBox(), prediction, orientation);
-        PortalPlacement placement = new PortalPlacement(center, orientation,
-            geometry, player.getYRot(), null, null);
-//? if >=1.21.11 {
-        /*return !FloatingPortalBounds.allows(placement.bounds(), ((ServerLevel) player.level()).dimensionType().minY())
-        *///?} else {
-        return !FloatingPortalBounds.allows(placement.bounds(), player.serverLevel().getMinBuildHeight())
-        //?}
-            ? EntryResult.failure("message.riftgun.void_portal_too_late")
-//? if >=1.21.11 {
-            /*: floatingObstructed((ServerLevel) player.level(), placement, minimumExposure)
-*///?} else {
-            : floatingObstructed(player.serverLevel(), placement, minimumExposure)
-//?}
-            ? EntryResult.failure("message.riftgun.front_obstructed") : EntryResult.success(placement);
     }
 
     private Vec3 predictedDisplacement(ServerPlayer player, PortalMotionPredictor.Purpose purpose) {

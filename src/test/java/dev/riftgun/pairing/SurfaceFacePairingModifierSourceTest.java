@@ -10,18 +10,18 @@ import org.junit.jupiter.api.Test;
 final class SurfaceFacePairingModifierSourceTest {
     @Test
     void surfaceFaceShortcutCarriesTheSneakChoiceToTheServer() throws Exception {
+        String input = Files.readString(Path.of("src", "main", "java",
+            "dev", "riftgun", "client", "ModeRadialInput.java"));
         for (String version : new String[] {"1.21.1", "26.1.2"}) {
             String radial = Files.readString(Path.of("versions", version, "src", "main", "java",
                 "dev", "riftgun", "client", "screen", "ModeRadialScreen.java"));
-            String input = Files.readString(Path.of("versions", version, "src", "main", "java",
-                "dev", "riftgun", "client", "ModeRadialInput.java"));
             assertTrue(radial.contains("boolean endpointA = ModeRadialInput.sneakDown();"),
                 version + " must sample Sneak while the radial Screen is still open");
             assertTrue(radial.contains("tag.putBoolean(\"EndpointA\""),
                 version + " must capture the modifier in the shortcut packet");
-            assertTrue(input.contains("return keyDown(Minecraft.getInstance().options.keyShift);"),
-                version + " must honor the configured Sneak binding inside a Screen");
         }
+        assertTrue(input.contains("return keyDown(Minecraft.getInstance().options.keyShift);"),
+            "precision radial must honor the configured Sneak binding inside a Screen");
 
         String handler = Files.readString(Path.of(
             "src/main/java/dev/riftgun/network/PortalRequestHandler.java"));

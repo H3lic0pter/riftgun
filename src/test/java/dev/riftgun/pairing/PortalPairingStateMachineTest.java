@@ -1,6 +1,5 @@
 package dev.riftgun.pairing;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,38 +8,27 @@ import org.junit.jupiter.api.Test;
 final class PortalPairingStateMachineTest {
     @Test
     void eitherEndpointMayBePlacedFirstWithoutFuel() {
-        var a = PortalPairingStateMachine.place(
-            PortalPairingStateMachine.State.EMPTY, PortalPairingEndpoint.A);
-        var b = PortalPairingStateMachine.place(
-            PortalPairingStateMachine.State.EMPTY, PortalPairingEndpoint.B);
-        assertEquals(PortalPairingStateMachine.State.A_ONLY, a.next());
-        assertEquals(PortalPairingStateMachine.State.B_ONLY, b.next());
-        assertFalse(a.consumesPairFuel());
-        assertFalse(b.consumesPairFuel());
+        assertFalse(PortalPairingStateMachine.connectsPair(
+            PortalPairingStateMachine.State.EMPTY, PortalPairingEndpoint.A));
+        assertFalse(PortalPairingStateMachine.connectsPair(
+            PortalPairingStateMachine.State.EMPTY, PortalPairingEndpoint.B));
     }
 
     @Test
-    void oppositeEndpointConnectsAndResetsBoth() {
-        var decision = PortalPairingStateMachine.place(
-            PortalPairingStateMachine.State.A_ONLY, PortalPairingEndpoint.B);
-        assertEquals(PortalPairingStateMachine.State.CONNECTED, decision.next());
-        assertTrue(decision.consumesPairFuel());
-        assertTrue(decision.resetsBothEndpoints());
+    void oppositeEndpointConnectsThePair() {
+        assertTrue(PortalPairingStateMachine.connectsPair(
+            PortalPairingStateMachine.State.A_ONLY, PortalPairingEndpoint.B));
     }
 
     @Test
-    void replacingSameDormantEndpointDoesNotConsume() {
-        var decision = PortalPairingStateMachine.place(
-            PortalPairingStateMachine.State.A_ONLY, PortalPairingEndpoint.A);
-        assertEquals(PortalPairingStateMachine.State.A_ONLY, decision.next());
-        assertFalse(decision.consumesPairFuel());
+    void replacingSameDormantEndpointDoesNotConnect() {
+        assertFalse(PortalPairingStateMachine.connectsPair(
+            PortalPairingStateMachine.State.A_ONLY, PortalPairingEndpoint.A));
     }
 
     @Test
-    void replacingConnectedEndpointConsumesAndResetsPair() {
-        var decision = PortalPairingStateMachine.place(
-            PortalPairingStateMachine.State.CONNECTED, PortalPairingEndpoint.A);
-        assertTrue(decision.consumesPairFuel());
-        assertTrue(decision.resetsBothEndpoints());
+    void replacingConnectedEndpointReconnectsThePair() {
+        assertTrue(PortalPairingStateMachine.connectsPair(
+            PortalPairingStateMachine.State.CONNECTED, PortalPairingEndpoint.A));
     }
 }

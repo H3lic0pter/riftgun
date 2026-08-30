@@ -35,9 +35,10 @@ public record PortalPlacementConstraints(int smartDistance, double maximumSurfac
             frontProjectionFactor, downshotProjectionFactor, smartFallback, null);
     }
 
-    public PortalPlacementConstraints withFloatingOrientation(PortalOrientation orientation) {
+    /** Explicit precision choices stay attached to the player's current bounds and preview. */
+    public PortalPlacementConstraints forPrecisionFloating(PortalOrientation orientation) {
         return new PortalPlacementConstraints(smartDistance, maximumSurfaceRange, remoteDistance,
-            predictionMode, aperture, frontProjectionFactor, downshotProjectionFactor,
+            PortalPredictionMode.OFF, aperture, frontProjectionFactor, downshotProjectionFactor,
             smartFallback, orientation);
     }
 

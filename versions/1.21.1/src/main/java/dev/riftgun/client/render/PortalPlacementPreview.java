@@ -11,12 +11,12 @@ import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.pairing.PortalPairingPendingEndpoint;
 import dev.riftgun.pairing.PortalPairingPreviewGeometry;
 import dev.riftgun.portal.PortalPlacement;
-import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
 import dev.riftgun.service.PortalPlacementCapabilities;
-import dev.riftgun.service.FrontHorizontalPortalPlacement;
+import dev.riftgun.service.FrontPortalPlacementPlanner;
+import dev.riftgun.service.PortalFaceExposure;
 import dev.riftgun.service.RemotePortalPlacementResolver;
 import dev.riftgun.service.SurfaceFacePlacementPlanner;
 import dev.riftgun.service.PortalSupportArea;
@@ -224,24 +224,13 @@ public final class PortalPlacementPreview {
     private static PortalPlacement frontPreview(Minecraft minecraft,
                                                 PortalPreviewGunState gun,
                                                 PortalOrientation orientation) {
-        PortalGeometry geometry = gun.aperture() == dev.riftgun.portal.PortalAperture.EXPANDED
-            ? orientation == PortalOrientation.VERTICAL
-                ? PortalGeometry.FLOATING_EXPANDED : PortalGeometry.HORIZONTAL_EXPANDED
-            : orientation == PortalOrientation.VERTICAL
-                ? PortalGeometry.FLOATING_VERTICAL : PortalGeometry.HORIZONTAL;
-        Vec3 center;
-        if (orientation == PortalOrientation.VERTICAL) {
-            Vec3 look = Vec3.directionFromRotation(0.0F, minecraft.player.getYRot()).normalize();
-            center = minecraft.player.position().add(look.scale(
-                PortalPlacementCapabilities.DEFAULT_FRONT_DISTANCE))
-                .add(0.0, geometry.height() * 0.5, 0.0);
-            return new PortalPlacement(center, orientation, geometry,
-                minecraft.player.getYRot() + 180.0F, null, null);
-        }
-        center = FrontHorizontalPortalPlacement.center(
-            minecraft.player.getBoundingBox(), Vec3.ZERO, orientation);
-        return new PortalPlacement(center, orientation, geometry,
-            minecraft.player.getYRot(), null, null);
+        return FrontPortalPlacementPlanner.resolve(minecraft.player.position(),
+            minecraft.player.getBoundingBox(), Vec3.ZERO, minecraft.player.getYRot(),
+            orientation, gun.aperture(), PortalPlacementCapabilities.DEFAULT_FRONT_DISTANCE,
+            minecraft.level.getMinBuildHeight(),
+            PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE,
+            (placement, exposure) -> PortalFaceExposure.hasMinimumExposure(
+                minecraft.level, placement, exposure)).placement();
     }
 
     private static ItemStack heldGun(Minecraft minecraft) {
