@@ -30,6 +30,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import dev.riftgun.network.SurfaceFaceOpenPlan;
 import dev.riftgun.network.SurfaceFaceRequest;
+import dev.riftgun.network.PrecisionPlacementRequest;
 
 /** Server-authoritative orchestration for directly placed A/B portal pairs. */
 public final class PortalPairingManager {
@@ -54,15 +55,25 @@ public final class PortalPairingManager {
                                            PortalPlacementMode requestedMode,
                                            PortalPairingEndpoint endpoint,
                                            SurfaceFaceRequest request) {
-        return place(player, data, locatedGun, requestedMode, endpoint, request,
+        return place(player, data, locatedGun, requestedMode, endpoint,
+            PrecisionPlacementRequest.surface(request),
             PortalPairingInvocation.MODE_BOUND);
+    }
+
+    public static boolean placePrecision(ServerPlayer player, PortalPlayerData data,
+                                         PortalGunLocator.LocatedGun locatedGun,
+                                         PortalPlacementMode requestedMode,
+                                         PortalPairingEndpoint endpoint,
+                                         PrecisionPlacementRequest request) {
+        return place(player, data, locatedGun, requestedMode, endpoint, request,
+            PortalPairingInvocation.SHORTCUT);
     }
 
     private static boolean place(ServerPlayer player, PortalPlayerData data,
                                  PortalGunLocator.LocatedGun locatedGun,
                                  PortalPlacementMode requestedMode,
                                  PortalPairingEndpoint endpoint,
-                                 SurfaceFaceRequest surfaceFaceRequest,
+                                 PrecisionPlacementRequest precisionRequest,
                                  PortalPairingInvocation invocation) {
         if (!sourceAllowed(player)) return false;
         if (endpoint == PortalPairingEndpoint.NONE || endpoint == PortalPairingEndpoint.ENTITY_TARGET) {
@@ -73,6 +84,9 @@ public final class PortalPairingManager {
             locatedGun.stack(), data.settings().smartDistance());
         if (!capabilities.portalPairing()) {
             return fail(player, "message.riftgun.portal_pairing_module_required");
+        }
+        if (precisionRequest != null && !capabilities.precisionPlacement()) {
+            return fail(player, "message.riftgun.precision_placement_module_required");
         }
         if (!invocation.allows(capabilities.functionMode())) {
             return fail(player, "message.riftgun.pairing_mode_required");
@@ -89,12 +103,16 @@ public final class PortalPairingManager {
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),
             capabilities.pairingSmartFallback());
-        PortalPlacementCapture capture = surfaceFaceRequest == null
+        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING) {
+            constraints = constraints.withFloatingOrientation(precisionRequest.orientation());
+        }
+        PortalPlacementCapture capture = precisionRequest == null
+            || precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING
             ? RiftRuntime.current().placementResolver().capture(player, mode, constraints)
             : RiftRuntime.current().placementResolver().captureSurfaceFace(
-                player, surfaceFaceRequest, constraints);
+                player, precisionRequest.surface(), constraints);
         if (!capture.successful()) return fail(player, capture.errorKey());
-        if (surfaceFaceRequest != null) {
+        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.SURFACE) {
             SurfaceFaceOpenPlan.create(mode, PortalFunctionMode.PORTAL_PAIRING, capture.intent());
         }
         PortalEntryPlacementResult placement = RiftRuntime.current().placementResolver()

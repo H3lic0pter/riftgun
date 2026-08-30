@@ -19,6 +19,7 @@ public enum PortalAction {
     OPEN_RANDOM_RIFT,
     OPEN_SELECTED,
     OPEN_SELECTED_SURFACE_FACE,
+    OPEN_SELECTED_PRECISION,
     CLEAR_EXTERNAL_DESTINATION,
     RELOCATE_ENTITY,
     PLACE_PAIRING_ENDPOINT,
@@ -55,6 +56,7 @@ public enum PortalAction {
 
     public boolean isExclusiveKeyboardShortcut() {
         return this == OPEN_SELECTED || this == OPEN_SELECTED_SURFACE_FACE
+            || this == OPEN_SELECTED_PRECISION
             || this == RELOCATE_ENTITY || this == PLACE_PAIRING_ENDPOINT
             || this == TOGGLE_FUNCTION_MODE || this == CYCLE_PLACEMENT_MODE
             || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE

@@ -2,11 +2,14 @@ package dev.riftgun.client;
 
 import dev.riftgun.client.screen.ModeRadialScreen;
 import dev.riftgun.input.RadialRequestState;
-import dev.riftgun.input.SurfaceFacePreviewState;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.network.PrecisionPlacementRequest;
 import dev.riftgun.network.SurfaceFaceRequest;
+import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.portal.PortalOrientation;
+import dev.riftgun.service.PortalPlacementCapabilities;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -26,12 +29,12 @@ public final class ModeRadialInput {
     private static Source pendingSource;
     private static final RadialRequestState REQUEST = new RadialRequestState();
     private static boolean suppressUntilRelease;
-    private static SurfaceFaceRequest pendingSurfaceRequest;
+    private static PrecisionPlacementRequest pendingPrecisionRequest;
 
     public static void tick(Minecraft minecraft) {
         boolean cycleDown = keyDown(ClientModEvents.CYCLE_PLACEMENT);
         boolean radialDown = keyDown(ClientModEvents.OPEN_MODE_RADIAL);
-        boolean surfacePreviewDown = keyDown(ClientModEvents.OPEN_SURFACE_FACE_PREVIEW);
+        boolean surfacePreviewDown = keyDown(ClientModEvents.OPEN_PRECISION_PLACEMENT);
 
         if (minecraft.screen instanceof ModeRadialScreen screen) {
             if (pendingSource != null
@@ -48,7 +51,7 @@ public final class ModeRadialInput {
             if (!cycleDown && !radialDown && !surfacePreviewDown) {
                 suppressUntilRelease = false;
                 pendingSource = null;
-                pendingSurfaceRequest = null;
+                pendingPrecisionRequest = null;
             }
             remember(cycleDown, radialDown, surfacePreviewDown);
             return;
@@ -64,11 +67,8 @@ public final class ModeRadialInput {
             return;
         }
         if (surfacePreviewDown && !surfacePreviewWasDown) {
-            if (SurfaceFacePreviewState.canOpen(
-                PortalClientState.data().settings().placementMode())) {
-                pendingSurfaceRequest = captureSurfaceTarget(minecraft);
-                if (pendingSurfaceRequest != null) request(Source.SURFACE_FACE_PREVIEW);
-            }
+            pendingPrecisionRequest = capturePrecisionTarget(minecraft);
+            if (pendingPrecisionRequest != null) request(Source.PRECISION_PREVIEW);
         } else if (radialDown && !radialWasDown) {
             request(Source.DEDICATED);
         }
@@ -92,11 +92,11 @@ public final class ModeRadialInput {
         RadialRequestState.AcknowledgeResult result = REQUEST.acknowledge(requestId,
             sourceDown(pendingSource, keyDown(ClientModEvents.CYCLE_PLACEMENT),
                 keyDown(ClientModEvents.OPEN_MODE_RADIAL),
-                keyDown(ClientModEvents.OPEN_SURFACE_FACE_PREVIEW)));
+                keyDown(ClientModEvents.OPEN_PRECISION_PLACEMENT)));
         if (result == RadialRequestState.AcknowledgeResult.IGNORE) return;
         if (minecraft.screen == null) {
-            if (pendingSource == Source.SURFACE_FACE_PREVIEW) {
-                minecraft.setScreen(new ModeRadialScreen(pendingSurfaceRequest));
+            if (pendingSource == Source.PRECISION_PREVIEW) {
+                minecraft.setScreen(new ModeRadialScreen(pendingPrecisionRequest));
             } else {
                 minecraft.setScreen(new ModeRadialScreen());
             }
@@ -112,7 +112,7 @@ public final class ModeRadialInput {
     public static void rejectFromServer(int requestId) {
         if (pendingSource == null || !REQUEST.reject(requestId)) return;
         pendingSource = null;
-        pendingSurfaceRequest = null;
+        pendingPrecisionRequest = null;
         suppressUntilRelease = true;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof ModeRadialScreen screen) screen.rejectAndClose();
@@ -120,7 +120,7 @@ public final class ModeRadialInput {
 
     public static void cancelFromScreen() {
         pendingSource = null;
-        pendingSurfaceRequest = null;
+        pendingPrecisionRequest = null;
         REQUEST.cancel();
         suppressUntilRelease = true;
     }
@@ -138,7 +138,7 @@ public final class ModeRadialInput {
         PortalNetworking.sendShortcutRequest(PortalAction.OPEN_MODE_RADIAL,
             tag -> {
                 tag.putInt("RadialRequestId", requestId);
-                tag.putBoolean("SurfaceFacePreview", source == Source.SURFACE_FACE_PREVIEW);
+                tag.putBoolean("PrecisionPreview", source == Source.PRECISION_PREVIEW);
             });
     }
 
@@ -147,7 +147,7 @@ public final class ModeRadialInput {
         return switch (source) {
             case CYCLE -> cycleDown;
             case DEDICATED -> radialDown;
-            case SURFACE_FACE_PREVIEW -> surfacePreviewDown;
+            case PRECISION_PREVIEW -> surfacePreviewDown;
         };
     }
 
@@ -164,14 +164,37 @@ public final class ModeRadialInput {
         return mapping.isDown();
     }
 
-    private static SurfaceFaceRequest captureSurfaceTarget(Minecraft minecraft) {
-        int range = Math.max(1, Nbt.getInt(PortalClientState.gun(), "MaximumSurfaceRange"));
+    private static PrecisionPlacementRequest capturePrecisionTarget(Minecraft minecraft) {
+        if (!Nbt.getBoolean(PortalClientState.gun(), "PrecisionPlacementInstalled")) return null;
+        PortalPlacementMode mode = PortalClientState.data().settings().placementMode();
+        if (mode == PortalPlacementMode.REMOTE
+            && !Nbt.getBoolean(PortalClientState.gun(), "RemoteInstalled")) {
+            mode = PortalPlacementMode.FRONT;
+        }
+        if (mode == PortalPlacementMode.ENTITY_RELOCATION) return null;
+        if (mode == PortalPlacementMode.FRONT || mode == PortalPlacementMode.REMOTE) {
+            return PrecisionPlacementRequest.floating(defaultOrientation(minecraft));
+        }
+        int range = mode == PortalPlacementMode.SMART
+            ? Math.max(1, PortalClientState.data().settings().smartDistance())
+            : Math.max(1, Nbt.getInt(PortalClientState.gun(), "MaximumSurfaceRange"));
         Vec3 eye = minecraft.player.getEyePosition();
         HitResult raw = minecraft.level.clip(new ClipContext(eye,
             eye.add(minecraft.player.getLookAngle().scale(range)),
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, minecraft.player));
-        return raw instanceof BlockHitResult hit && raw.getType() == HitResult.Type.BLOCK
-            ? new SurfaceFaceRequest(hit.getBlockPos(), hit.getDirection()) : null;
+        if (raw instanceof BlockHitResult hit && raw.getType() == HitResult.Type.BLOCK) {
+            return PrecisionPlacementRequest.surface(
+                new SurfaceFaceRequest(hit.getBlockPos(), hit.getDirection()));
+        }
+        return mode == PortalPlacementMode.SMART
+            ? PrecisionPlacementRequest.floating(defaultOrientation(minecraft)) : null;
+    }
+
+    private static PortalOrientation defaultOrientation(Minecraft minecraft) {
+        float pitch = minecraft.player.getXRot();
+        float threshold = PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH;
+        return pitch >= threshold ? PortalOrientation.TOP
+            : pitch <= -threshold ? PortalOrientation.BOTTOM : PortalOrientation.VERTICAL;
     }
 
     private static void remember(boolean cycleDown, boolean radialDown, boolean surfacePreviewDown) {
@@ -182,13 +205,13 @@ public final class ModeRadialInput {
 
     private static void reset(boolean cycleDown, boolean radialDown, boolean surfacePreviewDown) {
         pendingSource = null;
-        pendingSurfaceRequest = null;
+        pendingPrecisionRequest = null;
         REQUEST.cancel();
         cycleHeldTicks = 0;
         remember(cycleDown, radialDown, surfacePreviewDown);
     }
 
-    private enum Source { CYCLE, DEDICATED, SURFACE_FACE_PREVIEW }
+    private enum Source { CYCLE, DEDICATED, PRECISION_PREVIEW }
 
     private ModeRadialInput() {}
 }

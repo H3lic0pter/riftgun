@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.portal.PortalAperture;
+import dev.riftgun.portal.PortalOrientation;
 import org.junit.jupiter.api.Test;
 
 final class PortalPlacementConstraintsTest {
@@ -25,5 +26,21 @@ final class PortalPlacementConstraintsTest {
             0.7, 1.0, null);
 
         assertEquals(80.0, constraints.remoteDistance());
+    }
+
+    @Test
+    void floatingOrientationOverridePreservesEveryOtherConstraint() {
+        PortalPlacementConstraints original = new PortalPlacementConstraints(
+            48, 80.0, 12.0, PortalPredictionMode.PROJECTION, PortalAperture.EXPANDED,
+            0.5, 1.25, null);
+
+        PortalPlacementConstraints selected = original.withFloatingOrientation(PortalOrientation.TOP);
+
+        assertEquals(PortalOrientation.TOP, selected.floatingOrientation());
+        assertEquals(original.smartDistance(), selected.smartDistance());
+        assertEquals(original.maximumSurfaceRange(), selected.maximumSurfaceRange());
+        assertEquals(original.remoteDistance(), selected.remoteDistance());
+        assertEquals(original.predictionMode(), selected.predictionMode());
+        assertEquals(original.aperture(), selected.aperture());
     }
 }

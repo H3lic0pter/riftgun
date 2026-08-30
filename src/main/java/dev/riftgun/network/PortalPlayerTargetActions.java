@@ -101,5 +101,25 @@ final class PortalPlayerTargetActions {
         return true;
     }
 
+    static boolean openSelectedPrecision(ServerPlayer player, PortalPlayerData data,
+                                         PortalPlacementMode mode,
+                                         PortalGunLocator.LocatedGun gun,
+                                         PrecisionPlacementRequest request) {
+        UUID targetId = data.selectedPlayerId();
+        if (targetId == null) return false;
+//? if >=1.21.11 {
+        /*if (player.level().getServer() == null || !ServerPlayerRoster.isOnline(player.level().getServer(), targetId)) {
+*///?} else {
+        if (player.getServer() == null || !ServerPlayerRoster.isOnline(player.getServer(), targetId)) {
+//?}
+            Msg.displayClientMessage(player,
+                Component.translatable("message.riftgun.player_target_offline"), true);
+            return true;
+        }
+        PortalOpenCoordinator.requestPlayerTargetPrecision(
+            player, data, targetId, mode, gun, request);
+        return true;
+    }
+
     private PortalPlayerTargetActions() {}
 }

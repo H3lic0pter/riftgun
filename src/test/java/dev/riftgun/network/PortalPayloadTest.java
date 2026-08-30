@@ -8,12 +8,33 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import dev.riftgun.portal.PortalOrientation;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.neoforge.network.connection.ConnectionType;
 import org.junit.jupiter.api.Test;
 
 final class PortalPayloadTest {
+    @Test
+    void precisionFloatingRequestRoundTrips() {
+        PrecisionPlacementRequest request = PrecisionPlacementRequest.floating(PortalOrientation.BOTTOM);
+
+        assertEquals(request, PrecisionPlacementRequest.decode(requestTag(request)));
+    }
+
+    @Test
+    void precisionSurfaceRequestRoundTrips() {
+        PrecisionPlacementRequest request = PrecisionPlacementRequest.surface(
+            new SurfaceFaceRequest(new BlockPos(4, 5, 6), Direction.WEST));
+
+        assertEquals(request, PrecisionPlacementRequest.decode(requestTag(request)));
+    }
+
+    private static CompoundTag requestTag(PrecisionPlacementRequest request) {
+        CompoundTag tag = new CompoundTag();
+        request.writeTo(tag);
+        return tag;
+    }
     @Test
     void requestPayloadRoundTripsNbt() {
         CompoundTag data = new CompoundTag();

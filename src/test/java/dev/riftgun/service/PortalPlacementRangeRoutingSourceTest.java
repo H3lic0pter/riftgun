@@ -15,7 +15,8 @@ final class PortalPlacementRangeRoutingSourceTest {
             "src/main/java/dev/riftgun/service/PortalOpenCoordinator.java"));
 
         assertTrue(resolver.contains(
-            "case REMOTE -> remote(player, constraints.remoteDistance(), constraints.aperture())"));
+            "case REMOTE -> remote(player, constraints.remoteDistance(), constraints.aperture(),\n"
+                + "                constraints.floatingOrientation())"));
         assertTrue(resolver.contains(
             "case SURFACE -> surface(player, false, constraints.smartDistance(),\n"
                 + "                constraints.maximumSurfaceRange(), constraints.aperture())"));

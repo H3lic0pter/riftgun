@@ -13,9 +13,12 @@ import dev.riftgun.pairing.PortalPairingPendingEndpoint;
 import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import dev.riftgun.pairing.PortalPairingPreviewGeometry;
 import dev.riftgun.portal.PortalPlacement;
+import dev.riftgun.portal.PortalGeometry;
+import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
 import dev.riftgun.service.PortalPlacementCapabilities;
+import dev.riftgun.service.FrontHorizontalPortalPlacement;
 import dev.riftgun.service.RemotePortalPlacementResolver;
 import dev.riftgun.service.SurfaceFacePlacementPlanner;
 import dev.riftgun.service.PortalSupportArea;
@@ -58,7 +61,7 @@ public final class PortalPlacementPreview {
         tickPending(minecraft);
         tickEntityTarget(minecraft);
         long tick = minecraft.level == null ? 0L : minecraft.level.getGameTime();
-        if (tickSurfaceFace(minecraft, tick)) return;
+        if (tickPrecision(minecraft, tick)) return;
         PortalPlacementPreviewCache.Input input = input(minecraft);
         if (input == null) {
             CACHE.clear();
@@ -163,9 +166,9 @@ public final class PortalPlacementPreview {
             minecraft.player.getXRot(), minecraft.player.getYRot());
     }
 
-    private static boolean tickSurfaceFace(Minecraft minecraft, long tick) {
+    private static boolean tickPrecision(Minecraft minecraft, long tick) {
         if (!(minecraft.screen instanceof ModeRadialScreen screen)
-            || !screen.surfaceFacePreviewOpen()) return false;
+            || !screen.surfaceFacePreviewOpen() && !screen.floatingOrientationPreviewOpen()) return false;
         ItemStack gun = heldGun(minecraft);
         if (gun.isEmpty()) {
             CACHE.clear();
@@ -174,6 +177,30 @@ public final class PortalPlacementPreview {
         int smartDistance = PortalClientState.data().settings().smartDistance();
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun, smartDistance, PortalClientState.moduleRules());
+        if (screen.floatingOrientationPreviewOpen()) {
+            PortalOrientation orientation = screen.selectedFloatingOrientation();
+            PortalPlacementMode mode = capabilities.effectivePlacementMode(
+                PortalClientState.data().settings().placementMode());
+            if (mode == PortalPlacementMode.SMART) {
+                mode = capabilities.activeSmartFallback() == dev.riftgun.pairing.PortalFloatingFallback.REMOTE
+                    ? PortalPlacementMode.REMOTE : PortalPlacementMode.FRONT;
+            }
+            int range = mode == PortalPlacementMode.REMOTE ? capabilities.remoteDistance() : 2;
+            PortalPlacementPreviewCache.Input input = new PortalPlacementPreviewCache.Input(
+                minecraft.player.getEyePosition(), minecraft.player.getLookAngle(), range,
+                capabilities.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),
+                orientation);
+            if (!CACHE.shouldRefresh(tick, input)) return true;
+            PortalPlacement placement = mode == PortalPlacementMode.REMOTE
+                ? RemotePortalPlacementResolver.resolve(
+                    minecraft.level, minecraft.player, capabilities.remoteDistance(),
+                    capabilities.aperture(), PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH,
+                    orientation, PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE)
+                    .orElse(null)
+                : frontPreview(minecraft, capabilities, orientation);
+            CACHE.update(tick, input, placement);
+            return true;
+        }
         BlockPos anchor = screen.surfaceAnchor();
         var face = screen.selectedSurfaceFace();
         int range = capabilities.maximumSurfaceRange();
@@ -207,6 +234,29 @@ public final class PortalPlacementPreview {
                 minecraft.player.getEyePosition().distanceTo(faceCenter), range, true));
         CACHE.update(tick, input, result.placement());
         return true;
+    }
+
+    private static PortalPlacement frontPreview(Minecraft minecraft,
+                                                PortalGunCapabilities capabilities,
+                                                PortalOrientation orientation) {
+        PortalGeometry geometry = capabilities.aperture() == dev.riftgun.portal.PortalAperture.EXPANDED
+            ? orientation == PortalOrientation.VERTICAL
+                ? PortalGeometry.FLOATING_EXPANDED : PortalGeometry.HORIZONTAL_EXPANDED
+            : orientation == PortalOrientation.VERTICAL
+                ? PortalGeometry.FLOATING_VERTICAL : PortalGeometry.HORIZONTAL;
+        Vec3 center;
+        if (orientation == PortalOrientation.VERTICAL) {
+            Vec3 look = Vec3.directionFromRotation(0.0F, minecraft.player.getYRot()).normalize();
+            center = minecraft.player.position().add(look.scale(
+                PortalPlacementCapabilities.DEFAULT_FRONT_DISTANCE))
+                .add(0.0, geometry.height() * 0.5, 0.0);
+            return new PortalPlacement(center, orientation, geometry,
+                minecraft.player.getYRot() + 180.0F, null, null);
+        }
+        center = FrontHorizontalPortalPlacement.center(
+            minecraft.player.getBoundingBox(), Vec3.ZERO, orientation);
+        return new PortalPlacement(center, orientation, geometry,
+            minecraft.player.getYRot(), null, null);
     }
 
     private static ItemStack heldGun(Minecraft minecraft) {

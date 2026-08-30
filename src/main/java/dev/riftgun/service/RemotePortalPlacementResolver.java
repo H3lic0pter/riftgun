@@ -11,6 +11,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 /** Shared REMOTE candidate search used by server authority and client-only previews. */
 public final class RemotePortalPlacementResolver {
@@ -22,6 +23,15 @@ public final class RemotePortalPlacementResolver {
                                                     double maximumRange, PortalAperture aperture,
                                                     float horizontalPitchThreshold,
                                                     double minimumExposure) {
+        return resolve(level, viewer, maximumRange, aperture, horizontalPitchThreshold,
+            null, minimumExposure);
+    }
+
+    public static Optional<PortalPlacement> resolve(Level level, Entity viewer,
+                                                    double maximumRange, PortalAperture aperture,
+                                                    float horizontalPitchThreshold,
+                                                    @Nullable PortalOrientation orientationOverride,
+                                                    double minimumExposure) {
         Vec3 eye = viewer.getEyePosition();
         Vec3 look = viewer.getLookAngle().normalize();
         Vec3 rayEnd = eye.add(look.scale(maximumRange));
@@ -30,8 +40,10 @@ public final class RemotePortalPlacementResolver {
         double distance = hit.getType() == HitResult.Type.BLOCK
             ? Math.max(MINIMUM_DISTANCE, eye.distanceTo(hit.getLocation()) - HIT_OFFSET)
             : maximumRange;
-        PortalOrientation orientation = VanillaPortalPlacementResolver.horizontalOrientation(
-            viewer.getXRot(), horizontalPitchThreshold);
+        PortalOrientation orientation = orientationOverride == null
+            ? VanillaPortalPlacementResolver.horizontalOrientation(
+                viewer.getXRot(), horizontalPitchThreshold)
+            : orientationOverride;
         PortalGeometry standard = orientation == PortalOrientation.VERTICAL
             ? PortalGeometry.FLOATING_VERTICAL : PortalGeometry.HORIZONTAL;
         PortalGeometry expanded = orientation == PortalOrientation.VERTICAL

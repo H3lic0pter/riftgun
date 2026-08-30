@@ -51,6 +51,23 @@ public final class ExternalDestinationActions {
         return openSelected(player, data, mode, gun, false, request);
     }
 
+    static boolean openSelectedPrecision(
+        ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode,
+        PortalGunLocator.LocatedGun gun, PrecisionPlacementRequest request
+    ) {
+        ExternalDestinationSelection selection = SESSION.selected(player.getUUID()).orElse(null);
+        if (selection == null) return false;
+        if (!RiftConfigs.server().mapWaypointIntegration().enabled()
+            || !knownDimension(player, selection.dimensionId())) {
+            SESSION.playerLeft(player.getUUID());
+            throw PortalRequestFields.error("message.riftgun.external_destination_unavailable");
+        }
+        boolean opened = PortalOpenCoordinator.openTransientPrecision(
+            player, data, destination(player, selection), mode, gun, request);
+        if (opened) PortalNetworking.sendSnapshot(player, false, gun);
+        return true;
+    }
+
     private static boolean openSelected(
         ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode,
         PortalGunLocator.LocatedGun gun, boolean fromGui, SurfaceFaceRequest surfaceFaceRequest

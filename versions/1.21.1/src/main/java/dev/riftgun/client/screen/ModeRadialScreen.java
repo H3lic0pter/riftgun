@@ -9,7 +9,9 @@ import dev.riftgun.input.SurfaceFacePreviewState;
 import dev.riftgun.math.RadialModeGeometry;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.network.PrecisionPlacementRequest;
 import dev.riftgun.network.SurfaceFaceRequest;
+import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.pairing.PortalFunctionMode;
@@ -66,24 +68,31 @@ public final class ModeRadialScreen extends Screen {
     private long lastRangeSendNanos;
     private final SurfaceFacePreviewState facePreview;
     private final boolean surfacePreviewOnly;
+    private final boolean precisionPreviewOnly;
     private final BlockPos surfaceAnchor;
+    private PortalOrientation selectedOrientation;
 
     public ModeRadialScreen() {
-        this(null);
+        this((PrecisionPlacementRequest) null);
     }
 
-    public ModeRadialScreen(SurfaceFaceRequest surfaceRequest) {
+    public ModeRadialScreen(PrecisionPlacementRequest precisionRequest) {
         super(Component.translatable("screen.riftgun.mode_radial.title"));
+        SurfaceFaceRequest surfaceRequest = precisionRequest != null
+            && precisionRequest.kind() == PrecisionPlacementRequest.Kind.SURFACE
+            ? precisionRequest.surface() : null;
+        precisionPreviewOnly = precisionRequest != null;
         surfacePreviewOnly = surfaceRequest != null;
         surfaceAnchor = surfaceRequest == null ? null : surfaceRequest.anchor();
+        selectedOrientation = precisionRequest == null
+            ? PortalOrientation.VERTICAL : precisionRequest.orientation();
         Direction referenceFace = surfaceRequest == null ? Direction.NORTH : surfaceRequest.face();
         Direction playerHeading = Minecraft.getInstance().player == null
             ? Direction.NORTH : Minecraft.getInstance().player.getDirection();
         facePreview = new SurfaceFacePreviewState(referenceFace, playerHeading,
             RiftConfigs.client().surfaceFaceRadialOrder());
-        if (surfaceRequest != null) {
-            page = Page.SURFACE_FACE;
-        }
+        if (precisionRequest != null) page = surfacePreviewOnly
+            ? Page.SURFACE_FACE : Page.FLOATING_ORIENTATION;
         refreshFromServer();
     }
 
@@ -101,11 +110,13 @@ public final class ModeRadialScreen extends Screen {
         // 1.21.1 Screen.render applies the background blur. Run it first so the
         // blur never samples the radial UI drawn below.
         super.render(graphics, mouseX, mouseY, partialTick);
-        if (!surfacePreviewOnly) graphics.fill(0, 0, width, height, 0x78101115);
+        if (!precisionPreviewOnly) graphics.fill(0, 0, width, height, 0x78101115);
         List<?> options = options();
         selection = selectionAt(mouseX, mouseY, options.size());
         if (page == Page.SURFACE_FACE && selection >= 0) {
             facePreview.select((SurfaceFacePreviewState.Choice) options.get(selection));
+        } else if (page == Page.FLOATING_ORIENTATION && selection >= 0) {
+            selectedOrientation = (PortalOrientation) options.get(selection);
         }
         if (selection != lastAudibleSelection) {
             if (selection >= 0) playUi(1.25F);
@@ -121,16 +132,18 @@ public final class ModeRadialScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        if (!surfacePreviewOnly) super.renderBackground(graphics, mouseX, mouseY, partialTick);
+        if (!precisionPreviewOnly) super.renderBackground(graphics, mouseX, mouseY, partialTick);
     }
 
     public void commitAndClose() {
         sendRange(true);
-        if (!cancelled && surfacePreviewOnly && surfaceAnchor != null) {
-            SurfaceFaceRequest request = new SurfaceFaceRequest(
-                surfaceAnchor, facePreview.selectedFace());
+        if (!cancelled && precisionPreviewOnly) {
+            PrecisionPlacementRequest request = surfacePreviewOnly
+                ? PrecisionPlacementRequest.surface(new SurfaceFaceRequest(
+                    surfaceAnchor, facePreview.selectedFace()))
+                : PrecisionPlacementRequest.floating(selectedOrientation);
             boolean endpointA = ModeRadialInput.sneakDown();
-            PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_SURFACE_FACE, tag -> {
+            PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_PRECISION, tag -> {
                 request.writeTo(tag);
                 tag.putBoolean("EndpointA", endpointA);
             });
@@ -165,7 +178,7 @@ public final class ModeRadialScreen extends Screen {
         if (button == 0 && overRangeSlider(mouseX, mouseY)) {
             draggingRange = true;
             updateRange(mouseX, false);
-        } else if (button == 0 && page != Page.SURFACE_FACE
+        } else if (button == 0 && !precisionPreviewOnly && page != Page.SURFACE_FACE
             && PortalClientState.gun().getBoolean("PortalPairingInstalled")) {
             functionMode = functionMode.toggle();
             playUi(functionMode == PortalFunctionMode.PORTAL_PAIRING ? 1.15F : 0.85F);
@@ -174,7 +187,7 @@ public final class ModeRadialScreen extends Screen {
             selection = -1;
             lastAudibleSelection = -1;
             playUi(facePreview.frame() == SurfaceFacePreviewState.Frame.ABSOLUTE ? 1.1F : 0.9F);
-        } else if (button == 1 && !surfacePreviewOnly) {
+        } else if (button == 1 && !precisionPreviewOnly) {
             page = page == Page.SURFACE_FACE ? Page.PLACEMENT
                 : page == Page.PLACEMENT ? Page.PREDICTION : Page.PLACEMENT;
             selection = -1;
@@ -229,11 +242,16 @@ public final class ModeRadialScreen extends Screen {
     }
 
     public boolean surfaceFacePreviewOpen() { return surfacePreviewOnly && surfaceAnchor != null; }
+    public boolean floatingOrientationPreviewOpen() {
+        return precisionPreviewOnly && page == Page.FLOATING_ORIENTATION;
+    }
+    public PortalOrientation selectedFloatingOrientation() { return selectedOrientation; }
     public BlockPos surfaceAnchor() { return surfaceAnchor; }
     public Direction selectedSurfaceFace() { return facePreview.selectedFace(); }
 
     private List<?> options() {
         if (page == Page.SURFACE_FACE) return facePreview.choices();
+        if (page == Page.FLOATING_ORIENTATION) return Arrays.asList(PortalOrientation.values());
         if (page == Page.PREDICTION) return Arrays.asList(PortalPredictionMode.values());
         List<PortalPlacementMode> modes = new ArrayList<>(Arrays.asList(PortalPlacementMode.values()));
         if (!PortalClientState.gun().getBoolean("EntityRelocationEnabled")) {
@@ -250,23 +268,23 @@ public final class ModeRadialScreen extends Screen {
         int centerY = centerY();
         int inner = innerRadius();
         int outer = Math.max(inner + 1, Math.round(outerRadius() * animation));
-        int sample = surfacePreviewOnly ? 1 : SAMPLE;
-        int maximumCoordinate = surfacePreviewOnly ? outer - 1 : outer;
+        int sample = precisionPreviewOnly ? 1 : SAMPLE;
+        int maximumCoordinate = precisionPreviewOnly ? outer - 1 : outer;
         for (int y = -outer; y <= maximumCoordinate; y += sample) {
             for (int x = -outer; x <= maximumCoordinate; x += sample) {
-                double radialX = surfacePreviewOnly ? x + 0.5 : x;
-                double radialY = surfacePreviewOnly ? y + 0.5 : y;
+                double radialX = precisionPreviewOnly ? x + 0.5 : x;
+                double radialY = precisionPreviewOnly ? y + 0.5 : y;
                 double distanceSquared = radialX * radialX + radialY * radialY;
                 if (distanceSquared < inner * inner || distanceSquared > outer * outer) continue;
                 int index = RadialModeGeometry.selectionIndex(
                     radialX, radialY, count, inner).orElse(-1);
-                int selected = surfacePreviewOnly ? SURFACE_SELECTED_COLOR
+                int selected = precisionPreviewOnly ? SURFACE_SELECTED_COLOR
                     : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xDC84502D : 0xDC416775;
-                int baseA = surfacePreviewOnly ? SURFACE_RING_BACKGROUND_A
+                int baseA = precisionPreviewOnly ? SURFACE_RING_BACKGROUND_A
                     : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xD82F2925 : 0xD825272D;
-                int baseB = surfacePreviewOnly ? SURFACE_RING_BACKGROUND_B
+                int baseB = precisionPreviewOnly ? SURFACE_RING_BACKGROUND_B
                     : functionMode == PortalFunctionMode.PORTAL_PAIRING
                     ? 0xD83A3028 : 0xD830333A;
                 int color = index == selection ? selected : (index & 1) == 0 ? baseA : baseB;
@@ -301,6 +319,10 @@ public final class ModeRadialScreen extends Screen {
         int centerY = centerY();
         if (page == Page.SURFACE_FACE) {
             drawFacePreview(graphics, centerX, centerY);
+            return;
+        }
+        if (page == Page.FLOATING_ORIENTATION) {
+            drawFloatingPreview(graphics, centerX, centerY);
             return;
         }
         Component pageLabel = Component.translatable(page == Page.PLACEMENT
@@ -371,7 +393,7 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private int centerY() {
-        if (!surfacePreviewOnly) return height / 2;
+        if (!precisionPreviewOnly) return height / 2;
         int minimum = SURFACE_OUTER_RADIUS + SURFACE_TOP_MARGIN;
         int maximum = Math.max(minimum, height - SURFACE_OUTER_RADIUS - SURFACE_BOTTOM_MARGIN);
         return Math.clamp(height / 2 + RiftConfigs.client().surfaceFaceRadialOffsetY(),
@@ -379,7 +401,7 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private int centerX() {
-        if (!surfacePreviewOnly) return width / 2;
+        if (!precisionPreviewOnly) return width / 2;
         int minimum = SURFACE_OUTER_RADIUS + SURFACE_EDGE_GAP;
         int maximum = Math.max(minimum, width - SURFACE_OUTER_RADIUS - SURFACE_EDGE_GAP);
         return Math.clamp(width / 2 + RiftConfigs.client().surfaceFaceRadialOffsetX(),
@@ -387,15 +409,15 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private int innerRadius() {
-        return surfacePreviewOnly ? SURFACE_INNER_RADIUS : INNER_RADIUS;
+        return precisionPreviewOnly ? SURFACE_INNER_RADIUS : INNER_RADIUS;
     }
 
     private int outerRadius() {
-        return surfacePreviewOnly ? SURFACE_OUTER_RADIUS : OUTER_RADIUS;
+        return precisionPreviewOnly ? SURFACE_OUTER_RADIUS : OUTER_RADIUS;
     }
 
     private int labelRadius() {
-        return surfacePreviewOnly ? SURFACE_LABEL_RADIUS : LABEL_RADIUS;
+        return precisionPreviewOnly ? SURFACE_LABEL_RADIUS : LABEL_RADIUS;
     }
 
     private int rangeSliderX() {
@@ -411,7 +433,7 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private boolean rangeSliderEnabled() {
-        return page != Page.SURFACE_FACE && remoteInstalled()
+        return !precisionPreviewOnly && page != Page.SURFACE_FACE && remoteInstalled()
             && PortalClientState.data().settings().placementMode() == PortalPlacementMode.REMOTE
             && Nbt.getBoolean(PortalClientState.gun(), "RemoteRadialSliderEnabled");
     }
@@ -461,6 +483,43 @@ public final class ModeRadialScreen extends Screen {
             drawTextBackdrop(graphics, centerX, hintY, switchHint, release);
             centeredText(graphics, switchHint, centerX, hintY, PortalTheme.TEXT_MUTED);
             centeredText(graphics, release, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+        }
+    }
+
+    private void drawFloatingPreview(GuiGraphics graphics, int centerX, int centerY) {
+        drawSurfaceCenterBackdrop(graphics, centerX, centerY);
+        PortalPlacementMode floatingMode = floatingPlacementMode();
+        Component heading = Component.translatable(floatingMode == PortalPlacementMode.REMOTE
+            ? "screen.riftgun.mode_radial.portal_direction"
+            : "screen.riftgun.mode_radial.portal_position");
+        Component kind = label(floatingMode);
+        int headingY = centerY - outerRadius() - 23;
+        drawTextBackdrop(graphics, centerX, headingY, heading, kind);
+        centeredText(graphics, heading, centerX, headingY, PortalTheme.ICE);
+        centeredText(graphics, kind, centerX, headingY + 9, PortalTheme.TEXT);
+
+        PrecisionRadialSprites.draw(graphics, centerX, centerY, floatingMode,
+            selectedOrientation);
+        centeredText(graphics, label(selectedOrientation), centerX, centerY + 22, PortalTheme.TEXT);
+        drawReleaseHints(graphics, centerX);
+    }
+
+    private void drawReleaseHints(GuiGraphics graphics, int centerX) {
+        int hintY = Math.min(centerY() + outerRadius() + 4,
+            height - (functionMode == PortalFunctionMode.PORTAL_PAIRING ? 20 : 11));
+        if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
+            Component releaseB = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release_pair_b", PortalPairingLabels.second());
+            Component releaseA = Component.translatable(
+                "screen.riftgun.mode_radial.surface_face_release_pair_a",
+                PortalInputLabels.sneakKey(), PortalPairingLabels.first());
+            drawTextBackdrop(graphics, centerX, hintY, releaseB, releaseA);
+            centeredText(graphics, releaseB, centerX, hintY, PortalTheme.TEXT_MUTED);
+            centeredText(graphics, releaseA, centerX, hintY + 9, PortalTheme.TEXT_MUTED);
+        } else {
+            Component release = Component.translatable("screen.riftgun.mode_radial.surface_face_release");
+            drawTextBackdrop(graphics, centerX, hintY, release);
+            centeredText(graphics, release, centerX, hintY, PortalTheme.TEXT_MUTED);
         }
     }
 
@@ -544,6 +603,12 @@ public final class ModeRadialScreen extends Screen {
             return Component.translatable("screen.riftgun.surface_face."
                 + direction.getName());
         }
+        if (mode instanceof PortalOrientation orientation) {
+            String prefix = floatingPlacementMode() == PortalPlacementMode.REMOTE
+                ? "screen.riftgun.portal_orientation.remote."
+                : "screen.riftgun.portal_orientation.front.";
+            return Component.translatable(prefix + orientation.name().toLowerCase(Locale.ROOT));
+        }
         if (mode instanceof SurfaceFacePreviewState.Choice choice) {
             if (facePreview.frame() == SurfaceFacePreviewState.Frame.ABSOLUTE
                 || choice == SurfaceFacePreviewState.Choice.UP
@@ -589,5 +654,16 @@ public final class ModeRadialScreen extends Screen {
         }
     }
 
-    private enum Page { PLACEMENT, PREDICTION, SURFACE_FACE }
+    private PortalPlacementMode floatingPlacementMode() {
+        PortalPlacementMode mode = PortalClientState.data().settings().placementMode();
+        if (mode == PortalPlacementMode.REMOTE && !remoteInstalled()) return PortalPlacementMode.FRONT;
+        if (mode != PortalPlacementMode.SMART) return mode;
+        String fallback = Nbt.getString(PortalClientState.gun(),
+            functionMode == PortalFunctionMode.PORTAL_PAIRING
+                ? "PairingSmartFallback" : "CoordinateSmartFallback");
+        return remoteInstalled() && fallback.equals("REMOTE")
+            ? PortalPlacementMode.REMOTE : PortalPlacementMode.FRONT;
+    }
+
+    private enum Page { PLACEMENT, PREDICTION, SURFACE_FACE, FLOATING_ORIENTATION }
 }

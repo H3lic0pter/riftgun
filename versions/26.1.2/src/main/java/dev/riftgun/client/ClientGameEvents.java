@@ -177,6 +177,12 @@ public final class ClientGameEvents {
                     PortalInputLabels.sneakKey())
                     .withStyle(ChatFormatting.GRAY));
             }
+            if (definition.kind() == PortalModuleKind.PRECISION_PLACEMENT) {
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.precision_placement_module.use",
+                    ClientModEvents.OPEN_PRECISION_PLACEMENT.getTranslatedKeyMessage())
+                    .withStyle(ChatFormatting.GRAY));
+            }
             if (definition.kind() == PortalModuleKind.PORTAL_PAIRING) {
                 event.getToolTip().add(Component.translatable(
                     "tooltip.riftgun.module.portal_pairing_module.use",

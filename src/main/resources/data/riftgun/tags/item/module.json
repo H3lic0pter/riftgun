@@ -17,6 +17,7 @@
     "riftgun:fall_guard_module",
     "riftgun:entity_relocation_module",
     "riftgun:remote_module",
+    "riftgun:precision_placement_module",
     "riftgun:portal_pairing_module",
     "riftgun:matter_anchor_module",
     "riftgun:projectile_transit_module",

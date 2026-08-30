@@ -27,7 +27,7 @@ public final class PortalPlacementPreviewCache {
         lastRefreshTick = tick;
         nextRefreshTick = tick + refreshInterval(input.range());
         segments = placement == null
-            ? List.of() : PortalPlacementPreviewGeometry.corners(placement);
+            ? List.of() : PortalPlacementPreviewGeometry.visibleOutline(placement);
     }
 
     public List<PortalPlacementPreviewGeometry.Segment> segments() {
@@ -49,10 +49,20 @@ public final class PortalPlacementPreviewCache {
 
     public record Input(Vec3 eye, Vec3 look, int range, PortalAperture aperture,
                         float pitch, float yaw, @Nullable BlockPos anchor,
-                        @Nullable Direction face) {
+                        @Nullable Direction face, @Nullable PortalOrientation orientation) {
         public Input(Vec3 eye, Vec3 look, int range, PortalAperture aperture,
                      float pitch, float yaw) {
-            this(eye, look, range, aperture, pitch, yaw, null, null);
+            this(eye, look, range, aperture, pitch, yaw, null, null, null);
+        }
+
+        public Input(Vec3 eye, Vec3 look, int range, PortalAperture aperture,
+                     float pitch, float yaw, PortalOrientation orientation) {
+            this(eye, look, range, aperture, pitch, yaw, null, null, orientation);
+        }
+
+        public Input(Vec3 eye, Vec3 look, int range, PortalAperture aperture,
+                     float pitch, float yaw, BlockPos anchor, Direction face) {
+            this(eye, look, range, aperture, pitch, yaw, anchor, face, null);
         }
     }
 }

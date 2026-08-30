@@ -63,6 +63,8 @@ public final class PortalModules {
         "entity_relocation_module", PortalModuleKind.ENTITY_RELOCATION, ignored -> 1, 0x75D7C8);
     public static final ModuleEntry REMOTE = register(
         "remote_module", PortalModuleKind.REMOTE, ignored -> 1, 0x59DCE8);
+    public static final ModuleEntry PRECISION_PLACEMENT = register(
+        "precision_placement_module", PortalModuleKind.PRECISION_PLACEMENT, ignored -> 1, 0x8EC9DB);
     public static final ModuleEntry PORTAL_PAIRING = register(
         "portal_pairing_module", PortalModuleKind.PORTAL_PAIRING, ignored -> 1, 0xE19A52);
     public static final ModuleEntry MATTER_ANCHOR = register(

@@ -2,13 +2,16 @@ package dev.riftgun.service;
 
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.portal.PortalAperture;
+import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.pairing.PortalFloatingFallback;
+import org.jetbrains.annotations.Nullable;
 
 public record PortalPlacementConstraints(int smartDistance, double maximumSurfaceRange,
                                          double remoteDistance,
                                          PortalPredictionMode predictionMode, PortalAperture aperture,
                                          double frontProjectionFactor, double downshotProjectionFactor,
-                                         PortalFloatingFallback smartFallback) {
+                                         PortalFloatingFallback smartFallback,
+                                         @Nullable PortalOrientation floatingOrientation) {
     public PortalPlacementConstraints(int smartDistance, double maximumSurfaceRange,
                                       PortalPredictionMode predictionMode, PortalAperture aperture) {
         this(smartDistance, maximumSurfaceRange, predictionMode, aperture, 0.7, 1.0,
@@ -20,7 +23,22 @@ public record PortalPlacementConstraints(int smartDistance, double maximumSurfac
                                       double frontProjectionFactor, double downshotProjectionFactor,
                                       PortalFloatingFallback smartFallback) {
         this(smartDistance, maximumSurfaceRange, maximumSurfaceRange, predictionMode, aperture,
-            frontProjectionFactor, downshotProjectionFactor, smartFallback);
+            frontProjectionFactor, downshotProjectionFactor, smartFallback, null);
+    }
+
+    public PortalPlacementConstraints(int smartDistance, double maximumSurfaceRange,
+                                      double remoteDistance, PortalPredictionMode predictionMode,
+                                      PortalAperture aperture, double frontProjectionFactor,
+                                      double downshotProjectionFactor,
+                                      PortalFloatingFallback smartFallback) {
+        this(smartDistance, maximumSurfaceRange, remoteDistance, predictionMode, aperture,
+            frontProjectionFactor, downshotProjectionFactor, smartFallback, null);
+    }
+
+    public PortalPlacementConstraints withFloatingOrientation(PortalOrientation orientation) {
+        return new PortalPlacementConstraints(smartDistance, maximumSurfaceRange, remoteDistance,
+            predictionMode, aperture, frontProjectionFactor, downshotProjectionFactor,
+            smartFallback, orientation);
     }
 
     public PortalPlacementConstraints {
