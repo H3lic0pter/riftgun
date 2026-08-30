@@ -4,13 +4,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.PortalClientState;
+import dev.riftgun.client.PortalPreviewGunState;
 import dev.riftgun.client.screen.ModeRadialScreen;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.data.PortalPlacementMode;
-import dev.riftgun.module.PortalGunCapabilities;
-import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.pairing.PortalPairingPendingEndpoint;
-import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import dev.riftgun.pairing.PortalPairingPreviewGeometry;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalGeometry;
@@ -44,6 +42,7 @@ public final class PortalPlacementPreview {
     private static final int COLOR = 0xD9F0F0F0;
     private static final PortalPlacementPreviewCache CACHE = new PortalPlacementPreviewCache();
     private static PortalPairingPendingEndpoint pendingEndpoint;
+    private static PortalPairingPendingEndpoint entityTargetEndpoint;
     private static List<PortalPairingPreviewGeometry.ColoredSegment> pendingSegments = List.of();
     private static List<PortalPairingPreviewGeometry.ColoredSegment> entityTargetSegments = List.of();
     private static Object levelIdentity;
@@ -55,11 +54,12 @@ public final class PortalPlacementPreview {
             clearPending();
             clearEntityTarget();
         }
-        tickPending(minecraft);
-        tickEntityTarget(minecraft);
         long tick = minecraft.level == null ? 0L : minecraft.level.getGameTime();
-        if (tickPrecision(minecraft, tick)) return;
-        PortalPlacementPreviewCache.Input input = input(minecraft);
+        PortalPreviewGunState gun = previewGun(minecraft, tick);
+        tickPending(minecraft, gun);
+        tickEntityTarget(minecraft, gun);
+        if (tickPrecision(minecraft, tick, gun)) return;
+        PortalPlacementPreviewCache.Input input = input(minecraft, gun);
         if (input == null) {
             CACHE.clear();
             return;
@@ -95,19 +95,18 @@ public final class PortalPlacementPreview {
         poses.popPose();
     }
 
-    private static void tickPending(Minecraft minecraft) {
+    private static void tickPending(Minecraft minecraft, PortalPreviewGunState gun) {
         if (minecraft.level == null || minecraft.player == null) {
             clearPending();
             return;
         }
-        ItemStack gun = heldGun(minecraft);
-        if (!portalEndpointMode(minecraft, gun)) {
+        if (gun == null || gun.placementMode() == PortalPlacementMode.ENTITY_RELOCATION) {
             clearPending();
             return;
         }
-        PortalPairingPendingEndpoint next = gun.isEmpty()
-            ? null : PortalPairingPendingEndpoints.get(gun);
-        if (next == null || !minecraft.level.dimension().equals(next.dimension())
+        PortalPairingPendingEndpoint next = gun.pending();
+        if (next == null || !next.pairEndpoint()
+            || !minecraft.level.dimension().equals(next.dimension())
             || !minecraft.level.hasChunkAt(BlockPos.containing(next.placement().center()))) {
             clearPending();
             return;
@@ -123,90 +122,82 @@ public final class PortalPlacementPreview {
         pendingSegments = List.of();
     }
 
-    private static void tickEntityTarget(Minecraft minecraft) {
-        entityTargetSegments = PortalPairingEntityTargetPreview.segments(minecraft);
+    private static void tickEntityTarget(Minecraft minecraft, PortalPreviewGunState gun) {
+        PortalPairingPendingEndpoint next = gun != null
+            && gun.functionMode() == dev.riftgun.pairing.PortalFunctionMode.PORTAL_PAIRING
+            && gun.placementMode() == PortalPlacementMode.ENTITY_RELOCATION
+            ? gun.pending() : null;
+        if (next == null || !next.entityTarget() || minecraft.level == null
+            || !minecraft.level.dimension().equals(next.dimension())
+            || !minecraft.level.hasChunkAt(BlockPos.containing(next.placement().center()))) {
+            clearEntityTarget();
+            return;
+        }
+        if (Objects.equals(next, entityTargetEndpoint)) return;
+        entityTargetEndpoint = next;
+        entityTargetSegments = PortalPairingPreviewGeometry.entityTargetSegments(next.placement());
     }
 
     private static void clearEntityTarget() {
+        entityTargetEndpoint = null;
         entityTargetSegments = List.of();
     }
 
-    private static boolean portalEndpointMode(Minecraft minecraft, ItemStack gun) {
-        if (gun.isEmpty()) return false;
-        int smartDistance = PortalClientState.data().settings().smartDistance();
-        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
-            gun, smartDistance, PortalClientState.moduleRules());
-        return capabilities.effectivePlacementMode(
-                PortalClientState.data().settings().placementMode())
-                != PortalPlacementMode.ENTITY_RELOCATION;
-    }
-
-    private static PortalPlacementPreviewCache.Input input(Minecraft minecraft) {
+    private static PortalPlacementPreviewCache.Input input(Minecraft minecraft,
+                                                            PortalPreviewGunState gun) {
         if (minecraft.level == null || minecraft.player == null || minecraft.screen != null
             || minecraft.isPaused()) return null;
-        ItemStack gun = heldGun(minecraft);
-        if (gun.isEmpty()) return null;
-        int smartDistance = PortalClientState.data().settings().smartDistance();
-        if (!PortalGunModuleSettings.get(gun, smartDistance)
-            .portalPairing().remote().placementPreviewEnabled()) return null;
-        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun,
-            smartDistance, PortalClientState.moduleRules());
-        if (!capabilities.remote()
-            || capabilities.effectivePlacementMode(PortalClientState.data().settings().placementMode())
-                != PortalPlacementMode.REMOTE) return null;
+        if (gun == null || !gun.remotePlacementPreview() || !gun.remote()
+            || gun.placementMode() != PortalPlacementMode.REMOTE) return null;
         return new PortalPlacementPreviewCache.Input(
             minecraft.player.getEyePosition(), minecraft.player.getLookAngle(),
-            capabilities.remoteDistance(), capabilities.aperture(),
+            gun.remoteDistance(), gun.aperture(),
             minecraft.player.getXRot(), minecraft.player.getYRot());
     }
 
-    private static boolean tickPrecision(Minecraft minecraft, long tick) {
+    private static boolean tickPrecision(Minecraft minecraft, long tick,
+                                         PortalPreviewGunState gun) {
         if (!(minecraft.screen instanceof ModeRadialScreen screen)
             || !screen.surfaceFacePreviewOpen() && !screen.floatingOrientationPreviewOpen()) return false;
-        ItemStack gun = heldGun(minecraft);
-        if (gun.isEmpty()) {
+        if (gun == null) {
             CACHE.clear();
             return true;
         }
-        int smartDistance = PortalClientState.data().settings().smartDistance();
-        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
-            gun, smartDistance, PortalClientState.moduleRules());
         if (screen.floatingOrientationPreviewOpen()) {
             PortalOrientation orientation = screen.selectedFloatingOrientation();
-            PortalPlacementMode mode = capabilities.effectivePlacementMode(
-                PortalClientState.data().settings().placementMode());
+            PortalPlacementMode mode = gun.placementMode();
             if (mode == PortalPlacementMode.SMART) {
-                mode = capabilities.activeSmartFallback() == dev.riftgun.pairing.PortalFloatingFallback.REMOTE
+                mode = gun.smartFallback() == dev.riftgun.pairing.PortalFloatingFallback.REMOTE
                     ? PortalPlacementMode.REMOTE : PortalPlacementMode.FRONT;
             }
-            int range = mode == PortalPlacementMode.REMOTE ? capabilities.remoteDistance() : 2;
+            int range = mode == PortalPlacementMode.REMOTE ? gun.remoteDistance() : 2;
             PortalPlacementPreviewCache.Input input = new PortalPlacementPreviewCache.Input(
                 minecraft.player.getEyePosition(), minecraft.player.getLookAngle(), range,
-                capabilities.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),
+                gun.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),
                 orientation);
             if (!CACHE.shouldRefresh(tick, input)) return true;
             PortalPlacement placement = mode == PortalPlacementMode.REMOTE
                 ? RemotePortalPlacementResolver.resolve(
-                    minecraft.level, minecraft.player, capabilities.remoteDistance(),
-                    capabilities.aperture(), PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH,
+                    minecraft.level, minecraft.player, gun.remoteDistance(),
+                    gun.aperture(), PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH,
                     orientation, PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE)
                     .orElse(null)
-                : frontPreview(minecraft, capabilities, orientation);
+                : frontPreview(minecraft, gun, orientation);
             CACHE.update(tick, input, placement);
             return true;
         }
         BlockPos anchor = screen.surfaceAnchor();
         var face = screen.selectedSurfaceFace();
-        int range = capabilities.maximumSurfaceRange();
+        int range = gun.maximumSurfaceRange();
         PortalPlacementPreviewCache.Input input = new PortalPlacementPreviewCache.Input(
             minecraft.player.getEyePosition(), minecraft.player.getLookAngle(), range,
-            capabilities.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),
+            gun.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),
             anchor, face);
         if (!CACHE.shouldRefresh(tick, input)) return true;
         Vec3 faceCenter = Vec3.atCenterOf(anchor).add(new Vec3(
             face.getStepX(), face.getStepY(), face.getStepZ()).scale(0.5));
         SurfaceFacePlacementPlanner.Result result = SurfaceFacePlacementPlanner.resolve(
-            new SurfaceFaceRequest(anchor, face), capabilities.aperture(),
+            new SurfaceFaceRequest(anchor, face), gun.aperture(),
             minecraft.player.getYRot(), minecraft.player.getBoundingBox(),
             new SurfaceFacePlacementPlanner.Probe() {
                 @Override public boolean anchorSolid(BlockPos position) {
@@ -231,9 +222,9 @@ public final class PortalPlacementPreview {
     }
 
     private static PortalPlacement frontPreview(Minecraft minecraft,
-                                                PortalGunCapabilities capabilities,
+                                                PortalPreviewGunState gun,
                                                 PortalOrientation orientation) {
-        PortalGeometry geometry = capabilities.aperture() == dev.riftgun.portal.PortalAperture.EXPANDED
+        PortalGeometry geometry = gun.aperture() == dev.riftgun.portal.PortalAperture.EXPANDED
             ? orientation == PortalOrientation.VERTICAL
                 ? PortalGeometry.FLOATING_EXPANDED : PortalGeometry.HORIZONTAL_EXPANDED
             : orientation == PortalOrientation.VERTICAL
@@ -258,6 +249,17 @@ public final class PortalPlacementPreview {
         if (mainHand.is(RiftContent.PORTAL_GUN.get())) return mainHand;
         ItemStack offhand = minecraft.player.getOffhandItem();
         return offhand.is(RiftContent.PORTAL_GUN.get()) ? offhand : ItemStack.EMPTY;
+    }
+
+    private static PortalPreviewGunState previewGun(Minecraft minecraft, long now) {
+        if (minecraft.level == null || minecraft.player == null) return null;
+        if (minecraft.screen instanceof ModeRadialScreen screen
+            && (screen.surfaceFacePreviewOpen() || screen.floatingOrientationPreviewOpen())) {
+            return PortalPreviewGunState.fromSnapshot(PortalClientState.gun(), PortalClientState.data(),
+                minecraft.player.getUUID(), now);
+        }
+        return PortalPreviewGunState.fromStack(heldGun(minecraft), PortalClientState.data(),
+            PortalClientState.moduleRules(), minecraft.player.getUUID(), now);
     }
 
     private static void draw(PoseStack.Pose pose, VertexConsumer vertices,

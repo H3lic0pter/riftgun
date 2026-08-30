@@ -10,10 +10,16 @@ import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.crisis.PortalFluidInstability;
+import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.pairing.PortalPairingPendingEndpoints;
+import dev.riftgun.service.PortalGunIdentity;
 
 public final class PortalGunSnapshot {
     public static CompoundTag create(ItemStack gun, int legacySmartDistance) {
         CompoundTag tag = new CompoundTag();
+        Nbt.putUUID(tag, "InstanceId", PortalGunIdentity.ensure(gun));
+        var pending = PortalPairingPendingEndpoints.get(gun);
+        if (pending != null) tag.put("PendingPairingEndpoint", pending.save());
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, legacySmartDistance);
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, legacySmartDistance);
         PortalModuleRules rules = PortalModuleRules.current();

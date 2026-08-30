@@ -18,9 +18,9 @@ final class RemotePlacementPreviewSettingSourceTest {
             String screen = Files.readString(sourceRoot.resolve(
                 Path.of("screen", "PortalConfigScreen.java")));
 
-            assertTrue(preview.contains("placementPreviewEnabled()"));
-            assertTrue(preview.contains("capabilities.remoteDistance()"));
-            assertTrue(preview.contains("capabilities.maximumSurfaceRange()"));
+            assertTrue(preview.contains("gun.remotePlacementPreview()"));
+            assertTrue(preview.contains("gun.remoteDistance()"));
+            assertTrue(preview.contains("gun.maximumSurfaceRange()"));
             assertTrue(screen.contains("\"RemoteDistance\", \"screen.riftgun.remote_distance_value\""));
             assertTrue(screen.contains("\"RemotePlacementPreview\", \"RemotePlacementPreviewEnabled\""));
             assertTrue(screen.contains("case REMOTE_SETTINGS -> 180;"));

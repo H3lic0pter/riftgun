@@ -60,8 +60,12 @@ public final class PortalRequestHandler {
 
         boolean keyboardShortcut = isKeyboardShortcut(action, request);
         PortalGunLocator.LocatedGun gun = action == PortalAction.ADJUST_SURFACE_RANGE
+            && !request.contains("GunReference")
             ? VanillaInventoryPortalGunLocator.locateMainHand(player).orElse(null)
-            : keyboardShortcut ? PortalShortcutGunSelection.locate(player).orElse(null)
+            : keyboardShortcut && request.contains("GunReference")
+                ? PortalGunLocator.resolveReference(
+                    player, Nbt.getCompound(request, "GunReference")).orElse(null)
+                : keyboardShortcut ? PortalShortcutGunSelection.locate(player).orElse(null)
                 : locateGun(player, request);
         if (gun == null) {
             if (action == PortalAction.OPEN_MODE_RADIAL) {
@@ -375,7 +379,7 @@ public final class PortalRequestHandler {
     }
 
     private static void closePortals(ServerPlayer player) {
-        PortalPairingPendingEndpoints.clearAll(player.getInventory());
+        PortalPairingPendingEndpoints.clearAll(player);
 //? if >=1.21.11 {
         /*if (player.level().getServer() != null) {
 *///?} else {

@@ -1,8 +1,9 @@
 package dev.riftgun.service;
 import dev.riftgun.core.nbt.Nbt;
-
-import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.RiftConstants;
+import dev.riftgun.core.registry.RiftContent;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
@@ -47,6 +48,16 @@ public final class VanillaInventoryPortalGunLocator implements PortalGunLocator 
                 ? Optional.of(located(inventory, selected)) : Optional.empty(),
             () -> isGun(inventory.getItem(Inventory.SLOT_OFFHAND))
                 ? Optional.of(located(inventory, Inventory.SLOT_OFFHAND)) : Optional.empty());
+    }
+
+    @Override
+    public List<LocatedGun> locateAll(ServerPlayer player) {
+        Inventory inventory = player.getInventory();
+        List<LocatedGun> guns = new ArrayList<>();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            if (isGun(inventory.getItem(slot))) guns.add(located(inventory, slot));
+        }
+        return List.copyOf(guns);
     }
 
     public static Optional<LocatedGun> locateMainHand(ServerPlayer player) {

@@ -173,28 +173,6 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         return true;
     }
 
-    public static boolean openDormant(ServerPlayer player, PortalPlacement placement,
-                                      PortalFuelProfile fuel, PortalRuntimeOptions options,
-                                      UUID gunId, PortalPairingEndpoint endpoint) {
-        MinecraftServer server = player.level().getServer();
-        if (server == null || endpoint == PortalPairingEndpoint.NONE) return false;
-        ServerLevel level = (ServerLevel) player.level();
-        if (!PortalChunkGuard.inWorldBounds(level, BlockPos.containing(placement.center()))) return false;
-        PortalEntity portal = create(level, player.getUUID(), placement, fuel.rgb(), fuel.id().toString(),
-            options, server.overworld().getGameTime(), null, false);
-        portal.setPairing(gunId, endpoint, true);
-        portal.acquireChunkTicket();
-        boolean added = level.addFreshEntity(portal);
-        if (!added) {
-            portal.releaseChunkTicket();
-            return false;
-        }
-        closeOwnedPortals(server, player.getUUID(), Set.of(portal.getUUID()));
-        PortalSounds.playShot(player, portal.sounds);
-        playOpeningSounds(level, placement, portal.sounds);
-        return true;
-    }
-
     public static boolean deferUnloadedSameDimensionExit() {
         return true;
     }

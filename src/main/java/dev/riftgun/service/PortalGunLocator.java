@@ -1,5 +1,7 @@
 package dev.riftgun.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -14,6 +16,11 @@ public interface PortalGunLocator {
 
     Optional<LocatedGun> locate(ServerPlayer player);
 
+    /** Enumerates every gun owned through this locator; legacy integrations expose their first. */
+    default List<LocatedGun> locateAll(ServerPlayer player) {
+        return locate(player).stream().toList();
+    }
+
     Optional<ItemStack> resolve(ServerPlayer player, CompoundTag token);
 
     static void register(PortalGunLocator locator) {
@@ -26,6 +33,17 @@ public interface PortalGunLocator {
             if (found.isPresent()) return found;
         }
         return Optional.empty();
+    }
+
+    static List<LocatedGun> all(ServerPlayer player) {
+        LinkedHashMap<java.util.UUID, LocatedGun> found = new LinkedHashMap<>();
+        for (PortalGunLocator locator : LOCATORS) {
+            for (LocatedGun gun : locator.locateAll(player)) {
+                if (gun == null || gun.stack().isEmpty()) continue;
+                found.putIfAbsent(PortalGunIdentity.ensure(gun.stack()), gun);
+            }
+        }
+        return new ArrayList<>(found.values());
     }
 
     static Optional<LocatedGun> resolveReference(ServerPlayer player, CompoundTag reference) {

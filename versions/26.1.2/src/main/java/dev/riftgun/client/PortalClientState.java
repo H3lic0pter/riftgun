@@ -73,8 +73,10 @@ public final class PortalClientState {
     }
 
     public static void writeGunReference(CompoundTag request) {
-        if (!(Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen)
-            || gunReference.isEmpty()) return;
+        boolean gunScreen = Minecraft.getInstance().screen
+            instanceof dev.riftgun.client.screen.PortalConfigScreen
+            || Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.ModeRadialScreen;
+        if (!gunScreen || gunReference.isEmpty()) return;
         request.put("GunReference", gunReference.copy());
     }
 

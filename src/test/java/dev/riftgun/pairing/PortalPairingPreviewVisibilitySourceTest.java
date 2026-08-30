@@ -14,8 +14,8 @@ final class PortalPairingPreviewVisibilitySourceTest {
         for (String version : new String[] {"1.21.1", "26.1.2"}) {
             String source = Files.readString(Path.of("versions", version, "src", "main", "java",
                 "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
-            String method = source.substring(source.indexOf("private static boolean portalEndpointMode"),
-                source.indexOf("private static PortalPlacementPreviewCache.Input input"));
+            String method = source.substring(source.indexOf("private static void tickPending"),
+                source.indexOf("private static void clearPending"));
 
             assertTrue(method.contains("PortalPlacementMode.ENTITY_RELOCATION"), version);
             assertFalse(method.contains("PortalFunctionMode"),
