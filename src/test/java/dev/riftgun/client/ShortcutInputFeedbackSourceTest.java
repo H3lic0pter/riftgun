@@ -15,19 +15,18 @@ final class ShortcutInputFeedbackSourceTest {
     void radialWaitsForServerApprovalBeforeOpening() throws Exception {
         String source = Files.readString(Path.of("src", "main", "java",
             "dev", "riftgun", "client", "ModeRadialInput.java"));
-        String request = method(source, "private static void request(",
-            "private static boolean sourceDown(");
-        String approved = method(source, "public static void openFromServer(",
-            "public static void rejectFromServer(");
-        String pending = method(source, "if (pendingSource != null) {",
-            "if (radialDown && !radialWasDown)");
-
-        assertFalse(request.contains("setScreen("),
+        assertFalse(source.contains("setScreen("),
             "radial opens before the server validates the gun");
-        assertTrue(approved.contains("setScreen(new ModeRadialScreen())"),
-            "radial must open after server approval");
-        assertTrue(pending.contains("REQUEST.release()"),
+        assertTrue(source.contains("ModeRadialClientAccess.openOrRefresh("),
+            "server approval must delegate opening to the client facade");
+        assertTrue(source.contains("REQUEST.release()"),
             "request released before server approval must be preserved");
+        for (String version : VERSIONS) {
+            String facade = Files.readString(Path.of("versions", version, "src", "main", "java",
+                "dev", "riftgun", "client", "ModeRadialClientAccess.java"));
+            assertTrue(facade.contains("minecraft.setScreen("),
+                version + " facade must open the radial after approval");
+        }
     }
 
     @Test

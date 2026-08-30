@@ -1,21 +1,7 @@
 package dev.riftgun.client;
 
-import dev.riftgun.client.screen.ModeRadialScreen;
 import dev.riftgun.input.RadialRequestState;
-import dev.riftgun.core.nbt.Nbt;
-import dev.riftgun.network.PortalAction;
-import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.network.PrecisionPlacementRequest;
-import dev.riftgun.network.SurfaceFaceRequest;
-import dev.riftgun.data.PortalPlacementMode;
-import dev.riftgun.portal.PortalOrientation;
-import dev.riftgun.service.PortalPlacementCapabilities;
-import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
 
 /** Owns tap/hold and dedicated preview behavior without coupling the screen to key bindings. */
 public final class ModeRadialInput {
@@ -29,19 +15,20 @@ public final class ModeRadialInput {
     private static boolean suppressUntilRelease;
     private static PrecisionPlacementRequest pendingPrecisionRequest;
 
-    public static void tick(Minecraft minecraft) {
-        boolean cycleDown = keyDown(ClientModEvents.CYCLE_PLACEMENT);
-        boolean radialDown = keyDown(ClientModEvents.OPEN_MODE_RADIAL);
-        boolean surfacePreviewDown = keyDown(ClientModEvents.OPEN_PRECISION_PLACEMENT);
+    public static void tick() {
+        ModeRadialClientAccess.Keys keys = ModeRadialClientAccess.keys();
+        boolean cycleDown = keys.cycleDown();
+        boolean radialDown = keys.radialDown();
+        boolean surfacePreviewDown = keys.precisionDown();
 
-        if (minecraft.screen instanceof ModeRadialScreen screen) {
+        if (ModeRadialClientAccess.radialScreenOpen()) {
             if (pendingSource != null
                 && !sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
                 if (REQUEST.release() == RadialRequestState.ReleaseResult.COMMIT) {
                     if (pendingSource == Source.PRECISION_PREVIEW) {
-                        closePrecisionFromShortcutRelease(screen);
+                        closePrecisionFromShortcutRelease();
                     } else {
-                        screen.commitAndClose();
+                        ModeRadialClientAccess.commitAndClose(false);
                         suppressUntilRelease = true;
                     }
                 }
@@ -58,7 +45,7 @@ public final class ModeRadialInput {
             remember(cycleDown, radialDown, surfacePreviewDown);
             return;
         }
-        if (minecraft.screen != null || minecraft.player == null || minecraft.getConnection() == null) {
+        if (ModeRadialClientAccess.blockedOrUnavailable()) {
             reset(cycleDown, radialDown, surfacePreviewDown);
             return;
         }
@@ -71,7 +58,7 @@ public final class ModeRadialInput {
             return;
         }
         if (surfacePreviewDown && !surfacePreviewWasDown) {
-            pendingPrecisionRequest = capturePrecisionTarget(minecraft);
+            pendingPrecisionRequest = ModeRadialClientAccess.capturePrecisionTarget();
             if (pendingPrecisionRequest != null) request(Source.PRECISION_PREVIEW);
         } else if (radialDown && !radialWasDown) {
             request(Source.DEDICATED);
@@ -81,9 +68,7 @@ public final class ModeRadialInput {
             if (cycleHeldTicks == HOLD_TICKS) request(Source.CYCLE);
         } else if (cycleWasDown) {
             if (cycleHeldTicks < HOLD_TICKS) {
-                boolean reverse = minecraft.options.keyShift.isDown();
-                PortalNetworking.sendShortcutRequest(PortalAction.CYCLE_PLACEMENT_MODE,
-                    tag -> tag.putBoolean("Reverse", reverse));
+                ModeRadialClientAccess.sendCycleRequest();
             }
             cycleHeldTicks = 0;
         }
@@ -91,27 +76,18 @@ public final class ModeRadialInput {
     }
 
     public static void openFromServer(int requestId) {
-        Minecraft minecraft = Minecraft.getInstance();
         if (pendingSource == null) return;
         RadialRequestState.AcknowledgeResult result = REQUEST.acknowledge(requestId,
-            sourceDown(pendingSource, keyDown(ClientModEvents.CYCLE_PLACEMENT),
-                keyDown(ClientModEvents.OPEN_MODE_RADIAL),
-                keyDown(ClientModEvents.OPEN_PRECISION_PLACEMENT)));
+            sourceDown(pendingSource, ModeRadialClientAccess.keys()));
         if (result == RadialRequestState.AcknowledgeResult.IGNORE) return;
-        if (minecraft.screen == null) {
-            if (pendingSource == Source.PRECISION_PREVIEW) {
-                minecraft.setScreen(new ModeRadialScreen(pendingPrecisionRequest));
-            } else {
-                minecraft.setScreen(new ModeRadialScreen());
-            }
-        }
-        if (minecraft.screen instanceof ModeRadialScreen screen) screen.refreshFromServer();
+        ModeRadialClientAccess.openOrRefresh(
+            pendingSource == Source.PRECISION_PREVIEW ? pendingPrecisionRequest : null);
         if (result == RadialRequestState.AcknowledgeResult.COMMIT
-            && minecraft.screen instanceof ModeRadialScreen screen) {
+            && ModeRadialClientAccess.radialScreenOpen()) {
             if (pendingSource == Source.PRECISION_PREVIEW) {
-                closePrecisionFromShortcutRelease(screen);
+                closePrecisionFromShortcutRelease();
             } else {
-                screen.commitAndClose();
+                ModeRadialClientAccess.commitAndClose(false);
                 suppressUntilRelease = true;
             }
         }
@@ -122,8 +98,7 @@ public final class ModeRadialInput {
         pendingSource = null;
         pendingPrecisionRequest = null;
         suppressUntilRelease = true;
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen instanceof ModeRadialScreen screen) screen.rejectAndClose();
+        ModeRadialClientAccess.rejectAndClose();
     }
 
     public static void cancelFromScreen() {
@@ -133,29 +108,26 @@ public final class ModeRadialInput {
         suppressUntilRelease = true;
     }
 
-    private static void closePrecisionFromShortcutRelease(ModeRadialScreen screen) {
+    private static void closePrecisionFromShortcutRelease() {
         pendingSource = null;
         pendingPrecisionRequest = null;
         REQUEST.cancel();
         suppressUntilRelease = true;
-        screen.closeFromShortcutRelease();
+        ModeRadialClientAccess.commitAndClose(true);
     }
 
     public static boolean ready() { return pendingSource != null && REQUEST.ready(); }
 
     /** Reads the configured Sneak binding directly while a Screen owns keyboard input. */
     public static boolean sneakDown() {
-        return keyDown(Minecraft.getInstance().options.keyShift);
+        return ModeRadialClientAccess.sneakDown();
     }
 
     private static void request(Source source) {
         pendingSource = source;
         int requestId = REQUEST.begin();
-        PortalNetworking.sendShortcutRequest(PortalAction.OPEN_MODE_RADIAL,
-            tag -> {
-                tag.putInt("RadialRequestId", requestId);
-                tag.putBoolean("PrecisionPreview", source == Source.PRECISION_PREVIEW);
-            });
+        ModeRadialClientAccess.sendOpenRequest(
+            requestId, source == Source.PRECISION_PREVIEW);
     }
 
     private static boolean sourceDown(Source source, boolean cycleDown, boolean radialDown,
@@ -167,41 +139,8 @@ public final class ModeRadialInput {
         };
     }
 
-    private static boolean keyDown(KeyMapping mapping) {
-        return ClientKeyState.down(mapping);
-    }
-
-    private static PrecisionPlacementRequest capturePrecisionTarget(Minecraft minecraft) {
-        if (!Nbt.getBoolean(PortalClientState.gun(), "PrecisionPlacementInstalled")) return null;
-        PortalPlacementMode mode = PortalClientState.data().settings().placementMode();
-        if (mode == PortalPlacementMode.REMOTE
-            && !Nbt.getBoolean(PortalClientState.gun(), "RemoteInstalled")) {
-            mode = PortalPlacementMode.FRONT;
-        }
-        if (mode == PortalPlacementMode.ENTITY_RELOCATION) return null;
-        if (mode == PortalPlacementMode.FRONT || mode == PortalPlacementMode.REMOTE) {
-            return PrecisionPlacementRequest.floating(defaultOrientation(minecraft));
-        }
-        int range = mode == PortalPlacementMode.SMART
-            ? Math.max(1, PortalClientState.data().settings().smartDistance())
-            : Math.max(1, Nbt.getInt(PortalClientState.gun(), "MaximumSurfaceRange"));
-        Vec3 eye = minecraft.player.getEyePosition();
-        HitResult raw = minecraft.level.clip(new ClipContext(eye,
-            eye.add(minecraft.player.getLookAngle().scale(range)),
-            ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, minecraft.player));
-        if (raw instanceof BlockHitResult hit && raw.getType() == HitResult.Type.BLOCK) {
-            return PrecisionPlacementRequest.surface(
-                new SurfaceFaceRequest(hit.getBlockPos(), hit.getDirection()));
-        }
-        return mode == PortalPlacementMode.SMART
-            ? PrecisionPlacementRequest.floating(defaultOrientation(minecraft)) : null;
-    }
-
-    private static PortalOrientation defaultOrientation(Minecraft minecraft) {
-        float pitch = minecraft.player.getXRot();
-        float threshold = PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH;
-        return pitch >= threshold ? PortalOrientation.TOP
-            : pitch <= -threshold ? PortalOrientation.BOTTOM : PortalOrientation.VERTICAL;
+    private static boolean sourceDown(Source source, ModeRadialClientAccess.Keys keys) {
+        return sourceDown(source, keys.cycleDown(), keys.radialDown(), keys.precisionDown());
     }
 
     private static void remember(boolean cycleDown, boolean radialDown, boolean surfacePreviewDown) {

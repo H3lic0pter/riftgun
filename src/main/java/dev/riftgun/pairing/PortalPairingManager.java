@@ -139,12 +139,7 @@ public final class PortalPairingManager {
         boolean hasB = pending != null && pending.endpoint() == PortalPairingEndpoint.B
             || active.stream().anyMatch(
             portal -> portal.pairingEndpoint() == PortalPairingEndpoint.B);
-        PortalPairingStateMachine.State state = hasA && hasB
-            ? PortalPairingStateMachine.State.CONNECTED
-            : hasA ? PortalPairingStateMachine.State.A_ONLY
-            : hasB ? PortalPairingStateMachine.State.B_ONLY
-            : PortalPairingStateMachine.State.EMPTY;
-        boolean connectsPair = PortalPairingStateMachine.connectsPair(state, endpoint);
+        boolean connectsPair = PortalPairingConnectionPolicy.connectsPair(hasA, hasB, endpoint);
         PortalEntity opposite = active.stream()
             .filter(portal -> portal.pairingEndpoint() == endpoint.opposite())
             .findFirst().orElse(null);

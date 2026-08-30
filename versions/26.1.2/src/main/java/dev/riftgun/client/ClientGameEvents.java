@@ -57,7 +57,7 @@ public final class ClientGameEvents {
         GuiCaptureHarness.tick(minecraft);
         PortalSplashEmitter.tick(minecraft);
         PortalPlacementPreview.tick(minecraft);
-        ModeRadialInput.tick(minecraft);
+        ModeRadialInput.tick();
         while (ClientModEvents.OPEN_CONFIG.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendShortcutRequest(PortalAction.OPEN_GUI);

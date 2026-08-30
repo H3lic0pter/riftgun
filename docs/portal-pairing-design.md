@@ -136,6 +136,11 @@ no surface anchor.
 - Looking steeply up creates a horizontal `BOTTOM` portal.
 - Use the same configurable absolute pitch threshold in both directions.
 
+Implementation note: to bound collision work at extreme configured ranges, the
+last 32 blocks are searched at quarter-block resolution and the remaining ray is
+sampled every 8 blocks. A valid interval narrower than that coarse step may be
+skipped. This bounded best-effort behavior is accepted for REMOTE placement.
+
 The symmetric TOP/BOTTOM behavior also applies to FRONT. Existing source,
 configuration, localization, tooltip, README, and comment text that describes
 only a downshot/downward door must be updated to describe horizontal doors in
@@ -146,6 +151,10 @@ both directions.
 Motion prediction applies only to FRONT. REMOTE is fixed to the previewed view
 ray; SURFACE is fixed to its hit face. SMART uses prediction only when its
 resolved fallback is FRONT.
+
+An explicit Precision Placement FRONT choice is an exception: it uses the
+player's current bounds with prediction forced to `OFF`, so the selected
+orientation remains attached to the position shown by the precision preview.
 
 ### 5.3 SMART routing
 

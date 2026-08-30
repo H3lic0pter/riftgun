@@ -1,7 +1,6 @@
 package dev.riftgun.architecture;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,8 +21,6 @@ import org.junit.jupiter.api.Test;
  */
 final class SharedSourceBoundaryTest {
     private static final Path MAIN = Path.of("src/main/java/dev/riftgun");
-    private static final Path AUDITED_SHARED_CLIENT_FACADE =
-        MAIN.resolve("client/ModeRadialInput.java");
     private static final List<String> BANNED_PREFIXES = List.of(
         "net.minecraft.client.",   // renderer/GUI churn in every major release
         "dev.riftgun.client.",     // version-private package
@@ -34,13 +31,6 @@ final class SharedSourceBoundaryTest {
         try (var paths = Files.walk(MAIN)) {
             for (Path source : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
                 String text = Files.readString(source);
-                if (source.equals(AUDITED_SHARED_CLIENT_FACADE)) {
-                    assertTrue(text.contains("ClientKeyState.down(mapping)"),
-                        "shared radial input must route version-sensitive key reads through its adapter");
-                    assertFalse(text.contains("InputConstants") || text.contains("GLFW"),
-                        "shared radial input leaked a version-sensitive window API");
-                    continue;
-                }
                 for (String banned : BANNED_PREFIXES) {
                     assertFalse(text.contains(banned),
                         () -> source + " imports version-sensitive " + banned

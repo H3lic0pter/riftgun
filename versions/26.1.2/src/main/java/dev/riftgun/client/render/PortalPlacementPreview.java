@@ -69,11 +69,7 @@ public final class PortalPlacementPreview {
         }
         tick = minecraft.level.getGameTime();
         if (!CACHE.shouldRefresh(tick, input)) return;
-        PortalPlacement placement = RemotePortalPlacementResolver.resolve(
-            minecraft.level, minecraft.player, input.range(), input.aperture(),
-            PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH,
-            PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE).orElse(null);
-        CACHE.update(tick, input, placement);
+        updateRemotePreview(minecraft, tick, input, null);
     }
 
     @SubscribeEvent
@@ -182,14 +178,11 @@ public final class PortalPlacementPreview {
                 gun.aperture(), minecraft.player.getXRot(), minecraft.player.getYRot(),
                 orientation);
             if (!CACHE.shouldRefresh(tick, input)) return true;
-            PortalPlacement placement = mode == PortalPlacementMode.REMOTE
-                ? RemotePortalPlacementResolver.resolve(
-                    minecraft.level, minecraft.player, gun.remoteDistance(),
-                    gun.aperture(), PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH,
-                    orientation, PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE)
-                    .orElse(null)
-                : frontPreview(minecraft, gun, orientation);
-            CACHE.update(tick, input, placement);
+            if (mode == PortalPlacementMode.REMOTE) {
+                updateRemotePreview(minecraft, tick, input, orientation);
+            } else {
+                CACHE.update(tick, input, frontPreview(minecraft, gun, orientation));
+            }
             return true;
         }
         BlockPos anchor = screen.surfaceAnchor();
@@ -236,7 +229,18 @@ public final class PortalPlacementPreview {
             minecraft.level.dimensionType().minY(),
             PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE,
             (placement, exposure) -> PortalFaceExposure.hasMinimumExposure(
-                minecraft.level, placement, exposure)).placement();
+            minecraft.level, placement, exposure)).placement();
+    }
+
+    private static void updateRemotePreview(Minecraft minecraft, long tick,
+                                            PortalPlacementPreviewCache.Input input,
+                                            PortalOrientation orientation) {
+        long started = System.nanoTime();
+        PortalPlacement placement = RemotePortalPlacementResolver.resolve(
+            minecraft.level, minecraft.player, input.range(), input.aperture(),
+            PortalPlacementCapabilities.DEFAULT_DOWNSHOT_MINIMUM_PITCH, orientation,
+            PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE).orElse(null);
+        CACHE.updateMeasured(tick, input, placement, System.nanoTime() - started);
     }
 
     private static ItemStack heldGun(Minecraft minecraft) {

@@ -51,7 +51,7 @@ public final class ClientGameEvents {
         PortalSplashEmitter.tick(minecraft);
         PortalPlacementPreview.tick(minecraft);
         ImmersivePortalCompat.tick(minecraft);
-        ModeRadialInput.tick(minecraft);
+        ModeRadialInput.tick();
         while (ClientModEvents.OPEN_CONFIG.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendShortcutRequest(PortalAction.OPEN_GUI);

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 final class RemotePortalPlacementSearchTest {
     @Test
-    void findsNarrowValidIntervalBetweenFormerCoarseSamples() {
+    void findsNarrowValidIntervalInsideFineSearchWindow() {
         List<Double> probes = new ArrayList<>();
 
         Optional<String> result = RemotePortalPlacementResolver.findFurthest(9_248.0, distance -> {

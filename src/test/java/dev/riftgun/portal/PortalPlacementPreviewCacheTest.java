@@ -41,6 +41,16 @@ final class PortalPlacementPreviewCacheTest {
     }
 
     @Test
+    void expensiveRemoteWorkBacksOffUsingMeasuredDuration() {
+        PortalPlacementPreviewCache cache = new PortalPlacementPreviewCache();
+        var initial = input(1000, Vec3.ZERO);
+        cache.updateMeasured(0, initial, placement(), 40_000_000L);
+
+        assertFalse(cache.shouldRefresh(19, input(1000, new Vec3(0.19, 0.0, 0.0))));
+        assertTrue(cache.shouldRefresh(20, input(1000, new Vec3(0.20, 0.0, 0.0))));
+    }
+
+    @Test
     void renderedSegmentsAreReusedUntilPredictionChanges() {
         PortalPlacementPreviewCache cache = new PortalPlacementPreviewCache();
         cache.update(0, input(32, Vec3.ZERO), placement());

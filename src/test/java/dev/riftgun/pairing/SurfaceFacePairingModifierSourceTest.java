@@ -20,8 +20,15 @@ final class SurfaceFacePairingModifierSourceTest {
             assertTrue(radial.contains("tag.putBoolean(\"EndpointA\""),
                 version + " must capture the modifier in the shortcut packet");
         }
-        assertTrue(input.contains("return keyDown(Minecraft.getInstance().options.keyShift);"),
-            "precision radial must honor the configured Sneak binding inside a Screen");
+        assertTrue(input.contains("return ModeRadialClientAccess.sneakDown();"),
+            "shared radial state must delegate Sneak reads to the client facade");
+        for (String version : new String[] {"1.21.1", "26.1.2"}) {
+            String facade = Files.readString(Path.of("versions", version, "src", "main", "java",
+                "dev", "riftgun", "client", "ModeRadialClientAccess.java"));
+            assertTrue(facade.contains(
+                "ClientKeyState.down(Minecraft.getInstance().options.keyShift)"),
+                version + " must honor the configured Sneak binding inside a Screen");
+        }
 
         String handler = Files.readString(Path.of(
             "src/main/java/dev/riftgun/network/PortalRequestHandler.java"));
