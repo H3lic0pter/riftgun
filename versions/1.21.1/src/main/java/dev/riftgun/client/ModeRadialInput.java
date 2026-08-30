@@ -39,7 +39,8 @@ public final class ModeRadialInput {
         if (minecraft.screen instanceof ModeRadialScreen screen) {
             if (pendingSource != null
                 && !sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
-                if (REQUEST.release() == RadialRequestState.ReleaseResult.COMMIT) {
+                if (pendingSource != Source.PRECISION_PREVIEW
+                    && REQUEST.release() == RadialRequestState.ReleaseResult.COMMIT) {
                     screen.commitAndClose();
                     suppressUntilRelease = true;
                 }
@@ -62,7 +63,9 @@ public final class ModeRadialInput {
         }
 
         if (pendingSource != null) {
-            if (!sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) REQUEST.release();
+            if (!sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
+                REQUEST.release();
+            }
             remember(cycleDown, radialDown, surfacePreviewDown);
             return;
         }
@@ -102,7 +105,8 @@ public final class ModeRadialInput {
             }
         }
         if (minecraft.screen instanceof ModeRadialScreen screen) screen.refreshFromServer();
-        if (result == RadialRequestState.AcknowledgeResult.COMMIT
+        if (pendingSource != Source.PRECISION_PREVIEW
+            && result == RadialRequestState.AcknowledgeResult.COMMIT
             && minecraft.screen instanceof ModeRadialScreen screen) {
             screen.commitAndClose();
             suppressUntilRelease = true;
@@ -119,6 +123,13 @@ public final class ModeRadialInput {
     }
 
     public static void cancelFromScreen() {
+        pendingSource = null;
+        pendingPrecisionRequest = null;
+        REQUEST.cancel();
+        suppressUntilRelease = true;
+    }
+
+    public static void confirmFromScreen() {
         pendingSource = null;
         pendingPrecisionRequest = null;
         REQUEST.cancel();

@@ -7,6 +7,7 @@ import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.input.SurfaceFacePreviewState;
 import dev.riftgun.math.RadialModeGeometry;
+import dev.riftgun.math.RadialRingSpans;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.network.PrecisionPlacementRequest;
@@ -147,6 +148,7 @@ public final class ModeRadialScreen extends Screen {
                 request.writeTo(tag);
                 tag.putBoolean("EndpointA", endpointA);
             });
+            ModeRadialInput.confirmFromScreen();
             if (minecraft != null) minecraft.setScreen(null);
             return;
         }
@@ -175,7 +177,9 @@ public final class ModeRadialScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!ModeRadialInput.ready()) return true;
-        if (button == 0 && overRangeSlider(mouseX, mouseY)) {
+        if (button == 0 && precisionPreviewOnly) {
+            commitAndClose();
+        } else if (button == 0 && overRangeSlider(mouseX, mouseY)) {
             draggingRange = true;
             updateRange(mouseX, false);
         } else if (button == 0 && !precisionPreviewOnly && page != Page.SURFACE_FACE
@@ -269,29 +273,16 @@ public final class ModeRadialScreen extends Screen {
         int inner = innerRadius();
         int outer = Math.max(inner + 1, Math.round(outerRadius() * animation));
         int sample = precisionPreviewOnly ? 1 : SAMPLE;
-        int maximumCoordinate = precisionPreviewOnly ? outer - 1 : outer;
-        for (int y = -outer; y <= maximumCoordinate; y += sample) {
-            for (int x = -outer; x <= maximumCoordinate; x += sample) {
-                double radialX = precisionPreviewOnly ? x + 0.5 : x;
-                double radialY = precisionPreviewOnly ? y + 0.5 : y;
-                double distanceSquared = radialX * radialX + radialY * radialY;
-                if (distanceSquared < inner * inner || distanceSquared > outer * outer) continue;
-                int index = RadialModeGeometry.selectionIndex(
-                    radialX, radialY, count, inner).orElse(-1);
-                int selected = precisionPreviewOnly ? SURFACE_SELECTED_COLOR
-                    : functionMode == PortalFunctionMode.PORTAL_PAIRING
-                    ? 0xDC84502D : 0xDC416775;
-                int baseA = precisionPreviewOnly ? SURFACE_RING_BACKGROUND_A
-                    : functionMode == PortalFunctionMode.PORTAL_PAIRING
-                    ? 0xD82F2925 : 0xD825272D;
-                int baseB = precisionPreviewOnly ? SURFACE_RING_BACKGROUND_B
-                    : functionMode == PortalFunctionMode.PORTAL_PAIRING
-                    ? 0xD83A3028 : 0xD830333A;
-                int color = index == selection ? selected : (index & 1) == 0 ? baseA : baseB;
-                graphics.fill(centerX + x, centerY + y,
-                    centerX + x + sample, centerY + y + sample, color);
-            }
-        }
+        int selected = precisionPreviewOnly ? SURFACE_SELECTED_COLOR
+            : functionMode == PortalFunctionMode.PORTAL_PAIRING ? 0xDC84502D : 0xDC416775;
+        int baseA = precisionPreviewOnly ? SURFACE_RING_BACKGROUND_A
+            : functionMode == PortalFunctionMode.PORTAL_PAIRING ? 0xD82F2925 : 0xD825272D;
+        int baseB = precisionPreviewOnly ? SURFACE_RING_BACKGROUND_B
+            : functionMode == PortalFunctionMode.PORTAL_PAIRING ? 0xD83A3028 : 0xD830333A;
+        RadialRingSpans.forEach(inner, outer, sample, precisionPreviewOnly, count,
+            (xFrom, y, xTo, height, index) -> graphics.fill(
+                centerX + xFrom, centerY + y, centerX + xTo, centerY + y + height,
+                index == selection ? selected : (index & 1) == 0 ? baseA : baseB));
     }
 
     private void drawOptions(GuiGraphics graphics, List<?> options) {
