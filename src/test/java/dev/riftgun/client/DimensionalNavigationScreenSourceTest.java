@@ -32,10 +32,12 @@ final class DimensionalNavigationScreenSourceTest {
                 version + " must reuse the dropdown sprite");
             assertTrue(navigation.contains("drawDownIcon("),
                 version + " must render the existing dropdown arrow");
-            assertTrue(navigation.contains("BACK_ICON_OPTICAL_X = -2"),
-                version + " must keep the reviewed arrow correction");
-            assertTrue(navigation.contains("drawBackIcon("),
-                version + " must render the existing back arrow");
+            assertFalse(navigation.contains("BACK_ICON_OPTICAL_X"),
+                version + " must not duplicate the shared arrow correction");
+            assertTrue(navigation.contains("drawCompactBackButtonIcon("),
+                version + " must use the shared compact back-button renderer");
+            assertTrue(selection.contains("drawCompactBackButtonIcon("),
+                version + " picker must use the same back-button renderer");
             assertTrue(navigation.contains("backButton = button(panelX + panelWidth - 27"),
                 version + " must place Back at top-right");
             assertTrue(selection.contains("panelX + panelWidth - 27, panelY + 7"),
@@ -48,6 +50,13 @@ final class DimensionalNavigationScreenSourceTest {
                 version + " picker must update its parent selection");
             assertTrue(selection.contains("onClose();"),
                 version + " picker must return through its own active Screen");
+            assertTrue(navigation.indexOf("protected void init()")
+                < navigation.indexOf("coordinateDefaultsInitialized = resetCoordinateDefaults()"),
+                version + " must initialize coordinate defaults after Minecraft injects the client");
+            assertTrue(navigation.contains("rebuildDropdownLabels();"),
+                version + " must cache dropdown labels outside the render loop");
+            assertTrue(selection.contains("if (filteredSource != DimensionLabelState.dimensions())"),
+                version + " picker must reuse its filtered list until input changes");
         }
     }
 }

@@ -14,7 +14,6 @@ public final class DimensionSelectionScreen extends Screen {
     private static final int PANEL_WIDTH = 380;
     private static final int PANEL_HEIGHT = 230;
     private static final int ROW_HEIGHT = 20;
-    private static final int BACK_ICON_OPTICAL_X = -2;
     private final DimensionalNavigationScreen parent;
     private int panelX;
     private int panelY;
@@ -24,6 +23,9 @@ public final class DimensionSelectionScreen extends Screen {
     private int listBottom;
     private int scroll;
     private String query = "";
+    private String filteredNeedle = "";
+    private List<DimensionLabelState.DimensionInfo> filteredDimensions = List.of();
+    private List<DimensionLabelState.DimensionInfo> filteredSource = List.of();
     private EditBox search;
     private ThemedButton backButton;
 
@@ -53,8 +55,10 @@ public final class DimensionSelectionScreen extends Screen {
         search.setResponder(value -> {
             query = value;
             scroll = 0;
+            rebuildFilter();
         });
         addRenderableWidget(search);
+        rebuildFilter();
     }
 
     @Override
@@ -83,8 +87,8 @@ public final class DimensionSelectionScreen extends Screen {
             renderable.render(graphics, mouseX, mouseY, partialTick);
             graphics.flush();
         }
-        if (backButton != null) PortalGuiIcons.drawBackIcon(
-            graphics, backButton.getX() + 7 + BACK_ICON_OPTICAL_X, backButton.getY() + 6);
+        if (backButton != null) PortalGuiIcons.drawCompactBackButtonIcon(
+            graphics, backButton.getX(), backButton.getY());
     }
 
     @Override
@@ -119,10 +123,15 @@ public final class DimensionSelectionScreen extends Screen {
     }
 
     private List<DimensionLabelState.DimensionInfo> filtered() {
-        String needle = query.strip().toLowerCase(Locale.ROOT);
-        if (needle.isEmpty()) return DimensionLabelState.dimensions();
-        return DimensionLabelState.dimensions().stream()
-            .filter(info -> info.id().toLowerCase(Locale.ROOT).contains(needle))
+        if (filteredSource != DimensionLabelState.dimensions()) rebuildFilter();
+        return filteredDimensions;
+    }
+
+    private void rebuildFilter() {
+        filteredNeedle = query.strip().toLowerCase(Locale.ROOT);
+        filteredSource = DimensionLabelState.dimensions();
+        filteredDimensions = filteredNeedle.isEmpty() ? filteredSource : filteredSource.stream()
+            .filter(info -> info.id().toLowerCase(Locale.ROOT).contains(filteredNeedle))
             .toList();
     }
 

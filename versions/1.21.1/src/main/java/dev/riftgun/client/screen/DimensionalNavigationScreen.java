@@ -25,7 +25,6 @@ public final class DimensionalNavigationScreen extends Screen {
     private static final int PANEL_WIDTH = 380;
     private static final int PANEL_HEIGHT = 230;
     private static final int FIELD_HEIGHT = 18;
-    private static final int BACK_ICON_OPTICAL_X = -2;
     private final PortalConfigScreen parent;
     private final UUID group;
     private String dimension;
@@ -36,6 +35,7 @@ public final class DimensionalNavigationScreen extends Screen {
     private String z = "";
     private String yaw = "";
     private boolean coordinatesEdited;
+    private boolean coordinateDefaultsInitialized;
     private boolean dropdownOpen;
     private int dropdownIndex;
     private int dropdownScroll;
@@ -53,6 +53,7 @@ public final class DimensionalNavigationScreen extends Screen {
     private ThemedButton backButton;
     private ThemedButton dimensionSelector;
     private ThemedButton dimensionDropdownButton;
+    private Map<String, String> dropdownLabels = Map.of();
 
     public DimensionalNavigationScreen(PortalConfigScreen parent, UUID group) {
         super(Component.translatable("screen.riftgun.dimensional_navigation"));
@@ -61,12 +62,15 @@ public final class DimensionalNavigationScreen extends Screen {
         dimension = Nbt.getString(PortalClientState.gun(), "DimensionalTraversalDimension");
         mode = DimensionalTraversalMode.parse(
             Nbt.getString(PortalClientState.gun(), "DimensionalTraversalMode"));
-        if (!knownDimension(dimension)) dimension = currentDimension();
-        resetCoordinateDefaults();
     }
 
     @Override
     protected void init() {
+        if (!knownDimension(dimension)) dimension = currentDimension();
+        if (!coordinateDefaultsInitialized) {
+            coordinateDefaultsInitialized = resetCoordinateDefaults();
+        }
+        rebuildDropdownLabels();
         panelWidth = Math.min(PANEL_WIDTH, width - 16);
         panelHeight = Math.min(PANEL_HEIGHT, height - 16);
         panelX = (width - panelWidth) / 2;
@@ -142,7 +146,7 @@ public final class DimensionalNavigationScreen extends Screen {
         if (!knownDimension(id)) return;
         dimension = id;
         dropdownOpen = false;
-        if (!coordinatesEdited) resetCoordinateDefaults();
+        if (!coordinatesEdited) coordinateDefaultsInitialized = resetCoordinateDefaults();
         PortalClientState.gun().putString("DimensionalTraversalDimension", id);
         sendSetting("DimensionalTraversalDimension", id);
         if (dimensionSelector != null) {
@@ -193,8 +197,8 @@ public final class DimensionalNavigationScreen extends Screen {
         }
     }
 
-    private void resetCoordinateDefaults() {
-        if (minecraft == null || minecraft.player == null || minecraft.level == null) return;
+    private boolean resetCoordinateDefaults() {
+        if (minecraft == null || minecraft.player == null || minecraft.level == null) return false;
         double sourceScale = minecraft.level.dimensionType().coordinateScale();
         double targetScale = DimensionLabelState.dimensions().stream()
             .filter(info -> info.id().equals(dimension)).mapToDouble(
@@ -203,6 +207,7 @@ public final class DimensionalNavigationScreen extends Screen {
         y = coordinate(minecraft.player.getY());
         z = coordinate(minecraft.player.getZ() * sourceScale / targetScale);
         yaw = coordinate(minecraft.player.getYRot());
+        return true;
     }
 
     @Override
@@ -231,8 +236,8 @@ public final class DimensionalNavigationScreen extends Screen {
             renderable.render(graphics, mouseX, mouseY, partialTick);
             graphics.flush();
         }
-        if (backButton != null) PortalGuiIcons.drawBackIcon(
-            graphics, backButton.getX() + 7 + BACK_ICON_OPTICAL_X, backButton.getY() + 6);
+        if (backButton != null) PortalGuiIcons.drawCompactBackButtonIcon(
+            graphics, backButton.getX(), backButton.getY());
         if (dimensionDropdownButton != null) PortalGuiIcons.drawDownIcon(graphics,
             dimensionDropdownButton.getX() + 6, dimensionDropdownButton.getY() + 7);
         if (dropdownOpen) renderDimensionDropdown(graphics, mouseX, mouseY);
@@ -417,14 +422,23 @@ public final class DimensionalNavigationScreen extends Screen {
             id.substring(id.lastIndexOf(':') + 1)));
     }
 
-    private static String dropdownLabel(String id) {
-        String display = displayDimension(id);
+    private String dropdownLabel(String id) {
+        return dropdownLabels.getOrDefault(id, displayDimension(id));
+    }
+
+    private void rebuildDropdownLabels() {
         Map<String, Integer> counts = new HashMap<>();
         for (DimensionLabelState.DimensionInfo info : DimensionLabelState.dimensions()) {
             counts.merge(displayDimension(info.id()), 1, Integer::sum);
         }
-        return counts.getOrDefault(display, 0) > 1
-            ? display + " - " + id.substring(0, id.indexOf(':')) : display;
+        Map<String, String> rebuilt = new HashMap<>();
+        for (DimensionLabelState.DimensionInfo info : DimensionLabelState.dimensions()) {
+            String id = info.id();
+            String display = displayDimension(id);
+            rebuilt.put(id, counts.getOrDefault(display, 0) > 1
+                ? display + " - " + id.substring(0, id.indexOf(':')) : display);
+        }
+        dropdownLabels = Map.copyOf(rebuilt);
     }
 
     private static String friendlyDimension(String path) {

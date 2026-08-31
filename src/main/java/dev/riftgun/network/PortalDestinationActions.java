@@ -53,22 +53,8 @@ final class PortalDestinationActions {
         if (!PortalGunCapabilities.resolve(gun, data.settings().smartDistance()).coordinateOverride()) {
             throw PortalRequestFields.error("message.riftgun.coordinate_module_required");
         }
-        requireDestinationCapacity(data);
-        requireCoordinateLengths(request);
-        UUID group = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
-        String name = destinationName(data, Nbt.getString(request, "Name"), true);
-        double x = CoordinateParser.parse(Nbt.getString(request, "X"), player.getX());
-        double y = CoordinateParser.parse(Nbt.getString(request, "Y"), player.getY());
-        double z = CoordinateParser.parse(Nbt.getString(request, "Z"), player.getZ());
-        float yaw = CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot());
-        requireInWorldBounds(player, x, y, z);
-        long time = player.level().getGameTime();
-        UUID destinationId = UUID.randomUUID();
-        data.destinations().add(new Destination(
-            destinationId, name, group, player.level().dimension(), x, y, z, yaw, time, 0L, false
-        ));
-        select(data, destinationId);
-        return true;
+        return createCoordinateDestination(player, data, request, (ServerLevel) player.level(),
+            player.getX(), player.getY(), player.getZ(), false);
     }
 
     static boolean createDimensionalCoordinate(ServerPlayer player, PortalPlayerData data,
@@ -82,15 +68,23 @@ final class PortalDestinationActions {
         ServerLevel target = DimensionalTraversalTargets.resolve(
                 player, Nbt.getString(request, "Dimension"))
             .orElseThrow(() -> PortalRequestFields.error("message.riftgun.dimension_unavailable"));
+        double baseX = DimensionalTraversalTargets.mapCoordinate(player.getX(), player.level(), target);
+        double baseZ = DimensionalTraversalTargets.mapCoordinate(player.getZ(), player.level(), target);
+        return createCoordinateDestination(player, data, request, target,
+            baseX, player.getY(), baseZ, true);
+    }
+
+    private static boolean createCoordinateDestination(
+        ServerPlayer player, PortalPlayerData data, CompoundTag request, ServerLevel target,
+        double baseX, double baseY, double baseZ, boolean blankCoordinatesAreRelative
+    ) {
         requireDestinationCapacity(data);
         requireCoordinateLengths(request);
         UUID group = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
         String name = destinationName(data, Nbt.getString(request, "Name"), true);
-        double baseX = DimensionalTraversalTargets.mapCoordinate(player.getX(), player.level(), target);
-        double baseZ = DimensionalTraversalTargets.mapCoordinate(player.getZ(), player.level(), target);
-        double x = CoordinateParser.parse(relativeCoordinate(request, "X"), baseX);
-        double y = CoordinateParser.parse(relativeCoordinate(request, "Y"), player.getY());
-        double z = CoordinateParser.parse(relativeCoordinate(request, "Z"), baseZ);
+        double x = CoordinateParser.parse(coordinate(request, "X", blankCoordinatesAreRelative), baseX);
+        double y = CoordinateParser.parse(coordinate(request, "Y", blankCoordinatesAreRelative), baseY);
+        double z = CoordinateParser.parse(coordinate(request, "Z", blankCoordinatesAreRelative), baseZ);
         float yaw = CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot());
         requireInWorldBounds(target, x, y, z);
         UUID destinationId = UUID.randomUUID();
@@ -101,9 +95,9 @@ final class PortalDestinationActions {
         return true;
     }
 
-    private static String relativeCoordinate(CompoundTag request, String key) {
+    private static String coordinate(CompoundTag request, String key, boolean blankIsRelative) {
         String value = Nbt.getString(request, key);
-        return value.isBlank() ? "~" : value;
+        return blankIsRelative && value.isBlank() ? "~" : value;
     }
 
     static boolean edit(ServerPlayer player, PortalPlayerData data,

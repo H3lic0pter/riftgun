@@ -11,11 +11,20 @@ import net.minecraft.nbt.CompoundTag;
 /** Client cache of server-resolved, addon-owned Dimension display names. */
 public final class DimensionLabelState {
     private static volatile Map<String, String> labels = Map.of();
+    private static volatile Map<String, String> catalogLabels = Map.of();
     private static volatile List<DimensionInfo> dimensions = List.of();
 
-    public static void replace(CompoundTag envelope) {
-        labels = decode(envelope);
-        dimensions = decodeDimensions(envelope);
+    public static synchronized void replace(CompoundTag envelope) {
+        Map<String, String> decoded = decode(envelope);
+        // Full mutation snapshots intentionally omit the traversal catalog. Keep the
+        // catalog obtained while opening the GUI until a later catalog replaces it.
+        if (envelope.contains("Dimensions")) {
+            dimensions = decodeDimensions(envelope);
+            catalogLabels = decoded;
+        }
+        LinkedHashMap<String, String> merged = new LinkedHashMap<>(catalogLabels);
+        merged.putAll(decoded);
+        labels = Map.copyOf(merged);
     }
 
     public static synchronized void merge(CompoundTag envelope) {

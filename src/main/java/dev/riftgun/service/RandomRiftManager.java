@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -60,26 +61,8 @@ public final class RandomRiftManager {
             message(player, "message.riftgun.coordinate_module_required");
             return;
         }
-        UUID playerId = player.getUUID();
-        if (searches(playerServer(player)).containsKey(playerId)) {
-            message(player, "message.riftgun.random_rift_searching");
-            return;
-        }
-        int cooldown = cooldownTicks(player);
-        if (cooldown > 0) {
-            message(player, "message.riftgun.random_rift_cooldown", (cooldown + 19) / 20);
-            return;
-        }
-        Map<UUID, Search> serverSearches = searches(playerServer(player));
-        if (!RandomRiftSearchPolicy.hasCapacity(
-            serverSearches.size(), config.maximumConcurrentSearches())) {
-            message(player, "message.riftgun.random_rift_too_many_searches");
-            return;
-        }
-        serverSearches.put(playerId, new Search(player.level().dimension(), player.getX(), player.getZ(),
-            gun.saveReference(), false));
-        message(player, "message.riftgun.random_rift_search_started");
-        PortalNetworking.sendSnapshot(player, false, gun);
+        startSearch(player, gun, config, () -> Search.local(
+            player.level().dimension(), player.getX(), player.getZ(), gun.saveReference()));
     }
 
     public static void requestDimensional(ServerPlayer player, PortalGunLocator.LocatedGun gun,
@@ -104,9 +87,29 @@ public final class RandomRiftManager {
             message(player, "message.riftgun.dimension_unavailable");
             return;
         }
+        startSearch(player, gun, config.randomRift(), () -> {
+            PortalFuelManager.Plan fuel = PortalFuelManager.plan(
+                player, gun.stack(), target.dimension());
+            if (!fuel.successful()) {
+                message(player, fuel.errorKey());
+                return null;
+            }
+            double centerX = DimensionalTraversalTargets.mapCoordinate(
+                player.getX(), player.level(), target);
+            double centerZ = DimensionalTraversalTargets.mapCoordinate(
+                player.getZ(), player.level(), target);
+            return Search.dimensional(player.level().dimension(), target.dimension(),
+                centerX, centerZ, gun.saveReference());
+        });
+    }
+
+    private static void startSearch(ServerPlayer player, PortalGunLocator.LocatedGun gun,
+                                    RiftConfig.RandomRiftConfig config,
+                                    Supplier<Search> searchFactory) {
         UUID playerId = player.getUUID();
         MinecraftServer server = playerServer(player);
-        if (searches(server).containsKey(playerId)) {
+        Map<UUID, Search> serverSearches = searches(server);
+        if (serverSearches.containsKey(playerId)) {
             message(player, "message.riftgun.random_rift_searching");
             return;
         }
@@ -116,23 +119,13 @@ public final class RandomRiftManager {
             return;
         }
         if (!RandomRiftSearchPolicy.hasCapacity(
-            searches(server).size(), config.randomRift().maximumConcurrentSearches())) {
+            serverSearches.size(), config.maximumConcurrentSearches())) {
             message(player, "message.riftgun.random_rift_too_many_searches");
             return;
         }
-        PortalFuelManager.Plan fuel = PortalFuelManager.plan(
-            player, gun.stack(), target.dimension());
-        if (!fuel.successful()) {
-            message(player, fuel.errorKey());
-            return;
-        }
-        double centerX = DimensionalTraversalTargets.mapCoordinate(
-            player.getX(), player.level(), target);
-        double centerZ = DimensionalTraversalTargets.mapCoordinate(
-            player.getZ(), player.level(), target);
-        searches(server).put(playerId, new Search(
-            player.level().dimension(), target.dimension(), centerX, centerZ,
-            gun.saveReference(), true));
+        Search search = searchFactory.get();
+        if (search == null) return;
+        serverSearches.put(playerId, search);
         message(player, "message.riftgun.random_rift_search_started");
         PortalNetworking.sendSnapshot(player, false, gun);
     }
@@ -190,17 +183,10 @@ public final class RandomRiftManager {
         PortalPlayerData data = PortalDataStore.load(player);
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun.stack(), data.settings().smartDistance());
-        boolean authorized = search.dimensional
-            ? RiftConfigs.server().dimensionalTraversal().enabled() && capabilities.dimensionalTraversal()
-            : capabilities.coordinateOverride();
-        if (!authorized) {
+        String authorizationError = search.kind.authorizationError(capabilities);
+        if (authorizationError != null) {
             cancel(playerServer(player), player.getUUID());
-            message(player, search.dimensional
-                && !RiftConfigs.server().dimensionalTraversal().enabled()
-                    ? "message.riftgun.dimensional_traversal_disabled"
-                    : search.dimensional
-                        ? "message.riftgun.dimensional_traversal_module_required"
-                        : "message.riftgun.coordinate_module_required");
+            message(player, authorizationError);
             return;
         }
 
@@ -375,13 +361,35 @@ public final class RandomRiftManager {
 
     public record Snapshot(boolean enabled, boolean searching, int cooldownTicks) {}
 
+    private enum SearchKind {
+        LOCAL {
+            @Override
+            String authorizationError(PortalGunCapabilities capabilities) {
+                return capabilities.coordinateOverride()
+                    ? null : "message.riftgun.coordinate_module_required";
+            }
+        },
+        DIMENSIONAL {
+            @Override
+            String authorizationError(PortalGunCapabilities capabilities) {
+                if (!RiftConfigs.server().dimensionalTraversal().enabled()) {
+                    return "message.riftgun.dimensional_traversal_disabled";
+                }
+                return capabilities.dimensionalTraversal()
+                    ? null : "message.riftgun.dimensional_traversal_module_required";
+            }
+        };
+
+        abstract String authorizationError(PortalGunCapabilities capabilities);
+    }
+
     private static final class Search {
         private final net.minecraft.resources.ResourceKey<Level> sourceDimension;
         private final net.minecraft.resources.ResourceKey<Level> targetDimension;
         private final double centerX;
         private final double centerZ;
         private final CompoundTag gunReference;
-        private final boolean dimensional;
+        private final SearchKind kind;
         private final UUID ticketId = UUID.randomUUID();
         private int attempts;
         private int candidateX;
@@ -389,21 +397,30 @@ public final class RandomRiftManager {
         private ChunkPos candidateChunk;
         private long preparationStartedAt;
 
-        private Search(net.minecraft.resources.ResourceKey<Level> dimension, double centerX,
-                       double centerZ, CompoundTag gunReference, boolean dimensional) {
-            this(dimension, dimension, centerX, centerZ, gunReference, dimensional);
+        private static Search local(net.minecraft.resources.ResourceKey<Level> dimension,
+                                    double centerX, double centerZ, CompoundTag gunReference) {
+            return new Search(dimension, dimension, centerX, centerZ, gunReference, SearchKind.LOCAL);
+        }
+
+        private static Search dimensional(
+            net.minecraft.resources.ResourceKey<Level> sourceDimension,
+            net.minecraft.resources.ResourceKey<Level> targetDimension,
+            double centerX, double centerZ, CompoundTag gunReference
+        ) {
+            return new Search(sourceDimension, targetDimension, centerX, centerZ,
+                gunReference, SearchKind.DIMENSIONAL);
         }
 
         private Search(net.minecraft.resources.ResourceKey<Level> sourceDimension,
                        net.minecraft.resources.ResourceKey<Level> targetDimension,
                        double centerX, double centerZ, CompoundTag gunReference,
-                       boolean dimensional) {
+                       SearchKind kind) {
             this.sourceDimension = sourceDimension;
             this.targetDimension = targetDimension;
             this.centerX = centerX;
             this.centerZ = centerZ;
             this.gunReference = gunReference;
-            this.dimensional = dimensional;
+            this.kind = kind;
         }
 
         private boolean preparing() {

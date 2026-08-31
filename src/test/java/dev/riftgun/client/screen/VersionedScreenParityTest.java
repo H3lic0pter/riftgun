@@ -56,6 +56,17 @@ final class VersionedScreenParityTest {
         }
     }
 
+    @Test
+    void dimensionalModuleUnlocksOnlyExistingCoordinateEditing() throws Exception {
+        for (Path root : new Path[] { LEGACY, CURRENT }) {
+            String screen = Files.readString(root.resolve("PortalConfigScreen.java"));
+            assertTrue(screen.contains("modal == Modal.CREATE_COORDINATE || coordinateEditingUnlocked()"));
+            assertTrue(screen.contains("DimensionalTraversalInstalled"));
+            assertTrue(screen.contains("DimensionalTraversalEnabled"));
+            assertTrue(screen.contains("coordinateButton.visible = coordinateOverrideUnlocked()"));
+        }
+    }
+
     private static void assertContractParity(String file, Pattern pattern) throws Exception {
         assertEquals(matches(Files.readString(LEGACY.resolve(file)), pattern),
             matches(Files.readString(CURRENT.resolve(file)), pattern),

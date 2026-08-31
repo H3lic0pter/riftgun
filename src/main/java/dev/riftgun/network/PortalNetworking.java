@@ -85,7 +85,13 @@ public final class PortalNetworking {
         if (openRadial) envelope.putInt("RadialRequestId", radialRequestId);
         PortalPlayerData data = PortalDataStore.load(player);
         envelope.put("Data", data.save());
-        putDimensionCatalog(envelope, player);
+        putDimensionLabels(envelope, player, data.destinations().stream().map(destination -> {
+//? if >=1.21.11 {
+            /*return destination.dimension().identifier().toString();
+*///?} else {
+            return destination.dimension().location().toString();
+//?}
+        }).distinct().toList());
         envelope.put("ModuleRules", PortalModuleRules.current().save());
         RandomRiftManager.Snapshot randomRift = RandomRiftManager.snapshot(player);
         CompoundTag randomRiftTag = new CompoundTag();
@@ -94,8 +100,13 @@ public final class PortalNetworking {
         randomRiftTag.putInt("CooldownTicks", randomRift.cooldownTicks());
         envelope.put("RandomRift", randomRiftTag);
         if (locatedGun != null) {
+            CompoundTag gun = gunSnapshot(player, data, locatedGun);
             envelope.put("GunReference", locatedGun.saveReference());
-            envelope.put("Gun", gunSnapshot(player, data, locatedGun));
+            envelope.put("Gun", gun);
+            if (openScreen && Nbt.getBoolean(gun, "DimensionalTraversalInstalled")
+                && Nbt.getBoolean(gun, "DimensionalTraversalEnabled")) {
+                putDimensionCatalog(envelope, player);
+            }
         }
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
     }

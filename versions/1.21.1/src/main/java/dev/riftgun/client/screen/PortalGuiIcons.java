@@ -15,10 +15,15 @@ final class PortalGuiIcons {
     // The prediction arc reads right-heavy at its previous padded position.
     private static final int PREDICTION_OPTICAL_X = -3;
     private static final int PREDICTION_OPTICAL_Y = -4;
-    // Preserve the reviewed visible-art position in the compact 19 x 19 main GUI button.
+    // Match the final canvas coordinates used by 45bcf94: the old top-left helper
+    // subtracted 3 px from +5, while FRONT subtracted one additional X pixel.
     private static final int PLACEMENT_BUTTON_X = 2;
     private static final int PLACEMENT_FRONT_BUTTON_X = 1;
     private static final int PLACEMENT_BUTTON_Y = 2;
+    // The arrow artwork is right-heavy inside its canvas. This correction centers its
+    // visible pixels in every compact 19 x 18 back button.
+    private static final int COMPACT_BACK_CANVAS_X = 2;
+    private static final int COMPACT_BACK_CANVAS_Y = 1;
 
     /** Accepts button bounds and centers the standard 16 x 16 random-rift sprite within them. */
     static void drawRandomRiftIcon(GuiGraphics graphics, int buttonX, int buttonY,
@@ -52,7 +57,7 @@ final class PortalGuiIcons {
         PortalGuiSprites.draw(graphics, sprite, spriteX, spriteY);
     }
 
-    /** Accepts the compact main-GUI button origin and applies artwork-specific optical padding. */
+    /** Accepts the compact button origin and preserves the reviewed 45bcf94 artwork position. */
     static void drawPlacementModeButtonIcon(GuiGraphics graphics, int buttonX, int buttonY,
                                             PortalPlacementMode mode) {
         int spriteX = buttonX + (mode == PortalPlacementMode.FRONT
@@ -190,8 +195,10 @@ final class PortalGuiIcons {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.DROPDOWN, x - 4, y - 6);
     }
 
-    static void drawBackIcon(GuiGraphics graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.BACK, x - 3, y - 5);
+    /** Accepts the compact back button origin and applies the shared optical correction. */
+    static void drawCompactBackButtonIcon(GuiGraphics graphics, int buttonX, int buttonY) {
+        PortalGuiSprites.draw(graphics, PortalGuiSprites.BACK,
+            buttonX + COMPACT_BACK_CANVAS_X, buttonY + COMPACT_BACK_CANVAS_Y);
     }
 
     static void drawResetIcon(GuiGraphics graphics, int x, int y, int color) {

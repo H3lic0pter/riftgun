@@ -432,7 +432,7 @@ public final class PortalConfigScreen extends Screen {
         if (modal == Modal.CREATE_COORDINATE || modal == Modal.EDIT_DESTINATION) {
             addField(x + 18, y + 41, fieldWidth, formName, 48, value -> formName = value);
             int half = (fieldWidth - 10) / 2;
-            boolean coordinatesEditable = modal == Modal.CREATE_COORDINATE || coordinateOverrideUnlocked();
+            boolean coordinatesEditable = modal == Modal.CREATE_COORDINATE || coordinateEditingUnlocked();
             addCoordinateField(x + 18, y + 80, half, formX, value -> formX = value, coordinatesEditable);
             addCoordinateField(x + 28 + half, y + 80, half, formY, value -> formY = value, coordinatesEditable);
             addCoordinateField(x + 18, y + 119, half, formZ, value -> formZ = value, coordinatesEditable);
@@ -1396,7 +1396,7 @@ public final class PortalConfigScreen extends Screen {
         }
         if (modal == Modal.VISUAL_SETTINGS) {
             if (visualBackButton != null) {
-                drawBackIcon(graphics, visualBackButton.getX() + 7, visualBackButton.getY() + 6);
+                drawCompactBackButtonIcon(graphics, visualBackButton.getX(), visualBackButton.getY());
             }
             if (visualDropdownButton != null) {
                 drawDownIcon(graphics, visualDropdownButton.getX() + 6, visualDropdownButton.getY() + 7);
@@ -1408,8 +1408,8 @@ public final class PortalConfigScreen extends Screen {
         }
         if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
             if (swirlAnimationBackButton != null) {
-                drawBackIcon(graphics, swirlAnimationBackButton.getX() + 7,
-                    swirlAnimationBackButton.getY() + 6);
+                drawCompactBackButtonIcon(graphics, swirlAnimationBackButton.getX(),
+                    swirlAnimationBackButton.getY());
             }
             if (visualResetButton != null && visualResetButton.visible) {
                 drawResetIcon(graphics, visualResetButton.getX() + 5, visualResetButton.getY() + 4,
@@ -1418,7 +1418,7 @@ public final class PortalConfigScreen extends Screen {
         }
         if (modal == Modal.SOUND_SETTINGS) {
             if (soundBackButton != null) {
-                drawBackIcon(graphics, soundBackButton.getX() + 7, soundBackButton.getY() + 6);
+                drawCompactBackButtonIcon(graphics, soundBackButton.getX(), soundBackButton.getY());
             }
             for (ThemedButton dropdown : soundDropdownButtons.values()) {
                 drawDownIcon(graphics, dropdown.getX() + 6, dropdown.getY() + 7);
@@ -1568,7 +1568,7 @@ public final class PortalConfigScreen extends Screen {
             graphics.renderTooltip(font,
                 Component.translatable("screen.riftgun.back_to_settings"), mouseX, mouseY);
         }
-        if (modal == Modal.EDIT_DESTINATION && !coordinateOverrideUnlocked()) {
+        if (modal == Modal.EDIT_DESTINATION && !coordinateEditingUnlocked()) {
             for (EditBox field : coordinateEditFields) {
                 if (field.isHovered()) {
                     graphics.renderTooltip(font, Component.translatable(
@@ -1759,7 +1759,7 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderBackButton(GuiGraphics graphics, @Nullable ThemedButton button) {
         if (button == null) return;
-        drawBackIcon(graphics, button.getX() + 7, button.getY() + 6);
+        drawCompactBackButtonIcon(graphics, button.getX(), button.getY());
     }
 
     private void renderBackButtonTooltip(GuiGraphics graphics, @Nullable ThemedButton button,
@@ -2690,6 +2690,12 @@ public final class PortalConfigScreen extends Screen {
 
     private boolean coordinateOverrideUnlocked() {
         return PortalClientState.gun().getBoolean("CoordinateOverride");
+    }
+
+    private boolean coordinateEditingUnlocked() {
+        return coordinateOverrideUnlocked()
+            || PortalClientState.gun().getBoolean("DimensionalTraversalInstalled")
+                && PortalClientState.gun().getBoolean("DimensionalTraversalEnabled");
     }
 
     private boolean pairingInstalled() {
