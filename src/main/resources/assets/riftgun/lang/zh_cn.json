@@ -287,7 +287,7 @@
   "screen.riftgun.fall_guard_entities": "实体坠落防护",
   "message.riftgun.fall_guard_module_required": "需要安装坠落防护模块",
   "key.riftgun.close_portals": "关闭传送门",
-  "screen.riftgun.close_portals": "关闭已开启的传送门",
+  "screen.riftgun.close_portals": "清除传送门",
   "message.riftgun.portals_closed": "传送门已清除",
   "item.riftgun.privacy_terminal": "隐私终端",
   "block.riftgun.privacy_terminal": "隐私终端",

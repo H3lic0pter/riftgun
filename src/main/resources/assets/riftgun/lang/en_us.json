@@ -231,7 +231,7 @@
   "item.riftgun.fall_guard_module": "Fall Guard Module",
   "screen.riftgun.configure_gun": "Configure Gun",
   "screen.riftgun.open_modules": "Module Bay",
-  "screen.riftgun.close_portals": "Close open portals",
+  "screen.riftgun.close_portals": "Clear portals",
   "screen.riftgun.gun_settings_hint": "Choose a gun setting or installed capability",
   "screen.riftgun.back": "Back",
   "screen.riftgun.back_to_gun_settings": "Back to gun configuration",

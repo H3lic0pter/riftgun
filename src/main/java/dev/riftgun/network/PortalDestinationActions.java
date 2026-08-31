@@ -86,10 +86,12 @@ final class PortalDestinationActions {
         double y = CoordinateParser.parse(coordinate(request, "Y", blankCoordinatesAreRelative), baseY);
         double z = CoordinateParser.parse(coordinate(request, "Z", blankCoordinatesAreRelative), baseZ);
         float yaw = CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot());
-        requireInWorldBounds(target, x, y, z);
+        DestinationCoordinateBounds.Coordinates coordinates =
+            DestinationCoordinateBounds.clamp(target, x, y, z);
         UUID destinationId = UUID.randomUUID();
         data.destinations().add(new Destination(
-            destinationId, name, group, target.dimension(), x, y, z, yaw,
+            destinationId, name, group, target.dimension(),
+            coordinates.x(), coordinates.y(), coordinates.z(), yaw,
             target.getGameTime(), 0L, false));
         select(data, destinationId);
         return true;
@@ -130,7 +132,11 @@ final class PortalDestinationActions {
                 : player.getServer().getLevel(current.dimension());
 //?}
             if (target == null) throw PortalRequestFields.error("message.riftgun.dimension_unavailable");
-            requireInWorldBounds(target, x, y, z);
+            DestinationCoordinateBounds.Coordinates coordinates =
+                DestinationCoordinateBounds.clamp(target, x, y, z);
+            x = coordinates.x();
+            y = coordinates.y();
+            z = coordinates.z();
         }
         data.replaceDestination(current.withDetails(name, group, current.dimension(), x, y, z, yaw));
         return true;
