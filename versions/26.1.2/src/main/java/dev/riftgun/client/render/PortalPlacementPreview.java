@@ -115,11 +115,11 @@ public final class PortalPlacementPreview {
         PoseStack poses = event.getPoseStack();
         poses.pushPose();
         event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
-            (pose, vertices) -> draw(pose, vertices, state.camera(), state.segments()));
-        event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
-            (pose, vertices) -> drawColored(pose, vertices, state.camera(), state.pendingSegments()));
-        event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
-            (pose, vertices) -> drawColored(pose, vertices, state.camera(), state.entityTargetSegments()));
+            (pose, vertices) -> {
+                draw(pose, vertices, state.camera(), state.segments());
+                drawColored(pose, vertices, state.camera(), state.pendingSegments());
+                drawColored(pose, vertices, state.camera(), state.entityTargetSegments());
+            });
         poses.popPose();
     }
 

@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class PortalPlacementPreviewClientBoundarySourceTest {
@@ -21,5 +22,20 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
             assertFalse(source.contains("addParticle"));
             assertFalse(source.contains("PortalEntity"));
         }
+    }
+
+    @Test
+    void modernPreviewSubmitsOneGeometryNodePerFrame() throws Exception {
+        String source = Files.readString(Path.of("versions", "26.1.2", "src", "main",
+            "java", "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
+        int methodStart = source.indexOf("public static void submitCustomGeometry(");
+        int methodEnd = source.indexOf("private static void tickPending(", methodStart);
+        String method = source.substring(methodStart, methodEnd);
+
+        assertEquals(1, occurrences(method, ".submitCustomGeometry("));
+    }
+
+    private static int occurrences(String source, String token) {
+        return source.split(java.util.regex.Pattern.quote(token), -1).length - 1;
     }
 }

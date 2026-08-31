@@ -7,6 +7,7 @@ import dev.riftgun.client.render.PortalPlacementPreview;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.input.SurfaceFacePreviewState;
+import dev.riftgun.input.ModeRadialPointerAction;
 import dev.riftgun.math.RadialModeGeometry;
 import dev.riftgun.math.RadialOptionLabelLayout;
 import dev.riftgun.math.RadialRingSpans;
@@ -19,8 +20,6 @@ import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingLabels;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.OptionalInt;
@@ -59,6 +58,34 @@ public final class ModeRadialScreen extends Screen {
     private static final int RANGE_EMPTY_COLOR = 0xD8383B40;
     private static final int RANGE_FILLED_COLOR = 0xD86E7278;
     private static final long RANGE_SEND_INTERVAL_NANOS = 100_000_000L;
+    private static final List<PortalOrientation> ORIENTATION_OPTIONS =
+        List.of(PortalOrientation.values());
+    private static final List<PortalPredictionMode> PREDICTION_OPTIONS =
+        List.of(PortalPredictionMode.values());
+    private static final List<PortalPlacementMode> BASE_PLACEMENT_OPTIONS = List.of(
+        PortalPlacementMode.SMART, PortalPlacementMode.FRONT, PortalPlacementMode.SURFACE);
+    private static final List<PortalPlacementMode> REMOTE_PLACEMENT_OPTIONS = List.of(
+        PortalPlacementMode.SMART, PortalPlacementMode.FRONT, PortalPlacementMode.REMOTE,
+        PortalPlacementMode.SURFACE);
+    private static final List<PortalPlacementMode> ENTITY_PLACEMENT_OPTIONS = List.of(
+        PortalPlacementMode.SMART, PortalPlacementMode.FRONT, PortalPlacementMode.SURFACE,
+        PortalPlacementMode.ENTITY_RELOCATION);
+    private static final List<PortalPlacementMode> ALL_PLACEMENT_OPTIONS =
+        List.of(PortalPlacementMode.values());
+    private static final int[][] FACE_WIREFRAME_POINTS = {
+        {-12, -8}, {12, -8}, {12, 16}, {-12, 16},
+        {-4, -16}, {20, -16}, {20, 8}, {-4, 8}
+    };
+    private static final int[][] FACE_WIREFRAME_EDGES = {
+        {0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6},
+        {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7}
+    };
+    private static final int[] FACE_NORTH = {0, 1, 2, 3};
+    private static final int[] FACE_SOUTH = {4, 5, 6, 7};
+    private static final int[] FACE_UP = {4, 5, 1, 0};
+    private static final int[] FACE_DOWN = {3, 2, 6, 7};
+    private static final int[] FACE_WEST = {4, 0, 3, 7};
+    private static final int[] FACE_EAST = {1, 5, 6, 2};
     private Page page = Page.PLACEMENT;
     private int selection = -1;
     private int lastAudibleSelection = -1;
@@ -128,7 +155,7 @@ public final class ModeRadialScreen extends Screen {
             ? Math.min(1.0F, (System.nanoTime() - openedNanos) / 120_000_000.0F) : 1.0F;
         drawRing(graphics, options.size(), animation);
         drawOptions(graphics, options);
-        drawCenter(graphics);
+        drawCenter(graphics, options);
         drawRangeSlider(graphics);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
@@ -197,26 +224,31 @@ public final class ModeRadialScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (!ModeRadialInput.ready()) return true;
-        if (event.button() == 0 && precisionPreviewOnly) {
-            commitSelection();
-        } else if (event.button() == 0 && overRangeSlider(event.x(), event.y())) {
-            draggingRange = true;
-            updateRange(event.x(), false);
-        } else if (event.button() == 0 && !precisionPreviewOnly && page != Page.SURFACE_FACE
-            && Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled")) {
-            functionMode = functionMode.toggle();
-            playUi(functionMode == PortalFunctionMode.PORTAL_PAIRING ? 1.15F : 0.85F);
-        } else if (event.button() == 1 && page == Page.SURFACE_FACE) {
-            facePreview.toggleFrame();
-            selection = -1;
-            lastAudibleSelection = -1;
-            playUi(facePreview.frame() == SurfaceFacePreviewState.Frame.ABSOLUTE ? 1.1F : 0.9F);
-        } else if (event.button() == 1 && !precisionPreviewOnly) {
-            page = page == Page.SURFACE_FACE ? Page.PLACEMENT
-                : page == Page.PLACEMENT ? Page.PREDICTION : Page.PLACEMENT;
-            selection = -1;
-            lastAudibleSelection = -1;
-            playUi(0.9F);
+        switch (ModeRadialPointerAction.resolve(event.button(), precisionPreviewOnly,
+            overRangeSlider(event.x(), event.y()), page == Page.SURFACE_FACE,
+            Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled"))) {
+            case COMMIT_SELECTION -> commitSelection();
+            case START_RANGE_DRAG -> {
+                draggingRange = true;
+                updateRange(event.x(), false);
+            }
+            case TOGGLE_FUNCTION -> {
+                functionMode = functionMode.toggle();
+                playUi(functionMode == PortalFunctionMode.PORTAL_PAIRING ? 1.15F : 0.85F);
+            }
+            case TOGGLE_FACE_FRAME -> {
+                facePreview.toggleFrame();
+                selection = -1;
+                lastAudibleSelection = -1;
+                playUi(facePreview.frame() == SurfaceFacePreviewState.Frame.ABSOLUTE ? 1.1F : 0.9F);
+            }
+            case SWITCH_PAGE -> {
+                page = page == Page.PLACEMENT ? Page.PREDICTION : Page.PLACEMENT;
+                selection = -1;
+                lastAudibleSelection = -1;
+                playUi(0.9F);
+            }
+            case NONE -> {}
         }
         return true;
     }
@@ -275,16 +307,11 @@ public final class ModeRadialScreen extends Screen {
 
     private List<?> options() {
         if (page == Page.SURFACE_FACE) return facePreview.choices();
-        if (page == Page.FLOATING_ORIENTATION) return Arrays.asList(PortalOrientation.values());
-        if (page == Page.PREDICTION) return Arrays.asList(PortalPredictionMode.values());
-        List<PortalPlacementMode> modes = new ArrayList<>(Arrays.asList(PortalPlacementMode.values()));
-        if (!PortalClientState.gun().getBoolean("EntityRelocationEnabled").orElse(false)) {
-            modes.remove(PortalPlacementMode.ENTITY_RELOCATION);
-        }
-        if (!remoteInstalled()) {
-            modes.remove(PortalPlacementMode.REMOTE);
-        }
-        return modes;
+        if (page == Page.FLOATING_ORIENTATION) return ORIENTATION_OPTIONS;
+        if (page == Page.PREDICTION) return PREDICTION_OPTIONS;
+        boolean entity = Nbt.getBoolean(PortalClientState.gun(), "EntityRelocationEnabled");
+        return entity ? remoteInstalled() ? ALL_PLACEMENT_OPTIONS : ENTITY_PLACEMENT_OPTIONS
+            : remoteInstalled() ? REMOTE_PLACEMENT_OPTIONS : BASE_PLACEMENT_OPTIONS;
     }
 
     private void drawRing(GuiGraphicsExtractor graphics, int count, float animation) {
@@ -327,7 +354,7 @@ public final class ModeRadialScreen extends Screen {
         }
     }
 
-    private void drawCenter(GuiGraphicsExtractor graphics) {
+    private void drawCenter(GuiGraphicsExtractor graphics, List<?> options) {
         int centerX = centerX();
         int centerY = centerY();
         if (page == Page.SURFACE_FACE) {
@@ -347,7 +374,7 @@ public final class ModeRadialScreen extends Screen {
             functionMode == PortalFunctionMode.PORTAL_PAIRING ? PortalTheme.AMBER : PortalTheme.ICE);
         centeredText(graphics, pageLabel, centerX, centerY - 7,
             functionMode == PortalFunctionMode.PORTAL_PAIRING ? PortalTheme.AMBER : PortalTheme.ICE);
-        Object current = selection >= 0 ? options().get(selection)
+        Object current = selection >= 0 ? options.get(selection)
             : page == Page.PLACEMENT ? PortalClientState.data().settings().placementMode()
                 : PortalClientState.data().settings().predictionMode();
         centeredWrappedText(graphics, label(current), centerX, centerY + 6, 80, PortalTheme.TEXT);
@@ -556,28 +583,21 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private void drawFaceWireframe(GuiGraphicsExtractor graphics, int centerX, int centerY, Direction face) {
-        int[][] points = {
-            {-12, -8}, {12, -8}, {12, 16}, {-12, 16},
-            {-4, -16}, {20, -16}, {20, 8}, {-4, 8}
-        };
-        int[][] edges = {
-            {0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6},
-            {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7}
-        };
         int[] selected = switch (face) {
-            case NORTH -> new int[] {0, 1, 2, 3};
-            case SOUTH -> new int[] {4, 5, 6, 7};
-            case UP -> new int[] {4, 5, 1, 0};
-            case DOWN -> new int[] {3, 2, 6, 7};
-            case WEST -> new int[] {4, 0, 3, 7};
-            case EAST -> new int[] {1, 5, 6, 2};
+            case NORTH -> FACE_NORTH;
+            case SOUTH -> FACE_SOUTH;
+            case UP -> FACE_UP;
+            case DOWN -> FACE_DOWN;
+            case WEST -> FACE_WEST;
+            case EAST -> FACE_EAST;
         };
-        for (int[] edge : edges) {
-            line(graphics, centerX, centerY, points[edge[0]], points[edge[1]], 0xD0D9DDE0);
+        for (int[] edge : FACE_WIREFRAME_EDGES) {
+            line(graphics, centerX, centerY, FACE_WIREFRAME_POINTS[edge[0]],
+                FACE_WIREFRAME_POINTS[edge[1]], 0xD0D9DDE0);
         }
         for (int index = 0; index < selected.length; index++) {
-            int[] from = points[selected[index]];
-            int[] to = points[selected[(index + 1) % selected.length]];
+            int[] from = FACE_WIREFRAME_POINTS[selected[index]];
+            int[] to = FACE_WIREFRAME_POINTS[selected[(index + 1) % selected.length]];
             line(graphics, centerX, centerY, from, to, 0xFF9CD4E5);
         }
     }

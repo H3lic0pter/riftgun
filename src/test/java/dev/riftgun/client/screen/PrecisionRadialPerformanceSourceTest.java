@@ -21,4 +21,23 @@ final class PrecisionRadialPerformanceSourceTest {
             assertFalse(drawRing.contains("graphics.fill(centerX + x, centerY + y"));
         }
     }
+
+    @Test
+    void radialFramesReuseModeListsAndWireframeGeometry() throws Exception {
+        for (String version : new String[] {"1.21.1", "26.1.2"}) {
+            String source = Files.readString(Path.of("versions", version, "src", "main", "java",
+                "dev", "riftgun", "client", "screen", "ModeRadialScreen.java"));
+            int optionsStart = source.indexOf("private List<?> options()");
+            int optionsEnd = source.indexOf("private void drawRing(", optionsStart);
+            String options = source.substring(optionsStart, optionsEnd);
+            int wireframeStart = source.indexOf("private void drawFaceWireframe(");
+            int wireframeEnd = source.indexOf("private void line(", wireframeStart);
+            String wireframe = source.substring(wireframeStart, wireframeEnd);
+
+            assertFalse(options.contains("new ArrayList"), version);
+            assertFalse(options.contains("Arrays.asList"), version);
+            assertFalse(wireframe.contains("new int[]"), version);
+            assertFalse(wireframe.contains("int[][] points ="), version);
+        }
+    }
 }

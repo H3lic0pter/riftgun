@@ -38,40 +38,41 @@ public record PortalGunCapabilities(
     }
 
     public static PortalGunCapabilities resolve(ItemStack gun, int legacySmartDistance,
-                                                PortalModuleRules rules) {
+                                                 PortalModuleRules rules) {
         PortalGunModuleSettings settings = PortalGunModuleSettings.get(gun, legacySmartDistance);
-        int reservoirCount = PortalGunModules.activeCount(gun, PortalModuleKind.RESERVOIR_EXPANSION, rules);
-        int rangeCount = PortalGunModules.activeCount(gun, PortalModuleKind.SURFACE_RANGE, rules);
+        return resolve(gun, settings, rules);
+    }
+
+    public static PortalGunCapabilities resolve(ItemStack gun, PortalGunModuleSettings settings,
+                                                 PortalModuleRules rules) {
+        PortalGunModules.ActiveCounts modules = PortalGunModules.activeCounts(gun, rules);
+        int reservoirCount = modules.count(PortalModuleKind.RESERVOIR_EXPANSION);
+        int rangeCount = modules.count(PortalModuleKind.SURFACE_RANGE);
         int maximumRange = rules.maximumSurfaceRangeFor(rangeCount);
         int remoteDistance = configuredRemoteDistance(settings.desiredRemoteDistance(), maximumRange);
-        int durationSeconds = configuredDurationSeconds(gun, settings.portalDurationSeconds(), rules);
-        boolean apertureInstalled = PortalGunModules.activeCount(
-            gun, PortalModuleKind.APERTURE_EXPANSION, rules) > 0;
-        boolean playerTargetInstalled = PortalGunModules.activeCount(
-            gun, PortalModuleKind.PLAYER_TARGET, rules) > 0;
-        boolean relocationInstalled = PortalGunModules.activeCount(
-            gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0;
-        boolean pairingInstalled = PortalGunModules.activeCount(
-            gun, PortalModuleKind.PORTAL_PAIRING, rules) > 0;
-        boolean remoteInstalled = PortalGunModules.activeCount(
-            gun, PortalModuleKind.REMOTE, rules) > 0;
-        boolean fallGuardInstalled = PortalGunModules.activeCount(
-            gun, PortalModuleKind.FALL_GUARD, rules) > 0;
+        int durationSeconds = configuredDurationSeconds(
+            modules, settings.portalDurationSeconds(), rules);
+        boolean apertureInstalled = modules.count(PortalModuleKind.APERTURE_EXPANSION) > 0;
+        boolean playerTargetInstalled = modules.count(PortalModuleKind.PLAYER_TARGET) > 0;
+        boolean relocationInstalled = modules.count(PortalModuleKind.ENTITY_RELOCATION) > 0;
+        boolean pairingInstalled = modules.count(PortalModuleKind.PORTAL_PAIRING) > 0;
+        boolean remoteInstalled = modules.count(PortalModuleKind.REMOTE) > 0;
+        boolean fallGuardInstalled = modules.count(PortalModuleKind.FALL_GUARD) > 0;
         return new PortalGunCapabilities(
-            PortalGunModules.activeCount(gun, PortalModuleKind.COORDINATE_OVERRIDE, rules) > 0,
-            PortalGunModules.activeCount(gun, PortalModuleKind.DIMENSIONAL_TRAVERSAL, rules) > 0,
+            modules.count(PortalModuleKind.COORDINATE_OVERRIDE) > 0,
+            modules.count(PortalModuleKind.DIMENSIONAL_TRAVERSAL) > 0,
             rules.capacityFor(reservoirCount),
             maximumRange,
             remoteDistance,
             configuredSmartDistance(settings.smartDistance(), maximumRange),
             new PortalEntityAccessSnapshot(
-                PortalGunModules.activeCount(gun, PortalModuleKind.PASSIVE_TRANSIT, rules) > 0
+                modules.count(PortalModuleKind.PASSIVE_TRANSIT) > 0
                     && settings.passiveTransitEnabled(),
-                PortalGunModules.activeCount(gun, PortalModuleKind.HOSTILE_TRANSIT, rules) > 0
+                modules.count(PortalModuleKind.HOSTILE_TRANSIT) > 0
                     && settings.hostileTransitEnabled(),
-                PortalGunModules.activeCount(gun, PortalModuleKind.BOSS_TRANSIT, rules) > 0
+                modules.count(PortalModuleKind.BOSS_TRANSIT) > 0
                     && settings.bossTransitEnabled(),
-                PortalGunModules.activeCount(gun, PortalModuleKind.PROJECTILE_TRANSIT, rules) > 0
+                modules.count(PortalModuleKind.PROJECTILE_TRANSIT) > 0
                     && settings.projectileTransitEnabled()
             ),
             PortalOpenDuration.ticks(durationSeconds),
@@ -85,7 +86,7 @@ public record PortalGunCapabilities(
                 && settings.entityRelocation().smartRouting(),
             remoteInstalled,
             remoteInstalled && settings.remote().scrollAdjustmentEnabled(),
-            PortalGunModules.activeCount(gun, PortalModuleKind.PRECISION_PLACEMENT, rules) > 0,
+            modules.count(PortalModuleKind.PRECISION_PLACEMENT) > 0,
             pairingInstalled,
             pairingInstalled ? settings.portalPairing().functionMode() : PortalFunctionMode.COORDINATE_TRAVEL,
             remoteInstalled ? settings.remote().coordinateSmartFallback() : PortalFloatingFallback.FRONT,
@@ -139,19 +140,37 @@ public record PortalGunCapabilities(
     }
 
     public static int maximumDurationSeconds(ItemStack gun, PortalModuleRules rules) {
-        if (hasEternalDuration(gun, rules)) return PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS;
-        int extensionCount = PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_EXTENSION, rules);
+        return maximumDurationSeconds(PortalGunModules.activeCounts(gun, rules), rules);
+    }
+
+    private static int maximumDurationSeconds(PortalGunModules.ActiveCounts modules,
+                                              PortalModuleRules rules) {
+        if (hasEternalDuration(modules, rules)) {
+            return PortalOpenDuration.MAXIMUM_CONFIGURABLE_SECONDS;
+        }
+        int extensionCount = modules.count(PortalModuleKind.DURATION_EXTENSION);
         return rules.maximumPortalDurationSeconds(extensionCount);
     }
 
     public static boolean hasEternalDuration(ItemStack gun, PortalModuleRules rules) {
-        return PortalGunModules.activeCount(gun, PortalModuleKind.DURATION_ETERNAL, rules) > 0;
+        return hasEternalDuration(PortalGunModules.activeCounts(gun, rules), rules);
+    }
+
+    private static boolean hasEternalDuration(PortalGunModules.ActiveCounts modules,
+                                              PortalModuleRules rules) {
+        return modules.count(PortalModuleKind.DURATION_ETERNAL) > 0;
     }
 
     private static int configuredDurationSeconds(ItemStack gun, int requestedSeconds,
-                                                 PortalModuleRules rules) {
-        boolean eternalInstalled = hasEternalDuration(gun, rules);
+                                                  PortalModuleRules rules) {
+        return configuredDurationSeconds(
+            PortalGunModules.activeCounts(gun, rules), requestedSeconds, rules);
+    }
+
+    private static int configuredDurationSeconds(PortalGunModules.ActiveCounts modules,
+                                                  int requestedSeconds, PortalModuleRules rules) {
+        boolean eternalInstalled = hasEternalDuration(modules, rules);
         return PortalOpenDuration.authorizedSeconds(requestedSeconds,
-            maximumDurationSeconds(gun, rules), eternalInstalled);
+            maximumDurationSeconds(modules, rules), eternalInstalled);
     }
 }

@@ -45,6 +45,8 @@ public final class RandomRiftManager {
 //?}
     private static final Map<MinecraftServer, Map<UUID, Search>> SEARCHES = new IdentityHashMap<>();
     private static final Map<MinecraftServer, Map<UUID, Long>> COOLDOWNS = new IdentityHashMap<>();
+    private static final Map<MinecraftServer, ReferenceCountedLeaseTracker<PreparationTicketKey>>
+        PREPARATION_LEASES = new IdentityHashMap<>();
     private static final RandomSource RANDOM = RandomSource.create();
     private static final UUID SEARCH_PROBE_ID = new UUID(0L, 0L);
     private static final VanillaDestinationSafetyInspector SAFETY_INSPECTOR =
@@ -161,6 +163,7 @@ public final class RandomRiftManager {
         if (searches != null) {
             for (Search search : searches.values()) releasePreparation(server, search);
         }
+        PREPARATION_LEASES.remove(server);
     }
 
     public static void reset() {
@@ -169,6 +172,7 @@ public final class RandomRiftManager {
         }
         SEARCHES.clear();
         COOLDOWNS.clear();
+        PREPARATION_LEASES.clear();
     }
 
     private static void tickSearch(ServerPlayer player, Search search) {
@@ -279,8 +283,13 @@ public final class RandomRiftManager {
 
     private static void addPreparationTicket(ServerLevel level, Search search) {
 //? if >=1.21.11 {
-        /*level.getChunkSource().addTicketWithRadius(
-            PREPARATION_TICKET, search.candidateChunk, PREPARATION_TICKET_RADIUS);
+        /*PreparationTicketKey lease = new PreparationTicketKey(
+            level.dimension(), search.candidateChunk, PREPARATION_TICKET_RADIUS);
+        if (preparationLeases(level.getServer()).acquire(lease)) {
+            level.getChunkSource().addTicketWithRadius(
+                PREPARATION_TICKET, search.candidateChunk, PREPARATION_TICKET_RADIUS);
+        }
+        search.preparationLease = lease;
 *///?} else {
         level.getChunkSource().addRegionTicket(PREPARATION_TICKET, search.candidateChunk,
             PREPARATION_TICKET_RADIUS, search.ticketId, true);
@@ -290,8 +299,13 @@ public final class RandomRiftManager {
     private static void removePreparationTicket(ServerLevel level, Search search) {
         if (!search.preparing()) return;
 //? if >=1.21.11 {
-        /*level.getChunkSource().removeTicketWithRadius(
-            PREPARATION_TICKET, search.candidateChunk, PREPARATION_TICKET_RADIUS);
+        /*PreparationTicketKey lease = search.preparationLease;
+        if (lease == null) return;
+        if (preparationLeases(level.getServer()).release(lease)) {
+            level.getChunkSource().removeTicketWithRadius(
+                PREPARATION_TICKET, search.candidateChunk, PREPARATION_TICKET_RADIUS);
+        }
+        search.preparationLease = null;
 *///?} else {
         level.getChunkSource().removeRegionTicket(PREPARATION_TICKET, search.candidateChunk,
             PREPARATION_TICKET_RADIUS, search.ticketId, true);
@@ -302,6 +316,12 @@ public final class RandomRiftManager {
         if (!search.preparing()) return;
         ServerLevel level = server.getLevel(search.targetDimension);
         if (level != null) removePreparationTicket(level, search);
+//? if >=1.21.11 {
+        /*else if (search.preparationLease != null) {
+            preparationLeases(server).release(search.preparationLease);
+            search.preparationLease = null;
+        }
+*///?}
         search.clearCandidate();
     }
 
@@ -324,6 +344,13 @@ public final class RandomRiftManager {
 
     private static Map<UUID, Long> cooldowns(MinecraftServer server) {
         return COOLDOWNS.computeIfAbsent(server, ignored -> new HashMap<>());
+    }
+
+    private static ReferenceCountedLeaseTracker<PreparationTicketKey> preparationLeases(
+        MinecraftServer server
+    ) {
+        return PREPARATION_LEASES.computeIfAbsent(server,
+            ignored -> new ReferenceCountedLeaseTracker<>());
     }
 
     private static int cooldownTicks(ServerPlayer player) {
@@ -361,6 +388,9 @@ public final class RandomRiftManager {
 
     public record Snapshot(boolean enabled, boolean searching, int cooldownTicks) {}
 
+    private record PreparationTicketKey(net.minecraft.resources.ResourceKey<Level> dimension,
+                                        ChunkPos chunk, int radius) {}
+
     private enum SearchKind {
         LOCAL {
             @Override
@@ -395,6 +425,7 @@ public final class RandomRiftManager {
         private int candidateX;
         private int candidateZ;
         private ChunkPos candidateChunk;
+        private PreparationTicketKey preparationLease;
         private long preparationStartedAt;
 
         private static Search local(net.minecraft.resources.ResourceKey<Level> dimension,

@@ -55,6 +55,8 @@ final class DimensionalNavigationScreenSourceTest {
                 version + " must initialize coordinate defaults after Minecraft injects the client");
             assertTrue(navigation.contains("rebuildDropdownLabels();"),
                 version + " must cache dropdown labels outside the render loop");
+            assertTrue(navigation.contains("action.active = !saving &&"),
+                version + " must suppress duplicate saves until the server replies");
             assertTrue(selection.contains("if (filteredSource != DimensionLabelState.dimensions())"),
                 version + " picker must reuse its filtered list until input changes");
         }

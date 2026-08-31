@@ -36,7 +36,8 @@ public record PortalPreviewGunState(
     ) {
         if (gun.isEmpty()) return null;
         int smartDistance = data.settings().smartDistance();
-        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, smartDistance, rules);
+        PortalGunModuleSettings settings = PortalGunModuleSettings.get(gun, smartDistance);
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, settings, rules);
         UUID gunId = PortalGunIdentity.existing(gun);
         PortalPairingPendingEndpoint pending = gunId == null ? null
             : PortalPairingPendingEndpoints.getValid(gun, ownerId, gunId, now);
@@ -45,7 +46,7 @@ public record PortalPreviewGunState(
             capabilities.activeSmartFallback(), capabilities.maximumSurfaceRange(),
             capabilities.smartDistance(), capabilities.remoteDistance(), capabilities.aperture(),
             capabilities.remote(),
-            PortalGunModuleSettings.get(gun, smartDistance).remote().placementPreviewEnabled(), pending);
+            settings.remote().placementPreviewEnabled(), pending);
     }
 
     public static @Nullable PortalPreviewGunState fromSnapshot(

@@ -113,8 +113,8 @@ public final class DimensionalNavigationScreen extends Screen {
                 ? "screen.riftgun.dimensional_navigation.save"
                 : "screen.riftgun.dimensional_navigation.open"), true,
             ignored -> performAction());
-        action.active = mode != DimensionalTraversalMode.AUTOMATIC_SEARCH
-            || PortalClientState.randomRift().getBoolean("Enabled");
+        action.active = !saving && (mode != DimensionalTraversalMode.AUTOMATIC_SEARCH
+            || PortalClientState.randomRift().getBoolean("Enabled"));
     }
 
     private void initExactFields(int left, int contentWidth) {
@@ -167,6 +167,7 @@ public final class DimensionalNavigationScreen extends Screen {
     }
 
     private void performAction() {
+        if (saving) return;
         if (mode == DimensionalTraversalMode.AUTOMATIC_SEARCH) {
             PortalNetworking.sendRequest(PortalAction.OPEN_DIMENSIONAL_RIFT,
                 tag -> tag.putString("Dimension", dimension));
@@ -194,7 +195,11 @@ public final class DimensionalNavigationScreen extends Screen {
         if (selected != null && !selected.equals(selectedBeforeSave)) {
             parent.refreshFromServer(Set.of());
             minecraft.setScreen(parent);
+            return;
         }
+        saving = false;
+        clearWidgets();
+        init();
     }
 
     private boolean resetCoordinateDefaults() {

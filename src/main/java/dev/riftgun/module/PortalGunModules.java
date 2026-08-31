@@ -15,6 +15,7 @@ public final class PortalGunModules {
     public static final int MAXIMUM_EXPANSION_MODULES = 6;
     public static final int SLOT_COUNT = BASE_SLOT_COUNT
         + SLOTS_PER_EXPANSION * MAXIMUM_EXPANSION_MODULES;
+    private static final PortalModuleKind[] MODULE_KINDS = PortalModuleKind.values();
 
     public static NonNullList<ItemStack> load(ItemStack gun) {
         PortalModules.bootstrap();
@@ -51,6 +52,49 @@ public final class PortalGunModules {
         int installed = items instanceof NonNullList<ItemStack> list
             ? installedCount(activeItems(list), kind) : installedCount(items, kind);
         return Math.min(installed, maximum);
+    }
+
+    /** Resolves every active module count with one container load and one active-slot pass. */
+    public static ActiveCounts activeCounts(ItemStack gun, PortalModuleRules rules) {
+        return activeCounts(load(gun), rules);
+    }
+
+    static ActiveCounts activeCounts(NonNullList<ItemStack> items, PortalModuleRules rules) {
+        PortalModules.bootstrap();
+        boolean creative = false;
+        int expansions = 0;
+        for (ItemStack stack : items) {
+            PortalModuleDefinition definition = PortalModuleRegistry.find(stack).orElse(null);
+            if (definition == null) continue;
+            if (definition.kind() == PortalModuleKind.CREATIVE) creative = true;
+            if (definition.kind() == PortalModuleKind.MODULE_BAY_EXPANSION) expansions++;
+        }
+        int unlocked = creative ? items.size() : slotCountForExpansionModules(expansions);
+        int[] installed = new int[MODULE_KINDS.length];
+        for (int slot = 0; slot < Math.min(items.size(), unlocked); slot++) {
+            PortalModuleDefinition definition = PortalModuleRegistry.find(items.get(slot)).orElse(null);
+            if (definition != null) installed[definition.kind().ordinal()]++;
+        }
+        int[] active = new int[installed.length];
+        for (PortalModuleKind kind : MODULE_KINDS) {
+            PortalModuleDefinition definition = PortalModuleRegistry.find(kind).orElse(null);
+            int maximum = definition == null ? 0 : definition.maximumCount(rules);
+            active[kind.ordinal()] = kind != PortalModuleKind.CREATIVE && creative
+                ? maximum : Math.min(installed[kind.ordinal()], maximum);
+        }
+        return new ActiveCounts(active);
+    }
+
+    public static final class ActiveCounts {
+        private final int[] counts;
+
+        private ActiveCounts(int[] counts) {
+            this.counts = counts;
+        }
+
+        public int count(PortalModuleKind kind) {
+            return counts[kind.ordinal()];
+        }
     }
 
     public static boolean hasCreativeModule(Iterable<ItemStack> items) {

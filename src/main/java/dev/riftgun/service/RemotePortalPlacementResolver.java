@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.function.DoubleFunction;
 import java.util.function.DoublePredicate;
 import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import org.jetbrains.annotations.Nullable;
 
 /** Shared REMOTE candidate search used by server authority and client-only previews. */
@@ -25,7 +26,9 @@ public final class RemotePortalPlacementResolver {
     private static final double SEARCH_STEP = 0.25;
     private static final double FINE_SEARCH_DISTANCE = 32.0;
     private static final double COARSE_SEARCH_STEP = 8.0;
-    private static final double CLIENT_LOADED_PROBE_STEP = 1.0;
+    private static final double CHUNK_SIZE = 16.0;
+    private static final double CHUNK_BOUNDS_EPSILON = 1.0E-7;
+    private static final double CHUNK_TRANSITION_EPSILON = 1.0E-6;
 
     public static Optional<PortalPlacement> resolve(Level level, Entity viewer,
                                                     double maximumRange, PortalAperture aperture,
@@ -130,17 +133,69 @@ public final class RemotePortalPlacementResolver {
                                             PortalOrientation orientation, PortalGeometry geometry,
                                             float yaw) {
         if (!level.isClientSide()) return maximumRange;
-        return furthestContinuousLoaded(maximumRange, distance -> chunksLoaded(level,
-            placement(eye.add(look.scale(distance)), orientation, geometry, yaw).bounds()));
+        AABB initialBounds = placement(eye.add(look.scale(MINIMUM_DISTANCE)),
+            orientation, geometry, yaw).bounds();
+        return furthestContinuousLoaded(maximumRange, look, initialBounds,
+            bounds -> chunksLoaded(level, bounds));
     }
 
+    /**
+     * Walks only the distances where the leading edge of the portal footprint enters a new chunk.
+     * Trailing-edge transitions only remove required chunks, so they cannot discover an unloaded
+     * chunk and do not need a probe.
+     */
+    static double furthestContinuousLoaded(double maximumRange, Vec3 direction, AABB initialBounds,
+                                            Predicate<AABB> loadedAt) {
+        double maximum = Math.max(MINIMUM_DISTANCE, maximumRange);
+        if (!loadedAt.test(initialBounds)) return 0.0;
+        if (maximum == MINIMUM_DISTANCE) return maximum;
+
+        double current = MINIMUM_DISTANCE;
+        AABB bounds = initialBounds;
+        while (current < maximum) {
+            double deltaX = nextLeadingChunkBoundary(bounds.minX, bounds.maxX, direction.x);
+            double deltaZ = nextLeadingChunkBoundary(bounds.minZ, bounds.maxZ, direction.z);
+            double delta = Math.min(deltaX, deltaZ);
+            if (!Double.isFinite(delta)) return maximum;
+
+            double transition = current + delta;
+            if (transition >= maximum) {
+                AABB maximumBounds = initialBounds.move(direction.scale(maximum - MINIMUM_DISTANCE));
+                return loadedAt.test(maximumBounds) ? maximum : previousSearchDistance(maximum);
+            }
+
+            double probeDistance = Math.min(maximum, transition + CHUNK_TRANSITION_EPSILON);
+            AABB probeBounds = initialBounds.move(direction.scale(probeDistance - MINIMUM_DISTANCE));
+            if (!loadedAt.test(probeBounds)) return previousSearchDistance(transition);
+            current = probeDistance;
+            bounds = probeBounds;
+        }
+        return maximum;
+    }
+
+    private static double nextLeadingChunkBoundary(double minimum, double maximum,
+                                                   double velocity) {
+        if (Math.abs(velocity) < 1.0E-12) return Double.POSITIVE_INFINITY;
+        double leading = velocity > 0.0 ? maximum - CHUNK_BOUNDS_EPSILON : minimum;
+        double chunk = Math.floor(leading / CHUNK_SIZE);
+        double boundary = velocity > 0.0 ? (chunk + 1.0) * CHUNK_SIZE : chunk * CHUNK_SIZE;
+        return Math.max(0.0, (boundary - leading) / velocity);
+    }
+
+    private static double previousSearchDistance(double unavailableDistance) {
+        double below = Math.nextDown(unavailableDistance);
+        long steps = (long) Math.floor((below - MINIMUM_DISTANCE) / SEARCH_STEP);
+        return steps < 0L ? 0.0 : MINIMUM_DISTANCE + steps * SEARCH_STEP;
+    }
+
+    /** Retained as the generic quarter-block continuity seam used by small-range unit tests. */
     static double furthestContinuousLoaded(double maximumRange, DoublePredicate loadedAt) {
         double maximum = Math.max(MINIMUM_DISTANCE, maximumRange);
         if (!loadedAt.test(MINIMUM_DISTANCE)) return 0.0;
         double loaded = MINIMUM_DISTANCE;
-        for (double distance = MINIMUM_DISTANCE + CLIENT_LOADED_PROBE_STEP;
+        for (double distance = MINIMUM_DISTANCE + 1.0;
              distance < maximum;
-             distance += CLIENT_LOADED_PROBE_STEP) {
+             distance += 1.0) {
             if (!loadedAt.test(distance)) return refineLoadedRange(loaded, distance, loadedAt);
             loaded = distance;
         }

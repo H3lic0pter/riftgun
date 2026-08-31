@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 final class RemotePortalPlacementSearchTest {
@@ -66,6 +67,56 @@ final class RemotePortalPlacementSearchTest {
         assertEquals(29.75, boundaryLoaded, 1.0E-9);
         assertEquals(31.75, maximumLoaded, 1.0E-9);
         org.junit.jupiter.api.Assertions.assertTrue(checkedMaximum.get());
+    }
+
+    @Test
+    void loadedRangeVisitsOnlyNewChunkFootprints() {
+        int[] probes = {0};
+        AABB initial = new AABB(-1.0, 64.0, -0.5, 1.0, 67.0, 0.5);
+
+        double loaded = RemotePortalPlacementResolver.furthestContinuousLoaded(
+            9_248.0, new Vec3(1.0, 0.0, 0.0), initial, bounds -> {
+                probes[0]++;
+                return true;
+            });
+
+        assertEquals(9_248.0, loaded, 1.0E-9);
+        org.junit.jupiter.api.Assertions.assertTrue(probes[0] < 600,
+            "chunk-boundary traversal must not perform " + probes[0] + " per-block probes");
+    }
+
+    @Test
+    void loadedRangeStopsBeforeTheFirstUnloadedChunkFootprint() {
+        AABB initial = new AABB(-1.0, 64.0, -0.5, 1.0, 67.0, 0.5);
+
+        double loaded = RemotePortalPlacementResolver.furthestContinuousLoaded(
+            64.0, new Vec3(1.0, 0.0, 0.0), initial, bounds -> bounds.maxX <= 32.0);
+
+        assertEquals(32.5, loaded, 1.0E-9);
+    }
+
+    @Test
+    void chunkBoundaryTraversalMatchesQuarterBlockReferenceAcrossDirections() {
+        AABB initial = new AABB(-1.2, 64.0, -0.4, 1.2, 67.0, 0.4);
+        for (Vec3 direction : List.of(
+            new Vec3(1.0, 0.0, 0.0), new Vec3(-1.0, 0.0, 0.0),
+            new Vec3(1.0, 0.2, 1.0).normalize(), new Vec3(-0.3, -0.1, 1.0).normalize(),
+            new Vec3(0.0, 1.0, 0.0))) {
+            java.util.function.Predicate<AABB> loaded = bounds ->
+                RemotePortalPlacementResolver.chunksLoaded(bounds,
+                    (chunkX, chunkZ) -> Math.abs(chunkX) <= 1 && Math.abs(chunkZ) <= 1);
+            double expected = 0.0;
+            for (double distance = 1.5; distance <= 64.0; distance += 0.25) {
+                AABB bounds = initial.move(direction.scale(distance - 1.5));
+                if (!loaded.test(bounds)) break;
+                expected = distance;
+            }
+
+            double actual = RemotePortalPlacementResolver.furthestContinuousLoaded(
+                64.0, direction, initial, loaded);
+
+            assertEquals(expected, actual, 1.0E-9, direction.toString());
+        }
     }
 
     @Test

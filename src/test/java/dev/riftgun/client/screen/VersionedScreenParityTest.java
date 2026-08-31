@@ -31,6 +31,20 @@ final class VersionedScreenParityTest {
     void radialScreensSendTheSameActionsAndUseTheSameText() throws Exception {
         assertContractParity("ModeRadialScreen.java", ACTION);
         assertContractParity("ModeRadialScreen.java", TRANSLATION);
+        for (Path root : new Path[] { LEGACY, CURRENT }) {
+            assertTrue(Files.readString(root.resolve("ModeRadialScreen.java"))
+                .contains("ModeRadialPointerAction.resolve("));
+        }
+    }
+
+    @Test
+    void dimensionalScreensExposeTheSameBehaviorContract() throws Exception {
+        for (String file : new String[] {
+            "DimensionalNavigationScreen.java", "DimensionSelectionScreen.java"
+        }) {
+            assertContractParity(file, ACTION);
+            assertContractParity(file, TRANSLATION);
+        }
     }
 
     @Test
