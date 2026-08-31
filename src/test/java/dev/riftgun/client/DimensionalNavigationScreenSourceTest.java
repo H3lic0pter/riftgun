@@ -9,25 +9,45 @@ import org.junit.jupiter.api.Test;
 
 final class DimensionalNavigationScreenSourceTest {
     @Test
-    void navigationScreensUseTheEstablishedUnblurredHeaderAndDropdownContract() throws Exception {
+    void navigationScreensKeepUiSharpReturnImmediatelyAndUseReviewedHeaderLayout() throws Exception {
         for (String version : new String[] {"1.21.1", "26.1.2"}) {
             String root = "versions/" + version
                 + "/src/main/java/dev/riftgun/client/screen/";
             String navigation = Files.readString(Path.of(root + "DimensionalNavigationScreen.java"));
             String selection = Files.readString(Path.of(root + "DimensionSelectionScreen.java"));
 
-            assertFalse(navigation.contains("renderBackground("), version + " must not blur the game");
-            assertFalse(selection.contains("renderBackground("), version + " picker must not blur the game");
+            assertFalse(navigation.contains("super.render("),
+                version + " must not apply blur after drawing its UI");
+            assertFalse(selection.contains("super.render("),
+                version + " picker must not apply blur after drawing its UI");
+            if (version.equals("1.21.1")) {
+                assertTrue(navigation.indexOf("renderBackground(")
+                    < navigation.indexOf("graphics.fill(panelX"),
+                    "1.21.1 must blur the world before drawing the navigation panel");
+                assertTrue(selection.indexOf("renderBackground(")
+                    < selection.indexOf("graphics.fill(panelX"),
+                    "1.21.1 must blur the world before drawing the picker panel");
+            }
             assertFalse(navigation.contains("\"▲\"") || navigation.contains("\"▼\""),
                 version + " must reuse the dropdown sprite");
             assertTrue(navigation.contains("drawDownIcon("),
                 version + " must render the existing dropdown arrow");
+            assertTrue(navigation.contains("BACK_ICON_OPTICAL_X = -2"),
+                version + " must keep the reviewed arrow correction");
             assertTrue(navigation.contains("drawBackIcon("),
                 version + " must render the existing back arrow");
-            assertTrue(navigation.contains("panelX + panelWidth - 12 - font.width(title)"),
-                version + " must right-align the title");
-            assertTrue(selection.contains("parent.selectDimensionAndReturn("),
-                version + " picker selection must own the return transition");
+            assertTrue(navigation.contains("backButton = button(panelX + panelWidth - 27"),
+                version + " must place Back at top-right");
+            assertTrue(selection.contains("panelX + panelWidth - 27, panelY + 7"),
+                version + " picker must place Back at top-right");
+            assertTrue(navigation.contains("font, title, panelX + 12, panelY + 12"),
+                version + " must place the title at top-left");
+            assertTrue(selection.contains("font, title, panelX + 12, panelY + 12"),
+                version + " picker must place its title at top-left");
+            assertTrue(selection.contains("parent.selectDimension(dimensions.get(index).id());"),
+                version + " picker must update its parent selection");
+            assertTrue(selection.contains("onClose();"),
+                version + " picker must return through its own active Screen");
         }
     }
 }

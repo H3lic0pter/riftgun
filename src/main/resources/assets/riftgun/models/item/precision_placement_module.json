@@ -1,4 +1,4 @@
 {
   "parent": "minecraft:item/generated",
-  "textures": { "layer0": "riftgun:item/modules/advanced_basic_module" }
+  "textures": { "layer0": "riftgun:item/modules/precision_placement_module" }
 }

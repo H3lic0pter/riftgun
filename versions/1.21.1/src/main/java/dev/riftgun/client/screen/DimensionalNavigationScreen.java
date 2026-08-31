@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -24,6 +25,7 @@ public final class DimensionalNavigationScreen extends Screen {
     private static final int PANEL_WIDTH = 380;
     private static final int PANEL_HEIGHT = 230;
     private static final int FIELD_HEIGHT = 18;
+    private static final int BACK_ICON_OPTICAL_X = -2;
     private final PortalConfigScreen parent;
     private final UUID group;
     private String dimension;
@@ -71,7 +73,7 @@ public final class DimensionalNavigationScreen extends Screen {
         panelY = (height - panelHeight) / 2;
         int left = panelX + 18;
         int contentWidth = panelWidth - 36;
-        backButton = button(panelX + 8, panelY + 7, 19, 18,
+        backButton = button(panelX + panelWidth - 27, panelY + 7, 19, 18,
             Component.empty(), false, ignored -> onClose());
         backButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.translatable("screen.riftgun.back")));
@@ -136,7 +138,7 @@ public final class DimensionalNavigationScreen extends Screen {
         return addRenderableWidget(field);
     }
 
-    private void selectDimension(String id) {
+    void selectDimension(String id) {
         if (!knownDimension(id)) return;
         dimension = id;
         dropdownOpen = false;
@@ -148,11 +150,6 @@ public final class DimensionalNavigationScreen extends Screen {
             dimensionSelector.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
                 Component.literal(id)));
         }
-    }
-
-    void selectDimensionAndReturn(String id) {
-        selectDimension(id);
-        minecraft.setScreen(this);
     }
 
     private void selectMode(DimensionalTraversalMode selected) {
@@ -210,11 +207,11 @@ public final class DimensionalNavigationScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics, mouseX, mouseY, partialTick);
         graphics.fill(0, 0, width, height, PortalTheme.SCRIM);
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PortalTheme.PANEL);
         graphics.renderOutline(panelX, panelY, panelWidth, panelHeight, PortalTheme.BORDER);
-        graphics.drawString(font, title, panelX + panelWidth - 12 - font.width(title),
-            panelY + 12, PortalTheme.TEXT, false);
+        graphics.drawString(font, title, panelX + 12, panelY + 12, PortalTheme.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.riftgun.dimensional_navigation.dimension"),
             panelX + 18, panelY + 29, PortalTheme.TEXT_MUTED, false);
         if (mode == DimensionalTraversalMode.EXACT_COORDINATES) {
@@ -230,9 +227,12 @@ public final class DimensionalNavigationScreen extends Screen {
                     left + index * (coordinateWidth + gap), panelY + 153, PortalTheme.TEXT_MUTED, false);
             }
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        for (Renderable renderable : renderables) {
+            renderable.render(graphics, mouseX, mouseY, partialTick);
+            graphics.flush();
+        }
         if (backButton != null) PortalGuiIcons.drawBackIcon(
-            graphics, backButton.getX() + 7, backButton.getY() + 6);
+            graphics, backButton.getX() + 7 + BACK_ICON_OPTICAL_X, backButton.getY() + 6);
         if (dimensionDropdownButton != null) PortalGuiIcons.drawDownIcon(graphics,
             dimensionDropdownButton.getX() + 6, dimensionDropdownButton.getY() + 7);
         if (dropdownOpen) renderDimensionDropdown(graphics, mouseX, mouseY);

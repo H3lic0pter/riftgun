@@ -15,6 +15,7 @@ public final class DimensionSelectionScreen extends Screen {
     private static final int PANEL_WIDTH = 380;
     private static final int PANEL_HEIGHT = 230;
     private static final int ROW_HEIGHT = 20;
+    private static final int BACK_ICON_OPTICAL_X = -2;
     private final DimensionalNavigationScreen parent;
     private int panelX;
     private int panelY;
@@ -40,7 +41,8 @@ public final class DimensionSelectionScreen extends Screen {
         panelY = (height - panelHeight) / 2;
         listTop = panelY + 70;
         listBottom = panelY + panelHeight - 16;
-        backButton = addRenderableWidget(new ThemedButton(panelX + 8, panelY + 7, 19, 18,
+        backButton = addRenderableWidget(new ThemedButton(
+            panelX + panelWidth - 27, panelY + 7, 19, 18,
             Component.empty(), false, ignored -> onClose()));
         backButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.translatable("screen.riftgun.back")));
@@ -61,8 +63,7 @@ public final class DimensionSelectionScreen extends Screen {
         graphics.fill(0, 0, width, height, PortalTheme.SCRIM);
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PortalTheme.PANEL);
         graphics.outline(panelX, panelY, panelWidth, panelHeight, PortalTheme.BORDER);
-        graphics.text(font, title, panelX + panelWidth - 12 - font.width(title),
-            panelY + 12, PortalTheme.TEXT, false);
+        graphics.text(font, title, panelX + 12, panelY + 12, PortalTheme.TEXT, false);
         List<DimensionLabelState.DimensionInfo> dimensions = filtered();
         clampScroll(dimensions.size());
         graphics.enableScissor(panelX + 12, listTop, panelX + panelWidth - 12, listBottom);
@@ -82,7 +83,7 @@ public final class DimensionSelectionScreen extends Screen {
             renderable.extractRenderState(graphics, mouseX, mouseY, partialTick);
         }
         if (backButton != null) PortalGuiIcons.drawBackIcon(
-            graphics, backButton.getX() + 7, backButton.getY() + 6);
+            graphics, backButton.getX() + 7 + BACK_ICON_OPTICAL_X, backButton.getY() + 6);
     }
 
     @Override
@@ -92,7 +93,8 @@ public final class DimensionSelectionScreen extends Screen {
             int index = (int) (event.y() - listTop + scroll) / ROW_HEIGHT;
             List<DimensionLabelState.DimensionInfo> dimensions = filtered();
             if (index >= 0 && index < dimensions.size()) {
-                parent.selectDimensionAndReturn(dimensions.get(index).id());
+                parent.selectDimension(dimensions.get(index).id());
+                onClose();
                 return true;
             }
         }
