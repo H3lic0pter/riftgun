@@ -50,7 +50,8 @@ final class PortalGunModuleSettingsTest {
             new PortalGunModuleSettings.PlayerTarget(true, PlayerExcludeMode.ENTRY_AND_EXIT),
             dev.riftgun.relocation.EntityRelocationSettings.defaults(),
             dev.riftgun.remote.RemoteSettings.defaults(),
-            dev.riftgun.pairing.PortalPairingSettings.defaults(), true, false);
+            dev.riftgun.pairing.PortalPairingSettings.defaults(),
+            dev.riftgun.navigation.DimensionalTraversalSettings.defaults(), true, false);
 
         assertEquals(1, settings.smartDistance());
         assertEquals(1, settings.desiredRemoteDistance());
@@ -86,6 +87,9 @@ final class PortalGunModuleSettingsTest {
         assertTrue(settings.remote().scrollAdjustmentEnabled());
         assertTrue(settings.remote().radialSliderEnabled());
         assertTrue(settings.remote().placementPreviewEnabled());
+        assertEquals(dev.riftgun.navigation.DimensionalTraversalMode.EXACT_COORDINATES,
+            settings.dimensionalTraversal().mode());
+        assertEquals("", settings.dimensionalTraversal().targetDimension());
     }
 
     @Test
@@ -131,7 +135,25 @@ final class PortalGunModuleSettingsTest {
         assertFalse(encoded.has("placement"));
         assertFalse(encoded.has("transit"));
         assertTrue(encoded.has("remote"));
+        assertFalse(encoded.has("dimensional_traversal"));
         assertFalse(encoded.has("portal_pairing")
             && encoded.getAsJsonObject("portal_pairing").has("remote"));
+    }
+
+    @Test
+    void dimensionalTraversalSelectionRoundTrips() {
+        PortalGunModuleSettings settings = PortalGunModuleSettings.defaults(8)
+            .withDimensionalTraversal(new dev.riftgun.navigation.DimensionalTraversalSettings(
+                "minecraft:the_nether",
+                dev.riftgun.navigation.DimensionalTraversalMode.AUTOMATIC_SEARCH));
+
+        var encoded = PortalGunModuleSettings.CODEC.encodeStart(JsonOps.INSTANCE, settings)
+            .result().orElseThrow();
+        PortalGunModuleSettings decoded = PortalGunModuleSettings.CODEC.parse(JsonOps.INSTANCE, encoded)
+            .result().orElseThrow();
+
+        assertEquals("minecraft:the_nether", decoded.dimensionalTraversal().targetDimension());
+        assertEquals(dev.riftgun.navigation.DimensionalTraversalMode.AUTOMATIC_SEARCH,
+            decoded.dimensionalTraversal().mode());
     }
 }

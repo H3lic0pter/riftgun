@@ -28,6 +28,7 @@ final class PortalGuiSprites {
     static final Identifier CONFIGURE_GUN = icon("configure_gun");
     static final Identifier MODULE_BAY = icon("module_bay");
     static final Identifier PORTAL_CLOSE = icon("portal_close");
+    static final Identifier DIMENSIONAL_TRAVERSAL = icon("dimensional_traversal");
     static final Identifier RANDOM_RIFT_ON = icon("random_rift_on");
     static final Identifier RANDOM_RIFT_OFF = icon("random_rift_off");
     static final Identifier SMART_DISTANCE = icon("smart_distance");

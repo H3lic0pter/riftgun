@@ -35,8 +35,8 @@ final class SurfaceFacePairingModifierSourceTest {
         int methodStart = handler.indexOf("private static void openSelectedSurfaceFace");
         int methodEnd = handler.indexOf("private static void sendChangedState", methodStart);
         String method = handler.substring(methodStart, methodEnd);
-        assertTrue(handler.contains("SurfaceFaceRequest.decode(request),\n"
-            + "                    Nbt.getBoolean(request, \"EndpointA\")"));
+        assertTrue(handler.contains("SurfaceFaceRequest.decode(request),"));
+        assertTrue(handler.contains("Nbt.getBoolean(request, \"EndpointA\")"));
         assertTrue(method.contains("endpointA ? PortalPairingEndpoint.A : PortalPairingEndpoint.B"));
         assertFalse(method.contains("player.isShiftKeyDown()"));
     }

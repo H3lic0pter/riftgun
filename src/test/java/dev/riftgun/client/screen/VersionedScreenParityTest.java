@@ -43,6 +43,19 @@ final class VersionedScreenParityTest {
         }
     }
 
+    @Test
+    void mainPlacementButtonKeepsReviewedArtworkPosition() throws Exception {
+        for (Path root : new Path[] { LEGACY, CURRENT }) {
+            String screen = Files.readString(root.resolve("PortalConfigScreen.java"));
+            String icons = Files.readString(root.resolve("PortalGuiIcons.java"));
+
+            assertTrue(screen.contains("drawPlacementModeButtonIcon(graphics, placementModeButton.getX(),"));
+            assertTrue(icons.contains("PLACEMENT_BUTTON_X = 2"));
+            assertTrue(icons.contains("PLACEMENT_FRONT_BUTTON_X = 1"));
+            assertTrue(icons.contains("PLACEMENT_BUTTON_Y = 2"));
+        }
+    }
+
     private static void assertContractParity(String file, Pattern pattern) throws Exception {
         assertEquals(matches(Files.readString(LEGACY.resolve(file)), pattern),
             matches(Files.readString(CURRENT.resolve(file)), pattern),

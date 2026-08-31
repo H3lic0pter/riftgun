@@ -10,6 +10,7 @@ import dev.riftgun.data.PortalPlacementMode;
 
 public record PortalGunCapabilities(
     boolean coordinateOverride,
+    boolean dimensionalTraversal,
     int nominalCapacity,
     int maximumSurfaceRange,
     int remoteDistance,
@@ -58,6 +59,7 @@ public record PortalGunCapabilities(
             gun, PortalModuleKind.FALL_GUARD, rules) > 0;
         return new PortalGunCapabilities(
             PortalGunModules.activeCount(gun, PortalModuleKind.COORDINATE_OVERRIDE, rules) > 0,
+            PortalGunModules.activeCount(gun, PortalModuleKind.DIMENSIONAL_TRAVERSAL, rules) > 0,
             rules.capacityFor(reservoirCount),
             maximumRange,
             remoteDistance,

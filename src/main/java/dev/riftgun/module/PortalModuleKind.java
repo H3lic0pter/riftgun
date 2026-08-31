@@ -2,6 +2,7 @@ package dev.riftgun.module;
 
 public enum PortalModuleKind {
     COORDINATE_OVERRIDE,
+    DIMENSIONAL_TRAVERSAL,
     RESERVOIR_EXPANSION,
     PASSIVE_TRANSIT,
     HOSTILE_TRANSIT,

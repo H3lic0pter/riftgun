@@ -175,6 +175,13 @@ public final class ClientGameEvents {
                 : Component.translatable(descriptionKey);
             event.getToolTip().add(description.copy()
                 .withStyle(style -> style.withColor(0xA9D6A2)));
+            if (definition.kind() == PortalModuleKind.DIMENSIONAL_TRAVERSAL
+                && PortalClientState.gun().contains("DimensionalTraversalEnabled")
+                && !PortalClientState.gun().getBoolean("DimensionalTraversalEnabled")) {
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.dimensional_traversal_module.disabled")
+                    .withStyle(ChatFormatting.RED));
+            }
             if (definition.kind() == PortalModuleKind.REMOTE) {
                 event.getToolTip().add(Component.translatable(
                     "tooltip.riftgun.module.remote_module.scroll_control",

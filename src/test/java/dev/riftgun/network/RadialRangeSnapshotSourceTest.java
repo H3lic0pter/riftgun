@@ -16,6 +16,6 @@ final class RadialRangeSnapshotSourceTest {
 
         assertTrue(handler.contains("PortalNetworking.sendGunSnapshot(player, data, gun);"));
         assertTrue(networking.contains("envelope.putString(\"Kind\", \"GunSnapshot\");"));
-        assertTrue(networking.contains("}).distinct().toList());"));
+        assertTrue(networking.contains("gunSnapshot(player, data, locatedGun)"));
     }
 }

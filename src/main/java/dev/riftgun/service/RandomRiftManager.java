@@ -8,6 +8,8 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.navigation.DimensionalTraversalTargets;
+import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.network.PortalNetworking;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,7 +77,62 @@ public final class RandomRiftManager {
             return;
         }
         serverSearches.put(playerId, new Search(player.level().dimension(), player.getX(), player.getZ(),
-            gun.saveReference()));
+            gun.saveReference(), false));
+        message(player, "message.riftgun.random_rift_search_started");
+        PortalNetworking.sendSnapshot(player, false, gun);
+    }
+
+    public static void requestDimensional(ServerPlayer player, PortalGunLocator.LocatedGun gun,
+                                          String dimensionId) {
+        RiftConfig config = RiftConfigs.server();
+        if (!config.dimensionalTraversal().enabled()) {
+            message(player, "message.riftgun.dimensional_traversal_disabled");
+            return;
+        }
+        if (!config.randomRift().enabled()) {
+            message(player, "message.riftgun.random_rift_disabled");
+            return;
+        }
+        PortalPlayerData data = PortalDataStore.load(player);
+        if (!PortalGunCapabilities.resolve(gun.stack(), data.settings().smartDistance())
+            .dimensionalTraversal()) {
+            message(player, "message.riftgun.dimensional_traversal_module_required");
+            return;
+        }
+        ServerLevel target = DimensionalTraversalTargets.resolve(player, dimensionId).orElse(null);
+        if (target == null) {
+            message(player, "message.riftgun.dimension_unavailable");
+            return;
+        }
+        UUID playerId = player.getUUID();
+        MinecraftServer server = playerServer(player);
+        if (searches(server).containsKey(playerId)) {
+            message(player, "message.riftgun.random_rift_searching");
+            return;
+        }
+        int cooldown = cooldownTicks(player);
+        if (cooldown > 0) {
+            message(player, "message.riftgun.random_rift_cooldown", (cooldown + 19) / 20);
+            return;
+        }
+        if (!RandomRiftSearchPolicy.hasCapacity(
+            searches(server).size(), config.randomRift().maximumConcurrentSearches())) {
+            message(player, "message.riftgun.random_rift_too_many_searches");
+            return;
+        }
+        PortalFuelManager.Plan fuel = PortalFuelManager.plan(
+            player, gun.stack(), target.dimension());
+        if (!fuel.successful()) {
+            message(player, fuel.errorKey());
+            return;
+        }
+        double centerX = DimensionalTraversalTargets.mapCoordinate(
+            player.getX(), player.level(), target);
+        double centerZ = DimensionalTraversalTargets.mapCoordinate(
+            player.getZ(), player.level(), target);
+        searches(server).put(playerId, new Search(
+            player.level().dimension(), target.dimension(), centerX, centerZ,
+            gun.saveReference(), true));
         message(player, "message.riftgun.random_rift_search_started");
         PortalNetworking.sendSnapshot(player, false, gun);
     }
@@ -125,19 +182,34 @@ public final class RandomRiftManager {
         RiftConfig.RandomRiftConfig config = RiftConfigs.server().randomRift();
         PortalGunLocator.LocatedGun gun = PortalGunLocator.resolveReference(player, search.gunReference)
             .orElse(null);
-        if (!config.enabled() || !player.level().dimension().equals(search.dimension) || gun == null) {
+        if (!config.enabled() || !player.level().dimension().equals(search.sourceDimension) || gun == null) {
             cancel(playerServer(player), player.getUUID());
             message(player, "message.riftgun.random_rift_canceled");
             return;
         }
         PortalPlayerData data = PortalDataStore.load(player);
-        if (!PortalGunCapabilities.resolve(gun.stack(), data.settings().smartDistance()).coordinateOverride()) {
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun.stack(), data.settings().smartDistance());
+        boolean authorized = search.dimensional
+            ? RiftConfigs.server().dimensionalTraversal().enabled() && capabilities.dimensionalTraversal()
+            : capabilities.coordinateOverride();
+        if (!authorized) {
             cancel(playerServer(player), player.getUUID());
-            message(player, "message.riftgun.coordinate_module_required");
+            message(player, search.dimensional
+                && !RiftConfigs.server().dimensionalTraversal().enabled()
+                    ? "message.riftgun.dimensional_traversal_disabled"
+                    : search.dimensional
+                        ? "message.riftgun.dimensional_traversal_module_required"
+                        : "message.riftgun.coordinate_module_required");
             return;
         }
 
-        ServerLevel level = (ServerLevel) player.level();
+        ServerLevel level = playerServer(player).getLevel(search.targetDimension);
+        if (level == null) {
+            cancel(playerServer(player), player.getUUID());
+            message(player, "message.riftgun.dimension_unavailable");
+            return;
+        }
         long now = level.getGameTime();
         if (!search.preparing()) {
             beginCandidate(level, search, config, now);
@@ -242,7 +314,7 @@ public final class RandomRiftManager {
 
     private static void releasePreparation(MinecraftServer server, Search search) {
         if (!search.preparing()) return;
-        ServerLevel level = server.getLevel(search.dimension);
+        ServerLevel level = server.getLevel(search.targetDimension);
         if (level != null) removePreparationTicket(level, search);
         search.clearCandidate();
     }
@@ -304,10 +376,12 @@ public final class RandomRiftManager {
     public record Snapshot(boolean enabled, boolean searching, int cooldownTicks) {}
 
     private static final class Search {
-        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private final net.minecraft.resources.ResourceKey<Level> sourceDimension;
+        private final net.minecraft.resources.ResourceKey<Level> targetDimension;
         private final double centerX;
         private final double centerZ;
         private final CompoundTag gunReference;
+        private final boolean dimensional;
         private final UUID ticketId = UUID.randomUUID();
         private int attempts;
         private int candidateX;
@@ -316,11 +390,20 @@ public final class RandomRiftManager {
         private long preparationStartedAt;
 
         private Search(net.minecraft.resources.ResourceKey<Level> dimension, double centerX,
-                       double centerZ, CompoundTag gunReference) {
-            this.dimension = dimension;
+                       double centerZ, CompoundTag gunReference, boolean dimensional) {
+            this(dimension, dimension, centerX, centerZ, gunReference, dimensional);
+        }
+
+        private Search(net.minecraft.resources.ResourceKey<Level> sourceDimension,
+                       net.minecraft.resources.ResourceKey<Level> targetDimension,
+                       double centerX, double centerZ, CompoundTag gunReference,
+                       boolean dimensional) {
+            this.sourceDimension = sourceDimension;
+            this.targetDimension = targetDimension;
             this.centerX = centerX;
             this.centerZ = centerZ;
             this.gunReference = gunReference;
+            this.dimensional = dimensional;
         }
 
         private boolean preparing() {

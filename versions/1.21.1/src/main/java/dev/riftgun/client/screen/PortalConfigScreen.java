@@ -129,6 +129,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton gunSettingsButton;
     private @Nullable ThemedButton moduleBayButton;
     private @Nullable ThemedButton closePortalsButton;
+    private @Nullable ThemedButton dimensionalTraversalButton;
     private @Nullable ThemedButton gunSettingsBackButton;
     private @Nullable ThemedButton portalDurationSettingsButton;
     private @Nullable ThemedButton smartRangeSettingsButton;
@@ -236,6 +237,7 @@ public final class PortalConfigScreen extends Screen {
         gunSettingsButton = null;
         moduleBayButton = null;
         closePortalsButton = null;
+        dimensionalTraversalButton = null;
         gunSettingsBackButton = null;
         portalDurationSettingsButton = null;
         smartRangeSettingsButton = null;
@@ -331,6 +333,12 @@ public final class PortalConfigScreen extends Screen {
             Component.empty(), false, ignored -> openGunSettings());
         closePortalsButton = button(panelX + panelWidth - 73, panelY + 3, 19, 18,
             Component.empty(), false, ignored -> PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS));
+        if (PortalClientState.gun().getBoolean("DimensionalTraversalInstalled")
+            && PortalClientState.gun().getBoolean("DimensionalTraversalEnabled")) {
+            dimensionalTraversalButton = button(panelX + panelWidth - 95, panelY + 3, 19, 18,
+                Component.empty(), false, ignored -> minecraft.setScreen(
+                    new DimensionalNavigationScreen(this, creationGroup())));
+        }
 
         int footerY = panelY + panelHeight - 28;
         boolean showFunctionMode = pairingInstalled();
@@ -1336,9 +1344,8 @@ public final class PortalConfigScreen extends Screen {
                     functionModeButton.getWidth(), functionModeButton.getHeight(),
                     Nbt.getString(PortalClientState.gun(), "FunctionMode").equals("PORTAL_PAIRING"));
             }
-            int x = placementModeButton.getX() + 5;
-            int y = placementModeButton.getY() + 5;
-            drawPlacementModeIcon(graphics, x, y, PortalClientState.data().settings().placementMode());
+            drawPlacementModeButtonIcon(graphics, placementModeButton.getX(),
+                placementModeButton.getY(), PortalClientState.data().settings().placementMode());
             renderGunControls(graphics, mouseX, mouseY);
         }
         if (modal == Modal.SETTINGS) {
@@ -1436,6 +1443,10 @@ public final class PortalConfigScreen extends Screen {
             if (closePortalsButton != null && closePortalsButton.isHovered()) {
                 graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.close_portals"), mouseX, mouseY);
+            }
+            if (dimensionalTraversalButton != null && dimensionalTraversalButton.isHovered()) {
+                graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.dimensional_navigation"), mouseX, mouseY);
             }
             if (motionPredictionButton != null) {
                 dev.riftgun.data.PortalPredictionMode mode =
@@ -1579,6 +1590,11 @@ public final class PortalConfigScreen extends Screen {
         }
         if (closePortalsButton != null) {
             drawPortalCloseIcon(graphics, closePortalsButton.getX() + 4, closePortalsButton.getY() + 4);
+        }
+        if (dimensionalTraversalButton != null) {
+            drawDimensionalTraversalIcon(graphics, dimensionalTraversalButton.getX(),
+                dimensionalTraversalButton.getY(), dimensionalTraversalButton.getWidth(),
+                dimensionalTraversalButton.getHeight());
         }
         if (randomRiftButton != null) {
             drawRandomRiftIcon(graphics, randomRiftButton.getX(), randomRiftButton.getY(),

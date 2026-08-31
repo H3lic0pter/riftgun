@@ -33,6 +33,13 @@ public final class PortalGunSnapshot {
         tag.putBoolean("InfiniteFuel", infiniteFuel);
         tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid.getFluid()));
         tag.putBoolean("CoordinateOverride", capabilities.coordinateOverride());
+        tag.putBoolean("DimensionalTraversalInstalled", capabilities.dimensionalTraversal());
+        tag.putBoolean("DimensionalTraversalEnabled",
+            dev.riftgun.core.config.RiftConfigs.server().dimensionalTraversal().enabled());
+        tag.putString("DimensionalTraversalDimension",
+            settings.dimensionalTraversal().targetDimension());
+        tag.putString("DimensionalTraversalMode",
+            settings.dimensionalTraversal().mode().name());
         tag.putInt("MaximumSurfaceRange", capabilities.maximumSurfaceRange());
         tag.putInt("RemoteDistance", capabilities.remoteDistance());
         tag.putInt("SmartDistance", capabilities.smartDistance());

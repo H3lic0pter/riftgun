@@ -172,6 +172,8 @@ public final class PortalRequestHandler {
             case CREATE_CURRENT -> PortalDestinationActions.createCurrent(player, data, request);
             case CREATE_COORDINATE -> PortalDestinationActions.createCoordinate(
                 player, data, request, gun.stack());
+            case CREATE_DIMENSIONAL_COORDINATE -> PortalDestinationActions.createDimensionalCoordinate(
+                player, data, request, gun.stack());
             case EDIT_DESTINATION -> PortalDestinationActions.edit(player, data, request, gun.stack());
             case SHARE_DESTINATION_CHAT -> {
                 CoordinateSharingService.shareToChat(player, PortalRequestFields.id(request, "Destination"));
@@ -205,6 +207,10 @@ public final class PortalRequestHandler {
             }
             case OPEN_RANDOM_RIFT -> {
                 RandomRiftManager.request(player, gun);
+                yield false;
+            }
+            case OPEN_DIMENSIONAL_RIFT -> {
+                RandomRiftManager.requestDimensional(player, gun, Nbt.getString(request, "Dimension"));
                 yield false;
             }
             case OPEN_SELECTED -> {
@@ -264,7 +270,8 @@ public final class PortalRequestHandler {
             case SET_GROUP_EXPANDED -> PortalDestinationActions.setExpanded(data, request);
             case SET_SETTINGS -> PortalGunActions.updatePlayerSettings(
                 player, data, request, gun.stack());
-            case SET_GUN_MODULE_SETTINGS -> PortalGunActions.updateModuleSettings(data, request, gun.stack());
+            case SET_GUN_MODULE_SETTINGS -> PortalGunActions.updateModuleSettings(
+                player, data, request, gun.stack());
             case TOGGLE_BUCKET_MODE -> PortalGunActions.toggleBucketMode(player, gun.stack());
             case CLEAR_GUN_FLUID -> PortalGunActions.clearFluid(player, gun.stack());
             case REQUEST_PLAYERS -> {

@@ -11,6 +11,7 @@ public record RiftConfig(
     CoordinateSharingConfig coordinateSharing,
     MapWaypointIntegrationConfig mapWaypointIntegration,
     RandomRiftConfig randomRift,
+    DimensionalTraversalConfig dimensionalTraversal,
     FuelConfig fuel,
     ModuleConfig modules,
     PortalConfig portal,
@@ -29,6 +30,7 @@ public record RiftConfig(
             new CoordinateSharingConfig(true, 300, 5),
             new MapWaypointIntegrationConfig(true),
             new RandomRiftConfig(true, 60, 256, 4096, 16, 8),
+            new DimensionalTraversalConfig(true),
             new FuelConfig(true, 50, 100, 5, 8, 5, 8),
             new ModuleConfig(2, 8000, 3, 16, 1, 45, true, true),
             new PortalConfig(15, true, 0.35),
@@ -84,6 +86,8 @@ public record RiftConfig(
             return Math.max(minimumRadius, maximumRadius);
         }
     }
+
+    public record DimensionalTraversalConfig(boolean enabled) {}
 
     public record FuelConfig(
         boolean randomConsumption,

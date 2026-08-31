@@ -504,5 +504,19 @@
   "screen.riftgun.remote.scroll_adjustment": "%s+Scroll Remote Distance Adjustment",
   "screen.riftgun.remote.radial_slider": "Show Remote Distance Slider in Radial",
   "screen.riftgun.remote.placement_preview": "Remote Placement Preview",
-  "screen.riftgun.mode_radial.remote_distance": "Remote Distance %s / %s"
+  "screen.riftgun.mode_radial.remote_distance": "Remote Distance %s / %s",
+  "item.riftgun.dimensional_traversal_module": "Dimensional Traversal Module",
+  "tooltip.riftgun.module.dimensional_traversal_module.description": "Unlocks cross-dimensional coordinate search.",
+  "tooltip.riftgun.module.dimensional_traversal_module.disabled": "Dimensional traversal is disabled by the server",
+  "message.riftgun.dimensional_traversal_disabled": "Dimensional traversal is disabled by the server",
+  "message.riftgun.dimensional_traversal_module_required": "An enabled Dimensional Traversal Module is required",
+  "screen.riftgun.dimensional_navigation": "Dimensional Navigation",
+  "screen.riftgun.dimensional_navigation.dimension": "Dimension",
+  "screen.riftgun.dimensional_navigation.choose_dimension": "Choose Dimension",
+  "screen.riftgun.dimensional_navigation.exact": "Exact Coordinates",
+  "screen.riftgun.dimensional_navigation.automatic": "Automatic Search",
+  "screen.riftgun.dimensional_navigation.save": "Save Coordinates",
+  "screen.riftgun.dimensional_navigation.open": "Open Portal",
+  "screen.riftgun.dimensional_navigation.search": "Search dimensions...",
+  "screen.riftgun.dimensional_navigation.random_disabled": "Random rifts are disabled by the server"
 }

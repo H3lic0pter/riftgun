@@ -4,14 +4,18 @@ import dev.riftgun.core.nbt.Nbt;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
+import java.util.ArrayList;
 import net.minecraft.nbt.CompoundTag;
 
 /** Client cache of server-resolved, addon-owned Dimension display names. */
 public final class DimensionLabelState {
     private static volatile Map<String, String> labels = Map.of();
+    private static volatile List<DimensionInfo> dimensions = List.of();
 
     public static void replace(CompoundTag envelope) {
         labels = decode(envelope);
+        dimensions = decodeDimensions(envelope);
     }
 
     public static synchronized void merge(CompoundTag envelope) {
@@ -24,6 +28,10 @@ public final class DimensionLabelState {
         return Optional.ofNullable(labels.get(dimensionId));
     }
 
+    public static List<DimensionInfo> dimensions() {
+        return dimensions;
+    }
+
     private static Map<String, String> decode(CompoundTag envelope) {
         LinkedHashMap<String, String> decoded = new LinkedHashMap<>();
         for (var raw : Nbt.getList(envelope, "DimensionLabels")) {
@@ -34,6 +42,18 @@ public final class DimensionLabelState {
         }
         return Map.copyOf(decoded);
     }
+
+    private static List<DimensionInfo> decodeDimensions(CompoundTag envelope) {
+        ArrayList<DimensionInfo> decoded = new ArrayList<>();
+        for (var raw : Nbt.getList(envelope, "Dimensions")) {
+            CompoundTag entry = (CompoundTag) raw;
+            String id = Nbt.getString(entry, "Id");
+            if (!id.isBlank()) decoded.add(new DimensionInfo(id, Nbt.getDouble(entry, "Scale")));
+        }
+        return List.copyOf(decoded);
+    }
+
+    public record DimensionInfo(String id, double coordinateScale) {}
 
     private DimensionLabelState() {}
 }

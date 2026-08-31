@@ -33,6 +33,8 @@ public final class PortalModules {
 
     public static final ModuleEntry COORDINATE_OVERRIDE = register(
         "coordinate_override_module", PortalModuleKind.COORDINATE_OVERRIDE, ignored -> 1, 0x74D9E8);
+    public static final ModuleEntry DIMENSIONAL_TRAVERSAL = register(
+        "dimensional_traversal_module", PortalModuleKind.DIMENSIONAL_TRAVERSAL, ignored -> 1, 0x8E79E8);
     public static final ModuleEntry RESERVOIR_EXPANSION = register(
         "reservoir_expansion_module", PortalModuleKind.RESERVOIR_EXPANSION,
         PortalModuleRules::maximumReservoirModules, 0x5BADEB);

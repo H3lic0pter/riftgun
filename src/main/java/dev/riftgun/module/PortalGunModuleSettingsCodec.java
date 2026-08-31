@@ -9,6 +9,7 @@ import dev.riftgun.pairing.PortalPairingSettings;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.relocation.EntityRelocationSettings;
 import dev.riftgun.remote.RemoteSettings;
+import dev.riftgun.navigation.DimensionalTraversalSettings;
 import java.util.Optional;
 
 /** Compatibility adapter between the grouped domain model and the original flat data schema. */
@@ -75,6 +76,7 @@ final class PortalGunModuleSettingsCodec {
                 new PortalGunModuleSettings.PlayerTarget(playerTargetEnabled, playerExcludeMode),
                 new EntityRelocationSettings(entityRelocationEnabled, entityRelocationSmartRouting),
                 pairingAndRemote.remoteSettings(), pairingAndRemote.pairing().settings(),
+                pairingAndRemote.dimensionalTraversal(),
                 fallGuardEnabled, fallGuardEntitiesEnabled);
         }
 
@@ -92,12 +94,16 @@ final class PortalGunModuleSettingsCodec {
     }
 
     /** Reads Remote's old nested location while writing it at module-settings scope. */
-    private record PairingAndRemote(PersistedPairing pairing, Optional<RemoteSettings> remote) {
+    private record PairingAndRemote(PersistedPairing pairing, Optional<RemoteSettings> remote,
+                                    DimensionalTraversalSettings dimensionalTraversal) {
         private static final MapCodec<PairingAndRemote> MAP_CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
                 PersistedPairing.CODEC.optionalFieldOf("portal_pairing", PersistedPairing.defaults())
                     .forGetter(PairingAndRemote::pairing),
-                RemoteSettings.CODEC.optionalFieldOf("remote").forGetter(PairingAndRemote::remote)
+                RemoteSettings.CODEC.optionalFieldOf("remote").forGetter(PairingAndRemote::remote),
+                DimensionalTraversalSettings.CODEC.optionalFieldOf(
+                        "dimensional_traversal", DimensionalTraversalSettings.defaults())
+                    .forGetter(PairingAndRemote::dimensionalTraversal)
             ).apply(instance, PairingAndRemote::new));
 
         RemoteSettings remoteSettings() {
@@ -106,7 +112,7 @@ final class PortalGunModuleSettingsCodec {
 
         static PairingAndRemote fromSettings(PortalGunModuleSettings settings) {
             return new PairingAndRemote(PersistedPairing.fromSettings(settings.portalPairing()),
-                Optional.of(settings.remote()));
+                Optional.of(settings.remote()), settings.dimensionalTraversal());
         }
     }
 

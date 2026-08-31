@@ -33,6 +33,7 @@ public final class ServerConfig {
                 value.randomRiftEnabled.get(), value.randomRiftCooldownTicks.get(),
                 value.randomRiftMinimumRadius.get(), value.randomRiftMaximumRadius.get(),
                 value.randomRiftMaximumAttempts.get(), value.maxConcurrentRandomRiftSearches.get()),
+            new RiftConfig.DimensionalTraversalConfig(value.dimensionalTraversalEnabled.get()),
             new RiftConfig.FuelConfig(
                 value.randomConsumption.get(), value.unstableFuelMin.get(), value.unstableFuelMax.get(),
                 value.portalFuelMin.get(), value.portalFuelMax.get(),
@@ -109,6 +110,7 @@ public final class ServerConfig {
         public final ModConfigSpec.IntValue randomRiftMaximumRadius;
         public final ModConfigSpec.IntValue randomRiftMaximumAttempts;
         public final ModConfigSpec.IntValue maxConcurrentRandomRiftSearches;
+        public final ModConfigSpec.BooleanValue dimensionalTraversalEnabled;
         public final ModConfigSpec.BooleanValue randomConsumption;
         public final ModConfigSpec.IntValue unstableFuelMin;
         public final ModConfigSpec.IntValue unstableFuelMax;
@@ -224,6 +226,12 @@ public final class ServerConfig {
                     "Maximum random rift searches running at once on this server. Existing searches "
                         + "are not canceled if this value is lowered while the server is running.")
                 .defineInRange("maxConcurrentRandomRiftSearches", 8, 1, 64);
+            builder.pop();
+
+            builder.push("dimensionalTraversal");
+            dimensionalTraversalEnabled = builder.comment(
+                    "Enable the Dimensional Traversal Module and its cross-dimensional navigation GUI.")
+                .define("enabled", true);
             builder.pop();
 
             builder.push("fuel");

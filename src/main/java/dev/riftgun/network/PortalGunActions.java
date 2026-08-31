@@ -19,6 +19,9 @@ import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.pairing.PortalFloatingFallback;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.sound.PortalSoundSettings;
+import dev.riftgun.core.config.RiftConfigs;
+import dev.riftgun.navigation.DimensionalTraversalMode;
+import dev.riftgun.navigation.DimensionalTraversalTargets;
 import java.util.Locale;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -173,7 +176,8 @@ final class PortalGunActions {
         return true;
     }
 
-    static boolean updateModuleSettings(PortalPlayerData data, CompoundTag request, ItemStack gun) {
+    static boolean updateModuleSettings(ServerPlayer player, PortalPlayerData data,
+                                        CompoundTag request, ItemStack gun) {
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, data.settings().smartDistance());
         PortalModuleRules rules = PortalModuleRules.current();
         String setting = Nbt.getString(request, "Setting");
@@ -283,10 +287,38 @@ final class PortalGunActions {
                 settings = settings.withRemote(settings.remote().withPlacementPreviewEnabled(
                     Nbt.getBoolean(request, "Enabled")));
             }
+            case "DimensionalTraversalDimension" -> {
+                requireDimensionalTraversal(gun, rules);
+                String dimension = Nbt.getString(request, "Value");
+                if (DimensionalTraversalTargets.resolve(player, dimension).isEmpty()) {
+                    throw PortalRequestFields.error("message.riftgun.dimension_unavailable");
+                }
+                settings = settings.withDimensionalTraversal(
+                    settings.dimensionalTraversal().withTargetDimension(dimension));
+            }
+            case "DimensionalTraversalMode" -> {
+                requireDimensionalTraversal(gun, rules);
+                DimensionalTraversalMode mode;
+                try {
+                    mode = DimensionalTraversalMode.valueOf(Nbt.getString(request, "Value"));
+                } catch (IllegalArgumentException exception) {
+                    throw PortalRequestFields.error("message.riftgun.invalid_request");
+                }
+                settings = settings.withDimensionalTraversal(
+                    settings.dimensionalTraversal().withMode(mode));
+            }
             default -> throw PortalRequestFields.error("message.riftgun.invalid_request");
         }
         settings.save(gun);
         return true;
+    }
+
+    private static void requireDimensionalTraversal(ItemStack gun, PortalModuleRules rules) {
+        if (!RiftConfigs.server().dimensionalTraversal().enabled()) {
+            throw PortalRequestFields.error("message.riftgun.dimensional_traversal_disabled");
+        }
+        requireModule(gun, PortalModuleKind.DIMENSIONAL_TRAVERSAL, rules,
+            "message.riftgun.dimensional_traversal_module_required");
     }
 
     static boolean adjustRemoteDistance(ServerPlayer player, PortalPlayerData data,

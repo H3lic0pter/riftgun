@@ -28,6 +28,7 @@ final class PortalModuleTagResourceTest {
                 "riftgun:basic_module",
                 "riftgun:advanced_basic_module",
                 "riftgun:coordinate_override_module",
+                "riftgun:dimensional_traversal_module",
                 "riftgun:reservoir_expansion_module",
                 "riftgun:passive_transit_module",
                 "riftgun:hostile_transit_module",

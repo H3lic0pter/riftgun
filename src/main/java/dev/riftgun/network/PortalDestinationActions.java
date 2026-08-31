@@ -7,6 +7,7 @@ import dev.riftgun.data.DestinationGroup;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.service.CoordinateParser;
+import dev.riftgun.navigation.DimensionalTraversalTargets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Locale;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
 /** Mutations for saved destinations and their shared group hierarchy. */
@@ -36,7 +38,11 @@ final class PortalDestinationActions {
     }
 
     private static void requireInWorldBounds(ServerPlayer player, double x, double y, double z) {
-        if (!player.level().isInWorldBounds(new net.minecraft.core.BlockPos(
+        requireInWorldBounds((ServerLevel) player.level(), x, y, z);
+    }
+
+    private static void requireInWorldBounds(ServerLevel level, double x, double y, double z) {
+        if (!level.isInWorldBounds(new net.minecraft.core.BlockPos(
             net.minecraft.util.Mth.floor(x), net.minecraft.util.Mth.floor(y), net.minecraft.util.Mth.floor(z)))) {
             throw PortalRequestFields.error("message.riftgun.coordinate_out_of_bounds");
         }
@@ -65,6 +71,41 @@ final class PortalDestinationActions {
         return true;
     }
 
+    static boolean createDimensionalCoordinate(ServerPlayer player, PortalPlayerData data,
+                                               CompoundTag request, ItemStack gun) {
+        if (!RiftConfigs.server().dimensionalTraversal().enabled()) {
+            throw PortalRequestFields.error("message.riftgun.dimensional_traversal_disabled");
+        }
+        if (!PortalGunCapabilities.resolve(gun, data.settings().smartDistance()).dimensionalTraversal()) {
+            throw PortalRequestFields.error("message.riftgun.dimensional_traversal_module_required");
+        }
+        ServerLevel target = DimensionalTraversalTargets.resolve(
+                player, Nbt.getString(request, "Dimension"))
+            .orElseThrow(() -> PortalRequestFields.error("message.riftgun.dimension_unavailable"));
+        requireDestinationCapacity(data);
+        requireCoordinateLengths(request);
+        UUID group = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
+        String name = destinationName(data, Nbt.getString(request, "Name"), true);
+        double baseX = DimensionalTraversalTargets.mapCoordinate(player.getX(), player.level(), target);
+        double baseZ = DimensionalTraversalTargets.mapCoordinate(player.getZ(), player.level(), target);
+        double x = CoordinateParser.parse(relativeCoordinate(request, "X"), baseX);
+        double y = CoordinateParser.parse(relativeCoordinate(request, "Y"), player.getY());
+        double z = CoordinateParser.parse(relativeCoordinate(request, "Z"), baseZ);
+        float yaw = CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot());
+        requireInWorldBounds(target, x, y, z);
+        UUID destinationId = UUID.randomUUID();
+        data.destinations().add(new Destination(
+            destinationId, name, group, target.dimension(), x, y, z, yaw,
+            target.getGameTime(), 0L, false));
+        select(data, destinationId);
+        return true;
+    }
+
+    private static String relativeCoordinate(CompoundTag request, String key) {
+        String value = Nbt.getString(request, key);
+        return value.isBlank() ? "~" : value;
+    }
+
     static boolean edit(ServerPlayer player, PortalPlayerData data,
                         CompoundTag request, ItemStack gun) {
         UUID destinationId = PortalRequestFields.id(request, "Destination");
@@ -75,15 +116,28 @@ final class PortalDestinationActions {
             && PortalPlayerData.SHARED_SECTION_ID.equals(requestedGroup)
             ? PortalPlayerData.SHARED_SECTION_ID : validGroup(data, requestedGroup);
         String name = destinationName(data, Nbt.getString(request, "Name"), false);
-        boolean coordinateOverride = PortalGunCapabilities.resolve(
-            gun, data.settings().smartDistance()).coordinateOverride();
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun, data.settings().smartDistance());
+        boolean coordinateOverride = capabilities.coordinateOverride()
+            || capabilities.dimensionalTraversal()
+                && RiftConfigs.server().dimensionalTraversal().enabled();
         if (coordinateOverride) requireCoordinateLengths(request);
         double x = coordinateOverride ? CoordinateParser.parse(Nbt.getString(request, "X"), player.getX()) : current.x();
         double y = coordinateOverride ? CoordinateParser.parse(Nbt.getString(request, "Y"), player.getY()) : current.y();
         double z = coordinateOverride ? CoordinateParser.parse(Nbt.getString(request, "Z"), player.getZ()) : current.z();
         float yaw = coordinateOverride
             ? CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot()) : current.yaw();
-        if (coordinateOverride) requireInWorldBounds(player, x, y, z);
+        if (coordinateOverride) {
+//? if >=1.21.11 {
+            /*ServerLevel target = player.level().getServer() == null ? null
+                : player.level().getServer().getLevel(current.dimension());
+*///?} else {
+            ServerLevel target = player.getServer() == null ? null
+                : player.getServer().getLevel(current.dimension());
+//?}
+            if (target == null) throw PortalRequestFields.error("message.riftgun.dimension_unavailable");
+            requireInWorldBounds(target, x, y, z);
+        }
         data.replaceDestination(current.withDetails(name, group, current.dimension(), x, y, z, yaw));
         return true;
     }

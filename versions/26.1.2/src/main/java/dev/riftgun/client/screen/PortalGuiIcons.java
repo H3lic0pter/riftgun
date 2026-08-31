@@ -15,6 +15,10 @@ final class PortalGuiIcons {
     // The prediction arc reads right-heavy at its previous padded position.
     private static final int PREDICTION_OPTICAL_X = -3;
     private static final int PREDICTION_OPTICAL_Y = -4;
+    // Preserve the reviewed visible-art position in the compact 19 x 19 main GUI button.
+    private static final int PLACEMENT_BUTTON_X = 2;
+    private static final int PLACEMENT_FRONT_BUTTON_X = 1;
+    private static final int PLACEMENT_BUTTON_Y = 2;
 
     /** Accepts button bounds and centers the standard 16 x 16 random-rift sprite within them. */
     static void drawRandomRiftIcon(GuiGraphicsExtractor graphics, int buttonX, int buttonY,
@@ -48,6 +52,14 @@ final class PortalGuiIcons {
         PortalGuiSprites.draw(graphics, sprite, spriteX, spriteY);
     }
 
+    /** Accepts the compact main-GUI button origin and applies artwork-specific optical padding. */
+    static void drawPlacementModeButtonIcon(GuiGraphicsExtractor graphics, int buttonX, int buttonY,
+                                            PortalPlacementMode mode) {
+        int spriteX = buttonX + (mode == PortalPlacementMode.FRONT
+            ? PLACEMENT_FRONT_BUTTON_X : PLACEMENT_BUTTON_X);
+        drawPlacementModeIcon(graphics, spriteX, buttonY + PLACEMENT_BUTTON_Y, mode);
+    }
+
     static void drawPredictionIcon(GuiGraphicsExtractor graphics, int x, int y, int color) {
         PortalGuiSprites.draw(graphics, color == PortalTheme.TEXT_MUTED
             ? PortalGuiSprites.PREDICTION_OFF : PortalGuiSprites.PREDICTION_ON,
@@ -73,6 +85,14 @@ final class PortalGuiIcons {
 
     static void drawPortalCloseIcon(GuiGraphicsExtractor graphics, int x, int y) {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.PORTAL_CLOSE, x - 2, y - 2);
+    }
+
+    /** Accepts button bounds and centers the 16 x 16 navigation sprite. */
+    static void drawDimensionalTraversalIcon(GuiGraphicsExtractor graphics, int buttonX, int buttonY,
+                                             int buttonWidth, int buttonHeight) {
+        PortalGuiSprites.draw(graphics, PortalGuiSprites.DIMENSIONAL_TRAVERSAL,
+            buttonX + (buttonWidth - ICON_SIZE) / 2,
+            buttonY + (buttonHeight - ICON_SIZE) / 2);
     }
 
     static void drawSmartDistanceIcon(GuiGraphicsExtractor graphics, int x, int y, int color) {

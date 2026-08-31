@@ -12,6 +12,7 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.DestinationSort;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.navigation.DimensionalTraversalTargets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -23,6 +24,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import dev.riftgun.core.config.RiftConfigs;
 
 public final class PortalNetworking {
     private static Consumer<CompoundTag> clientContextWriter = ignored -> {};
@@ -83,13 +85,7 @@ public final class PortalNetworking {
         if (openRadial) envelope.putInt("RadialRequestId", radialRequestId);
         PortalPlayerData data = PortalDataStore.load(player);
         envelope.put("Data", data.save());
-        putDimensionLabels(envelope, player, data.destinations().stream().map(destination -> {
-//? if >=1.21.11 {
-            /*return destination.dimension().identifier().toString();
-*///?} else {
-            return destination.dimension().location().toString();
-//?}
-        }).distinct().toList());
+        putDimensionCatalog(envelope, player);
         envelope.put("ModuleRules", PortalModuleRules.current().save());
         RandomRiftManager.Snapshot randomRift = RandomRiftManager.snapshot(player);
         CompoundTag randomRiftTag = new CompoundTag();
@@ -99,7 +95,7 @@ public final class PortalNetworking {
         envelope.put("RandomRift", randomRiftTag);
         if (locatedGun != null) {
             envelope.put("GunReference", locatedGun.saveReference());
-            envelope.put("Gun", PortalGunSnapshot.create(locatedGun.stack(), data.settings().smartDistance()));
+            envelope.put("Gun", gunSnapshot(player, data, locatedGun));
         }
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
@@ -110,8 +106,7 @@ public final class PortalNetworking {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "GunSnapshot");
         envelope.put("GunReference", locatedGun.saveReference());
-        envelope.put("Gun", PortalGunSnapshot.create(
-            locatedGun.stack(), data.settings().smartDistance()));
+        envelope.put("Gun", gunSnapshot(player, data, locatedGun));
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
@@ -198,6 +193,55 @@ public final class PortalNetworking {
             } catch (IllegalArgumentException ignored) { }
         }
         envelope.put("DimensionLabels", labels);
+    }
+
+    private static void putDimensionCatalog(CompoundTag envelope, ServerPlayer player) {
+//? if >=1.21.11 {
+        /*MinecraftServer server = player.level().getServer();
+*///?} else {
+        MinecraftServer server = player.getServer();
+//?}
+        if (server == null) return;
+        List<ServerLevel> levels = new ArrayList<>();
+        server.getAllLevels().forEach(levels::add);
+        levels.sort(Comparator.comparingInt((ServerLevel level) -> dimensionOrder(
+                DimensionalTraversalTargets.id(level)))
+            .thenComparing(DimensionalTraversalTargets::id));
+        ListTag entries = new ListTag();
+        ArrayList<String> ids = new ArrayList<>();
+        for (ServerLevel level : levels) {
+            String id = DimensionalTraversalTargets.id(level);
+            CompoundTag entry = new CompoundTag();
+            entry.putString("Id", id);
+            entry.putDouble("Scale", level.dimensionType().coordinateScale());
+            entries.add(entry);
+            ids.add(id);
+        }
+        envelope.put("Dimensions", entries);
+        putDimensionLabels(envelope, player, ids);
+    }
+
+    private static int dimensionOrder(String id) {
+        return switch (id) {
+            case "minecraft:overworld" -> 0;
+            case "minecraft:the_nether" -> 1;
+            case "minecraft:the_end" -> 2;
+            default -> 3;
+        };
+    }
+
+    private static CompoundTag gunSnapshot(ServerPlayer player, PortalPlayerData data,
+                                           PortalGunLocator.LocatedGun locatedGun) {
+        CompoundTag gun = PortalGunSnapshot.create(
+            locatedGun.stack(), data.settings().smartDistance());
+        String selected = Nbt.getString(gun, "DimensionalTraversalDimension");
+        if (selected.isBlank() || DimensionalTraversalTargets.resolve(player, selected).isEmpty()) {
+            gun.putString("DimensionalTraversalDimension",
+                DimensionalTraversalTargets.id(player.level()));
+        }
+        gun.putBoolean("DimensionalTraversalEnabled",
+            RiftConfigs.server().dimensionalTraversal().enabled());
+        return gun;
     }
 
     private static Comparator<ServerPlayer> playerComparator(ServerPlayer viewer, PortalPlayerData data) {

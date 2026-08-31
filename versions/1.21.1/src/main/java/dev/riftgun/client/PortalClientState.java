@@ -37,6 +37,9 @@ public final class PortalClientState {
                 ModeRadialInput.openFromServer(envelope.getInt("RadialRequestId"));
             } else if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.refreshFromServer(Set.of());
+            } else if (Minecraft.getInstance().screen
+                instanceof dev.riftgun.client.screen.DimensionalNavigationScreen screen) {
+                screen.onServerSnapshot();
             }
         } else if (kind.equals("GunSnapshot")) {
             gunReference = envelope.getCompound("GunReference").copy();
@@ -50,7 +53,11 @@ public final class PortalClientState {
         } else if (kind.equals("GunReferenceInvalid")) {
             gunReference = new CompoundTag();
             gun = new CompoundTag();
-            if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen) {
+            if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen
+                || Minecraft.getInstance().screen
+                    instanceof dev.riftgun.client.screen.DimensionalNavigationScreen
+                || Minecraft.getInstance().screen
+                    instanceof dev.riftgun.client.screen.DimensionSelectionScreen) {
                 Minecraft.getInstance().setScreen(null);
             }
         } else if (kind.equals("PlayerList")) {
@@ -74,7 +81,11 @@ public final class PortalClientState {
     public static void writeGunReference(CompoundTag request) {
         boolean gunScreen = Minecraft.getInstance().screen
             instanceof dev.riftgun.client.screen.PortalConfigScreen
-            || Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.ModeRadialScreen;
+            || Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.ModeRadialScreen
+            || Minecraft.getInstance().screen
+                instanceof dev.riftgun.client.screen.DimensionalNavigationScreen
+            || Minecraft.getInstance().screen
+                instanceof dev.riftgun.client.screen.DimensionSelectionScreen;
         if (!gunScreen || gunReference.isEmpty()) return;
         request.put("GunReference", gunReference.copy());
     }

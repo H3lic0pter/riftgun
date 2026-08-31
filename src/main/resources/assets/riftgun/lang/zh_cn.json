@@ -504,5 +504,19 @@
   "screen.riftgun.remote.scroll_adjustment": "%s+滚轮调整远端距离",
   "screen.riftgun.remote.radial_slider": "在轮盘中显示远端距离滑块",
   "screen.riftgun.remote.placement_preview": "远端放置预览",
-  "screen.riftgun.mode_radial.remote_distance": "远端距离 %s / %s"
+  "screen.riftgun.mode_radial.remote_distance": "远端距离 %s / %s",
+  "item.riftgun.dimensional_traversal_module": "维度穿梭模块",
+  "tooltip.riftgun.module.dimensional_traversal_module.description": "解锁跨维度坐标搜索。",
+  "tooltip.riftgun.module.dimensional_traversal_module.disabled": "服务器已禁用维度穿梭功能",
+  "message.riftgun.dimensional_traversal_disabled": "服务器已禁用维度穿梭功能",
+  "message.riftgun.dimensional_traversal_module_required": "需要已启用的维度穿梭模块",
+  "screen.riftgun.dimensional_navigation": "维度导航",
+  "screen.riftgun.dimensional_navigation.dimension": "维度",
+  "screen.riftgun.dimensional_navigation.choose_dimension": "详细选择维度",
+  "screen.riftgun.dimensional_navigation.exact": "指定坐标",
+  "screen.riftgun.dimensional_navigation.automatic": "自动搜索",
+  "screen.riftgun.dimensional_navigation.save": "保存坐标",
+  "screen.riftgun.dimensional_navigation.open": "开启传送门",
+  "screen.riftgun.dimensional_navigation.search": "搜索维度……",
+  "screen.riftgun.dimensional_navigation.random_disabled": "服务器已禁用随机传送门"
 }
