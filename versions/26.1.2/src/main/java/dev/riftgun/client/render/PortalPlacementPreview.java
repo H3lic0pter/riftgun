@@ -114,13 +114,12 @@ public final class PortalPlacementPreview {
         if (state == null) return;
         PoseStack poses = event.getPoseStack();
         poses.pushPose();
-        poses.translate(-state.camera().x, -state.camera().y, -state.camera().z);
         event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
-            (pose, vertices) -> draw(pose, vertices, state.segments()));
+            (pose, vertices) -> draw(pose, vertices, state.camera(), state.segments()));
         event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
-            (pose, vertices) -> drawColored(pose, vertices, state.pendingSegments()));
+            (pose, vertices) -> drawColored(pose, vertices, state.camera(), state.pendingSegments()));
         event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
-            (pose, vertices) -> drawColored(pose, vertices, state.entityTargetSegments()));
+            (pose, vertices) -> drawColored(pose, vertices, state.camera(), state.entityTargetSegments()));
         poses.popPose();
     }
 
@@ -337,28 +336,31 @@ public final class PortalPlacementPreview {
             PortalClientState.moduleRules(), minecraft.player.getUUID(), now);
     }
 
-    private static void draw(PoseStack.Pose pose, VertexConsumer vertices,
+    private static void draw(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
                              List<PortalPlacementPreviewGeometry.Segment> segments) {
         for (PortalPlacementPreviewGeometry.Segment segment : segments) {
             Vec3 direction = segment.to().subtract(segment.from()).normalize();
-            vertex(vertices, pose, segment.from(), direction, COLOR);
-            vertex(vertices, pose, segment.to(), direction, COLOR);
+            vertex(vertices, pose, camera, segment.from(), direction, COLOR);
+            vertex(vertices, pose, camera, segment.to(), direction, COLOR);
         }
     }
 
-    private static void drawColored(PoseStack.Pose pose, VertexConsumer vertices,
+    private static void drawColored(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
                                     List<PortalPairingPreviewGeometry.ColoredSegment> segments) {
         for (PortalPairingPreviewGeometry.ColoredSegment colored : segments) {
             var segment = colored.geometry();
             Vec3 direction = segment.to().subtract(segment.from()).normalize();
-            vertex(vertices, pose, segment.from(), direction, colored.color());
-            vertex(vertices, pose, segment.to(), direction, colored.color());
+            vertex(vertices, pose, camera, segment.from(), direction, colored.color());
+            vertex(vertices, pose, camera, segment.to(), direction, colored.color());
         }
     }
 
     private static void vertex(VertexConsumer vertices, PoseStack.Pose pose,
-                               Vec3 point, Vec3 direction, int color) {
-        vertices.addVertex(pose, (float) point.x, (float) point.y, (float) point.z)
+                               Vec3 camera, Vec3 point, Vec3 direction, int color) {
+        vertices.addVertex(pose,
+                PortalPreviewCameraCoordinates.relativeTo(camera.x, point.x),
+                PortalPreviewCameraCoordinates.relativeTo(camera.y, point.y),
+                PortalPreviewCameraCoordinates.relativeTo(camera.z, point.z))
             .setColor(color)
             .setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z)
             .setLineWidth(2.5F);
