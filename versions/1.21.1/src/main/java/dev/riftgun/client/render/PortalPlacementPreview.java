@@ -20,7 +20,7 @@ import dev.riftgun.service.PortalFaceExposure;
 import dev.riftgun.service.RemotePortalPlacementResolver;
 import dev.riftgun.service.SurfaceFacePlacementPlanner;
 import dev.riftgun.service.PortalSupportArea;
-import dev.riftgun.network.SurfaceFaceRequest;
+import dev.riftgun.service.SurfaceFaceSelection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -217,7 +217,7 @@ public final class PortalPlacementPreview {
         Vec3 faceCenter = Vec3.atCenterOf(anchor).add(new Vec3(
             face.getStepX(), face.getStepY(), face.getStepZ()).scale(0.5));
         CACHE.updateSurface(tick, input, surfacePreview(minecraft, gun,
-            new SurfaceFaceRequest(anchor, face),
+            new SurfaceFaceSelection(anchor, face),
             minecraft.player.getEyePosition().distanceTo(faceCenter), range));
         return true;
     }
@@ -236,13 +236,14 @@ public final class PortalPlacementPreview {
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, minecraft.player));
         if (raw instanceof BlockHitResult hit && raw.getType() == HitResult.Type.BLOCK
             && eye.distanceTo(hit.getLocation()) <= surfaceRange) {
-            SurfaceFaceRequest request = new SurfaceFaceRequest(hit.getBlockPos(), hit.getDirection());
+            SurfaceFaceSelection selection = new SurfaceFaceSelection(
+                hit.getBlockPos(), hit.getDirection());
             PortalPlacementPreviewCache.Input input = new PortalPlacementPreviewCache.Input(
                 eye, minecraft.player.getLookAngle(), surfaceRange, gun.aperture(),
                 minecraft.player.getXRot(), minecraft.player.getYRot(),
                 hit.getBlockPos(), hit.getDirection());
             if (!CACHE.shouldRefresh(tick, input)) return true;
-            PortalPlacement surface = surfacePreview(minecraft, gun, request,
+            PortalPlacement surface = surfacePreview(minecraft, gun, selection,
                 eye.distanceTo(hit.getLocation()), gun.maximumSurfaceRange());
             if (surface != null) {
                 CACHE.updateSurface(tick, input, surface);
@@ -267,9 +268,9 @@ public final class PortalPlacementPreview {
     }
 
     private static PortalPlacement surfacePreview(Minecraft minecraft, PortalPreviewGunState gun,
-                                                   SurfaceFaceRequest request, double distance,
+                                                   SurfaceFaceSelection selection, double distance,
                                                    int maximumRange) {
-        return SurfaceFacePlacementPlanner.resolve(request.toSelection(), gun.aperture(),
+        return SurfaceFacePlacementPlanner.resolve(selection, gun.aperture(),
             minecraft.player.getYRot(), minecraft.player.getBoundingBox(),
             new SurfaceFacePlacementPlanner.Probe() {
                 @Override public boolean anchorSolid(BlockPos position) {

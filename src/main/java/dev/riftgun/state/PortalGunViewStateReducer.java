@@ -25,30 +25,15 @@ public final class PortalGunViewStateReducer {
     public static PortalGunViewState withBoolean(PortalGunViewState state, BooleanSetting setting,
                                                  boolean value) {
         var placement = state.placement();
-        switch (setting) {
-            case REMOTE_SCROLL_ADJUSTMENT -> placement = new PortalGunViewState.Placement(
-                placement.maximumSurfaceRange(), placement.remoteDistance(), placement.smartDistance(),
-                placement.remoteInstalled(), value, placement.remoteRadialSliderEnabled(),
-                placement.remotePreviewEnabled(), placement.precisionInstalled(),
-                placement.pairingInstalled(), placement.functionMode(),
-                placement.coordinateSmartFallback(), placement.pairingSmartFallback());
-            case REMOTE_RADIAL_SLIDER -> placement = new PortalGunViewState.Placement(
-                placement.maximumSurfaceRange(), placement.remoteDistance(), placement.smartDistance(),
-                placement.remoteInstalled(), placement.remoteScrollAdjustmentEnabled(), value,
-                placement.remotePreviewEnabled(), placement.precisionInstalled(),
-                placement.pairingInstalled(), placement.functionMode(),
-                placement.coordinateSmartFallback(), placement.pairingSmartFallback());
-            case REMOTE_PLACEMENT_PREVIEW -> placement = new PortalGunViewState.Placement(
-                placement.maximumSurfaceRange(), placement.remoteDistance(), placement.smartDistance(),
-                placement.remoteInstalled(), placement.remoteScrollAdjustmentEnabled(),
-                placement.remoteRadialSliderEnabled(), value, placement.precisionInstalled(),
-                placement.pairingInstalled(), placement.functionMode(),
-                placement.coordinateSmartFallback(), placement.pairingSmartFallback());
-            default -> {
-                return state.withTransit(transitWith(state.transit(), setting, value));
-            }
-        }
-        return state.withPlacement(placement);
+        return switch (setting) {
+            case REMOTE_SCROLL_ADJUSTMENT -> state.withPlacement(
+                placement.withRemoteScrollAdjustment(value));
+            case REMOTE_RADIAL_SLIDER -> state.withPlacement(
+                placement.withRemoteRadialSlider(value));
+            case REMOTE_PLACEMENT_PREVIEW -> state.withPlacement(
+                placement.withRemotePreview(value));
+            default -> state.withTransit(transitWith(state.transit(), setting, value));
+        };
     }
 
     public static PortalFloatingFallback fallbackValue(PortalGunViewState state,
@@ -62,71 +47,49 @@ public final class PortalGunViewStateReducer {
     public static PortalGunViewState withFallback(PortalGunViewState state, FallbackSetting setting,
                                                   PortalFloatingFallback value) {
         var p = state.placement();
-        return state.withPlacement(new PortalGunViewState.Placement(
-            p.maximumSurfaceRange(), p.remoteDistance(), p.smartDistance(), p.remoteInstalled(),
-            p.remoteScrollAdjustmentEnabled(), p.remoteRadialSliderEnabled(), p.remotePreviewEnabled(),
-            p.precisionInstalled(), p.pairingInstalled(), p.functionMode(),
-            setting == FallbackSetting.COORDINATE_SMART ? value : p.coordinateSmartFallback(),
-            setting == FallbackSetting.PAIRING_SMART ? value : p.pairingSmartFallback()));
+        return state.withPlacement(setting == FallbackSetting.COORDINATE_SMART
+            ? p.withCoordinateSmartFallback(value) : p.withPairingSmartFallback(value));
     }
 
     public static PortalGunViewState stepPlayerExclude(PortalGunViewState state, int amount) {
         var t = state.transit();
-        return state.withTransit(new PortalGunViewState.Transit(
-            t.entityAccessMask(), t.passiveEnabled(), t.hostileEnabled(), t.bossEnabled(),
-            t.projectileEnabled(), t.portalDurationSeconds(), t.maximumPortalDurationSeconds(),
-            t.eternalDurationInstalled(), t.expandedApertureEnabled(), t.transitCooldownTenths(),
-            t.maximumTransitCooldownTenths(), t.playerTargetInstalled(), t.playerTargetEnabled(),
-            t.playerExcludeMode().step(amount), t.fallGuardInstalled(), t.fallGuardEnabled(),
-            t.entityFallGuardEnabled(), t.entityRelocationInstalled(), t.entityRelocationEnabled(),
-            t.entityRelocationSmartRouting()));
+        return state.withTransit(t.withPlayerExcludeMode(t.playerExcludeMode().step(amount)));
     }
 
     public static PortalGunViewState withDistance(PortalGunViewState state,
                                                   DistanceSetting setting, int value) {
         var p = state.placement();
-        if (setting == DistanceSetting.SMART_DISTANCE || setting == DistanceSetting.REMOTE_DISTANCE) {
-            return state.withPlacement(new PortalGunViewState.Placement(
-                p.maximumSurfaceRange(), setting == DistanceSetting.REMOTE_DISTANCE
-                    ? value : p.remoteDistance(), setting == DistanceSetting.SMART_DISTANCE
-                    ? value : p.smartDistance(), p.remoteInstalled(),
-                p.remoteScrollAdjustmentEnabled(), p.remoteRadialSliderEnabled(), p.remotePreviewEnabled(),
-                p.precisionInstalled(), p.pairingInstalled(), p.functionMode(),
-                p.coordinateSmartFallback(), p.pairingSmartFallback()));
+        if (setting == DistanceSetting.SMART_DISTANCE) {
+            return state.withPlacement(p.withSmartDistance(value));
+        }
+        if (setting == DistanceSetting.REMOTE_DISTANCE) {
+            return state.withPlacement(p.withRemoteDistance(value));
         }
         var t = state.transit();
-        return state.withTransit(new PortalGunViewState.Transit(
-            t.entityAccessMask(), t.passiveEnabled(), t.hostileEnabled(), t.bossEnabled(),
-            t.projectileEnabled(), setting == DistanceSetting.PORTAL_DURATION
-                ? value : t.portalDurationSeconds(),
-            t.maximumPortalDurationSeconds(), t.eternalDurationInstalled(),
-            t.expandedApertureEnabled(), setting == DistanceSetting.TRANSIT_COOLDOWN
-                ? value : t.transitCooldownTenths(), t.maximumTransitCooldownTenths(),
-            t.playerTargetInstalled(), t.playerTargetEnabled(), t.playerExcludeMode(),
-            t.fallGuardInstalled(), t.fallGuardEnabled(), t.entityFallGuardEnabled(),
-            t.entityRelocationInstalled(), t.entityRelocationEnabled(),
-            t.entityRelocationSmartRouting()));
+        return state.withTransit(setting == DistanceSetting.PORTAL_DURATION
+            ? t.withPortalDuration(value) : t.withTransitCooldown(value));
     }
 
     private static PortalGunViewState.Transit transitWith(PortalGunViewState.Transit t,
                                                            BooleanSetting setting, boolean value) {
-        return new PortalGunViewState.Transit(
-            t.entityAccessMask(),
-            setting == BooleanSetting.PASSIVE_TRANSIT ? value : t.passiveEnabled(),
-            setting == BooleanSetting.HOSTILE_TRANSIT ? value : t.hostileEnabled(),
-            setting == BooleanSetting.BOSS_TRANSIT ? value : t.bossEnabled(),
-            setting == BooleanSetting.PROJECTILE_TRANSIT ? value : t.projectileEnabled(),
-            t.portalDurationSeconds(), t.maximumPortalDurationSeconds(), t.eternalDurationInstalled(),
-            setting == BooleanSetting.EXPANDED_APERTURE ? value : t.expandedApertureEnabled(),
-            t.transitCooldownTenths(), t.maximumTransitCooldownTenths(), t.playerTargetInstalled(),
-            setting == BooleanSetting.PLAYER_TARGET ? value : t.playerTargetEnabled(),
-            t.playerExcludeMode(), t.fallGuardInstalled(),
-            setting == BooleanSetting.FALL_GUARD ? value : t.fallGuardEnabled(),
-            setting == BooleanSetting.FALL_GUARD_ENTITIES ? value : t.entityFallGuardEnabled(),
-            t.entityRelocationInstalled(),
-            setting == BooleanSetting.ENTITY_RELOCATION ? value : t.entityRelocationEnabled(),
-            setting == BooleanSetting.ENTITY_RELOCATION_SMART_ROUTING
-                ? value : t.entityRelocationSmartRouting());
+        return switch (setting) {
+            case PASSIVE_TRANSIT -> t.withTransitKinds(
+                value, t.hostileEnabled(), t.bossEnabled(), t.projectileEnabled());
+            case HOSTILE_TRANSIT -> t.withTransitKinds(
+                t.passiveEnabled(), value, t.bossEnabled(), t.projectileEnabled());
+            case BOSS_TRANSIT -> t.withTransitKinds(
+                t.passiveEnabled(), t.hostileEnabled(), value, t.projectileEnabled());
+            case PROJECTILE_TRANSIT -> t.withTransitKinds(
+                t.passiveEnabled(), t.hostileEnabled(), t.bossEnabled(), value);
+            case PLAYER_TARGET -> t.withPlayerTarget(value);
+            case EXPANDED_APERTURE -> t.withExpandedAperture(value);
+            case FALL_GUARD -> t.withFallGuard(value);
+            case FALL_GUARD_ENTITIES -> t.withEntityFallGuard(value);
+            case ENTITY_RELOCATION -> t.withEntityRelocation(value);
+            case ENTITY_RELOCATION_SMART_ROUTING -> t.withEntityRelocationSmartRouting(value);
+            case REMOTE_SCROLL_ADJUSTMENT, REMOTE_RADIAL_SLIDER, REMOTE_PLACEMENT_PREVIEW ->
+                throw new IllegalArgumentException("placement setting required");
+        };
     }
 
     public enum BooleanSetting {

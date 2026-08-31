@@ -28,9 +28,11 @@ public final class PortalPairingStateMachine {
         }
     }
 
-    public record Decision(State previous, State next, boolean connectsPair,
-                           boolean consumesPairFuel, boolean resetsBothEndpoints,
-                           boolean replacesEndpoint) {}
+    public record Decision(State next) {
+        public boolean connectsPair() {
+            return next == State.CONNECTED;
+        }
+    }
 
     public static Decision place(State state, PortalPairingEndpoint endpoint) {
         if (state == null || endpoint != PortalPairingEndpoint.A
@@ -40,7 +42,7 @@ public final class PortalPairingStateMachine {
         boolean connects = state == State.CONNECTED || state.has(endpoint.opposite());
         State next = connects ? State.CONNECTED
             : endpoint == PortalPairingEndpoint.A ? State.A_ONLY : State.B_ONLY;
-        return new Decision(state, next, connects, connects, connects, state.has(endpoint));
+        return new Decision(next);
     }
 
     private PortalPairingStateMachine() {}

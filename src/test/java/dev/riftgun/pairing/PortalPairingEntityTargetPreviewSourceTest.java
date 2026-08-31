@@ -39,7 +39,7 @@ final class PortalPairingEntityTargetPreviewSourceTest {
             assertTrue(livePreview.contains("minecraft.player.isShiftKeyDown()"), version);
             assertTrue(livePreview.contains("usesShiftRoutedPreview(gun)"), version);
             assertTrue(livePreview.contains("gun.smartDistance()"), version);
-            assertTrue(livePreview.contains("SurfaceFaceRequest"), version);
+            assertTrue(livePreview.contains("SurfaceFaceSelection"), version);
             assertTrue(livePreview.contains("surfacePreview("), version);
             assertTrue(livePreview.contains("CACHE.updateSurface("), version);
             assertTrue(livePreview.contains("updateRemotePreview("), version);

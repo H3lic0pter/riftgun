@@ -14,9 +14,6 @@ final class PortalPairingStateMachineTest {
 
         assertEquals(PortalPairingStateMachine.State.A_ONLY, decision.next());
         assertFalse(decision.connectsPair());
-        assertFalse(decision.consumesPairFuel());
-        assertFalse(decision.resetsBothEndpoints());
-        assertFalse(decision.replacesEndpoint());
     }
 
     @Test
@@ -26,9 +23,6 @@ final class PortalPairingStateMachineTest {
 
         assertEquals(PortalPairingStateMachine.State.CONNECTED, decision.next());
         assertTrue(decision.connectsPair());
-        assertTrue(decision.consumesPairFuel());
-        assertTrue(decision.resetsBothEndpoints());
-        assertFalse(decision.replacesEndpoint());
     }
 
     @Test
@@ -38,7 +32,6 @@ final class PortalPairingStateMachineTest {
 
         assertEquals(PortalPairingStateMachine.State.B_ONLY, decision.next());
         assertFalse(decision.connectsPair());
-        assertTrue(decision.replacesEndpoint());
     }
 
     @Test
@@ -48,9 +41,6 @@ final class PortalPairingStateMachineTest {
 
         assertEquals(PortalPairingStateMachine.State.CONNECTED, decision.next());
         assertTrue(decision.connectsPair());
-        assertTrue(decision.consumesPairFuel());
-        assertTrue(decision.resetsBothEndpoints());
-        assertTrue(decision.replacesEndpoint());
     }
 
     @Test

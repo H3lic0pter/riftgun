@@ -3,6 +3,7 @@ package dev.riftgun.client.screen;
 import dev.riftgun.client.ModeRadialInput;
 import dev.riftgun.client.ModeRadialController;
 import dev.riftgun.client.PortalClientState;
+import dev.riftgun.client.ModeRadialWorkflow;
 import dev.riftgun.client.PortalInputLabels;
 import dev.riftgun.client.render.PortalPlacementPreview;
 import dev.riftgun.data.PortalPlacementMode;
@@ -12,7 +13,6 @@ import dev.riftgun.input.ModeRadialPointerAction;
 import dev.riftgun.math.RadialModeGeometry;
 import dev.riftgun.math.RadialOptionLabelLayout;
 import dev.riftgun.math.RadialRingSpans;
-import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.network.PrecisionPlacementRequest;
 import dev.riftgun.portal.PortalOrientation;
@@ -120,29 +120,20 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private void commitPrecisionSelection(boolean pairingShortcut) {
-        if (controller.cancelled() || !controller.precisionPreviewOnly()) return;
-        PrecisionPlacementRequest request = PrecisionPlacementRequest.fromIntent(
-            controller.selectedPrecisionIntent(PortalPlacementPreview.currentPlacement(), pairingShortcut));
-        boolean endpointA = ModeRadialInput.sneakDown();
-        PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_PRECISION, tag -> {
-            request.writeTo(tag);
-            tag.putBoolean("EndpointA", endpointA);
-            tag.putBoolean("PairingShortcut", pairingShortcut);
-        });
+        ModeRadialWorkflow.Command command = ModeRadialWorkflow.precision(
+            controller, PortalPlacementPreview.currentPlacement(), pairingShortcut,
+            ModeRadialInput.sneakDown());
+        if (command != null) {
+            PortalNetworking.sendShortcutRequest(command.action(), command::writeTo);
+        }
     }
 
     public void commitAndClose() {
         sendRange(true);
-        if (!controller.cancelled()) {
-            ModeRadialController.RadialSelection selected =
-                controller.selectedRadialMode(PortalClientState.gun());
-            PortalNetworking.sendShortcutRequest(PortalAction.SET_RADIAL_MODE, tag -> {
-                tag.putString("FunctionMode", controller.functionMode().name());
-                if (selected != null) {
-                    tag.putString("Page", selected.page().name());
-                    tag.putString("Mode", selected.mode().name());
-                }
-            });
+        ModeRadialWorkflow.Command command = ModeRadialWorkflow.radial(
+            controller, PortalClientState.gun());
+        if (command != null) {
+            PortalNetworking.sendShortcutRequest(command.action(), command::writeTo);
         }
         if (minecraft != null) minecraft.setScreen(null);
     }
@@ -350,10 +341,8 @@ public final class ModeRadialScreen extends Screen {
         long now = System.nanoTime();
         if (!controller.rangeSendDue(force, ModeRadialInput.ready(), rangeSliderEnabled(), now)) return;
         int value = controller.remoteDistance();
-        PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
-            tag.putString("Setting", "RemoteDistance");
-            tag.putInt("Value", value);
-        });
+        PortalNetworking.sendRequest(ModeRadialWorkflow.remoteDistanceAction(),
+            tag -> ModeRadialWorkflow.writeRemoteDistance(tag, value));
         controller.rangeSent(now);
     }
 

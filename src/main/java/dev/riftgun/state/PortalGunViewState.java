@@ -153,6 +153,43 @@ public record PortalGunViewState(
                 precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback,
                 pairingSmartFallback);
         }
+
+        public Placement withSmartDistance(int distance) {
+            return new Placement(maximumSurfaceRange, remoteDistance, distance, remoteInstalled,
+                remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
+                precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback,
+                pairingSmartFallback);
+        }
+
+        public Placement withRemoteScrollAdjustment(boolean enabled) {
+            return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
+                enabled, remoteRadialSliderEnabled, remotePreviewEnabled, precisionInstalled,
+                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback);
+        }
+
+        public Placement withRemoteRadialSlider(boolean enabled) {
+            return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
+                remoteScrollAdjustmentEnabled, enabled, remotePreviewEnabled, precisionInstalled,
+                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback);
+        }
+
+        public Placement withRemotePreview(boolean enabled) {
+            return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
+                remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, enabled, precisionInstalled,
+                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback);
+        }
+
+        public Placement withCoordinateSmartFallback(PortalFloatingFallback fallback) {
+            return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
+                remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
+                precisionInstalled, pairingInstalled, functionMode, fallback, pairingSmartFallback);
+        }
+
+        public Placement withPairingSmartFallback(PortalFloatingFallback fallback) {
+            return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
+                remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
+                precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback, fallback);
+        }
     }
 
     public record Transit(int entityAccessMask, boolean passiveEnabled, boolean hostileEnabled,
@@ -172,6 +209,89 @@ public record PortalGunViewState(
 
         public Transit {
             playerExcludeMode = playerExcludeMode == null ? PlayerExcludeMode.OFF : playerExcludeMode;
+        }
+
+        public Transit withTransitKinds(boolean passive, boolean hostile, boolean boss,
+                                        boolean projectile) {
+            return copy(passive, hostile, boss, projectile,
+                portalDurationSeconds, expandedApertureEnabled, transitCooldownTenths,
+                playerTargetEnabled, playerExcludeMode, fallGuardEnabled,
+                entityFallGuardEnabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withPortalDuration(int seconds) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, seconds, expandedApertureEnabled, transitCooldownTenths,
+                playerTargetEnabled, playerExcludeMode, fallGuardEnabled,
+                entityFallGuardEnabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withExpandedAperture(boolean enabled) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, enabled, transitCooldownTenths,
+                playerTargetEnabled, playerExcludeMode, fallGuardEnabled,
+                entityFallGuardEnabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withTransitCooldown(int tenths) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, expandedApertureEnabled, tenths,
+                playerTargetEnabled, playerExcludeMode, fallGuardEnabled,
+                entityFallGuardEnabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withPlayerTarget(boolean enabled) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, expandedApertureEnabled,
+                transitCooldownTenths, enabled, playerExcludeMode, fallGuardEnabled,
+                entityFallGuardEnabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withPlayerExcludeMode(PlayerExcludeMode mode) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, expandedApertureEnabled,
+                transitCooldownTenths, playerTargetEnabled, mode, fallGuardEnabled,
+                entityFallGuardEnabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withFallGuard(boolean enabled) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, expandedApertureEnabled,
+                transitCooldownTenths, playerTargetEnabled, playerExcludeMode, enabled,
+                entityFallGuardEnabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withEntityFallGuard(boolean enabled) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, expandedApertureEnabled,
+                transitCooldownTenths, playerTargetEnabled, playerExcludeMode, fallGuardEnabled,
+                enabled, entityRelocationEnabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withEntityRelocation(boolean enabled) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, expandedApertureEnabled,
+                transitCooldownTenths, playerTargetEnabled, playerExcludeMode, fallGuardEnabled,
+                entityFallGuardEnabled, enabled, entityRelocationSmartRouting);
+        }
+
+        public Transit withEntityRelocationSmartRouting(boolean enabled) {
+            return copy(passiveEnabled, hostileEnabled, bossEnabled,
+                projectileEnabled, portalDurationSeconds, expandedApertureEnabled,
+                transitCooldownTenths, playerTargetEnabled, playerExcludeMode, fallGuardEnabled,
+                entityFallGuardEnabled, entityRelocationEnabled, enabled);
+        }
+
+        private Transit copy(boolean passive, boolean hostile, boolean boss, boolean projectile,
+                             int duration, boolean expandedAperture,
+                             int cooldown, boolean playerTarget, PlayerExcludeMode excludeMode,
+                             boolean fallGuard, boolean entityFallGuard,
+                             boolean entityRelocation, boolean smartRouting) {
+            return new Transit(entityAccessMask, passive, hostile, boss, projectile, duration,
+                maximumPortalDurationSeconds, eternalDurationInstalled, expandedAperture,
+                cooldown, maximumTransitCooldownTenths, playerTargetInstalled, playerTarget,
+                excludeMode, fallGuardInstalled, fallGuard, entityFallGuard,
+                entityRelocationInstalled, entityRelocation, smartRouting);
         }
     }
 

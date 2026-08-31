@@ -2,14 +2,13 @@ package dev.riftgun.client.screen;
 
 import dev.riftgun.client.DimensionLabelState;
 import dev.riftgun.client.DimensionalNavigationController;
+import dev.riftgun.client.DimensionalNavigationWorkflow;
 import dev.riftgun.client.PortalClientState;
-import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.navigation.DimensionalTraversalMode;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -160,23 +159,14 @@ public final class DimensionalNavigationScreen extends Screen {
     }
 
     private void performAction() {
-        if (controller.saving()) return;
-        if (controller.mode() == DimensionalTraversalMode.AUTOMATIC_SEARCH) {
-            PortalNetworking.sendRequest(PortalAction.OPEN_DIMENSIONAL_RIFT,
-                tag -> tag.putString("Dimension", controller.dimension()));
+        DimensionalNavigationWorkflow.Command command = DimensionalNavigationWorkflow.begin(
+            controller, exactFields(), PortalClientState.data().selectedDestinationId());
+        if (command == null) return;
+        PortalNetworking.sendRequest(command.action(), command::writeTo);
+        if (command.closesScreen()) {
             minecraft.setScreen(null);
             return;
         }
-        controller.beginSave(PortalClientState.data().selectedDestinationId());
-        PortalNetworking.sendRequest(PortalAction.CREATE_DIMENSIONAL_COORDINATE, tag -> {
-            tag.putString("Dimension", controller.dimension());
-            tag.putString("Name", nameField.getValue());
-            tag.putString("X", xField.getValue());
-            tag.putString("Y", yField.getValue());
-            tag.putString("Z", zField.getValue());
-            tag.putString("Yaw", yawField.getValue());
-            Nbt.putUUID(tag, "Group", controller.group());
-        });
         clearWidgets();
         init();
     }
@@ -205,14 +195,15 @@ public final class DimensionalNavigationScreen extends Screen {
 
     private boolean resetCoordinateDefaults() {
         if (minecraft == null || minecraft.player == null || minecraft.level == null) return false;
-        double sourceScale = minecraft.level.dimensionType().coordinateScale();
-        double targetScale = DimensionLabelState.dimensions().stream()
-            .filter(info -> info.id().equals(controller.dimension())).mapToDouble(
-                DimensionLabelState.DimensionInfo::coordinateScale).findFirst().orElse(sourceScale);
-        x = coordinate(minecraft.player.getX() * sourceScale / targetScale);
-        y = coordinate(minecraft.player.getY());
-        z = coordinate(minecraft.player.getZ() * sourceScale / targetScale);
-        yaw = coordinate(minecraft.player.getYRot());
+        DimensionalNavigationWorkflow.Coordinates defaults =
+            DimensionalNavigationWorkflow.coordinateDefaults(
+                DimensionLabelState.dimensions(), controller.dimension(),
+                minecraft.level.dimensionType().coordinateScale(), minecraft.player.getX(),
+                minecraft.player.getY(), minecraft.player.getZ(), minecraft.player.getYRot());
+        x = defaults.x();
+        y = defaults.y();
+        z = defaults.z();
+        yaw = defaults.yaw();
         return true;
     }
 
@@ -396,8 +387,14 @@ public final class DimensionalNavigationScreen extends Screen {
         });
     }
 
-    private static String coordinate(double value) {
-        return String.format(Locale.ROOT, "%.2f", value);
+    private DimensionalNavigationWorkflow.ExactFields exactFields() {
+        return new DimensionalNavigationWorkflow.ExactFields(
+            value(nameField, name), value(xField, x), value(yField, y),
+            value(zField, z), value(yawField, yaw));
+    }
+
+    private static String value(EditBox field, String fallback) {
+        return field == null ? fallback : field.getValue();
     }
 
     private String currentDimension() {

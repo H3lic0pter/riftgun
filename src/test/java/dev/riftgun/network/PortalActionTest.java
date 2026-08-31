@@ -23,4 +23,12 @@ final class PortalActionTest {
         assertFalse(PortalAction.OPEN_GUI.isExclusiveKeyboardShortcut());
         assertFalse(PortalAction.OPEN_PORTAL.isExclusiveKeyboardShortcut());
     }
+
+    @Test
+    void onlyOptimisticGunMutationsRequireRollback() {
+        assertTrue(PortalAction.SET_GUN_MODULE_SETTINGS.requiresGunRollback());
+        assertFalse(PortalAction.CREATE_COORDINATE.requiresGunRollback());
+        assertFalse(PortalAction.CREATE_GROUP.requiresGunRollback());
+        assertFalse(PortalAction.OPEN_SELECTED_PRECISION.requiresGunRollback());
+    }
 }

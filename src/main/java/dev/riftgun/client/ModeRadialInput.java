@@ -1,6 +1,7 @@
 package dev.riftgun.client;
 
 import dev.riftgun.input.RadialRequestState;
+import dev.riftgun.input.ModeRadialShortcutPolicy;
 import dev.riftgun.network.PrecisionPlacementRequest;
 
 /** Owns tap/hold and dedicated preview behavior without coupling the screen to key bindings. */
@@ -25,7 +26,9 @@ public final class ModeRadialInput {
         boolean pairingOperationDown = keys.pairingOperationDown();
 
         if (ModeRadialClientAccess.radialScreenOpen()) {
-            if (pairingOperationDown && !pairingOperationWasDown) {
+            if (ModeRadialShortcutPolicy.pairingOperation(
+                true, pairingOperationDown, pairingOperationWasDown)
+                == ModeRadialShortcutPolicy.EdgeAction.COMMIT_PAIRING) {
                 ModeRadialClientAccess.commitPairingShortcut();
             }
             if (pendingSource != null
@@ -56,7 +59,9 @@ public final class ModeRadialInput {
             return;
         }
 
-        if (cycleDown && keys.altDown() && !cycleWasDown) {
+        if (ModeRadialShortcutPolicy.alternateCycle(
+            false, cycleDown, cycleWasDown, keys.altDown())
+            == ModeRadialShortcutPolicy.EdgeAction.TOGGLE_FUNCTION) {
             ModeRadialClientAccess.sendToggleFunctionRequest();
             cycleShortcutConsumed = true;
             cycleHeldTicks = 0;

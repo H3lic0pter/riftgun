@@ -169,7 +169,7 @@ public final class PortalPairingManager {
             return true;
         }
 
-        var fuelPlan = decision.consumesPairFuel()
+        var fuelPlan = decision.connectsPair()
             ? PortalFuelManager.plan(player, locatedGun.stack(), opposite != null
                 ? opposite.level().dimension() : pendingOpposite.dimension())
             : PortalFuelManager.recognizedProfile(locatedGun.stack());
@@ -185,7 +185,7 @@ public final class PortalPairingManager {
                 placement.placement(), opposite != null ? opposite.placement() : pendingOpposite.placement());
             opened = PortalEntity.openPairing(player, pair, fuelPlan.use().profile(), options,
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()), gunId, endpoint);
-            if (opened && decision.resetsBothEndpoints()) {
+            if (opened) {
                 PortalPairingPendingEndpoints.clearAll(player);
             }
         }

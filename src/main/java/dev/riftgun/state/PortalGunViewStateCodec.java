@@ -27,9 +27,11 @@ public final class PortalGunViewStateCodec {
         tag.putBoolean("Overfilled", fuel.overfilled());
         tag.putBoolean("InfiniteFuel", fuel.infinite());
         tag.putBoolean("Unstable", fuel.unstable());
-        if (!fuel.fluidId().isBlank()) tag.putString("Fluid", fuel.fluidId());
-        tag.putInt("Rgb", fuel.rgb());
-        tag.putBoolean("CrossDimension", fuel.crossDimension());
+        if (!fuel.fluidId().isBlank()) {
+            tag.putString("Fluid", fuel.fluidId());
+            tag.putInt("Rgb", fuel.rgb());
+            tag.putBoolean("CrossDimension", fuel.crossDimension());
+        }
 
         var navigation = state.navigation();
         tag.putBoolean("CoordinateOverride", navigation.coordinateOverride());

@@ -10,7 +10,6 @@ import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalOpenOrigin;
-import dev.riftgun.service.PortalShortcutGunMode;
 import dev.riftgun.service.PortalShortcutGunSelection;
 import dev.riftgun.service.VanillaInventoryPortalGunLocator;
 import dev.riftgun.service.RandomRiftManager;
@@ -77,14 +76,10 @@ public final class PortalRequestHandler {
             if (!keyboardShortcut && request.contains("GunReference")) {
                 PortalNetworking.sendGunReferenceInvalid(player);
             }
-            if (keyboardShortcut || action == PortalAction.OPEN_GUI) {
-                String message = keyboardShortcut
-                    && PortalShortcutGunSelection.mode() == PortalShortcutGunMode.HELD_HANDS
-                    ? "message.riftgun.portal_gun_must_be_held"
-                    : "message.riftgun.no_portal_gun";
+            String message = PortalMissingGunFeedback.messageKey(
+                action, keyboardShortcut, PortalShortcutGunSelection.mode());
+            if (message != null) {
                 Msg.displayClientMessage(player, Component.translatable(message), true);
-            } else if (!keyboardShortcut && action != PortalAction.CYCLE_PLACEMENT_MODE) {
-                Msg.displayClientMessage(player, Component.translatable("message.riftgun.no_portal_gun"), true);
             }
             return;
         }
@@ -122,10 +117,10 @@ public final class PortalRequestHandler {
             if (changed) sendChangedState(player, data, gun, action, request);
         } catch (PortalRequestException exception) {
             Msg.displayClientMessage(player, Component.translatable(exception.translationKey()), true);
-            PortalNetworking.sendGunRollback(player, data, gun);
+            rollbackOptimisticGunMutation(action, player, data, gun);
         } catch (NumberFormatException exception) {
             Msg.displayClientMessage(player, Component.translatable("message.riftgun.invalid_coordinate"), true);
-            PortalNetworking.sendGunRollback(player, data, gun);
+            rollbackOptimisticGunMutation(action, player, data, gun);
         }
     }
 
@@ -403,6 +398,15 @@ public final class PortalRequestHandler {
         PortalNetworking.sendSnapshot(player, false, gun);
         if (action == PortalAction.SET_SETTINGS) {
             PortalPlayerTargetActions.sendList(player, gun.stack());
+        }
+    }
+
+    private static void rollbackOptimisticGunMutation(
+        PortalAction action, ServerPlayer player, PortalPlayerData data,
+        PortalGunLocator.LocatedGun gun
+    ) {
+        if (action.requiresGunRollback()) {
+            PortalNetworking.sendGunRollback(player, data, gun);
         }
     }
 

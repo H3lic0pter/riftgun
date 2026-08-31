@@ -21,6 +21,10 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
             assertFalse(source.contains("PORTAL_SPLASH"));
             assertFalse(source.contains("addParticle"));
             assertFalse(source.contains("PortalEntity"));
+            assertFalse(source.contains("SurfaceFaceRequest"),
+                version + " preview hot path must use the domain selection directly");
+            assertFalse(source.contains(".toSelection()"),
+                version + " preview hot path must not allocate a packet-to-domain wrapper");
         }
     }
 

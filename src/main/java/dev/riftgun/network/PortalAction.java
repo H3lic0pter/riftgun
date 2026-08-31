@@ -64,4 +64,9 @@ public enum PortalAction {
             || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE
             || this == ADJUST_SURFACE_RANGE;
     }
+
+    /** Whether the client mutates its typed gun view before server validation. */
+    public boolean requiresGunRollback() {
+        return this == SET_GUN_MODULE_SETTINGS;
+    }
 }

@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.input.SurfaceFacePreviewState;
 import dev.riftgun.pairing.PortalFunctionMode;
+import dev.riftgun.network.PortalAction;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.service.PrecisionPlacementIntent;
 import dev.riftgun.service.SurfaceFaceSelection;
@@ -63,5 +65,37 @@ final class ModeRadialControllerTest {
             controller.floatingPlacementMode(PortalPlacementMode.SMART, gun));
         assertEquals(PortalOrientation.TOP,
             controller.selectedPrecisionIntent(null, false).orientation());
+    }
+
+    @Test
+    void workflowOwnsPrecisionRadialAndRangePayloads() {
+        PortalGunViewState gun = PortalGunViewStateFixtures.representative();
+        var precisionController = new ModeRadialController(
+            PrecisionPlacementIntent.floating(PortalOrientation.TOP),
+            Direction.NORTH, List.of());
+        precisionController.refresh(gun);
+        ModeRadialWorkflow.Command precision = ModeRadialWorkflow.precision(
+            precisionController, null, true, true);
+        var precisionPayload = new net.minecraft.nbt.CompoundTag();
+        precision.writeTo(precisionPayload);
+        assertEquals(PortalAction.OPEN_SELECTED_PRECISION, precision.action());
+        assertTrue(Nbt.getBoolean(precisionPayload, "EndpointA"));
+        assertTrue(Nbt.getBoolean(precisionPayload, "PairingShortcut"));
+
+        var radialController = new ModeRadialController(null, Direction.NORTH, List.of());
+        radialController.refresh(gun);
+        ModeRadialWorkflow.Command radial = ModeRadialWorkflow.radial(radialController, gun);
+        var radialPayload = new net.minecraft.nbt.CompoundTag();
+        radial.writeTo(radialPayload);
+        assertEquals(PortalAction.SET_RADIAL_MODE, radial.action());
+        assertEquals(PortalFunctionMode.PORTAL_PAIRING.name(),
+            Nbt.getString(radialPayload, "FunctionMode"));
+
+        var rangePayload = new net.minecraft.nbt.CompoundTag();
+        ModeRadialWorkflow.writeRemoteDistance(rangePayload, 48);
+        assertEquals(PortalAction.SET_GUN_MODULE_SETTINGS,
+            ModeRadialWorkflow.remoteDistanceAction());
+        assertEquals("RemoteDistance", Nbt.getString(rangePayload, "Setting"));
+        assertEquals(48, Nbt.getInt(rangePayload, "Value"));
     }
 }

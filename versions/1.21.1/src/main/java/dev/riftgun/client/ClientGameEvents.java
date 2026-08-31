@@ -78,8 +78,7 @@ public final class ClientGameEvents {
         while (ClientModEvents.PORTAL_PAIRING_OPERATION.consumeClick()) {
             if (!(minecraft.screen instanceof dev.riftgun.client.screen.ModeRadialScreen)
                 && minecraft.player != null && minecraft.getConnection() != null) {
-                PortalNetworking.sendShortcutRequest(PortalAction.PLACE_PAIRING_ENDPOINT,
-                    tag -> tag.putBoolean("EndpointA", minecraft.player.isShiftKeyDown()));
+                PortalShortcutCommand.pairingEndpoint(minecraft.player.isShiftKeyDown()).send();
             }
         }
         while (ClientModEvents.TOGGLE_FUNCTION_MODE.consumeClick()) {
@@ -101,8 +100,7 @@ public final class ClientGameEvents {
 
     private static void sendForcedOpen(Minecraft minecraft, PortalPlacementMode mode) {
         if (minecraft.player == null || minecraft.getConnection() == null) return;
-        PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED,
-            tag -> tag.putString("PlacementMode", mode.name()));
+        PortalShortcutCommand.forcedOpen(mode).send();
     }
 
     @SubscribeEvent
