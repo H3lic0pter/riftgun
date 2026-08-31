@@ -8,7 +8,7 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.diagnostics.TransitDiagnostics;
 import dev.riftgun.entity.SpecialEntityTransitPolicies;
-import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.service.PortalClientSync;
 import dev.riftgun.network.ExternalDestinationActions;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalOwnerIndex;
@@ -60,7 +60,7 @@ public final class RiftLifecycle {
 
     public static void playerJoined(ServerPlayer player) {
         updatePrediction(player);
-        PortalNetworking.sendSnapshot(player, false);
+        PortalClientSync.snapshot(player, false);
     }
 
     public static void playerLeft(ServerPlayer player) {

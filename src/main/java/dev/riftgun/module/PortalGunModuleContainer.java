@@ -2,7 +2,7 @@ package dev.riftgun.module;
 
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.data.PortalDataStore;
-import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.service.PortalClientSync;
 import dev.riftgun.relocation.EntityRelocationRouting;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalGunIdentity;
@@ -94,7 +94,7 @@ public final class PortalGunModuleContainer extends SimpleContainer {
             if (normalized != data.settings().placementMode()) {
                 data.settings(data.settings().withPlacementMode(normalized));
                 PortalDataStore.save(owner, data);
-                PortalNetworking.sendSnapshot(owner, false, locatedGun);
+                PortalClientSync.snapshot(owner, false, locatedGun);
             }
         }
         if (oldActivePairing > 0 && newActivePairing == 0) {
@@ -109,12 +109,12 @@ public final class PortalGunModuleContainer extends SimpleContainer {
                 PortalOwnerIndex.closeOwnedMatching(server, owner.getUUID(),
                     portal -> gunId.equals(portal.pairingGunId()));
             }
-            PortalNetworking.sendSnapshot(owner, false, locatedGun);
+            PortalClientSync.snapshot(owner, false, locatedGun);
         }
         if (oldActiveRemote > 0 && newActiveRemote == 0) {
             // Preserve REMOTE as the saved preference. Capability resolution supplies the
             // effective FRONT fallback until the module is installed again.
-            PortalNetworking.sendSnapshot(owner, false, locatedGun);
+            PortalClientSync.snapshot(owner, false, locatedGun);
         }
         previous = copyItems();
     }

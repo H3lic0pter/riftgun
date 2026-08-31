@@ -4,6 +4,7 @@ import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacement;
+import dev.riftgun.service.PrecisionPlacementIntent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -33,6 +34,20 @@ public record PrecisionPlacementRequest(Kind kind, @Nullable SurfaceFaceRequest 
 
     public PrecisionPlacementRequest withPreviewPlacement(@Nullable PortalPlacement placement) {
         return new PrecisionPlacementRequest(kind, surface, orientation, placement);
+    }
+
+    public PrecisionPlacementIntent toIntent() {
+        PrecisionPlacementIntent intent = kind == Kind.SURFACE
+            ? PrecisionPlacementIntent.surface(surface.toSelection())
+            : PrecisionPlacementIntent.floating(orientation);
+        return intent.withPreviewPlacement(previewPlacement);
+    }
+
+    public static PrecisionPlacementRequest fromIntent(PrecisionPlacementIntent intent) {
+        PrecisionPlacementRequest request = intent.kind() == PrecisionPlacementIntent.Kind.SURFACE
+            ? surface(new SurfaceFaceRequest(intent.surface().anchor(), intent.surface().face()))
+            : floating(intent.orientation());
+        return request.withPreviewPlacement(intent.previewPlacement());
     }
 
     public void writeTo(CompoundTag tag) {

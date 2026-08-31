@@ -1,6 +1,7 @@
 package dev.riftgun.network;
 
 import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.service.SurfaceFaceSelection;
 import java.util.Arrays;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -24,6 +25,10 @@ public record SurfaceFaceRequest(BlockPos anchor, Direction face) {
         tag.putInt("AnchorY", anchor.getY());
         tag.putInt("AnchorZ", anchor.getZ());
         tag.putString("Face", face.getName());
+    }
+
+    public SurfaceFaceSelection toSelection() {
+        return new SurfaceFaceSelection(anchor, face);
     }
 
     public static SurfaceFaceRequest decode(CompoundTag tag) {

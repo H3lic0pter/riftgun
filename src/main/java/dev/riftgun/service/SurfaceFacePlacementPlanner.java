@@ -1,6 +1,5 @@
 package dev.riftgun.service;
 
-import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.portal.PortalOrientation;
@@ -17,30 +16,30 @@ import org.jetbrains.annotations.Nullable;
 public final class SurfaceFacePlacementPlanner {
     private static final double SURFACE_OFFSET = PortalPlacement.DEPTH * 0.5 + 0.002;
 
-    public static Result resolve(SurfaceFaceRequest request, PortalAperture aperture,
+    public static Result resolve(SurfaceFaceSelection selection, PortalAperture aperture,
                                  float playerYaw, AABB playerBounds, Probe probe,
                                  Validation validation) {
         if (!validation.lineOfSight()) return Result.failure("message.riftgun.surface_invalid");
         if (validation.distance() > validation.maximumRange()) {
             return Result.failure("message.riftgun.surface_out_of_range");
         }
-        BlockPos anchor = request.anchor();
-        Direction face = request.face();
+        BlockPos anchor = selection.anchor();
+        Direction face = selection.face();
         if (!probe.anchorSolid(anchor)) return Result.failure("message.riftgun.surface_invalid");
 
         if (PortalAperturePolicy.expanded(aperture)) {
             PortalPlacement expanded = face.getAxis().isVertical()
-                ? expandedHorizontal(request, playerYaw, playerBounds, probe)
-                : expandedVertical(request, playerBounds, probe);
+                ? expandedHorizontal(selection, playerYaw, playerBounds, probe)
+                : expandedVertical(selection, playerBounds, probe);
             if (expanded != null) return Result.success(expanded);
         }
-        return standard(request, playerYaw, playerBounds, probe);
+        return standard(selection, playerYaw, playerBounds, probe);
     }
 
-    private static Result standard(SurfaceFaceRequest request, float playerYaw,
+    private static Result standard(SurfaceFaceSelection selection, float playerYaw,
                                    AABB playerBounds, Probe probe) {
-        BlockPos anchor = request.anchor();
-        Direction face = request.face();
+        BlockPos anchor = selection.anchor();
+        Direction face = selection.face();
         Vec3 normal = normal(face);
         if (face.getAxis().isVertical()) {
             PortalPlacement placement = new PortalPlacement(
@@ -74,10 +73,10 @@ public final class SurfaceFacePlacementPlanner {
     }
 
     private static @Nullable PortalPlacement expandedVertical(
-        SurfaceFaceRequest request, AABB playerBounds, Probe probe
+        SurfaceFaceSelection selection, AABB playerBounds, Probe probe
     ) {
-        BlockPos anchor = request.anchor();
-        Direction face = request.face();
+        BlockPos anchor = selection.anchor();
+        Direction face = selection.face();
         Direction lateral = face.getAxis() == Direction.Axis.Z ? Direction.EAST : Direction.SOUTH;
         Vec3 normal = normal(face);
         Vec3 lateralVector = normal(lateral);
@@ -101,10 +100,10 @@ public final class SurfaceFacePlacementPlanner {
     }
 
     private static @Nullable PortalPlacement expandedHorizontal(
-        SurfaceFaceRequest request, float playerYaw, AABB playerBounds, Probe probe
+        SurfaceFaceSelection selection, float playerYaw, AABB playerBounds, Probe probe
     ) {
-        BlockPos anchor = request.anchor();
-        Direction face = request.face();
+        BlockPos anchor = selection.anchor();
+        Direction face = selection.face();
         Vec3 normal = normal(face);
         PortalOrientation orientation = face == Direction.UP
             ? PortalOrientation.TOP : PortalOrientation.BOTTOM;

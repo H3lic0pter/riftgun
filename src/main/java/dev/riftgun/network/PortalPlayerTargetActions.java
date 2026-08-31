@@ -11,6 +11,8 @@ import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalOpenOrigin;
 import dev.riftgun.service.ServerPlayerRoster;
+import dev.riftgun.service.PrecisionPlacementIntent;
+import dev.riftgun.service.SurfaceFaceSelection;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -84,7 +86,7 @@ final class PortalPlayerTargetActions {
     static boolean openSelectedSurfaceFace(ServerPlayer player, PortalPlayerData data,
                                            PortalPlacementMode mode,
                                            PortalGunLocator.LocatedGun gun,
-                                           SurfaceFaceRequest request) {
+                                           SurfaceFaceSelection selection) {
         UUID targetId = data.selectedPlayerId();
         if (targetId == null) return false;
 //? if >=1.21.11 {
@@ -97,14 +99,14 @@ final class PortalPlayerTargetActions {
             return true;
         }
         PortalOpenCoordinator.requestPlayerTargetSurfaceFace(
-            player, data, targetId, mode, gun, request);
+            player, data, targetId, mode, gun, selection);
         return true;
     }
 
     static boolean openSelectedPrecision(ServerPlayer player, PortalPlayerData data,
                                          PortalPlacementMode mode,
                                          PortalGunLocator.LocatedGun gun,
-                                         PrecisionPlacementRequest request) {
+                                         PrecisionPlacementIntent intent) {
         UUID targetId = data.selectedPlayerId();
         if (targetId == null) return false;
 //? if >=1.21.11 {
@@ -117,7 +119,7 @@ final class PortalPlayerTargetActions {
             return true;
         }
         PortalOpenCoordinator.requestPlayerTargetPrecision(
-            player, data, targetId, mode, gun, request);
+            player, data, targetId, mode, gun, intent);
         return true;
     }
 

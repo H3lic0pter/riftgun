@@ -10,7 +10,6 @@ import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.navigation.DimensionalTraversalTargets;
 import dev.riftgun.fuel.PortalFuelManager;
-import dev.riftgun.network.PortalNetworking;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -129,7 +128,7 @@ public final class RandomRiftManager {
         if (search == null) return;
         serverSearches.put(playerId, search);
         message(player, "message.riftgun.random_rift_search_started");
-        PortalNetworking.sendSnapshot(player, false, gun);
+        PortalClientSync.snapshot(player, false, gun);
     }
 
     public static void tick(MinecraftServer server) {
@@ -231,8 +230,8 @@ public final class RandomRiftManager {
                 int cooldownTicks = config.cooldownTicks();
                 if (cooldownTicks > 0) cooldowns(playerServer(player)).put(player.getUUID(), time + cooldownTicks);
             }
-            PortalNetworking.sendSnapshot(player, false, gun);
-            if (opened) PortalNetworking.sendPortalOpened(player);
+            PortalClientSync.snapshot(player, false, gun);
+            if (opened) PortalClientSync.portalOpened(player);
             return;
         }
         finishIfExhausted(player, gun, search);
@@ -278,7 +277,7 @@ public final class RandomRiftManager {
         if (search.attempts < RiftConfigs.server().randomRift().maximumAttempts()) return;
         searches(playerServer(player)).remove(player.getUUID());
         message(player, "message.riftgun.random_rift_failed");
-        PortalNetworking.sendSnapshot(player, false, gun);
+        PortalClientSync.snapshot(player, false, gun);
     }
 
     private static void addPreparationTicket(ServerLevel level, Search search) {

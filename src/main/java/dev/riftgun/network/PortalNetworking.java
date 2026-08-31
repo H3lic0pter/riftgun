@@ -6,8 +6,11 @@ import dev.riftgun.api.RiftResourceId;
 import dev.riftgun.core.network.RiftNetwork;
 import java.util.function.Consumer;
 import dev.riftgun.service.PortalGunLocator;
+import dev.riftgun.service.PortalClientSync;
 import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.fuel.PortalGunSnapshot;
+import dev.riftgun.state.PortalGunViewStateCodec;
+import dev.riftgun.state.PortalGunViewState;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.DestinationSort;
@@ -28,6 +31,22 @@ import dev.riftgun.core.config.RiftConfigs;
 
 public final class PortalNetworking {
     private static Consumer<CompoundTag> clientContextWriter = ignored -> {};
+
+    public static void installClientSyncAdapter() {
+        PortalClientSync.install(new PortalClientSync.Adapter() {
+            @Override
+            public void snapshot(ServerPlayer player, boolean openScreen,
+                                 PortalGunLocator.LocatedGun gun) {
+                if (gun == null) sendSnapshot(player, openScreen);
+                else sendSnapshot(player, openScreen, gun);
+            }
+
+            @Override
+            public void portalOpened(ServerPlayer player) {
+                sendPortalOpened(player);
+            }
+        });
+    }
 
     public static void sendRequest(PortalAction action) {
         sendRequest(action, tag -> {});
@@ -100,11 +119,11 @@ public final class PortalNetworking {
         randomRiftTag.putInt("CooldownTicks", randomRift.cooldownTicks());
         envelope.put("RandomRift", randomRiftTag);
         if (locatedGun != null) {
-            CompoundTag gun = gunSnapshot(player, data, locatedGun);
+            var gun = gunSnapshotState(player, data, locatedGun);
             envelope.put("GunReference", locatedGun.saveReference());
-            envelope.put("Gun", gun);
-            if (openScreen && Nbt.getBoolean(gun, "DimensionalTraversalInstalled")
-                && Nbt.getBoolean(gun, "DimensionalTraversalEnabled")) {
+            envelope.put("Gun", PortalGunViewStateCodec.encode(gun));
+            if (openScreen && gun.dimensionalTraversalInstalled()
+                && gun.dimensionalTraversalEnabled()) {
                 putDimensionCatalog(envelope, player);
             }
         }
@@ -114,10 +133,24 @@ public final class PortalNetworking {
     /** A focused acknowledgement for high-frequency per-gun controls such as radial sliders. */
     public static void sendGunSnapshot(ServerPlayer player, PortalPlayerData data,
                                        PortalGunLocator.LocatedGun locatedGun) {
+        sendGunSnapshot(player, data, locatedGun, false);
+    }
+
+    /** Restores optimistic client state after a rejected per-gun mutation. */
+    public static void sendGunRollback(ServerPlayer player, PortalPlayerData data,
+                                       PortalGunLocator.LocatedGun locatedGun) {
+        sendGunSnapshot(player, data, locatedGun, true);
+    }
+
+    private static void sendGunSnapshot(ServerPlayer player, PortalPlayerData data,
+                                        PortalGunLocator.LocatedGun locatedGun,
+                                        boolean rollback) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "GunSnapshot");
+        envelope.putBoolean("Rollback", rollback);
         envelope.put("GunReference", locatedGun.saveReference());
-        envelope.put("Gun", gunSnapshot(player, data, locatedGun));
+        envelope.put("Gun", PortalGunViewStateCodec.encode(
+            gunSnapshotState(player, data, locatedGun)));
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
     }
 
@@ -241,18 +274,17 @@ public final class PortalNetworking {
         };
     }
 
-    private static CompoundTag gunSnapshot(ServerPlayer player, PortalPlayerData data,
-                                           PortalGunLocator.LocatedGun locatedGun) {
-        CompoundTag gun = PortalGunSnapshot.create(
+    private static PortalGunViewState gunSnapshotState(
+        ServerPlayer player, PortalPlayerData data, PortalGunLocator.LocatedGun locatedGun
+    ) {
+        var state = PortalGunSnapshot.createState(
             locatedGun.stack(), data.settings().smartDistance());
-        String selected = Nbt.getString(gun, "DimensionalTraversalDimension");
+        String selected = state.navigation().targetDimension();
         if (selected.isBlank() || DimensionalTraversalTargets.resolve(player, selected).isEmpty()) {
-            gun.putString("DimensionalTraversalDimension",
-                DimensionalTraversalTargets.id(player.level()));
+            state = state.withNavigation(state.navigation().withTargetDimension(
+                DimensionalTraversalTargets.id(player.level())));
         }
-        gun.putBoolean("DimensionalTraversalEnabled",
-            RiftConfigs.server().dimensionalTraversal().enabled());
-        return gun;
+        return state;
     }
 
     private static Comparator<ServerPlayer> playerComparator(ServerPlayer viewer, PortalPlayerData data) {

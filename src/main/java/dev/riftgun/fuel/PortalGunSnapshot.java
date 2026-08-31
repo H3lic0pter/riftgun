@@ -10,96 +10,73 @@ import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.crisis.PortalFluidInstability;
-import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import dev.riftgun.service.PortalGunIdentity;
+import dev.riftgun.state.PortalGunViewState;
+import dev.riftgun.state.PortalGunViewStateCodec;
+import java.util.EnumMap;
 
 public final class PortalGunSnapshot {
     public static CompoundTag create(ItemStack gun, int legacySmartDistance) {
-        CompoundTag tag = new CompoundTag();
-        Nbt.putUUID(tag, "InstanceId", PortalGunIdentity.ensure(gun));
+        return PortalGunViewStateCodec.encode(createState(gun, legacySmartDistance));
+    }
+
+    public static PortalGunViewState createState(ItemStack gun, int legacySmartDistance) {
+        var instanceId = PortalGunIdentity.ensure(gun);
         var pending = PortalPairingPendingEndpoints.get(gun);
-        if (pending != null) tag.put("PendingPairingEndpoint", pending.save());
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, legacySmartDistance);
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, legacySmartDistance);
         PortalModuleRules rules = PortalModuleRules.current();
         PortalGunTank tank = new PortalGunTank(gun);
         FluidStack fluid = tank.getFluid();
         boolean infiniteFuel = PortalFuelManager.hasInfiniteFuel(gun);
-        tag.putBoolean("BucketMode", PortalGunMode.bucketMode(gun));
-        tag.putInt("Amount", fluid.getAmount());
-        tag.putInt("Capacity", tank.nominalCapacity());
-        tag.putBoolean("Overfilled", fluid.getAmount() > tank.nominalCapacity());
-        tag.putBoolean("InfiniteFuel", infiniteFuel);
-        tag.putBoolean("Unstable", PortalFluidInstability.isUnstable(fluid.getFluid()));
-        tag.putBoolean("CoordinateOverride", capabilities.coordinateOverride());
-        tag.putBoolean("DimensionalTraversalInstalled", capabilities.dimensionalTraversal());
-        tag.putBoolean("DimensionalTraversalEnabled",
-            dev.riftgun.core.config.RiftConfigs.server().dimensionalTraversal().enabled());
-        tag.putString("DimensionalTraversalDimension",
-            settings.dimensionalTraversal().targetDimension());
-        tag.putString("DimensionalTraversalMode",
-            settings.dimensionalTraversal().mode().name());
-        tag.putInt("MaximumSurfaceRange", capabilities.maximumSurfaceRange());
-        tag.putInt("RemoteDistance", capabilities.remoteDistance());
-        tag.putInt("SmartDistance", capabilities.smartDistance());
-        tag.putInt("EntityAccess", capabilities.entityAccess().mask());
-        tag.putBoolean("PassiveTransitEnabled", settings.passiveTransitEnabled());
-        tag.putBoolean("HostileTransitEnabled", settings.hostileTransitEnabled());
-        tag.putBoolean("BossTransitEnabled", settings.bossTransitEnabled());
-        tag.putBoolean("ProjectileTransitEnabled", settings.projectileTransitEnabled());
         boolean eternalInstalled = PortalGunCapabilities.hasEternalDuration(gun, rules);
         int maximumDuration = PortalGunCapabilities.maximumDurationSeconds(gun, rules);
-        tag.putInt("PortalDurationSeconds", PortalGunCapabilities.configuredDurationSeconds(
-            gun, settings.portalDurationSeconds()));
-        tag.putInt("MaximumPortalDurationSeconds", maximumDuration);
-        tag.putBoolean("EternalDurationInstalled", eternalInstalled);
-        tag.putBoolean("ExpandedApertureEnabled", settings.expandedApertureEnabled());
-        tag.putInt("TransitCooldownTenths", settings.transitCooldownTenths());
-        tag.putInt("MaximumTransitCooldownTenths", PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS);
-        tag.putBoolean("PlayerTargetEnabled", capabilities.playerTarget());
-        tag.putInt("PlayerExcludeMode", capabilities.playerExcludeMode().id());
         boolean fallGuardInstalled = PortalGunModules.activeCount(
             gun, PortalModuleKind.FALL_GUARD, rules) > 0;
-        tag.putBoolean("FallGuardInstalled", fallGuardInstalled);
-        tag.putBoolean("FallGuardEnabled", capabilities.fallGuard());
-        tag.putBoolean("FallGuardEntitiesEnabled", capabilities.entityFallGuard());
-        tag.putBoolean("PlayerTargetInstalled", PortalGunModules.activeCount(
-            gun, PortalModuleKind.PLAYER_TARGET, rules) > 0);
-        tag.putBoolean("EntityRelocationInstalled", PortalGunModules.activeCount(
-            gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0);
-        tag.putBoolean("EntityRelocationEnabled", capabilities.entityRelocation());
-        tag.putBoolean("EntityRelocationSmartRouting", settings.entityRelocation().smartRouting());
-        tag.putBoolean("RemoteInstalled", capabilities.remote());
-        tag.putBoolean("RemoteScrollAdjustmentEnabled",
-            settings.remote().scrollAdjustmentEnabled());
-        tag.putBoolean("RemoteRadialSliderEnabled",
-            settings.remote().radialSliderEnabled());
-        tag.putBoolean("RemotePlacementPreviewEnabled",
-            settings.remote().placementPreviewEnabled());
-        tag.putBoolean("PrecisionPlacementInstalled", capabilities.precisionPlacement());
-        tag.putBoolean("PortalPairingInstalled", capabilities.portalPairing());
-        tag.putString("FunctionMode", capabilities.functionMode().name());
-        tag.putString("CoordinateSmartFallback", settings.remote().coordinateSmartFallback().name());
-        tag.putString("PairingSmartFallback", settings.portalPairing().smartFallback().name());
-        CompoundTag modules = new CompoundTag();
+        boolean playerTargetInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.PLAYER_TARGET, rules) > 0;
+        boolean entityRelocationInstalled = PortalGunModules.activeCount(
+            gun, PortalModuleKind.ENTITY_RELOCATION, rules) > 0;
+        EnumMap<PortalModuleKind, Integer> modules = new EnumMap<>(PortalModuleKind.class);
         for (PortalModuleKind kind : PortalModuleKind.values()) {
-            modules.putInt(kind.name(), PortalGunModules.activeCount(gun, kind, rules));
+            modules.put(kind, PortalGunModules.activeCount(gun, kind, rules));
         }
-        tag.put("Modules", modules);
-        tag.put("ModuleRules", rules.save());
-        PortalFuelProfiles.resolve(fluid.getFluid()).ifPresent(profile -> {
-            tag.putString("Fluid", BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());
-            tag.putInt("Rgb", profile.rgb());
-            tag.putBoolean("CrossDimension", profile.crossDimension());
-        });
+        PortalFuelProfile profile = PortalFuelProfiles.resolve(fluid.getFluid()).orElse(null);
+        String fluidId = profile == null ? ""
+            : BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString();
         if (fluid.isEmpty() && infiniteFuel) {
-            PortalFuelProfile profile = PortalFuelProfiles.dimensional();
-            tag.putString("Fluid", profile.id().toString());
-            tag.putInt("Rgb", profile.rgb());
-            tag.putBoolean("CrossDimension", true);
+            profile = PortalFuelProfiles.dimensional();
+            fluidId = profile.id().toString();
         }
-        return tag;
+        var fuel = new PortalGunViewState.Fuel(
+            PortalGunMode.bucketMode(gun), fluid.getAmount(), tank.nominalCapacity(),
+            fluid.getAmount() > tank.nominalCapacity(), infiniteFuel,
+            PortalFluidInstability.isUnstable(fluid.getFluid()), fluidId,
+            profile == null ? 0 : profile.rgb(), profile != null && profile.crossDimension());
+        var navigation = new PortalGunViewState.Navigation(
+            capabilities.coordinateOverride(), capabilities.dimensionalTraversal(),
+            dev.riftgun.core.config.RiftConfigs.server().dimensionalTraversal().enabled(),
+            settings.dimensionalTraversal().targetDimension(), settings.dimensionalTraversal().mode());
+        var placement = new PortalGunViewState.Placement(
+            capabilities.maximumSurfaceRange(), capabilities.remoteDistance(), capabilities.smartDistance(),
+            capabilities.remote(), settings.remote().scrollAdjustmentEnabled(),
+            settings.remote().radialSliderEnabled(), settings.remote().placementPreviewEnabled(),
+            capabilities.precisionPlacement(), capabilities.portalPairing(), capabilities.functionMode(),
+            settings.remote().coordinateSmartFallback(), settings.portalPairing().smartFallback());
+        var transit = new PortalGunViewState.Transit(
+            capabilities.entityAccess().mask(), settings.passiveTransitEnabled(),
+            settings.hostileTransitEnabled(), settings.bossTransitEnabled(),
+            settings.projectileTransitEnabled(), PortalGunCapabilities.configuredDurationSeconds(
+                gun, settings.portalDurationSeconds()), maximumDuration, eternalInstalled,
+            settings.expandedApertureEnabled(), settings.transitCooldownTenths(),
+            PortalGunModuleSettings.MAXIMUM_TRANSIT_COOLDOWN_TENTHS,
+            playerTargetInstalled, capabilities.playerTarget(), capabilities.playerExcludeMode(),
+            fallGuardInstalled, capabilities.fallGuard(), capabilities.entityFallGuard(),
+            entityRelocationInstalled, capabilities.entityRelocation(),
+            settings.entityRelocation().smartRouting());
+        return new PortalGunViewState(instanceId, pending, fuel, navigation, placement, transit,
+            new PortalGunViewState.Modules(modules, rules));
     }
 
     private PortalGunSnapshot() {}

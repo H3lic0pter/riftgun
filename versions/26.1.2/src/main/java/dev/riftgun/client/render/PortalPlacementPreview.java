@@ -274,7 +274,7 @@ public final class PortalPlacementPreview {
     private static PortalPlacement surfacePreview(Minecraft minecraft, PortalPreviewGunState gun,
                                                    SurfaceFaceRequest request, double distance,
                                                    int maximumRange) {
-        return SurfaceFacePlacementPlanner.resolve(request, gun.aperture(),
+        return SurfaceFacePlacementPlanner.resolve(request.toSelection(), gun.aperture(),
             minecraft.player.getYRot(), minecraft.player.getBoundingBox(),
             new SurfaceFacePlacementPlanner.Probe() {
                 @Override public boolean anchorSolid(BlockPos position) {

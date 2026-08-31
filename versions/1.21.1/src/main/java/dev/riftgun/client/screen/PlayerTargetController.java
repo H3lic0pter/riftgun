@@ -5,6 +5,7 @@ import dev.riftgun.client.PortalClientState;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.module.PortalModuleKind;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -31,8 +32,8 @@ final class PlayerTargetController {
     }
 
     boolean visible() {
-        return PortalClientState.gun().getCompound("Modules").getInt("PLAYER_TARGET") > 0
-            && PortalClientState.gun().getBoolean("PlayerTargetEnabled");
+        return PortalClientState.gun().moduleCount(PortalModuleKind.PLAYER_TARGET) > 0
+            && PortalClientState.gun().playerTargetEnabled();
     }
 
     List<PlayerListState.PlayerEntry> entries(String normalizedQuery) {

@@ -30,10 +30,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
-import dev.riftgun.network.SurfaceFaceRequestValidator;
-import dev.riftgun.network.SurfaceFaceRequest;
-import dev.riftgun.network.PrecisionPlacementRequest;
-import dev.riftgun.network.PortalNetworking;
+import dev.riftgun.service.PrecisionPlacementIntent;
+import dev.riftgun.service.SurfaceFacePlacementPolicy;
+import dev.riftgun.service.SurfaceFaceSelection;
 
 /** Server-authoritative orchestration for directly placed A/B portal pairs. */
 public final class PortalPairingManager {
@@ -57,9 +56,9 @@ public final class PortalPairingManager {
                                            PortalGunLocator.LocatedGun locatedGun,
                                            PortalPlacementMode requestedMode,
                                            PortalPairingEndpoint endpoint,
-                                           SurfaceFaceRequest request) {
+                                           SurfaceFaceSelection selection) {
         return place(player, data, locatedGun, requestedMode, endpoint,
-            PrecisionPlacementRequest.surface(request),
+            PrecisionPlacementIntent.surface(selection),
             PortalPairingInvocation.MODE_BOUND);
     }
 
@@ -67,8 +66,8 @@ public final class PortalPairingManager {
                                          PortalGunLocator.LocatedGun locatedGun,
                                          PortalPlacementMode requestedMode,
                                          PortalPairingEndpoint endpoint,
-                                         PrecisionPlacementRequest request) {
-        return place(player, data, locatedGun, requestedMode, endpoint, request,
+                                         PrecisionPlacementIntent intent) {
+        return place(player, data, locatedGun, requestedMode, endpoint, intent,
             PortalPairingInvocation.SHORTCUT);
     }
 
@@ -76,7 +75,7 @@ public final class PortalPairingManager {
                                  PortalGunLocator.LocatedGun locatedGun,
                                  PortalPlacementMode requestedMode,
                                  PortalPairingEndpoint endpoint,
-                                 PrecisionPlacementRequest precisionRequest,
+                                 PrecisionPlacementIntent precisionRequest,
                                  PortalPairingInvocation invocation) {
         if (!sourceAllowed(player)) return false;
         if (endpoint == PortalPairingEndpoint.NONE || endpoint == PortalPairingEndpoint.ENTITY_TARGET) {
@@ -106,17 +105,18 @@ public final class PortalPairingManager {
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),
             capabilities.pairingSmartFallback());
-        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING) {
+        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementIntent.Kind.FLOATING) {
             constraints = constraints.forPrecisionFloating(precisionRequest.orientation());
         }
         PortalPlacementCapture capture = precisionRequest == null
-            || precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING
+            || precisionRequest.kind() == PrecisionPlacementIntent.Kind.FLOATING
             ? RiftRuntime.current().placementResolver().capture(player, mode, constraints)
             : RiftRuntime.current().placementResolver().captureSurfaceFace(
                 player, precisionRequest.surface(), constraints);
         if (!capture.successful()) return fail(player, capture.errorKey());
-        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.SURFACE) {
-            SurfaceFaceRequestValidator.validate(mode, capture.intent());
+        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementIntent.Kind.SURFACE
+            && !SurfaceFacePlacementPolicy.accepts(mode, capture.intent())) {
+            return fail(player, "message.riftgun.surface_mode_required");
         }
         PortalEntryPlacementResult placement = RiftRuntime.current().placementResolver()
             .resolveEntry(player, capture.intent(), constraints);
@@ -146,14 +146,15 @@ public final class PortalPairingManager {
         boolean hasB = pending != null && pending.endpoint() == PortalPairingEndpoint.B
             || active.stream().anyMatch(
             portal -> portal.pairingEndpoint() == PortalPairingEndpoint.B);
-        boolean connectsPair = PortalPairingConnectionPolicy.connectsPair(hasA, hasB, endpoint);
+        PortalPairingStateMachine.Decision decision = PortalPairingStateMachine.place(
+            PortalPairingStateMachine.State.from(hasA, hasB), endpoint);
         PortalEntity opposite = active.stream()
             .filter(portal -> portal.pairingEndpoint() == endpoint.opposite())
             .findFirst().orElse(null);
         PortalPairingPendingEndpoint pendingOpposite = pending != null
             && pending.endpoint() == endpoint.opposite() ? pending : null;
 
-        if (connectsPair && opposite == null && pendingOpposite == null) {
+        if (decision.connectsPair() && opposite == null && pendingOpposite == null) {
             return fail(player, "message.riftgun.portal_open_failed");
         }
         PortalRuntimeOptions options = runtimeOptions(data, capabilities, locatedGun);
@@ -168,13 +169,13 @@ public final class PortalPairingManager {
             return true;
         }
 
-        var fuelPlan = connectsPair
+        var fuelPlan = decision.consumesPairFuel()
             ? PortalFuelManager.plan(player, locatedGun.stack(), opposite != null
                 ? opposite.level().dimension() : pendingOpposite.dimension())
             : PortalFuelManager.recognizedProfile(locatedGun.stack());
         if (!fuelPlan.successful()) return fail(player, fuelPlan.errorKey());
         boolean opened;
-        if (!connectsPair) {
+        if (!decision.connectsPair()) {
             savePending(player, data, server, locatedGun, placement.placement(), endpoint,
                 now, options.openDurationTicks());
             opened = true;
@@ -184,13 +185,12 @@ public final class PortalPairingManager {
                 placement.placement(), opposite != null ? opposite.placement() : pendingOpposite.placement());
             opened = PortalEntity.openPairing(player, pair, fuelPlan.use().profile(), options,
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()), gunId, endpoint);
-            if (opened) {
+            if (opened && decision.resetsBothEndpoints()) {
                 PortalPairingPendingEndpoints.clearAll(player);
-                PortalNetworking.sendGunSnapshot(player, data, locatedGun);
             }
         }
         if (!opened) return fail(player, "message.riftgun.portal_open_failed");
-        if (connectsPair) {
+        if (decision.connectsPair()) {
             Msg.displayClientMessage(player,
                 Component.translatable("message.riftgun.pairing_connected"), true);
         }
@@ -318,7 +318,6 @@ public final class PortalPairingManager {
         PortalPairingPendingEndpoints.save(
             gun.stack(), player.getUUID(), gunId, player.level().dimension(), placement,
             endpoint, startedAt, durationTicks);
-        PortalNetworking.sendGunSnapshot(player, data, gun);
         dev.riftgun.portal.PortalOwnerIndex.closeOwned(
             server, player.getUUID(), java.util.Set.of());
     }

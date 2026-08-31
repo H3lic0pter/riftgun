@@ -5,11 +5,14 @@ import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import dev.riftgun.module.PortalModuleRules;
+import dev.riftgun.state.PortalGunViewState;
+import dev.riftgun.state.PortalGunViewStateCodec;
+import java.util.function.UnaryOperator;
 
 public final class PortalClientState {
     private static PortalPlayerData data = new PortalPlayerData();
     private static CompoundTag gunReference = new CompoundTag();
-    private static CompoundTag gun = new CompoundTag();
+    private static PortalGunViewState gun = PortalGunViewState.empty();
     private static PortalModuleRules moduleRules = PortalModuleRules.defaults();
     private static CompoundTag randomRift = new CompoundTag();
     private static long randomRiftSnapshotNanos;
@@ -25,7 +28,9 @@ public final class PortalClientState {
             data = PortalPlayerData.load(envelope.getCompound("Data"));
             gunReference = envelope.contains("GunReference")
                 ? envelope.getCompound("GunReference").copy() : new CompoundTag();
-            gun = envelope.contains("Gun") ? envelope.getCompound("Gun").copy() : new CompoundTag();
+            gun = envelope.contains("Gun")
+                ? PortalGunViewStateCodec.decode(envelope.getCompound("Gun"))
+                : PortalGunViewState.empty();
             moduleRules = envelope.contains("ModuleRules")
                 ? PortalModuleRules.load(envelope.getCompound("ModuleRules")) : PortalModuleRules.defaults();
             randomRift = envelope.contains("RandomRift")
@@ -43,7 +48,8 @@ public final class PortalClientState {
             }
         } else if (kind.equals("GunSnapshot")) {
             gunReference = envelope.getCompound("GunReference").copy();
-            gun = envelope.getCompound("Gun").copy();
+            gun = PortalGunViewStateCodec.decode(envelope.getCompound("Gun"));
+            if (envelope.getBoolean("Rollback")) refreshGunScreen();
         } else if (kind.equals("RadialUnavailable")) {
             ModeRadialInput.rejectFromServer(envelope.getInt("RadialRequestId"));
         } else if (kind.equals("PortalOpened")) {
@@ -52,7 +58,7 @@ public final class PortalClientState {
             }
         } else if (kind.equals("GunReferenceInvalid")) {
             gunReference = new CompoundTag();
-            gun = new CompoundTag();
+            gun = PortalGunViewState.empty();
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen
                 || Minecraft.getInstance().screen
                     instanceof dev.riftgun.client.screen.DimensionalNavigationScreen
@@ -90,8 +96,12 @@ public final class PortalClientState {
         request.put("GunReference", gunReference.copy());
     }
 
-    public static CompoundTag gun() {
+    public static PortalGunViewState gun() {
         return gun;
+    }
+
+    public static void updateGun(UnaryOperator<PortalGunViewState> update) {
+        gun = update.apply(gun);
     }
 
     public static PortalModuleRules moduleRules() {
@@ -106,6 +116,18 @@ public final class PortalClientState {
         int receivedTicks = randomRift.getInt("CooldownTicks");
         long elapsedTicks = Math.max(0L, System.nanoTime() - randomRiftSnapshotNanos) / 50_000_000L;
         return (int) Math.max(0L, receivedTicks - elapsedTicks);
+    }
+
+    private static void refreshGunScreen() {
+        if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+            screen.refreshFromServer(Set.of());
+        } else if (Minecraft.getInstance().screen
+            instanceof dev.riftgun.client.screen.DimensionalNavigationScreen screen) {
+            screen.onGunSnapshot();
+        } else if (Minecraft.getInstance().screen
+            instanceof dev.riftgun.client.screen.ModeRadialScreen screen) {
+            screen.refreshFromServer();
+        }
     }
 
     private PortalClientState() {}

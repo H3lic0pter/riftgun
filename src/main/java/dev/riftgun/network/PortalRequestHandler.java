@@ -15,6 +15,8 @@ import dev.riftgun.service.PortalShortcutGunSelection;
 import dev.riftgun.service.VanillaInventoryPortalGunLocator;
 import dev.riftgun.service.RandomRiftManager;
 import dev.riftgun.service.CoordinateSharingService;
+import dev.riftgun.service.PrecisionPlacementIntent;
+import dev.riftgun.service.SurfaceFaceSelection;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.relocation.EntityRelocationManager;
 import dev.riftgun.pairing.PortalFunctionMode;
@@ -120,8 +122,10 @@ public final class PortalRequestHandler {
             if (changed) sendChangedState(player, data, gun, action, request);
         } catch (PortalRequestException exception) {
             Msg.displayClientMessage(player, Component.translatable(exception.translationKey()), true);
+            PortalNetworking.sendGunRollback(player, data, gun);
         } catch (NumberFormatException exception) {
             Msg.displayClientMessage(player, Component.translatable("message.riftgun.invalid_coordinate"), true);
+            PortalNetworking.sendGunRollback(player, data, gun);
         }
     }
 
@@ -139,12 +143,18 @@ public final class PortalRequestHandler {
         PortalPlacementMode mode = data.settings().placementMode();
         if (capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
             if (mode == PortalPlacementMode.ENTITY_RELOCATION) {
-                if (player.isShiftKeyDown()) PortalPairingManager.setRelocationTarget(player, data, gun);
-                else EntityRelocationManager.tryStart(player, data, gun, true);
+                if (player.isShiftKeyDown()
+                    && PortalPairingManager.setRelocationTarget(player, data, gun)) {
+                    PortalNetworking.sendGunSnapshot(player, data, gun);
+                } else if (!player.isShiftKeyDown()) {
+                    EntityRelocationManager.tryStart(player, data, gun, true);
+                }
                 return;
             }
-            PortalPairingManager.place(player, data, gun, mode,
-                player.isShiftKeyDown() ? PortalPairingEndpoint.A : PortalPairingEndpoint.B);
+            if (PortalPairingManager.place(player, data, gun, mode,
+                player.isShiftKeyDown() ? PortalPairingEndpoint.A : PortalPairingEndpoint.B)) {
+                PortalNetworking.sendGunSnapshot(player, data, gun);
+            }
             return;
         }
         if (mode == PortalPlacementMode.ENTITY_RELOCATION) {
@@ -218,15 +228,15 @@ public final class PortalRequestHandler {
                 yield false;
             }
             case OPEN_SELECTED_SURFACE_FACE -> {
-                openSelectedSurfaceFace(player, data, gun, SurfaceFaceRequest.decode(request),
+                yield openSelectedSurfaceFace(player, data, gun,
+                    SurfaceFaceRequest.decode(request).toSelection(),
                     Nbt.getBoolean(request, "EndpointA"));
-                yield false;
             }
             case OPEN_SELECTED_PRECISION -> {
-                openSelectedPrecision(player, data, gun, PrecisionPlacementRequest.decode(request),
+                yield openSelectedPrecision(player, data, gun,
+                    PrecisionPlacementRequest.decode(request).toIntent(),
                     Nbt.getBoolean(request, "EndpointA"),
                     Nbt.getBoolean(request, "PairingShortcut"));
-                yield false;
             }
             case CLEAR_EXTERNAL_DESTINATION -> {
                 ExternalDestinationActions.clearSelection(player.getUUID());
@@ -244,17 +254,16 @@ public final class PortalRequestHandler {
                 }
                 if (data.settings().placementMode() == PortalPlacementMode.ENTITY_RELOCATION) {
                     if (Nbt.getBoolean(request, "EndpointA")) {
-                        PortalPairingManager.setRelocationTargetFromShortcut(player, data, gun);
+                        yield PortalPairingManager.setRelocationTargetFromShortcut(player, data, gun);
                     } else {
                         EntityRelocationManager.tryStart(player, data, gun, true);
+                        yield false;
                     }
-                } else {
-                    PortalPairingManager.placeFromShortcut(
-                        player, data, gun, data.settings().placementMode(),
-                        Nbt.getBoolean(request, "EndpointA")
-                            ? PortalPairingEndpoint.A : PortalPairingEndpoint.B);
                 }
-                yield false;
+                yield PortalPairingManager.placeFromShortcut(
+                    player, data, gun, data.settings().placementMode(),
+                    Nbt.getBoolean(request, "EndpointA")
+                        ? PortalPairingEndpoint.A : PortalPairingEndpoint.B);
             }
             case TOGGLE_FUNCTION_MODE -> PortalGunActions.toggleFunctionMode(
                 player, data, gun.stack());
@@ -309,9 +318,10 @@ public final class PortalRequestHandler {
             PortalOpenOrigin.ITEM.resolvePlacement(mode), gun);
     }
 
-    private static void openSelectedSurfaceFace(ServerPlayer player, PortalPlayerData data,
-                                                PortalGunLocator.LocatedGun gun,
-                                                SurfaceFaceRequest request, boolean endpointA) {
+    private static boolean openSelectedSurfaceFace(ServerPlayer player, PortalPlayerData data,
+                                                   PortalGunLocator.LocatedGun gun,
+                                                   SurfaceFaceSelection selection,
+                                                   boolean endpointA) {
         PortalPlacementMode mode = data.settings().placementMode();
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun.stack(), data.settings().smartDistance());
@@ -319,34 +329,34 @@ public final class PortalRequestHandler {
             throw PortalRequestFields.error("message.riftgun.precision_placement_module_required");
         }
         if (capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
-            PortalPairingManager.placeSurfaceFace(player, data, gun, mode,
+            return PortalPairingManager.placeSurfaceFace(player, data, gun, mode,
                 endpointA ? PortalPairingEndpoint.A : PortalPairingEndpoint.B,
-                request);
-            return;
+                selection);
         }
         if (PortalPlayerTargetActions.openSelectedSurfaceFace(
-            player, data, mode, gun, request)) return;
+            player, data, mode, gun, selection)) return false;
         if (ExternalDestinationActions.openSelectedSurfaceFace(
-            player, data, mode, gun, request)) return;
+            player, data, mode, gun, selection)) return false;
         UUID selected = data.selectedDestinationId();
         if (selected == null) {
             throw PortalRequestFields.error("message.riftgun.no_destination_selected");
         }
-        PortalOpenCoordinator.requestSurfaceFace(player, data, selected, mode, gun, request);
+        PortalOpenCoordinator.requestSurfaceFace(player, data, selected, mode, gun, selection);
+        return false;
     }
 
-    private static void openSelectedPrecision(ServerPlayer player, PortalPlayerData data,
-                                              PortalGunLocator.LocatedGun gun,
-                                              PrecisionPlacementRequest request,
-                                              boolean endpointA,
-                                              boolean pairingShortcut) {
+    private static boolean openSelectedPrecision(ServerPlayer player, PortalPlayerData data,
+                                                 PortalGunLocator.LocatedGun gun,
+                                                 PrecisionPlacementIntent intent,
+                                                 boolean endpointA,
+                                                 boolean pairingShortcut) {
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun.stack(), data.settings().smartDistance());
         if (!capabilities.precisionPlacement()) {
             throw PortalRequestFields.error("message.riftgun.precision_placement_module_required");
         }
         PortalPlacementMode mode = capabilities.effectivePlacementMode(data.settings().placementMode());
-        if (request.kind() == PrecisionPlacementRequest.Kind.SURFACE) {
+        if (intent.kind() == PrecisionPlacementIntent.Kind.SURFACE) {
             if (mode != PortalPlacementMode.SURFACE && mode != PortalPlacementMode.SMART) {
                 throw PortalRequestFields.error("message.riftgun.surface_mode_required");
             }
@@ -362,15 +372,15 @@ public final class PortalRequestHandler {
             }
         }
         if (pairingShortcut || capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
-            PortalPairingManager.placePrecision(player, data, gun, mode,
-                endpointA ? PortalPairingEndpoint.A : PortalPairingEndpoint.B, request);
-            return;
+            return PortalPairingManager.placePrecision(player, data, gun, mode,
+                endpointA ? PortalPairingEndpoint.A : PortalPairingEndpoint.B, intent);
         }
-        if (PortalPlayerTargetActions.openSelectedPrecision(player, data, mode, gun, request)) return;
-        if (ExternalDestinationActions.openSelectedPrecision(player, data, mode, gun, request)) return;
+        if (PortalPlayerTargetActions.openSelectedPrecision(player, data, mode, gun, intent)) return false;
+        if (ExternalDestinationActions.openSelectedPrecision(player, data, mode, gun, intent)) return false;
         UUID selected = data.selectedDestinationId();
         if (selected == null) throw PortalRequestFields.error("message.riftgun.no_destination_selected");
-        PortalOpenCoordinator.requestPrecision(player, data, selected, mode, gun, request);
+        PortalOpenCoordinator.requestPrecision(player, data, selected, mode, gun, intent);
+        return false;
     }
 
     private static void sendChangedState(ServerPlayer player, PortalPlayerData data,
@@ -378,7 +388,10 @@ public final class PortalRequestHandler {
                                          CompoundTag request) {
         if (action == PortalAction.SET_GUN_MODULE_SETTINGS
             && (Nbt.getString(request, "Setting").equals("RemoteDistance")
-                || Nbt.getString(request, "Setting").equals("SurfaceRange"))) {
+                || Nbt.getString(request, "Setting").equals("SurfaceRange"))
+            || action == PortalAction.PLACE_PAIRING_ENDPOINT
+            || action == PortalAction.OPEN_SELECTED_SURFACE_FACE
+            || action == PortalAction.OPEN_SELECTED_PRECISION) {
             PortalNetworking.sendGunSnapshot(player, data, gun);
             return;
         }

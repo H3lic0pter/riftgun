@@ -1,6 +1,5 @@
 package dev.riftgun.client;
 
-import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.module.PortalGunCapabilities;
@@ -12,8 +11,8 @@ import dev.riftgun.pairing.PortalPairingPendingEndpoint;
 import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.service.PortalGunIdentity;
+import dev.riftgun.state.PortalGunViewState;
 import java.util.UUID;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,41 +49,27 @@ public record PortalPreviewGunState(
     }
 
     public static @Nullable PortalPreviewGunState fromSnapshot(
-        CompoundTag snapshot, PortalPlayerData data, UUID ownerId, long now
+        PortalGunViewState snapshot, PortalPlayerData data, UUID ownerId, long now
     ) {
-        if (snapshot.isEmpty() || !Nbt.hasUUID(snapshot, "InstanceId")) return null;
-        UUID gunId = Nbt.getUUID(snapshot, "InstanceId");
-        boolean remote = Nbt.getBoolean(snapshot, "RemoteInstalled");
-        PortalFunctionMode function = parse(
-            PortalFunctionMode.class, Nbt.getString(snapshot, "FunctionMode"),
-            PortalFunctionMode.COORDINATE_TRAVEL);
-        String fallbackKey = function == PortalFunctionMode.PORTAL_PAIRING
-            ? "PairingSmartFallback" : "CoordinateSmartFallback";
+        if (snapshot.instanceId() == null) return null;
+        UUID gunId = snapshot.instanceId();
+        boolean remote = snapshot.remoteInstalled();
+        PortalFunctionMode function = snapshot.functionMode();
         PortalFloatingFallback fallback = remote
-            ? parse(PortalFloatingFallback.class, Nbt.getString(snapshot, fallbackKey),
-                PortalFloatingFallback.FRONT)
+            ? function == PortalFunctionMode.PORTAL_PAIRING
+                ? snapshot.placement().pairingSmartFallback()
+                : snapshot.placement().coordinateSmartFallback()
             : PortalFloatingFallback.FRONT;
         PortalPlacementMode preferred = data.settings().placementMode();
         PortalPlacementMode effective = preferred == PortalPlacementMode.REMOTE && !remote
             ? PortalPlacementMode.FRONT : preferred;
-        PortalPairingPendingEndpoint pending = snapshot.contains("PendingPairingEndpoint")
-            ? PortalPairingPendingEndpoint.load(Nbt.getCompound(snapshot, "PendingPairingEndpoint"))
-            : null;
+        PortalPairingPendingEndpoint pending = snapshot.pendingPairingEndpoint();
         if (pending != null && !pending.validFor(ownerId, gunId, now)) pending = null;
-        int maximum = Math.max(1, Nbt.getInt(snapshot, "MaximumSurfaceRange"));
+        int maximum = snapshot.maximumSurfaceRange();
         return new PortalPreviewGunState(gunId, function, effective, fallback, maximum,
-            Math.clamp(Nbt.getInt(snapshot, "SmartDistance"), 1, maximum),
-            Math.clamp(Nbt.getInt(snapshot, "RemoteDistance"), 1, maximum),
-            Nbt.getBoolean(snapshot, "ExpandedApertureEnabled")
+            snapshot.smartDistance(), snapshot.remoteDistance(),
+            snapshot.expandedApertureEnabled()
                 ? PortalAperture.EXPANDED : PortalAperture.STANDARD,
-            remote, Nbt.getBoolean(snapshot, "RemotePlacementPreviewEnabled"), pending);
-    }
-
-    private static <E extends Enum<E>> E parse(Class<E> type, String value, E fallback) {
-        try {
-            return Enum.valueOf(type, value);
-        } catch (IllegalArgumentException ignored) {
-            return fallback;
-        }
+            remote, snapshot.remotePreviewEnabled(), pending);
     }
 }

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacement;
@@ -20,7 +19,7 @@ final class SurfaceFacePlacementPlannerTest {
     @Test
     void selectedTopFaceProducesAnAnchoredHorizontalPlacement() {
         SurfaceFacePlacementPlanner.Result result = SurfaceFacePlacementPlanner.resolve(
-            new SurfaceFaceRequest(ANCHOR, Direction.UP), PortalAperture.STANDARD,
+            new SurfaceFaceSelection(ANCHOR, Direction.UP), PortalAperture.STANDARD,
             35.0F, PLAYER, new ClearProbe(),
             new SurfaceFacePlacementPlanner.Validation(4.0, 8.0, true));
 
@@ -34,7 +33,7 @@ final class SurfaceFacePlacementPlannerTest {
 
     @Test
     void rejectsOutOfRangeOrInvisibleAnchorBeforePlanning() {
-        SurfaceFaceRequest request = new SurfaceFaceRequest(ANCHOR, Direction.NORTH);
+        SurfaceFaceSelection request = new SurfaceFaceSelection(ANCHOR, Direction.NORTH);
 
         assertFalse(SurfaceFacePlacementPlanner.resolve(request, PortalAperture.STANDARD,
             0.0F, PLAYER, new ClearProbe(),

@@ -56,6 +56,17 @@ final class SharedSourceBoundaryTest {
         }
     }
 
+    @Test
+    void domainAndApplicationPackagesDoNotDependOnPacketAdapters() throws IOException {
+        for (String packageName : List.of("service", "pairing", "module")) {
+            Path root = MAIN.resolve(packageName);
+            for (Path source : javaSources(root)) {
+                assertFalse(Files.readString(source).contains("import dev.riftgun.network."),
+                    () -> source + " reverses the application-to-network dependency");
+            }
+        }
+    }
+
     private static Set<String> fqcns(Path root) throws IOException {
         Set<String> result = new HashSet<>();
         try (var paths = Files.walk(root)) {
@@ -65,5 +76,11 @@ final class SharedSourceBoundaryTest {
             }
         }
         return result;
+    }
+
+    private static List<Path> javaSources(Path root) throws IOException {
+        try (var paths = Files.walk(root)) {
+            return paths.filter(path -> path.toString().endsWith(".java")).toList();
+        }
     }
 }

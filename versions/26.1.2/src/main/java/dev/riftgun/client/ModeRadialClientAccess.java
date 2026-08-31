@@ -39,12 +39,12 @@ final class ModeRadialClientAccess {
     static PrecisionPlacementRequest capturePrecisionTarget() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null
-            || !Nbt.getBoolean(PortalClientState.gun(), "PrecisionPlacementInstalled")) {
+            || !PortalClientState.gun().precisionInstalled()) {
             return null;
         }
         PortalPlacementMode mode = PortalClientState.data().settings().placementMode();
         if (mode == PortalPlacementMode.REMOTE
-            && !Nbt.getBoolean(PortalClientState.gun(), "RemoteInstalled")) {
+            && !PortalClientState.gun().remoteInstalled()) {
             mode = PortalPlacementMode.FRONT;
         }
         if (mode == PortalPlacementMode.ENTITY_RELOCATION) return null;
@@ -53,7 +53,7 @@ final class ModeRadialClientAccess {
         }
         int range = mode == PortalPlacementMode.SMART
             ? Math.max(1, PortalClientState.data().settings().smartDistance())
-            : Math.max(1, Nbt.getInt(PortalClientState.gun(), "MaximumSurfaceRange"));
+            : Math.max(1, PortalClientState.gun().maximumSurfaceRange());
         Vec3 eye = minecraft.player.getEyePosition();
         HitResult raw = minecraft.level.clip(new ClipContext(eye,
             eye.add(minecraft.player.getLookAngle().scale(range)),

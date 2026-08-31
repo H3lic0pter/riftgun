@@ -16,10 +16,6 @@ import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.crisis.PortalCrisisConfigurationSnapshot;
-import dev.riftgun.network.PortalNetworking;
-import dev.riftgun.network.PrecisionPlacementRequest;
-import dev.riftgun.network.SurfaceFaceRequestValidator;
-import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalExclusions;
@@ -53,8 +49,8 @@ public final class PortalOpenCoordinator {
             Optional.empty(), null);
         if (result.opened()) {
             PortalDataStore.save(player, data);
-            PortalNetworking.sendSnapshot(player, false, locatedGun);
-            if (fromGui) PortalNetworking.sendPortalOpened(player);
+            PortalClientSync.snapshot(player, false, locatedGun);
+            if (fromGui) PortalClientSync.portalOpened(player);
         } else {
             displayFailure(player, result);
         }
@@ -63,17 +59,17 @@ public final class PortalOpenCoordinator {
     public static void requestSurfaceFace(ServerPlayer player, PortalPlayerData data,
                                           UUID destinationId, PortalPlacementMode mode,
                                           PortalGunLocator.LocatedGun locatedGun,
-                                          SurfaceFaceRequest request) {
+                                           SurfaceFaceSelection request) {
         Destination destination = data.destination(destinationId).orElse(null);
         if (destination == null) {
             failMessage(player, "message.riftgun.destination_missing");
             return;
         }
         PortalOpenResult result = open(player, data, destination, mode, locatedGun,
-            null, null, true, false, Optional.empty(), PrecisionPlacementRequest.surface(request));
+            null, null, true, false, Optional.empty(), PrecisionPlacementIntent.surface(request));
         if (result.opened()) {
             PortalDataStore.save(player, data);
-            PortalNetworking.sendSnapshot(player, false, locatedGun);
+            PortalClientSync.snapshot(player, false, locatedGun);
         } else {
             displayFailure(player, result);
         }
@@ -82,7 +78,7 @@ public final class PortalOpenCoordinator {
     public static void requestPrecision(ServerPlayer player, PortalPlayerData data,
                                         UUID destinationId, PortalPlacementMode mode,
                                         PortalGunLocator.LocatedGun locatedGun,
-                                        PrecisionPlacementRequest request) {
+                                        PrecisionPlacementIntent request) {
         Destination destination = data.destination(destinationId).orElse(null);
         if (destination == null) {
             failMessage(player, "message.riftgun.destination_missing");
@@ -92,7 +88,7 @@ public final class PortalOpenCoordinator {
             null, null, true, false, Optional.empty(), request);
         if (result.opened()) {
             PortalDataStore.save(player, data);
-            PortalNetworking.sendSnapshot(player, false, locatedGun);
+            PortalClientSync.snapshot(player, false, locatedGun);
         } else displayFailure(player, result);
     }
 
@@ -117,10 +113,10 @@ public final class PortalOpenCoordinator {
     public static boolean openTransientSurfaceFace(
         ServerPlayer player, PortalPlayerData data, Destination destination,
         PortalPlacementMode mode, PortalGunLocator.LocatedGun locatedGun,
-        SurfaceFaceRequest request
+        SurfaceFaceSelection request
     ) {
         PortalOpenResult result = open(player, data, destination, mode, locatedGun,
-            null, null, false, false, Optional.empty(), PrecisionPlacementRequest.surface(request));
+            null, null, false, false, Optional.empty(), PrecisionPlacementIntent.surface(request));
         if (!result.opened()) displayFailure(player, result);
         return result.opened();
     }
@@ -128,7 +124,7 @@ public final class PortalOpenCoordinator {
     public static boolean openTransientPrecision(
         ServerPlayer player, PortalPlayerData data, Destination destination,
         PortalPlacementMode mode, PortalGunLocator.LocatedGun locatedGun,
-        PrecisionPlacementRequest request
+        PrecisionPlacementIntent request
     ) {
         PortalOpenResult result = open(player, data, destination, mode, locatedGun,
             null, null, false, false, Optional.empty(), request);
@@ -159,16 +155,16 @@ public final class PortalOpenCoordinator {
     public static void requestPlayerTargetSurfaceFace(
         ServerPlayer player, PortalPlayerData data, UUID targetPlayerId,
         PortalPlacementMode mode, PortalGunLocator.LocatedGun locatedGun,
-        SurfaceFaceRequest request
+        SurfaceFaceSelection request
     ) {
         requestPlayerTarget(player, data, targetPlayerId, false, mode, locatedGun,
-            PrecisionPlacementRequest.surface(request));
+            PrecisionPlacementIntent.surface(request));
     }
 
     public static void requestPlayerTargetPrecision(
         ServerPlayer player, PortalPlayerData data, UUID targetPlayerId,
         PortalPlacementMode mode, PortalGunLocator.LocatedGun locatedGun,
-        PrecisionPlacementRequest request
+        PrecisionPlacementIntent request
     ) {
         requestPlayerTarget(player, data, targetPlayerId, false, mode, locatedGun, request);
     }
@@ -177,7 +173,7 @@ public final class PortalOpenCoordinator {
                                             UUID targetPlayerId, boolean fromGui,
                                             PortalPlacementMode mode,
                                             PortalGunLocator.LocatedGun locatedGun,
-                                            @Nullable PrecisionPlacementRequest precisionRequest) {
+                                            @Nullable PrecisionPlacementIntent precisionRequest) {
 //? if >=1.21.11 {
         /*MinecraftServer server = player.level().getServer();
 *///?} else {
@@ -243,8 +239,8 @@ public final class PortalOpenCoordinator {
             }
             data.recordPlayerUse(targetPlayerId, time);
             PortalDataStore.save(player, data);
-            PortalNetworking.sendSnapshot(player, false, locatedGun);
-            if (fromGui) PortalNetworking.sendPortalOpened(player);
+            PortalClientSync.snapshot(player, false, locatedGun);
+            if (fromGui) PortalClientSync.portalOpened(player);
         } else {
             displayFailure(player, result);
         }
@@ -256,7 +252,7 @@ public final class PortalOpenCoordinator {
                                          @Nullable UUID exitExclude, boolean recordAsDestination,
                                          boolean fromGui,
                                          Optional<PortalTransitAuthorization> transitAuthorization,
-                                         @Nullable PrecisionPlacementRequest precisionRequest) {
+                                         @Nullable PrecisionPlacementIntent precisionRequest) {
         var sourcePolicy = RiftGunPortalOpenPolicies.evaluate(player);
         if (!sourcePolicy.allowed()) {
             return reject(PortalOpenStatus.SOURCE_POLICY_REJECTED, sourcePolicy.message());
@@ -295,19 +291,21 @@ public final class PortalOpenCoordinator {
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),
             gunCapabilities.activeSmartFallback());
-        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING) {
+        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementIntent.Kind.FLOATING) {
             constraints = constraints.forPrecisionFloating(precisionRequest.orientation());
         }
         PortalPlacementCapture capture = precisionRequest == null
-            || precisionRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING
+            || precisionRequest.kind() == PrecisionPlacementIntent.Kind.FLOATING
             ? RiftRuntime.current().placementResolver().capture(player, mode, constraints)
             : RiftRuntime.current().placementResolver().captureSurfaceFace(
                 player, precisionRequest.surface(), constraints);
         if (!capture.successful()) {
             return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED, capture.errorKey());
         }
-        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementRequest.Kind.SURFACE) {
-            SurfaceFaceRequestValidator.validate(mode, capture.intent());
+        if (precisionRequest != null && precisionRequest.kind() == PrecisionPlacementIntent.Kind.SURFACE
+            && !SurfaceFacePlacementPolicy.accepts(mode, capture.intent())) {
+            return reject(PortalOpenStatus.ENTRY_PLACEMENT_REJECTED,
+                "message.riftgun.surface_mode_required");
         }
         PortalEntryPlacementResult entry = RiftRuntime.current().placementResolver().resolveEntry(
             player, capture.intent(), constraints);

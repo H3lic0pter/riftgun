@@ -119,6 +119,7 @@ public final class RiftGun {
 
     public RiftGun(IEventBus modBus, ModContainer container) {
         RiftRuntime.bootstrapDefaults();
+        PortalNetworking.installClientSyncAdapter();
         RiftGunApiBootstrap.installPortalApi(DefaultRiftGunPortalApi.INSTANCE);
         RiftGunApiBootstrap.installCoordinateNoteApi(DefaultRiftGunCoordinateNoteApi.INSTANCE);
         ITEMS.register(modBus);

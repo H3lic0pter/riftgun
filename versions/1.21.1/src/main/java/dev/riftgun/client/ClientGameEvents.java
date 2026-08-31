@@ -179,8 +179,8 @@ public final class ClientGameEvents {
             event.getToolTip().add(description.copy()
                 .withStyle(style -> style.withColor(0xA9D6A2)));
             if (definition.kind() == PortalModuleKind.DIMENSIONAL_TRAVERSAL
-                && PortalClientState.gun().contains("DimensionalTraversalEnabled")
-                && !PortalClientState.gun().getBoolean("DimensionalTraversalEnabled")) {
+                && PortalClientState.gun().available()
+                && !PortalClientState.gun().dimensionalTraversalEnabled()) {
                 event.getToolTip().add(Component.translatable(
                     "tooltip.riftgun.module.dimensional_traversal_module.disabled")
                     .withStyle(ChatFormatting.RED));

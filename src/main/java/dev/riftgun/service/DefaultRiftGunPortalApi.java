@@ -8,7 +8,6 @@ import dev.riftgun.api.RiftGunPortalApi;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
-import dev.riftgun.network.PortalNetworking;
 import java.util.UUID;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -66,7 +65,7 @@ public final class DefaultRiftGunPortalApi implements RiftGunPortalApi {
         PortalOpenResult result = PortalOpenCoordinator.openTransientResult(
             player, data, destination, data.settings().placementMode(), locatedGun, false,
             request.transitAuthorization());
-        if (result.opened()) PortalNetworking.sendSnapshot(player, false, locatedGun);
+        if (result.opened()) PortalClientSync.snapshot(player, false, locatedGun);
         return result;
     }
 

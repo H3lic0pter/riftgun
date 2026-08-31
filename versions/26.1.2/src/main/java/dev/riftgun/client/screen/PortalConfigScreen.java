@@ -26,6 +26,13 @@ import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.network.ExternalDestinationRequest;
+import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.pairing.PortalFloatingFallback;
+import dev.riftgun.pairing.PortalFunctionMode;
+import dev.riftgun.state.PortalGunViewStateReducer;
+import dev.riftgun.state.PortalGunViewStateReducer.BooleanSetting;
+import dev.riftgun.state.PortalGunViewStateReducer.DistanceSetting;
+import dev.riftgun.state.PortalGunViewStateReducer.FallbackSetting;
 import dev.riftgun.external.ExternalDestinationSelection;
 import dev.riftgun.external.ExternalDestinationSource;
 import dev.riftgun.sound.PortalSoundChannel;
@@ -335,8 +342,8 @@ public final class PortalConfigScreen extends Screen {
             Component.empty(), false, ignored -> openGunSettings());
         closePortalsButton = button(panelX + panelWidth - 73, panelY + 3, 19, 18,
             Component.empty(), false, ignored -> PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS));
-        if (PortalClientState.gun().getBoolean("DimensionalTraversalInstalled").orElse(false)
-            && PortalClientState.gun().getBoolean("DimensionalTraversalEnabled").orElse(false)) {
+        if (PortalClientState.gun().dimensionalTraversalInstalled()
+            && PortalClientState.gun().dimensionalTraversalEnabled()) {
             dimensionalTraversalButton = button(panelX + panelWidth - 95, panelY + 3, 19, 18,
                 Component.empty(), false, ignored -> minecraft.setScreen(
                     new DimensionalNavigationScreen(this, creationGroup())));
@@ -374,7 +381,7 @@ public final class PortalConfigScreen extends Screen {
             ignored -> PortalNetworking.sendRequest(PortalAction.TOGGLE_BUCKET_MODE));
         clearFluidButton = button(rightX + FUEL_GAUGE_WIDTH + 25, footerY, 19, 19, Component.empty(), false,
             ignored -> requestClearFluid());
-        clearFluidButton.active = PortalClientState.gun().getInt("Amount").orElse(0) > 0;
+        clearFluidButton.active = PortalClientState.gun().amount() > 0;
         int portalButtonX = rightX + FUEL_GAUGE_WIDTH + 47;
         if (Nbt.getBoolean(PortalClientState.randomRift(), "Enabled") && coordinateOverrideUnlocked()) {
             randomRiftButton = button(portalButtonX, footerY, 19, 19,
@@ -547,82 +554,80 @@ public final class PortalConfigScreen extends Screen {
                     ignored -> openGunSetting(Modal.PORTAL_PAIRING_SETTINGS));
             }
         } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
-            boolean eternal = PortalClientState.gun().getBoolean("EternalDurationInstalled").orElse(false);
-            int maximum = eternal ? 301 : Math.max(1, PortalClientState.gun().getInt("MaximumPortalDurationSeconds").orElse(0));
+            boolean eternal = PortalClientState.gun().eternalDurationInstalled();
+            int maximum = eternal ? 301 : Math.max(1, PortalClientState.gun().maximumPortalDurationSeconds());
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
-                "PortalDuration", "screen.riftgun.portal_duration_value", 1, maximum,
-                PortalClientState.gun().getInt("PortalDurationSeconds").orElse(0), 1.0,
+                DistanceSetting.PORTAL_DURATION, "screen.riftgun.portal_duration_value", 1, maximum,
+                PortalClientState.gun().portalDurationSeconds(), 1.0,
                 eternal ? 301 : 0, "screen.riftgun.portal_duration_permanent"));
-            int cooldownMaximum = Math.max(1, PortalClientState.gun().getInt("MaximumTransitCooldownTenths").orElse(0));
+            int cooldownMaximum = Math.max(1, PortalClientState.gun().maximumTransitCooldownTenths());
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY + 24, fieldWidth, 18,
-                "TransitCooldown", "screen.riftgun.transit_cooldown_value", 0, cooldownMaximum,
-                PortalClientState.gun().getInt("TransitCooldownTenths").orElse(0), 10.0));
+                DistanceSetting.TRANSIT_COOLDOWN, "screen.riftgun.transit_cooldown_value", 0, cooldownMaximum,
+                PortalClientState.gun().transitCooldownTenths(), 10.0));
         } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
             int maximum = Math.max(1,
-                PortalClientState.gun().getInt("MaximumSurfaceRange").orElse(0));
+                PortalClientState.gun().maximumSurfaceRange());
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
-                "SmartDistance", "screen.riftgun.smart_distance_value", 1,
+                DistanceSetting.SMART_DISTANCE, "screen.riftgun.smart_distance_value", 1,
                 maximum,
-                PortalClientState.gun().getInt("SmartDistance").orElse(0)));
+                PortalClientState.gun().smartDistance()));
         } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
             addEntityTransitButtons(x + 18, gunSettingControlY);
         } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
             int buttonX = x + 18;
             playerTargetButton = button(buttonX, gunSettingControlY, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("PlayerTarget", "PlayerTargetEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.PLAYER_TARGET));
             buttonX += 31;
             playerExcludeButton = button(buttonX, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> cyclePlayerExclude());
         } else if (modal == Modal.APERTURE_SETTINGS) {
             apertureToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("ExpandedAperture", "ExpandedApertureEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.EXPANDED_APERTURE));
         } else if (modal == Modal.FALL_GUARD_SETTINGS) {
             fallGuardToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("FallGuard", "FallGuardEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.FALL_GUARD));
             entityFallGuardToggleButton = button(x + 49, gunSettingControlY, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("FallGuardEntities", "FallGuardEntitiesEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.FALL_GUARD_ENTITIES));
         } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
             entityRelocationEnabledButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("EntityRelocation", "EntityRelocationEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.ENTITY_RELOCATION));
             entityRelocationSmartButton = button(x + 49, gunSettingControlY, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean(
-                    "EntityRelocationSmartRouting", "EntityRelocationSmartRouting"));
+                ignored -> toggleGunBoolean(BooleanSetting.ENTITY_RELOCATION_SMART_ROUTING));
         } else if (modal == Modal.PORTAL_PAIRING_SETTINGS) {
             int optionY = gunSettingControlY;
             if (remoteInstalled()) {
                 coordinateFallbackButton = button(x + 18, optionY, fieldWidth, 19,
-                    fallbackLabel("screen.riftgun.pairing.coordinate_fallback", "CoordinateSmartFallback"),
-                    false, ignored -> cyclePairingFallback("CoordinateSmartFallback"));
+                    fallbackLabel("screen.riftgun.pairing.coordinate_fallback",
+                        FallbackSetting.COORDINATE_SMART),
+                    false, ignored -> cyclePairingFallback(FallbackSetting.COORDINATE_SMART));
                 optionY += 24;
             }
             if (pairingInstalled()) {
                 pairingFallbackButton = button(x + 18, optionY, fieldWidth, 19,
-                    fallbackLabel("screen.riftgun.pairing.pairing_fallback", "PairingSmartFallback"),
-                    false, ignored -> cyclePairingFallback("PairingSmartFallback"));
+                    fallbackLabel("screen.riftgun.pairing.pairing_fallback",
+                        FallbackSetting.PAIRING_SMART),
+                    false, ignored -> cyclePairingFallback(FallbackSetting.PAIRING_SMART));
                 pairingFallbackButton.active = remoteInstalled();
             }
         } else if (modal == Modal.REMOTE_SETTINGS) {
             int maximum = Math.max(1,
-                PortalClientState.gun().getInt("MaximumSurfaceRange").orElse(0));
+                PortalClientState.gun().maximumSurfaceRange());
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
-                "RemoteDistance", "screen.riftgun.remote_distance_value", 1, maximum,
-                PortalClientState.gun().getInt("RemoteDistance").orElse(0)));
+                DistanceSetting.REMOTE_DISTANCE, "screen.riftgun.remote_distance_value", 1, maximum,
+                PortalClientState.gun().remoteDistance()));
             remoteScrollAdjustmentButton = button(x + 18, gunSettingControlY + 24, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.scroll_adjustment",
-                    Nbt.getBoolean(PortalClientState.gun(), "RemoteScrollAdjustmentEnabled"),
+                    PortalClientState.gun().remoteScrollAdjustmentEnabled(),
                     PortalInputLabels.sneakKey()),
-                false, ignored -> toggleGunBoolean(
-                    "RemoteScrollAdjustment", "RemoteScrollAdjustmentEnabled"));
+                false, ignored -> toggleGunBoolean(BooleanSetting.REMOTE_SCROLL_ADJUSTMENT));
             remoteRadialSliderButton = button(x + 18, gunSettingControlY + 48, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.radial_slider",
-                    Nbt.getBoolean(PortalClientState.gun(), "RemoteRadialSliderEnabled")),
-                false, ignored -> toggleGunBoolean(
-                    "RemoteRadialSlider", "RemoteRadialSliderEnabled"));
+                    PortalClientState.gun().remoteRadialSliderEnabled()),
+                false, ignored -> toggleGunBoolean(BooleanSetting.REMOTE_RADIAL_SLIDER));
             remotePlacementPreviewButton = button(x + 18, gunSettingControlY + 72, fieldWidth, 19,
                 toggleLabel("screen.riftgun.remote.placement_preview",
-                    Nbt.getBoolean(PortalClientState.gun(), "RemotePlacementPreviewEnabled")),
-                false, ignored -> toggleGunBoolean(
-                    "RemotePlacementPreview", "RemotePlacementPreviewEnabled"));
+                    PortalClientState.gun().remotePreviewEnabled()),
+                false, ignored -> toggleGunBoolean(BooleanSetting.REMOTE_PLACEMENT_PREVIEW));
         } else if (modal == Modal.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
@@ -695,21 +700,21 @@ public final class PortalConfigScreen extends Screen {
         int buttonX = x;
         if (moduleCount("PASSIVE_TRANSIT") > 0) {
             passiveTransitButton = button(buttonX, y, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("PassiveTransit", "PassiveTransitEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.PASSIVE_TRANSIT));
             buttonX += 31;
         }
         if (moduleCount("HOSTILE_TRANSIT") > 0) {
             hostileTransitButton = button(buttonX, y, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("HostileTransit", "HostileTransitEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.HOSTILE_TRANSIT));
             buttonX += 31;
         }
         if (moduleCount("BOSS_TRANSIT") > 0) {
             bossTransitButton = button(buttonX, y, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("BossTransit", "BossTransitEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.BOSS_TRANSIT));
         }
         if (moduleCount("PROJECTILE_TRANSIT") > 0) {
             projectileTransitButton = button(x, y + 31, 26, 26, Component.empty(), false,
-                ignored -> toggleGunBoolean("ProjectileTransit", "ProjectileTransitEnabled"));
+                ignored -> toggleGunBoolean(BooleanSetting.PROJECTILE_TRANSIT));
         }
     }
 
@@ -1281,7 +1286,7 @@ public final class PortalConfigScreen extends Screen {
             renderVisualOptionsChrome(graphics, box);
         } else if (modal.isConfirmation()) {
             Component body = modal == Modal.CONFIRM_CLEAR_FLUID
-                ? Component.translatable(modal.bodyKey, gunFluidName(), PortalClientState.gun().getInt("Amount").orElse(0))
+                ? Component.translatable(modal.bodyKey, gunFluidName(), PortalClientState.gun().amount())
                 : Component.translatable(modal.bodyKey);
             graphics.textWithWordWrap(font, body, x, y + 35,
                 box.width() - 36, PortalTheme.TEXT_MUTED);
@@ -1338,7 +1343,7 @@ public final class PortalConfigScreen extends Screen {
             if (functionModeButton != null) {
                 drawFunctionModeIcon(graphics, functionModeButton.getX(), functionModeButton.getY(),
                     functionModeButton.getWidth(), functionModeButton.getHeight(),
-                    Nbt.getString(PortalClientState.gun(), "FunctionMode").equals("PORTAL_PAIRING"));
+                    PortalClientState.gun().functionMode() == PortalFunctionMode.PORTAL_PAIRING);
             }
             drawPlacementModeButtonIcon(graphics, placementModeButton.getX(),
                 placementModeButton.getY(), PortalClientState.data().settings().placementMode());
@@ -1363,28 +1368,28 @@ public final class PortalConfigScreen extends Screen {
             } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
                 renderPlayerTargetButtons(graphics);
             } else if (modal == Modal.APERTURE_SETTINGS && apertureToggleButton != null) {
-                boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled").orElse(false);
+                boolean enabled = PortalClientState.gun().expandedApertureEnabled();
                 drawApertureIcon(graphics, apertureToggleButton.getX() + 7,
                     apertureToggleButton.getY() + 7, enabled);
             } else if (modal == Modal.FALL_GUARD_SETTINGS) {
                 if (fallGuardToggleButton != null) {
-                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled").orElse(false);
+                    boolean enabled = PortalClientState.gun().fallGuardEnabled();
                     drawFallGuardIcon(graphics, fallGuardToggleButton.getX() + 7,
                         fallGuardToggleButton.getY() + 7, enabled);
                 }
                 if (entityFallGuardToggleButton != null) {
-                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEntitiesEnabled").orElse(false);
+                    boolean enabled = PortalClientState.gun().entityFallGuardEnabled();
                     drawEntityFallGuardIcon(graphics, entityFallGuardToggleButton.getX() + 5,
                         entityFallGuardToggleButton.getY() + 5, enabled);
                 }
             } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
                 if (entityRelocationEnabledButton != null) {
-                    boolean enabled = PortalClientState.gun().getBoolean("EntityRelocationEnabled").orElse(false);
+                    boolean enabled = PortalClientState.gun().entityRelocationEnabled();
                     drawEntityRelocationIcon(graphics, entityRelocationEnabledButton.getX() + 7,
                         entityRelocationEnabledButton.getY() + 7, enabled);
                 }
                 if (entityRelocationSmartButton != null) {
-                    boolean enabled = PortalClientState.gun().getBoolean("EntityRelocationSmartRouting").orElse(false);
+                    boolean enabled = PortalClientState.gun().entityRelocationSmartRouting();
                     drawEntityRelocationSmartIcon(graphics, entityRelocationSmartButton.getX() + 7,
                         entityRelocationSmartButton.getY() + 7, enabled);
                 }
@@ -1460,8 +1465,8 @@ public final class PortalConfigScreen extends Screen {
                         + PortalClientState.data().settings().placementMode().name().toLowerCase(Locale.ROOT)))), mouseX, mouseY);
             }
             if (functionModeButton != null && functionModeButton.isHovered()) {
-                boolean pairing = Nbt.getString(PortalClientState.gun(), "FunctionMode")
-                    .equals("PORTAL_PAIRING");
+                boolean pairing = PortalClientState.gun().functionMode()
+                    == PortalFunctionMode.PORTAL_PAIRING;
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable(
                     "screen.riftgun.pairing_mode_tooltip",
                     Component.translatable(pairing ? "screen.riftgun.on" : "screen.riftgun.off"))),
@@ -1497,17 +1502,17 @@ public final class PortalConfigScreen extends Screen {
             } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
                 renderPlayerTargetTooltips(graphics, mouseX, mouseY);
             } else if (modal == Modal.APERTURE_SETTINGS && apertureToggleButton != null) {
-                boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled").orElse(false);
+                boolean enabled = PortalClientState.gun().expandedApertureEnabled();
                 entityTooltip(graphics, apertureToggleButton,
                     "screen.riftgun.aperture", enabled, mouseX, mouseY);
             } else if (modal == Modal.FALL_GUARD_SETTINGS) {
                 if (fallGuardToggleButton != null) {
-                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled").orElse(false);
+                    boolean enabled = PortalClientState.gun().fallGuardEnabled();
                     entityTooltip(graphics, fallGuardToggleButton,
                         "screen.riftgun.fall_guard", enabled, mouseX, mouseY);
                 }
                 if (entityFallGuardToggleButton != null) {
-                    boolean enabled = PortalClientState.gun().getBoolean("FallGuardEntitiesEnabled").orElse(false);
+                    boolean enabled = PortalClientState.gun().entityFallGuardEnabled();
                     entityTooltip(graphics, entityFallGuardToggleButton,
                         "screen.riftgun.fall_guard_entities", enabled, mouseX, mouseY);
                 }
@@ -1515,12 +1520,12 @@ public final class PortalConfigScreen extends Screen {
                 if (entityRelocationEnabledButton != null) {
                     entityTooltip(graphics, entityRelocationEnabledButton,
                         "screen.riftgun.entity_relocation_enabled",
-                        PortalClientState.gun().getBoolean("EntityRelocationEnabled").orElse(false), mouseX, mouseY);
+                        PortalClientState.gun().entityRelocationEnabled(), mouseX, mouseY);
                 }
                 if (entityRelocationSmartButton != null) {
                     entityTooltip(graphics, entityRelocationSmartButton,
                         "screen.riftgun.entity_relocation_smart",
-                        PortalClientState.gun().getBoolean("EntityRelocationSmartRouting").orElse(false), mouseX, mouseY);
+                        PortalClientState.gun().entityRelocationSmartRouting(), mouseX, mouseY);
                 }
             } else if (modal == Modal.PORTAL_PAIRING_SETTINGS && pairingFallbackButton != null
                 && !remoteInstalled() && pairingFallbackButton.isHovered()) {
@@ -1604,23 +1609,23 @@ public final class PortalConfigScreen extends Screen {
                 entityTransitSettingsButton.getY() + 7, PortalTheme.PORTAL);
         }
         if (playerTargetSettingsButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("PlayerTargetEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().playerTargetEnabled();
             drawPlayerTargetIcon(graphics, playerTargetSettingsButton.getX() + 7,
                 playerTargetSettingsButton.getY() + 7,
                 enabled ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
         }
         if (apertureSettingsButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("ExpandedApertureEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().expandedApertureEnabled();
             drawApertureIcon(graphics, apertureSettingsButton.getX() + 7,
                 apertureSettingsButton.getY() + 7, enabled);
         }
         if (fallGuardSettingsButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("FallGuardEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().fallGuardEnabled();
             drawFallGuardIcon(graphics, fallGuardSettingsButton.getX() + 7,
                 fallGuardSettingsButton.getY() + 7, enabled);
         }
         if (entityRelocationSettingsButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("EntityRelocationEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().entityRelocationEnabled();
             drawEntityRelocationConfigIcon(graphics, entityRelocationSettingsButton.getX() + 7,
                 entityRelocationSettingsButton.getY() + 7, enabled);
         }
@@ -1654,22 +1659,22 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderEntityTransitButtons(GuiGraphicsExtractor graphics) {
         if (passiveTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("PassiveTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().passiveTransitEnabled();
             drawPigIcon(graphics, passiveTransitButton.getX() + 6, passiveTransitButton.getY() + 7,
                 enabled ? 0xFFA7D79B : PortalTheme.TEXT_MUTED);
         }
         if (hostileTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("HostileTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().hostileTransitEnabled();
             drawZombieIcon(graphics, hostileTransitButton.getX() + 7, hostileTransitButton.getY() + 7,
                 enabled ? 0xFFD98264 : PortalTheme.TEXT_MUTED);
         }
         if (bossTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("BossTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().bossTransitEnabled();
             drawDragonIcon(graphics, bossTransitButton.getX() + 6, bossTransitButton.getY() + 7,
                 enabled ? 0xFFB38AD8 : PortalTheme.TEXT_MUTED);
         }
         if (projectileTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("ProjectileTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().projectileTransitEnabled();
             drawProjectileTransitIcon(graphics,
                 projectileTransitButton.getX() + 5, projectileTransitButton.getY() + 5, enabled);
         }
@@ -1677,19 +1682,19 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderEntityTransitTooltips(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (passiveTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("PassiveTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().passiveTransitEnabled();
             entityTooltip(graphics, passiveTransitButton, "screen.riftgun.passive_transit", enabled, mouseX, mouseY);
         }
         if (hostileTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("HostileTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().hostileTransitEnabled();
             entityTooltip(graphics, hostileTransitButton, "screen.riftgun.hostile_transit", enabled, mouseX, mouseY);
         }
         if (bossTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("BossTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().bossTransitEnabled();
             entityTooltip(graphics, bossTransitButton, "screen.riftgun.boss_transit", enabled, mouseX, mouseY);
         }
         if (projectileTransitButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("ProjectileTransitEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().projectileTransitEnabled();
             entityTooltip(graphics, projectileTransitButton,
                 "screen.riftgun.projectile_transit", enabled, mouseX, mouseY);
         }
@@ -1697,12 +1702,12 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderPlayerTargetButtons(GuiGraphicsExtractor graphics) {
         if (playerTargetButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("PlayerTargetEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().playerTargetEnabled();
             drawPlayerTargetIcon(graphics, playerTargetButton.getX() + 7, playerTargetButton.getY() + 7,
                 enabled ? 0xFF5CC8D9 : PortalTheme.TEXT_MUTED);
         }
         if (playerExcludeButton != null) {
-            int mode = PortalClientState.gun().getInt("PlayerExcludeMode").orElse(0);
+            int mode = PortalClientState.gun().playerExcludeMode().id();
             drawPlayerExcludeIcon(graphics, playerExcludeButton.getX() + 7, playerExcludeButton.getY() + 7,
                 mode == 0 ? PortalTheme.TEXT_MUTED : 0xFF5CC8D9);
         }
@@ -1710,11 +1715,11 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderPlayerTargetTooltips(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (playerTargetButton != null) {
-            boolean enabled = PortalClientState.gun().getBoolean("PlayerTargetEnabled").orElse(false);
+            boolean enabled = PortalClientState.gun().playerTargetEnabled();
             entityTooltip(graphics, playerTargetButton, "screen.riftgun.player_target", enabled, mouseX, mouseY);
         }
         if (playerExcludeButton != null) {
-            int mode = PortalClientState.gun().getInt("PlayerExcludeMode").orElse(0);
+            int mode = PortalClientState.gun().playerExcludeMode().id();
             String key = switch (mode) {
                 case 0 -> "screen.riftgun.player_exclude_off";
                 case 1 -> "screen.riftgun.player_exclude_entry_exit";
@@ -1756,7 +1761,7 @@ public final class PortalConfigScreen extends Screen {
         if (bucketModeButton != null) {
             int x = bucketModeButton.getX() + 4;
             int y = bucketModeButton.getY() + 4;
-            int iconColor = PortalClientState.gun().getBoolean("BucketMode").orElse(false)
+            int iconColor = PortalClientState.gun().bucketMode()
                 ? PortalTheme.ICE : PortalTheme.TEXT_MUTED;
             drawBucketIcon(graphics, x, y, iconColor);
         }
@@ -1770,7 +1775,7 @@ public final class PortalConfigScreen extends Screen {
         renderFuelGaugeTooltip(graphics, mouseX, mouseY);
         if (bucketModeButton != null && bucketModeButton.isHovered()) {
             graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.bucket_mode_simple",
-                Component.translatable(PortalClientState.gun().getBoolean("BucketMode").orElse(false)
+                Component.translatable(PortalClientState.gun().bucketMode()
                     ? "screen.riftgun.on" : "screen.riftgun.off"))), mouseX, mouseY);
         }
         if (clearFluidButton != null && clearFluidButton.isHovered()) {
@@ -1779,11 +1784,11 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void renderFuelGauge(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        int amount = PortalClientState.gun().getInt("Amount").orElse(0);
-        int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity").orElse(0));
-        boolean infinite = PortalClientState.gun().getBoolean("InfiniteFuel").orElse(false);
+        int amount = PortalClientState.gun().amount();
+        int capacity = Math.max(1, PortalClientState.gun().capacity());
+        boolean infinite = PortalClientState.gun().infiniteFuel();
         boolean overfilled = amount > capacity;
-        int rgb = PortalClientState.gun().getInt("Rgb").orElse(0);
+        int rgb = PortalClientState.gun().fluidRgb();
         int fluidColor = 0xFF000000 | (rgb == 0 ? 0x34363D : rgb);
         graphics.fill(fuelGaugeX, fuelGaugeY, fuelGaugeX + FUEL_GAUGE_WIDTH, fuelGaugeY + 19,
             PortalTheme.FIELD);
@@ -1801,15 +1806,15 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void renderFuelGaugeTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        int amount = PortalClientState.gun().getInt("Amount").orElse(0);
-        int capacity = Math.max(1, PortalClientState.gun().getInt("Capacity").orElse(0));
-        boolean infinite = PortalClientState.gun().getBoolean("InfiniteFuel").orElse(false);
+        int amount = PortalClientState.gun().amount();
+        int capacity = Math.max(1, PortalClientState.gun().capacity());
+        boolean infinite = PortalClientState.gun().infiniteFuel();
         boolean overfilled = amount > capacity;
         if (mouseX >= fuelGaugeX && mouseX < fuelGaugeX + FUEL_GAUGE_WIDTH
             && mouseY >= fuelGaugeY && mouseY < fuelGaugeY + 19) {
             List<Component> tooltip = new ArrayList<>();
             Component fluidName = gunFluidName();
-            if (PortalClientState.gun().getBoolean("Unstable").orElse(false)) {
+            if (PortalClientState.gun().unstableFuel()) {
                 fluidName = fluidName.copy().append(" ").append(
                     Component.translatable("tooltip.riftgun.unstable")
                         .withStyle(net.minecraft.ChatFormatting.DARK_RED));
@@ -2541,7 +2546,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void requestClearFluid() {
-        if (PortalClientState.gun().getInt("Amount").orElse(0) <= 0) return;
+        if (PortalClientState.gun().amount() <= 0) return;
         if (PortalClientState.data().settings().confirmClearFluid()) {
             openForm(Modal.CONFIRM_CLEAR_FLUID, null);
         } else {
@@ -2574,7 +2579,7 @@ public final class PortalConfigScreen extends Screen {
         PortalPlayerSettings old = PortalClientState.data().settings();
         PortalPlacementMode mode = old.placementMode().next();
         while ((mode == PortalPlacementMode.ENTITY_RELOCATION
-                && !Nbt.getBoolean(PortalClientState.gun(), "EntityRelocationEnabled"))
+                && !PortalClientState.gun().entityRelocationEnabled())
             || (mode == PortalPlacementMode.REMOTE
                 && !remoteInstalled())) {
             mode = mode.next();
@@ -2665,21 +2670,21 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private boolean coordinateOverrideUnlocked() {
-        return PortalClientState.gun().getBoolean("CoordinateOverride").orElse(false);
+        return PortalClientState.gun().coordinateOverride();
     }
 
     private boolean coordinateEditingUnlocked() {
         return coordinateOverrideUnlocked()
-            || Nbt.getBoolean(PortalClientState.gun(), "DimensionalTraversalInstalled")
-                && Nbt.getBoolean(PortalClientState.gun(), "DimensionalTraversalEnabled");
+            || PortalClientState.gun().dimensionalTraversalInstalled()
+                && PortalClientState.gun().dimensionalTraversalEnabled();
     }
 
     private boolean pairingInstalled() {
-        return Nbt.getBoolean(PortalClientState.gun(), "PortalPairingInstalled");
+        return PortalClientState.gun().pairingInstalled();
     }
 
     private boolean remoteInstalled() {
-        return Nbt.getBoolean(PortalClientState.gun(), "RemoteInstalled");
+        return PortalClientState.gun().remoteInstalled();
     }
 
     private int footerHeight() {
@@ -2687,13 +2692,12 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private boolean hasCrossDimensionFuel() {
-        return PortalClientState.gun().getBoolean("InfiniteFuel").orElse(false)
-            || PortalClientState.gun().getBoolean("CrossDimension").orElse(false);
+        return PortalClientState.gun().infiniteFuel()
+            || PortalClientState.gun().crossDimensionFuel();
     }
 
     private int moduleCount(String kind) {
-        return PortalClientState.gun().contains("Modules")
-            ? PortalClientState.gun().getCompound("Modules").map(m -> m.getInt(kind).orElse(0)).orElse(0) : 0;
+        return PortalClientState.gun().moduleCount(PortalModuleKind.valueOf(kind));
     }
 
     private boolean hasEntityTransitModule() {
@@ -2701,10 +2705,10 @@ public final class PortalConfigScreen extends Screen {
             || moduleCount("BOSS_TRANSIT") > 0;
     }
 
-    private void toggleGunBoolean(String setting, String snapshotKey) {
-        boolean enabled = applyGunBooleanToggle(snapshotKey);
+    private void toggleGunBoolean(BooleanSetting setting) {
+        boolean enabled = applyGunBooleanToggle(setting);
         PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
-            tag.putString("Setting", setting);
+            tag.putString("Setting", setting.wireName());
             tag.putBoolean("Enabled", enabled);
         });
     }
@@ -2729,45 +2733,52 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
-    private boolean applyGunBooleanToggle(String snapshotKey) {
-        boolean enabled = !PortalClientState.gun().getBoolean(snapshotKey).orElse(false);
-        PortalClientState.gun().putBoolean(snapshotKey, enabled);
+    private boolean applyGunBooleanToggle(BooleanSetting setting) {
+        boolean enabled = !PortalGunViewStateReducer.booleanValue(
+            PortalClientState.gun(), setting);
+        PortalClientState.updateGun(state ->
+            PortalGunViewStateReducer.withBoolean(state, setting, enabled));
         rebuildWidgets();
         return enabled;
     }
 
-    private Component fallbackLabel(String labelKey, String snapshotKey) {
-        String value = Nbt.getString(PortalClientState.gun(), snapshotKey);
-        String key = value.equals("REMOTE") ? "screen.riftgun.placement_mode.remote"
+    private Component fallbackLabel(String labelKey, FallbackSetting setting) {
+        PortalFloatingFallback value = PortalGunViewStateReducer.fallbackValue(
+            PortalClientState.gun(), setting);
+        String key = value == PortalFloatingFallback.REMOTE ? "screen.riftgun.placement_mode.remote"
             : "screen.riftgun.placement_mode.front";
         return Component.translatable(labelKey,
             Component.translatable(key));
     }
 
-    private void cyclePairingFallback(String setting) {
-        String current = Nbt.getString(PortalClientState.gun(), setting);
-        String next = current.equals("REMOTE") ? "FRONT" : "REMOTE";
-        PortalClientState.gun().putString(setting, next);
+    private void cyclePairingFallback(FallbackSetting setting) {
+        PortalFloatingFallback current = PortalGunViewStateReducer.fallbackValue(
+            PortalClientState.gun(), setting);
+        PortalFloatingFallback next = current == PortalFloatingFallback.REMOTE
+            ? PortalFloatingFallback.FRONT : PortalFloatingFallback.REMOTE;
+        PortalClientState.updateGun(state ->
+            PortalGunViewStateReducer.withFallback(state, setting, next));
         PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
-            tag.putString("Setting", setting);
-            tag.putString("Value", next);
+            tag.putString("Setting", setting.wireName());
+            tag.putString("Value", next.name());
         });
         rebuildWidgets();
     }
 
     private void cyclePlayerExclude() {
-        int mode = Math.floorMod(PortalClientState.gun().getInt("PlayerExcludeMode").orElse(0) + 1, 3);
-        PortalClientState.gun().putInt("PlayerExcludeMode", mode);
+        int mode = Math.floorMod(PortalClientState.gun().playerExcludeMode().id() + 1, 3);
+        PortalClientState.updateGun(state -> PortalGunViewStateReducer.stepPlayerExclude(state, 1));
         PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
             tag.putString("Setting", "PlayerExclude");
             tag.putInt("Step", 1);
         });
     }
 
-    private void updateGunDistance(String setting, int value) {
-        PortalClientState.gun().putInt(setting, value);
+    private void updateGunDistance(DistanceSetting setting, int value) {
+        PortalClientState.updateGun(state ->
+            PortalGunViewStateReducer.withDistance(state, setting, value));
         PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
-            tag.putString("Setting", setting);
+            tag.putString("Setting", setting.wireName());
             tag.putInt("Value", value);
         });
     }
@@ -3379,7 +3390,7 @@ public final class PortalConfigScreen extends Screen {
 
     /** Used only by the opt-in visual QA harness. */
     public void toggleRemoteRadialSliderForQa() {
-        applyGunBooleanToggle("RemoteRadialSliderEnabled");
+        applyGunBooleanToggle(BooleanSetting.REMOTE_RADIAL_SLIDER);
     }
 
     /** Used only by the opt-in visual QA harness. */
@@ -3510,7 +3521,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private Component gunFluidName() {
-        String id = PortalClientState.gun().getString("Fluid").orElse("");
+        String id = PortalClientState.gun().fluidId();
         if (id.isEmpty()) return Component.translatable("screen.riftgun.empty_fluid");
         int separator = id.indexOf(':');
         String namespace = separator >= 0 ? id.substring(0, separator) : "minecraft";
@@ -3769,7 +3780,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private final class GunDistanceSlider extends AbstractSliderButton {
-        private final String setting;
+        private final DistanceSetting setting;
         private final String labelKey;
         private final int minimum;
         private final int maximum;
@@ -3778,19 +3789,19 @@ public final class PortalConfigScreen extends Screen {
         private final String permanentLabelKey;
         private int committedValue;
 
-        private GunDistanceSlider(int x, int y, int width, int height, String setting,
+        private GunDistanceSlider(int x, int y, int width, int height, DistanceSetting setting,
                                   String labelKey, int minimum, int maximum, int distance) {
             this(x, y, width, height, setting, labelKey, minimum, maximum, distance, 1.0);
         }
 
-        private GunDistanceSlider(int x, int y, int width, int height, String setting,
+        private GunDistanceSlider(int x, int y, int width, int height, DistanceSetting setting,
                                   String labelKey, int minimum, int maximum, int distance,
                                   double displayDivisor) {
             this(x, y, width, height, setting, labelKey, minimum, maximum, distance,
                 displayDivisor, 0, null);
         }
 
-        private GunDistanceSlider(int x, int y, int width, int height, String setting,
+        private GunDistanceSlider(int x, int y, int width, int height, DistanceSetting setting,
                                   String labelKey, int minimum, int maximum, int distance,
                                   double displayDivisor, int permanentValue, String permanentLabelKey) {
             super(x, y, width, height, Component.empty(), normalize(distance, minimum, maximum));

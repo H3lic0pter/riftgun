@@ -10,7 +10,6 @@ import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPairPlacement;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalLifecycle;
-import dev.riftgun.network.SurfaceFaceRequest;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -133,22 +132,22 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     }
 
     @Override
-    public PortalPlacementCapture captureSurfaceFace(ServerPlayer player, SurfaceFaceRequest request,
+    public PortalPlacementCapture captureSurfaceFace(ServerPlayer player, SurfaceFaceSelection selection,
                                                      PortalPlacementConstraints constraints) {
         ServerLevel level = serverLevel(player);
         Vec3 eye = player.getEyePosition();
-        Vec3 faceCenter = Vec3.atCenterOf(request.anchor())
-            .add(new Vec3(request.face().getStepX(), request.face().getStepY(),
-                request.face().getStepZ()).scale(0.5));
+        Vec3 faceCenter = Vec3.atCenterOf(selection.anchor())
+            .add(new Vec3(selection.face().getStepX(), selection.face().getStepY(),
+                selection.face().getStepZ()).scale(0.5));
         double rayRange = constraints.maximumSurfaceRange() + 16.0;
         HitResult raw = level.clip(new ClipContext(eye,
             eye.add(player.getLookAngle().scale(rayRange)), ClipContext.Block.COLLIDER,
             ClipContext.Fluid.NONE, player));
         boolean lineOfSight = raw instanceof BlockHitResult hit
             && raw.getType() == HitResult.Type.BLOCK
-            && hit.getBlockPos().equals(request.anchor());
+            && hit.getBlockPos().equals(selection.anchor());
         SurfaceFacePlacementPlanner.Result result = SurfaceFacePlacementPlanner.resolve(
-            request, constraints.aperture(), player.getYRot(), player.getBoundingBox(),
+            selection, constraints.aperture(), player.getYRot(), player.getBoundingBox(),
             new SurfaceFacePlacementPlanner.Probe() {
                 @Override
                 public boolean anchorSolid(BlockPos position) {

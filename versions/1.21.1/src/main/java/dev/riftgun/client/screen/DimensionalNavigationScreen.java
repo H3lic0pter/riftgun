@@ -1,9 +1,9 @@
 package dev.riftgun.client.screen;
 
 import dev.riftgun.client.DimensionLabelState;
+import dev.riftgun.client.DimensionalNavigationController;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.core.nbt.Nbt;
-import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.navigation.DimensionalTraversalMode;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
@@ -26,21 +26,12 @@ public final class DimensionalNavigationScreen extends Screen {
     private static final int PANEL_HEIGHT = 230;
     private static final int FIELD_HEIGHT = 18;
     private final PortalConfigScreen parent;
-    private final UUID group;
-    private String dimension;
-    private DimensionalTraversalMode mode;
+    private final DimensionalNavigationController controller;
     private String name = "";
     private String x = "";
     private String y = "";
     private String z = "";
     private String yaw = "";
-    private boolean coordinatesEdited;
-    private boolean coordinateDefaultsInitialized;
-    private boolean dropdownOpen;
-    private int dropdownIndex;
-    private int dropdownScroll;
-    private boolean saving;
-    private UUID selectedBeforeSave;
     private int panelX;
     private int panelY;
     private int panelWidth;
@@ -58,17 +49,14 @@ public final class DimensionalNavigationScreen extends Screen {
     public DimensionalNavigationScreen(PortalConfigScreen parent, UUID group) {
         super(Component.translatable("screen.riftgun.dimensional_navigation"));
         this.parent = parent;
-        this.group = group == null ? PortalPlayerData.DEFAULT_GROUP_ID : group;
-        dimension = Nbt.getString(PortalClientState.gun(), "DimensionalTraversalDimension");
-        mode = DimensionalTraversalMode.parse(
-            Nbt.getString(PortalClientState.gun(), "DimensionalTraversalMode"));
+        controller = new DimensionalNavigationController(PortalClientState.gun(), group);
     }
 
     @Override
     protected void init() {
-        if (!knownDimension(dimension)) dimension = currentDimension();
-        if (!coordinateDefaultsInitialized) {
-            coordinateDefaultsInitialized = resetCoordinateDefaults();
+        controller.ensureKnownDimension(DimensionLabelState.dimensions(), currentDimension());
+        if (!controller.coordinateDefaultsInitialized()) {
+            controller.coordinateDefaultsInitialized(resetCoordinateDefaults());
         }
         rebuildDropdownLabels();
         panelWidth = Math.min(PANEL_WIDTH, width - 16);
@@ -82,10 +70,10 @@ public final class DimensionalNavigationScreen extends Screen {
         backButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.translatable("screen.riftgun.back")));
         dimensionSelector = button(left, panelY + 39, contentWidth - 22, 18,
-            Component.literal(displayDimension(dimension)), false, ignored -> {});
+            Component.literal(displayDimension(controller.dimension())), false, ignored -> {});
         dimensionSelector.horizontalMarquee();
         dimensionSelector.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-            Component.literal(dimension)));
+            Component.literal(controller.dimension())));
         dimensionDropdownButton = button(left + contentWidth - 20, panelY + 39, 20, 18,
             Component.empty(), false, ignored -> openDimensionDropdown());
         button(left, panelY + 64, contentWidth, 19,
@@ -99,7 +87,8 @@ public final class DimensionalNavigationScreen extends Screen {
             contentWidth - segmentWidth - 3, 20,
             Component.translatable("screen.riftgun.dimensional_navigation.automatic"), false,
             ignored -> selectMode(DimensionalTraversalMode.AUTOMATIC_SEARCH));
-        if (!dropdownOpen && mode == DimensionalTraversalMode.EXACT_COORDINATES) {
+        if (!controller.dropdownOpen()
+            && controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
             exact.accented(0xFF31506B, 0xFF3F698C, PortalTheme.TEXT);
         } else {
             automatic.accented(0xFF31506B, 0xFF3F698C, PortalTheme.TEXT);
@@ -107,13 +96,16 @@ public final class DimensionalNavigationScreen extends Screen {
         automatic.active = PortalClientState.randomRift().getBoolean("Enabled");
         if (!automatic.active) automatic.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.translatable("screen.riftgun.dimensional_navigation.random_disabled")));
-        if (mode == DimensionalTraversalMode.EXACT_COORDINATES) initExactFields(left, contentWidth);
+        if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
+            initExactFields(left, contentWidth);
+        }
         ThemedButton action = button(left, panelY + panelHeight - 31, contentWidth, 20,
-            Component.translatable(mode == DimensionalTraversalMode.EXACT_COORDINATES
+            Component.translatable(controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES
                 ? "screen.riftgun.dimensional_navigation.save"
                 : "screen.riftgun.dimensional_navigation.open"), true,
             ignored -> performAction());
-        action.active = !saving && (mode != DimensionalTraversalMode.AUTOMATIC_SEARCH
+        action.active = !controller.saving()
+            && (controller.mode() != DimensionalTraversalMode.AUTOMATIC_SEARCH
             || PortalClientState.randomRift().getBoolean("Enabled"));
     }
 
@@ -137,17 +129,18 @@ public final class DimensionalNavigationScreen extends Screen {
         field.setValue(value);
         field.setResponder(next -> {
             responder.accept(next);
-            if (coordinate) coordinatesEdited = true;
+            if (coordinate) controller.coordinatesEdited(true);
         });
         return addRenderableWidget(field);
     }
 
     void selectDimension(String id) {
-        if (!knownDimension(id)) return;
-        dimension = id;
-        dropdownOpen = false;
-        if (!coordinatesEdited) coordinateDefaultsInitialized = resetCoordinateDefaults();
-        PortalClientState.gun().putString("DimensionalTraversalDimension", id);
+        if (!controller.selectDimension(DimensionLabelState.dimensions(), id)) return;
+        if (!controller.coordinatesEdited()) {
+            controller.coordinateDefaultsInitialized(resetCoordinateDefaults());
+        }
+        PortalClientState.updateGun(state -> state.withNavigation(
+            state.navigation().withTargetDimension(id)));
         sendSetting("DimensionalTraversalDimension", id);
         if (dimensionSelector != null) {
             dimensionSelector.setMessage(Component.literal(displayDimension(id)));
@@ -157,47 +150,55 @@ public final class DimensionalNavigationScreen extends Screen {
     }
 
     private void selectMode(DimensionalTraversalMode selected) {
-        if (selected == DimensionalTraversalMode.AUTOMATIC_SEARCH
-            && !PortalClientState.randomRift().getBoolean("Enabled")) return;
-        mode = selected;
-        PortalClientState.gun().putString("DimensionalTraversalMode", selected.name());
+        if (!controller.selectMode(selected,
+            PortalClientState.randomRift().getBoolean("Enabled"))) return;
+        PortalClientState.updateGun(state -> state.withNavigation(
+            state.navigation().withMode(selected)));
         sendSetting("DimensionalTraversalMode", selected.name());
         clearWidgets();
         init();
     }
 
     private void performAction() {
-        if (saving) return;
-        if (mode == DimensionalTraversalMode.AUTOMATIC_SEARCH) {
+        if (controller.saving()) return;
+        if (controller.mode() == DimensionalTraversalMode.AUTOMATIC_SEARCH) {
             PortalNetworking.sendRequest(PortalAction.OPEN_DIMENSIONAL_RIFT,
-                tag -> tag.putString("Dimension", dimension));
+                tag -> tag.putString("Dimension", controller.dimension()));
             minecraft.setScreen(null);
             return;
         }
-        saving = true;
-        selectedBeforeSave = PortalClientState.data().selectedDestinationId();
+        controller.beginSave(PortalClientState.data().selectedDestinationId());
         PortalNetworking.sendRequest(PortalAction.CREATE_DIMENSIONAL_COORDINATE, tag -> {
-            tag.putString("Dimension", dimension);
+            tag.putString("Dimension", controller.dimension());
             tag.putString("Name", nameField.getValue());
             tag.putString("X", xField.getValue());
             tag.putString("Y", yField.getValue());
             tag.putString("Z", zField.getValue());
             tag.putString("Yaw", yawField.getValue());
-            Nbt.putUUID(tag, "Group", group);
+            Nbt.putUUID(tag, "Group", controller.group());
         });
         clearWidgets();
         init();
     }
 
     public void onServerSnapshot() {
-        if (!saving) return;
         UUID selected = PortalClientState.data().selectedDestinationId();
-        if (selected != null && !selected.equals(selectedBeforeSave)) {
+        DimensionalNavigationController.SaveOutcome outcome = controller.acceptSnapshot(selected);
+        if (outcome == DimensionalNavigationController.SaveOutcome.SAVED) {
             parent.refreshFromServer(Set.of());
             minecraft.setScreen(parent);
             return;
         }
-        saving = false;
+        refreshGunState();
+    }
+
+    public void onGunSnapshot() {
+        refreshGunState();
+    }
+
+    private void refreshGunState() {
+        controller.refresh(PortalClientState.gun());
+        controller.ensureKnownDimension(DimensionLabelState.dimensions(), currentDimension());
         clearWidgets();
         init();
     }
@@ -206,7 +207,7 @@ public final class DimensionalNavigationScreen extends Screen {
         if (minecraft == null || minecraft.player == null || minecraft.level == null) return false;
         double sourceScale = minecraft.level.dimensionType().coordinateScale();
         double targetScale = DimensionLabelState.dimensions().stream()
-            .filter(info -> info.id().equals(dimension)).mapToDouble(
+            .filter(info -> info.id().equals(controller.dimension())).mapToDouble(
                 DimensionLabelState.DimensionInfo::coordinateScale).findFirst().orElse(sourceScale);
         x = coordinate(minecraft.player.getX() * sourceScale / targetScale);
         y = coordinate(minecraft.player.getY());
@@ -224,7 +225,7 @@ public final class DimensionalNavigationScreen extends Screen {
         graphics.drawString(font, title, panelX + 12, panelY + 12, PortalTheme.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.riftgun.dimensional_navigation.dimension"),
             panelX + 18, panelY + 29, PortalTheme.TEXT_MUTED, false);
-        if (mode == DimensionalTraversalMode.EXACT_COORDINATES) {
+        if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
             graphics.drawString(font, Component.translatable("screen.riftgun.name"),
                 panelX + 18, panelY + 131, PortalTheme.TEXT_MUTED, false);
             int left = panelX + 18;
@@ -245,22 +246,22 @@ public final class DimensionalNavigationScreen extends Screen {
             graphics, backButton.getX(), backButton.getY());
         if (dimensionDropdownButton != null) PortalGuiIcons.drawDownIcon(graphics,
             dimensionDropdownButton.getX() + 6, dimensionDropdownButton.getY() + 7);
-        if (dropdownOpen) renderDimensionDropdown(graphics, mouseX, mouseY);
+        if (controller.dropdownOpen()) renderDimensionDropdown(graphics, mouseX, mouseY);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (dropdownOpen) {
+        if (controller.dropdownOpen()) {
             if (button == 0) clickDimensionDropdown(mouseX, mouseY);
-            dropdownOpen = false;
+            controller.closeDropdown();
             return true;
         }
         if (dimensionSelector != null && (button == 0 || button == 1)
             && inside(mouseX, mouseY, dimensionSelector.getX(), dimensionSelector.getY(),
                 dimensionSelector.getWidth(), dimensionSelector.getHeight())) {
-            String before = dimension;
+            String before = controller.dimension();
             shiftDimension(button == 0 ? 1 : -1);
-            if (!before.equals(dimension) && minecraft != null) {
+            if (!before.equals(controller.dimension()) && minecraft != null) {
                 dimensionSelector.playDownSound(minecraft.getSoundManager());
             }
             setFocused(dimensionSelector);
@@ -272,10 +273,10 @@ public final class DimensionalNavigationScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount,
                                  double verticalAmount) {
-        if (dropdownOpen) {
+        if (controller.dropdownOpen()) {
             int visible = Math.min(7, DimensionLabelState.dimensions().size());
-            dropdownScroll = Mth.clamp(dropdownScroll - (int) Math.signum(verticalAmount),
-                0, Math.max(0, DimensionLabelState.dimensions().size() - visible));
+            controller.scrollDropdown(-(int) Math.signum(verticalAmount),
+                DimensionLabelState.dimensions().size());
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
@@ -283,24 +284,19 @@ public final class DimensionalNavigationScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (dropdownOpen) return dropdownKeyPressed(keyCode);
+        if (controller.dropdownOpen()) return dropdownKeyPressed(keyCode);
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     private void openDimensionDropdown() {
         List<DimensionLabelState.DimensionInfo> dimensions = DimensionLabelState.dimensions();
-        dropdownOpen = true;
-        dropdownIndex = Math.max(0, indexOfDimension(dimensions, dimension));
-        dropdownScroll = Mth.clamp(dropdownIndex - 3, 0, Math.max(0, dimensions.size() - 7));
+        controller.openDropdown(dimensions);
         setFocused(dimensionSelector);
     }
 
     private void shiftDimension(int delta) {
         List<DimensionLabelState.DimensionInfo> dimensions = DimensionLabelState.dimensions();
-        if (dimensions.isEmpty()) return;
-        int current = Math.max(0, indexOfDimension(dimensions, dimension));
-        int next = Math.floorMod(current + delta, dimensions.size());
-        selectDimension(dimensions.get(next).id());
+        selectDimension(controller.shiftedDimension(dimensions, delta));
     }
 
     private void renderDimensionDropdown(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -313,18 +309,19 @@ public final class DimensionalNavigationScreen extends Screen {
         graphics.fill(box.x(), box.y(), box.x() + box.width(), box.y() + box.height(), PortalTheme.FIELD);
         graphics.renderOutline(box.x(), box.y(), box.width(), box.height(), PortalTheme.BORDER_FOCUS);
         int visible = Math.min(7, dimensions.size());
-        dropdownScroll = Mth.clamp(dropdownScroll, 0, Math.max(0, dimensions.size() - visible));
+        controller.dropdownScroll(Mth.clamp(controller.dropdownScroll(), 0,
+            Math.max(0, dimensions.size() - visible)));
         for (int index = 0; index < visible; index++) {
-            int dimensionIndex = dropdownScroll + index;
+            int dimensionIndex = controller.dropdownScroll() + index;
             String id = dimensions.get(dimensionIndex).id();
             int rowY = box.y() + 2 + index * 18;
             boolean hover = inside(mouseX, mouseY, box.x() + 2, rowY, box.width() - 4, 18);
-            if (hover || dimensionIndex == dropdownIndex) {
+            if (hover || dimensionIndex == controller.dropdownIndex()) {
                 graphics.fill(box.x() + 2, rowY, box.x() + box.width() - 2, rowY + 18,
-                    id.equals(dimension) ? 0x773F7180 : 0x5530333A);
+                    id.equals(controller.dimension()) ? 0x773F7180 : 0x5530333A);
             }
             graphics.drawString(font, trim(dropdownLabel(id), box.width() - 12), box.x() + 6,
-                rowY + 5, id.equals(dimension) ? PortalTheme.ICE : PortalTheme.TEXT, false);
+                rowY + 5, id.equals(controller.dimension()) ? PortalTheme.ICE : PortalTheme.TEXT, false);
         }
         graphics.pose().popPose();
     }
@@ -335,7 +332,7 @@ public final class DimensionalNavigationScreen extends Screen {
         if (!inside(mouseX, mouseY, box.x(), box.y(), box.width(), box.height())) return false;
         int visible = Math.min(7, dimensions.size());
         if (mouseY < box.y() + 2 || mouseY >= box.y() + 2 + visible * 18) return true;
-        int index = (int) ((mouseY - box.y() - 2) / 18) + dropdownScroll;
+        int index = (int) ((mouseY - box.y() - 2) / 18) + controller.dropdownScroll();
         if (index >= 0 && index < dimensions.size()) selectDimension(dimensions.get(index).id());
         return true;
     }
@@ -343,20 +340,17 @@ public final class DimensionalNavigationScreen extends Screen {
     private boolean dropdownKeyPressed(int keyCode) {
         List<DimensionLabelState.DimensionInfo> dimensions = DimensionLabelState.dimensions();
         if (keyCode == 256) {
-            dropdownOpen = false;
+            controller.closeDropdown();
             return true;
         }
         if (dimensions.isEmpty()) return true;
         if (keyCode == 265 || keyCode == 264) {
-            dropdownIndex = Mth.clamp(dropdownIndex + (keyCode == 265 ? -1 : 1),
-                0, dimensions.size() - 1);
-            if (dropdownIndex < dropdownScroll) dropdownScroll = dropdownIndex;
-            if (dropdownIndex >= dropdownScroll + 7) dropdownScroll = dropdownIndex - 6;
+            controller.moveDropdownSelection(keyCode == 265 ? -1 : 1, dimensions.size());
             return true;
         }
         if (keyCode == 257 || keyCode == 335) {
-            selectDimension(dimensions.get(dropdownIndex).id());
-            dropdownOpen = false;
+            selectDimension(dimensions.get(controller.dropdownIndex()).id());
+            controller.closeDropdown();
             return true;
         }
         return true;
@@ -367,13 +361,6 @@ public final class DimensionalNavigationScreen extends Screen {
         int selectorX = dimensionSelector == null ? panelX + 18 : dimensionSelector.getX();
         int selectorY = dimensionSelector == null ? panelY + 39 : dimensionSelector.getY();
         return new DropdownBox(selectorX, selectorY + 20, panelWidth - 36, visible * 18 + 4);
-    }
-
-    private static int indexOfDimension(List<DimensionLabelState.DimensionInfo> dimensions, String id) {
-        for (int index = 0; index < dimensions.size(); index++) {
-            if (dimensions.get(index).id().equals(id)) return index;
-        }
-        return -1;
     }
 
     private String trim(String value, int maxWidth) {
@@ -394,7 +381,7 @@ public final class DimensionalNavigationScreen extends Screen {
     }
 
     String selectedDimension() {
-        return dimension;
+        return controller.dimension();
     }
 
     private ThemedButton button(int x, int y, int width, int height, Component label,
@@ -411,10 +398,6 @@ public final class DimensionalNavigationScreen extends Screen {
 
     private static String coordinate(double value) {
         return String.format(Locale.ROOT, "%.2f", value);
-    }
-
-    private static boolean knownDimension(String id) {
-        return DimensionLabelState.dimensions().stream().anyMatch(info -> info.id().equals(id));
     }
 
     private String currentDimension() {

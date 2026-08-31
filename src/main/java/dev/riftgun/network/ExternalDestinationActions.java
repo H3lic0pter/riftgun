@@ -8,6 +8,8 @@ import dev.riftgun.external.ExternalDestinationSelection;
 import dev.riftgun.service.ExternalDestinationSession;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
+import dev.riftgun.service.PrecisionPlacementIntent;
+import dev.riftgun.service.SurfaceFaceSelection;
 import java.util.UUID;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -46,14 +48,14 @@ public final class ExternalDestinationActions {
 
     static boolean openSelectedSurfaceFace(
         ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode,
-        PortalGunLocator.LocatedGun gun, SurfaceFaceRequest request
+        PortalGunLocator.LocatedGun gun, SurfaceFaceSelection selection
     ) {
-        return openSelected(player, data, mode, gun, false, request);
+        return openSelected(player, data, mode, gun, false, selection);
     }
 
     static boolean openSelectedPrecision(
         ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode,
-        PortalGunLocator.LocatedGun gun, PrecisionPlacementRequest request
+        PortalGunLocator.LocatedGun gun, PrecisionPlacementIntent intent
     ) {
         ExternalDestinationSelection selection = SESSION.selected(player.getUUID()).orElse(null);
         if (selection == null) return false;
@@ -63,14 +65,14 @@ public final class ExternalDestinationActions {
             throw PortalRequestFields.error("message.riftgun.external_destination_unavailable");
         }
         boolean opened = PortalOpenCoordinator.openTransientPrecision(
-            player, data, destination(player, selection), mode, gun, request);
+            player, data, destination(player, selection), mode, gun, intent);
         if (opened) PortalNetworking.sendSnapshot(player, false, gun);
         return true;
     }
 
     private static boolean openSelected(
         ServerPlayer player, PortalPlayerData data, PortalPlacementMode mode,
-        PortalGunLocator.LocatedGun gun, boolean fromGui, SurfaceFaceRequest surfaceFaceRequest
+        PortalGunLocator.LocatedGun gun, boolean fromGui, SurfaceFaceSelection surfaceSelection
     ) {
         ExternalDestinationSelection selection = SESSION.selected(player.getUUID()).orElse(null);
         if (selection == null) return false;
@@ -80,10 +82,10 @@ public final class ExternalDestinationActions {
             throw PortalRequestFields.error("message.riftgun.external_destination_unavailable");
         }
         Destination destination = destination(player, selection);
-        boolean opened = surfaceFaceRequest == null
+        boolean opened = surfaceSelection == null
             ? PortalOpenCoordinator.openTransient(player, data, destination, mode, gun, fromGui)
             : PortalOpenCoordinator.openTransientSurfaceFace(
-                player, data, destination, mode, gun, surfaceFaceRequest);
+                player, data, destination, mode, gun, surfaceSelection);
         if (opened) {
             PortalNetworking.sendSnapshot(player, false, gun);
             if (fromGui) PortalNetworking.sendPortalOpened(player);

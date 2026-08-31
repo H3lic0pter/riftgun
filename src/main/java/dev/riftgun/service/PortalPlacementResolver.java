@@ -9,13 +9,12 @@ import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.portal.PortalPlacement;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import dev.riftgun.network.SurfaceFaceRequest;
 
 public interface PortalPlacementResolver {
     PortalPlacementCapture capture(ServerPlayer player, PortalPlacementMode mode,
                                    PortalPlacementConstraints constraints);
 
-    PortalPlacementCapture captureSurfaceFace(ServerPlayer player, SurfaceFaceRequest request,
+    PortalPlacementCapture captureSurfaceFace(ServerPlayer player, SurfaceFaceSelection selection,
                                               PortalPlacementConstraints constraints);
 
     PortalEntryPlacementResult resolveEntry(ServerPlayer player, PortalPlacementIntent intent,
