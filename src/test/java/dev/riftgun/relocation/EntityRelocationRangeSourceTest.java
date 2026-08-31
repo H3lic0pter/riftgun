@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 final class EntityRelocationRangeSourceTest {
     @Test
-    void targetingAndFixedDestinationUseModuleMaximumRange() throws IOException {
+    void targetingUsesMaximumWhilePairingFloatingFallbackUsesRemoteDistance() throws IOException {
         String relocation = read("src/main/java/dev/riftgun/relocation/EntityRelocationManager.java");
         String findTarget = relocation.substring(relocation.indexOf("private static Optional<Entity> findTarget"),
             relocation.indexOf("private static boolean isRelocatableType"));
@@ -22,7 +22,8 @@ final class EntityRelocationRangeSourceTest {
             pairing.indexOf("private static PortalRuntimeOptions runtimeOptions"));
         assertTrue(fixedTarget.contains(
             "capabilities.maximumSurfaceRange(), capabilities.maximumSurfaceRange()"));
-        assertFalse(fixedTarget.contains("capabilities.remoteDistance()"));
+        assertTrue(fixedTarget.contains("capabilities.remoteDistance()"));
+        assertTrue(fixedTarget.contains("floatingDistance"));
     }
 
     private static String read(String path) throws IOException {

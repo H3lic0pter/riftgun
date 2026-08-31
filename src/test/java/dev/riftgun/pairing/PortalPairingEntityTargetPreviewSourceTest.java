@@ -25,4 +25,24 @@ final class PortalPairingEntityTargetPreviewSourceTest {
             assertFalse(preview.contains("entitiesForRendering()"), version);
         }
     }
+
+    @Test
+    void heldSneakPreviewsTheSameSurfaceThenRemoteTargetingPolicy() throws IOException {
+        for (String version : new String[] {"1.21.1", "26.1.2"}) {
+            Path previewPath = Path.of("versions", version, "src", "main", "java", "dev",
+                "riftgun", "client", "render", "PortalPlacementPreview.java");
+            String preview = Files.readString(previewPath);
+            int start = preview.indexOf("private static boolean tickPairingEntityTargetPreview");
+            int end = preview.indexOf("private static PortalPlacement surfacePreview", start);
+            String livePreview = preview.substring(start, end);
+
+            assertTrue(livePreview.contains("minecraft.player.isShiftKeyDown()"), version);
+            assertTrue(livePreview.contains("PortalPlacementMode.ENTITY_RELOCATION"), version);
+            assertTrue(livePreview.contains("SurfaceFaceRequest"), version);
+            assertTrue(livePreview.contains("surfacePreview("), version);
+            assertTrue(livePreview.contains("updateRemotePreview("), version);
+            assertTrue(livePreview.contains(
+                "gun.remote() ? gun.remoteDistance() : gun.maximumSurfaceRange()"), version);
+        }
+    }
 }

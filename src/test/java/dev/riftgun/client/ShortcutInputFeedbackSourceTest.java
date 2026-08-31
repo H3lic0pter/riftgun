@@ -55,6 +55,42 @@ final class ShortcutInputFeedbackSourceTest {
         }
     }
 
+    @Test
+    void radialShortcutsPreserveTheirDistinctActions() throws Exception {
+        String input = Files.readString(Path.of("src/main/java/dev/riftgun/client/ModeRadialInput.java"));
+        assertTrue(input.contains("ModeRadialClientAccess.commitPairingShortcut()"));
+        assertTrue(input.contains("keys.altDown()"));
+        assertTrue(input.contains("ModeRadialClientAccess.sendToggleFunctionRequest()"));
+        assertTrue(input.contains("cycleShortcutConsumed"));
+
+        String handler = Files.readString(Path.of(
+            "src/main/java/dev/riftgun/network/PortalRequestHandler.java"));
+        assertTrue(handler.contains(
+            "pairingShortcut || capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING"));
+
+        for (String version : VERSIONS) {
+            String events = Files.readString(Path.of("versions", version, "src", "main", "java",
+                "dev", "riftgun", "client", "ClientGameEvents.java"));
+            assertTrue(events.contains(
+                "!(minecraft.screen instanceof dev.riftgun.client.screen.ModeRadialScreen)"),
+                version + " must not also send the non-radial pairing action");
+            String screen = Files.readString(Path.of("versions", version, "src", "main", "java",
+                "dev", "riftgun", "client", "screen", "ModeRadialScreen.java"));
+            assertTrue(screen.contains("tag.putBoolean(\"PairingShortcut\", pairingShortcut)"),
+                version + " must distinguish the pairing shortcut from a normal radial click");
+            assertTrue(screen.contains("PortalPlacementPreview.currentPlacement()"),
+                version + " pairing shortcut must commit the visible floating preview");
+            String slider = method(screen, "private boolean rangeSliderEnabled() {",
+                "private int selectionAt(");
+            assertFalse(slider.contains("placementMode()"),
+                version + " remote slider must stay visible across placement modes");
+        }
+        String pairing = Files.readString(Path.of(
+            "src/main/java/dev/riftgun/pairing/PortalPairingManager.java"));
+        assertTrue(pairing.contains("validFrontPreview("));
+        assertTrue(pairing.contains("precisionRequest.previewPlacement()"));
+    }
+
     private static String method(String source, String startMarker, String endMarker) {
         int start = source.indexOf(startMarker);
         int end = source.indexOf(endMarker, start + startMarker.length());

@@ -466,6 +466,7 @@
   "tooltip.riftgun.module.portal_pairing_module.description": "Allows direct placement of linked portal %s and %s.",
   "tooltip.riftgun.module.portal_pairing_module.use": "Use: Place portal %s",
   "tooltip.riftgun.module.portal_pairing_module.sneak_use": "%s+Use: Place portal %s",
+  "tooltip.riftgun.module.portal_pairing_module.toggle_mode": "Alt+%s: Toggle Pairing",
   "item.riftgun.remote_module": "Remote Module",
   "tooltip.riftgun.module.remote_module.description": "Unlocks Remote placement, placement previews, and quick Remote Distance adjustment.",
   "tooltip.riftgun.module.remote_module.scroll_control": "%s+Scroll: Adjust Remote Distance",

@@ -106,6 +106,13 @@ public record PortalGunCapabilities(
         return effectivePlacementMode(preferred, remote);
     }
 
+    public static boolean usesRemoteDistanceControls(PortalPlacementMode placementMode,
+                                                     PortalFunctionMode functionMode) {
+        return placementMode == PortalPlacementMode.REMOTE
+            || placementMode == PortalPlacementMode.ENTITY_RELOCATION
+                && functionMode == PortalFunctionMode.PORTAL_PAIRING;
+    }
+
     static PortalPlacementMode effectivePlacementMode(PortalPlacementMode preferred,
                                                         boolean remoteAvailable) {
         return preferred == PortalPlacementMode.REMOTE && !remoteAvailable

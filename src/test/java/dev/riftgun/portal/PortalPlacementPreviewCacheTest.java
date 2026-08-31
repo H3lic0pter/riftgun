@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class PortalPlacementPreviewCacheTest {
@@ -53,11 +54,15 @@ final class PortalPlacementPreviewCacheTest {
     @Test
     void renderedSegmentsAreReusedUntilPredictionChanges() {
         PortalPlacementPreviewCache cache = new PortalPlacementPreviewCache();
-        cache.update(0, input(32, Vec3.ZERO), placement());
+        PortalPlacement placement = placement();
+        cache.update(0, input(32, Vec3.ZERO), placement);
 
         var first = cache.segments();
 
         assertSame(first, cache.segments());
+        assertSame(placement, cache.placement());
+        cache.clear();
+        assertNull(cache.placement());
     }
 
     private static PortalPlacementPreviewCache.Input input(int range, Vec3 eye) {

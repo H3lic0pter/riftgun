@@ -15,6 +15,7 @@ public final class PortalPlacementPreviewCache {
     private Input lastInput;
     private long lastRefreshTick = Long.MIN_VALUE;
     private long nextRefreshTick = Long.MIN_VALUE;
+    private PortalPlacement placement;
     private List<PortalPlacementPreviewGeometry.Segment> segments = List.of();
 
     public boolean shouldRefresh(long tick, Input input) {
@@ -33,6 +34,7 @@ public final class PortalPlacementPreviewCache {
         lastInput = input;
         lastRefreshTick = tick;
         nextRefreshTick = tick + refreshInterval(input.range(), elapsedNanos);
+        this.placement = placement;
         segments = placement == null
             ? List.of() : PortalPlacementPreviewGeometry.visibleOutline(placement);
     }
@@ -41,10 +43,15 @@ public final class PortalPlacementPreviewCache {
         return segments;
     }
 
+    public PortalPlacement placement() {
+        return placement;
+    }
+
     public void clear() {
         lastInput = null;
         lastRefreshTick = Long.MIN_VALUE;
         nextRefreshTick = Long.MIN_VALUE;
+        placement = null;
         segments = List.of();
     }
 

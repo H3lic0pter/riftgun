@@ -466,6 +466,7 @@
   "tooltip.riftgun.module.portal_pairing_module.description": "允许直接放置相互连接的 %s 与 %s 传送门。",
   "tooltip.riftgun.module.portal_pairing_module.use": "互动键：放置 %s 门",
   "tooltip.riftgun.module.portal_pairing_module.sneak_use": "%s+互动键：放置 %s 门",
+  "tooltip.riftgun.module.portal_pairing_module.toggle_mode": "Alt+%s：切换配对模式",
   "item.riftgun.remote_module": "远端模块",
   "tooltip.riftgun.module.remote_module.description": "解锁远端放置、落点预览与远端距离快捷调整。",
   "tooltip.riftgun.module.remote_module.scroll_control": "%s+滚轮：调整远端距离",

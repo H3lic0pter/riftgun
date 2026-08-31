@@ -16,12 +16,15 @@ import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunTank;
 import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModules;
 import dev.riftgun.module.PortalGunModuleSettings;
 import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.portal.CoordinateNoteItem;
 import dev.riftgun.pairing.PortalPairingLabels;
+import dev.riftgun.pairing.PortalFunctionMode;
+import dev.riftgun.core.nbt.Nbt;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -74,7 +77,8 @@ public final class ClientGameEvents {
             }
         }
         while (ClientModEvents.PORTAL_PAIRING_OPERATION.consumeClick()) {
-            if (minecraft.player != null && minecraft.getConnection() != null) {
+            if (!(minecraft.screen instanceof dev.riftgun.client.screen.ModeRadialScreen)
+                && minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendShortcutRequest(PortalAction.PLACE_PAIRING_ENDPOINT,
                     tag -> tag.putBoolean("EndpointA", minecraft.player.isShiftKeyDown()));
             }
@@ -116,8 +120,12 @@ public final class ClientGameEvents {
         if (minecraft.player == null || minecraft.getConnection() == null
             || !minecraft.player.isShiftKeyDown() || event.getScrollDeltaY() == 0.0) return;
         var gun = minecraft.player.getMainHandItem();
+        PortalFunctionMode functionMode = "PORTAL_PAIRING".equals(
+            Nbt.getString(PortalClientState.gun(), "FunctionMode"))
+            ? PortalFunctionMode.PORTAL_PAIRING : PortalFunctionMode.COORDINATE_TRAVEL;
         if (!gun.is(RiftContent.PORTAL_GUN.get())
-            || PortalClientState.data().settings().placementMode() != PortalPlacementMode.REMOTE
+            || !PortalGunCapabilities.usesRemoteDistanceControls(
+                PortalClientState.data().settings().placementMode(), functionMode)
             || PortalGunModules.activeCount(gun, PortalModuleKind.REMOTE,
                 PortalClientState.moduleRules()) <= 0
             || !PortalGunModuleSettings.get(gun,
@@ -203,6 +211,10 @@ public final class ClientGameEvents {
                     "tooltip.riftgun.module.portal_pairing_module.sneak_use",
                     PortalInputLabels.sneakKey(),
                     PortalPairingLabels.first())
+                    .withStyle(ChatFormatting.GRAY));
+                event.getToolTip().add(Component.translatable(
+                    "tooltip.riftgun.module.portal_pairing_module.toggle_mode",
+                    ClientModEvents.CYCLE_PLACEMENT.getTranslatedKeyMessage())
                     .withStyle(ChatFormatting.GRAY));
             }
             event.getToolTip().add(Component.translatable("tooltip.riftgun.module.limit",

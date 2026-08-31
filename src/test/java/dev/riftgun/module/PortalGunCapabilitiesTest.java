@@ -1,8 +1,11 @@
 package dev.riftgun.module;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.pairing.PortalFunctionMode;
 import org.junit.jupiter.api.Test;
 
 final class PortalGunCapabilitiesTest {
@@ -31,5 +34,17 @@ final class PortalGunCapabilitiesTest {
         assertEquals(PortalPlacementMode.REMOTE,
             PortalGunCapabilities.effectivePlacementMode(preferred, true));
         assertEquals(PortalPlacementMode.REMOTE, preferred);
+    }
+
+    @Test
+    void remoteDistanceControlsRemoteAndPairingEntityPlacement() {
+        assertTrue(PortalGunCapabilities.usesRemoteDistanceControls(
+            PortalPlacementMode.REMOTE, PortalFunctionMode.COORDINATE_TRAVEL));
+        assertTrue(PortalGunCapabilities.usesRemoteDistanceControls(
+            PortalPlacementMode.ENTITY_RELOCATION, PortalFunctionMode.PORTAL_PAIRING));
+        assertFalse(PortalGunCapabilities.usesRemoteDistanceControls(
+            PortalPlacementMode.ENTITY_RELOCATION, PortalFunctionMode.COORDINATE_TRAVEL));
+        assertFalse(PortalGunCapabilities.usesRemoteDistanceControls(
+            PortalPlacementMode.FRONT, PortalFunctionMode.PORTAL_PAIRING));
     }
 }

@@ -29,6 +29,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import dev.riftgun.network.SurfaceFaceRequestValidator;
 import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.network.PrecisionPlacementRequest;
@@ -120,6 +121,12 @@ public final class PortalPairingManager {
         PortalEntryPlacementResult placement = RiftRuntime.current().placementResolver()
             .resolveEntry(player, capture.intent(), constraints);
         if (!placement.successful()) return fail(player, placement.errorKey());
+        if (precisionRequest != null && precisionRequest.previewPlacement() != null
+            && mode == PortalPlacementMode.FRONT
+            && validFrontPreview(player, placement.placement(),
+                precisionRequest.previewPlacement())) {
+            placement = PortalEntryPlacementResult.success(precisionRequest.previewPlacement());
+        }
 
         MinecraftServer server = server(player);
         if (server == null) return fail(player, "message.riftgun.portal_open_failed");
@@ -219,11 +226,13 @@ public final class PortalPairingManager {
         if (!capabilities.entityRelocation()) {
             return fail(player, "message.riftgun.entity_relocation_module_required");
         }
-        // Entity relocation always uses the module's full range. A valid face is preferred;
-        // a ray miss routes to Fixed REMOTE. Prediction is disabled for a fixed target.
+        // Keep the full module range for finding a surface. If that ray misses, an installed
+        // Remote module supplies its adjustable floating distance; legacy guns keep full range.
+        int floatingDistance = capabilities.remote()
+            ? capabilities.remoteDistance() : capabilities.maximumSurfaceRange();
         PortalPlacementConstraints constraints = new PortalPlacementConstraints(
             capabilities.maximumSurfaceRange(), capabilities.maximumSurfaceRange(),
-            capabilities.maximumSurfaceRange(),
+            floatingDistance,
             PortalPredictionMode.OFF, capabilities.aperture(),
             RiftConfigs.server().prediction().frontProjectionFactor(),
             RiftConfigs.server().prediction().downshotProjectionFactor(),
@@ -260,6 +269,18 @@ public final class PortalPairingManager {
             PortalSoundSnapshot.from(data.settings().portalSounds()),
             PortalCrisisConfigurationSnapshot.capture(RiftFuelStores.open(gun.stack()).content().fluid()),
             Optional.empty());
+    }
+
+    private static boolean validFrontPreview(ServerPlayer player,
+                                             dev.riftgun.portal.PortalPlacement expected,
+                                             dev.riftgun.portal.PortalPlacement preview) {
+        return expected != null && preview != null && !preview.anchored()
+            && preview.orientation() == expected.orientation()
+            && preview.geometry() == expected.geometry()
+            && preview.center().distanceToSqr(expected.center()) <= 1.0
+            && Math.abs(Mth.wrapDegrees(preview.yaw() - expected.yaw())) <= 15.0F
+            && PortalStoredPlacementValidator.valid(
+                player, (ServerLevel) player.level(), preview);
     }
 
     private static boolean fail(ServerPlayer player, String key) {

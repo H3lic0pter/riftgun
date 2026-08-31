@@ -224,7 +224,8 @@ public final class PortalRequestHandler {
             }
             case OPEN_SELECTED_PRECISION -> {
                 openSelectedPrecision(player, data, gun, PrecisionPlacementRequest.decode(request),
-                    Nbt.getBoolean(request, "EndpointA"));
+                    Nbt.getBoolean(request, "EndpointA"),
+                    Nbt.getBoolean(request, "PairingShortcut"));
                 yield false;
             }
             case CLEAR_EXTERNAL_DESTINATION -> {
@@ -333,7 +334,8 @@ public final class PortalRequestHandler {
     private static void openSelectedPrecision(ServerPlayer player, PortalPlayerData data,
                                               PortalGunLocator.LocatedGun gun,
                                               PrecisionPlacementRequest request,
-                                              boolean endpointA) {
+                                              boolean endpointA,
+                                              boolean pairingShortcut) {
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun.stack(), data.settings().smartDistance());
         if (!capabilities.precisionPlacement()) {
@@ -349,11 +351,13 @@ public final class PortalRequestHandler {
                 throw PortalRequestFields.error("message.riftgun.precision_placement_unavailable");
             }
             if (mode == PortalPlacementMode.SMART) {
-                mode = capabilities.activeSmartFallback() == dev.riftgun.pairing.PortalFloatingFallback.REMOTE
+                var fallback = pairingShortcut
+                    ? capabilities.pairingSmartFallback() : capabilities.activeSmartFallback();
+                mode = fallback == dev.riftgun.pairing.PortalFloatingFallback.REMOTE
                     ? PortalPlacementMode.REMOTE : PortalPlacementMode.FRONT;
             }
         }
-        if (capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
+        if (pairingShortcut || capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING) {
             PortalPairingManager.placePrecision(player, data, gun, mode,
                 endpointA ? PortalPairingEndpoint.A : PortalPairingEndpoint.B, request);
             return;

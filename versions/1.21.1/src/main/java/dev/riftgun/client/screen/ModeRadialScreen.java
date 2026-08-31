@@ -3,6 +3,7 @@ package dev.riftgun.client.screen;
 import dev.riftgun.client.ModeRadialInput;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.PortalInputLabels;
+import dev.riftgun.client.render.PortalPlacementPreview;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.data.PortalPredictionMode;
 import dev.riftgun.input.SurfaceFacePreviewState;
@@ -138,15 +139,29 @@ public final class ModeRadialScreen extends Screen {
     }
 
     public void commitSelection() {
+        commitPrecisionSelection(false);
+    }
+
+    public void commitPairingShortcut() {
+        commitPrecisionSelection(true);
+    }
+
+    private void commitPrecisionSelection(boolean pairingShortcut) {
         if (cancelled || !precisionPreviewOnly) return;
-        PrecisionPlacementRequest request = surfacePreviewOnly
+        PrecisionPlacementRequest selectedRequest = surfacePreviewOnly
             ? PrecisionPlacementRequest.surface(new SurfaceFaceRequest(
                 surfaceAnchor, facePreview.selectedFace()))
             : PrecisionPlacementRequest.floating(selectedOrientation);
+        if (pairingShortcut && selectedRequest.kind() == PrecisionPlacementRequest.Kind.FLOATING) {
+            selectedRequest = selectedRequest.withPreviewPlacement(
+                PortalPlacementPreview.currentPlacement());
+        }
+        PrecisionPlacementRequest request = selectedRequest;
         boolean endpointA = ModeRadialInput.sneakDown();
         PortalNetworking.sendShortcutRequest(PortalAction.OPEN_SELECTED_PRECISION, tag -> {
             request.writeTo(tag);
             tag.putBoolean("EndpointA", endpointA);
+            tag.putBoolean("PairingShortcut", pairingShortcut);
         });
     }
 
@@ -431,8 +446,7 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private boolean rangeSliderEnabled() {
-        return !precisionPreviewOnly && page != Page.SURFACE_FACE && remoteInstalled()
-            && PortalClientState.data().settings().placementMode() == PortalPlacementMode.REMOTE
+        return !precisionPreviewOnly && remoteInstalled()
             && Nbt.getBoolean(PortalClientState.gun(), "RemoteRadialSliderEnabled");
     }
 

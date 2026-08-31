@@ -9,10 +9,12 @@ public final class ModeRadialInput {
     private static boolean cycleWasDown;
     private static boolean radialWasDown;
     private static boolean surfacePreviewWasDown;
+    private static boolean pairingOperationWasDown;
     private static int cycleHeldTicks;
     private static Source pendingSource;
     private static final RadialRequestState REQUEST = new RadialRequestState();
     private static boolean suppressUntilRelease;
+    private static boolean cycleShortcutConsumed;
     private static PrecisionPlacementRequest pendingPrecisionRequest;
 
     public static void tick() {
@@ -20,8 +22,12 @@ public final class ModeRadialInput {
         boolean cycleDown = keys.cycleDown();
         boolean radialDown = keys.radialDown();
         boolean surfacePreviewDown = keys.precisionDown();
+        boolean pairingOperationDown = keys.pairingOperationDown();
 
         if (ModeRadialClientAccess.radialScreenOpen()) {
+            if (pairingOperationDown && !pairingOperationWasDown) {
+                ModeRadialClientAccess.commitPairingShortcut();
+            }
             if (pendingSource != null
                 && !sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
                 if (REQUEST.release() == RadialRequestState.ReleaseResult.COMMIT) {
@@ -33,7 +39,7 @@ public final class ModeRadialInput {
                     }
                 }
             }
-            remember(cycleDown, radialDown, surfacePreviewDown);
+            remember(cycleDown, radialDown, surfacePreviewDown, pairingOperationDown);
             return;
         }
         if (suppressUntilRelease) {
@@ -42,11 +48,22 @@ public final class ModeRadialInput {
                 pendingSource = null;
                 pendingPrecisionRequest = null;
             }
-            remember(cycleDown, radialDown, surfacePreviewDown);
+            remember(cycleDown, radialDown, surfacePreviewDown, pairingOperationDown);
             return;
         }
         if (ModeRadialClientAccess.blockedOrUnavailable()) {
-            reset(cycleDown, radialDown, surfacePreviewDown);
+            reset(cycleDown, radialDown, surfacePreviewDown, pairingOperationDown);
+            return;
+        }
+
+        if (cycleDown && keys.altDown() && !cycleWasDown) {
+            ModeRadialClientAccess.sendToggleFunctionRequest();
+            cycleShortcutConsumed = true;
+            cycleHeldTicks = 0;
+        }
+        if (cycleShortcutConsumed) {
+            if (!cycleDown) cycleShortcutConsumed = false;
+            remember(cycleDown, radialDown, surfacePreviewDown, pairingOperationDown);
             return;
         }
 
@@ -54,7 +71,7 @@ public final class ModeRadialInput {
             if (!sourceDown(pendingSource, cycleDown, radialDown, surfacePreviewDown)) {
                 REQUEST.release();
             }
-            remember(cycleDown, radialDown, surfacePreviewDown);
+            remember(cycleDown, radialDown, surfacePreviewDown, pairingOperationDown);
             return;
         }
         if (surfacePreviewDown && !surfacePreviewWasDown) {
@@ -72,7 +89,7 @@ public final class ModeRadialInput {
             }
             cycleHeldTicks = 0;
         }
-        remember(cycleDown, radialDown, surfacePreviewDown);
+        remember(cycleDown, radialDown, surfacePreviewDown, pairingOperationDown);
     }
 
     public static void openFromServer(int requestId) {
@@ -143,18 +160,22 @@ public final class ModeRadialInput {
         return sourceDown(source, keys.cycleDown(), keys.radialDown(), keys.precisionDown());
     }
 
-    private static void remember(boolean cycleDown, boolean radialDown, boolean surfacePreviewDown) {
+    private static void remember(boolean cycleDown, boolean radialDown, boolean surfacePreviewDown,
+                                 boolean pairingOperationDown) {
         cycleWasDown = cycleDown;
         radialWasDown = radialDown;
         surfacePreviewWasDown = surfacePreviewDown;
+        pairingOperationWasDown = pairingOperationDown;
     }
 
-    private static void reset(boolean cycleDown, boolean radialDown, boolean surfacePreviewDown) {
+    private static void reset(boolean cycleDown, boolean radialDown, boolean surfacePreviewDown,
+                              boolean pairingOperationDown) {
         pendingSource = null;
         pendingPrecisionRequest = null;
         REQUEST.cancel();
         cycleHeldTicks = 0;
-        remember(cycleDown, radialDown, surfacePreviewDown);
+        cycleShortcutConsumed = false;
+        remember(cycleDown, radialDown, surfacePreviewDown, pairingOperationDown);
     }
 
     private enum Source { CYCLE, DEDICATED, PRECISION_PREVIEW }

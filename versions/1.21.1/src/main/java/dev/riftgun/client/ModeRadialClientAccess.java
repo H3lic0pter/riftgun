@@ -10,6 +10,7 @@ import dev.riftgun.network.SurfaceFaceRequest;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.service.PortalPlacementCapabilities;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -21,7 +22,9 @@ final class ModeRadialClientAccess {
         return new Keys(
             ClientKeyState.down(ClientModEvents.CYCLE_PLACEMENT),
             ClientKeyState.down(ClientModEvents.OPEN_MODE_RADIAL),
-            ClientKeyState.down(ClientModEvents.OPEN_PRECISION_PLACEMENT));
+            ClientKeyState.down(ClientModEvents.OPEN_PRECISION_PLACEMENT),
+            ClientKeyState.down(ClientModEvents.PORTAL_PAIRING_OPERATION),
+            Screen.hasAltDown());
     }
 
     static boolean radialScreenOpen() {
@@ -77,6 +80,16 @@ final class ModeRadialClientAccess {
             tag -> tag.putBoolean("Reverse", reverse));
     }
 
+    static void sendToggleFunctionRequest() {
+        PortalNetworking.sendShortcutRequest(PortalAction.TOGGLE_FUNCTION_MODE);
+    }
+
+    static void commitPairingShortcut() {
+        if (Minecraft.getInstance().screen instanceof ModeRadialScreen screen) {
+            screen.commitPairingShortcut();
+        }
+    }
+
     static void openOrRefresh(PrecisionPlacementRequest precisionRequest) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen == null) {
@@ -109,7 +122,8 @@ final class ModeRadialClientAccess {
             : pitch <= -threshold ? PortalOrientation.BOTTOM : PortalOrientation.VERTICAL;
     }
 
-    record Keys(boolean cycleDown, boolean radialDown, boolean precisionDown) {}
+    record Keys(boolean cycleDown, boolean radialDown, boolean precisionDown,
+                boolean pairingOperationDown, boolean altDown) {}
 
     private ModeRadialClientAccess() {}
 }
