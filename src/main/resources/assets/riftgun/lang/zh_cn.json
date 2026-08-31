@@ -19,6 +19,7 @@
   "key.riftgun.open_surface_face_preview": "精确放置",
   "key.riftgun.force_front": "快捷操作：在面前开启传送门",
   "key.riftgun.force_surface": "快捷操作：在方块表面开启传送门",
+  "key.riftgun.force_remote": "快捷操作：远端开启传送门",
   "screen.riftgun.config": "传送目的地",
   "screen.riftgun.details": "详情",
   "screen.riftgun.search": "搜索",

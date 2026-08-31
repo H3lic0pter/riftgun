@@ -106,9 +106,16 @@ public record PortalGunCapabilities(
         return effectivePlacementMode(preferred, remote);
     }
 
+    public boolean usesRemoteDistanceControls(PortalPlacementMode placementMode) {
+        return usesRemoteDistanceControls(placementMode, functionMode, activeSmartFallback());
+    }
+
     public static boolean usesRemoteDistanceControls(PortalPlacementMode placementMode,
-                                                     PortalFunctionMode functionMode) {
+                                                     PortalFunctionMode functionMode,
+                                                     PortalFloatingFallback smartFallback) {
         return placementMode == PortalPlacementMode.REMOTE
+            || placementMode == PortalPlacementMode.SMART
+                && smartFallback == PortalFloatingFallback.REMOTE
             || placementMode == PortalPlacementMode.ENTITY_RELOCATION
                 && functionMode == PortalFunctionMode.PORTAL_PAIRING;
     }

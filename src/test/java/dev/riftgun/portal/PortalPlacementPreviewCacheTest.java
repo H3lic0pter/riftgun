@@ -1,8 +1,11 @@
 package dev.riftgun.portal;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -63,6 +66,21 @@ final class PortalPlacementPreviewCacheTest {
         assertSame(placement, cache.placement());
         cache.clear();
         assertNull(cache.placement());
+    }
+
+    @Test
+    void horizontalSurfacePreviewOmitsTheFloatingDirectionArrow() {
+        PortalPlacementPreviewCache cache = new PortalPlacementPreviewCache();
+        PortalPlacement topSurface = new PortalPlacement(new Vec3(0.5, 1.1, 0.5),
+            PortalOrientation.TOP, PortalGeometry.HORIZONTAL, 0.0F,
+            BlockPos.ZERO, Direction.UP);
+
+        cache.updateSurface(0, input(32, Vec3.ZERO), topSurface);
+        assertEquals(8, cache.segments().size());
+
+        cache.update(1, input(32, Vec3.ZERO), topSurface);
+        assertEquals(11, cache.segments().size(),
+            "floating horizontal previews must retain their three-segment direction arrow");
     }
 
     private static PortalPlacementPreviewCache.Input input(int range, Vec3 eye) {

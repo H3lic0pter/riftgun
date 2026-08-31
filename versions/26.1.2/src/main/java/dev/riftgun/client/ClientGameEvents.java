@@ -19,12 +19,8 @@ import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalModuleRegistry;
 import dev.riftgun.module.PortalModules;
-import dev.riftgun.module.PortalGunModuleSettings;
-import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.portal.CoordinateNoteItem;
 import dev.riftgun.pairing.PortalPairingLabels;
-import dev.riftgun.pairing.PortalFunctionMode;
-import dev.riftgun.core.nbt.Nbt;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -72,6 +68,9 @@ public final class ClientGameEvents {
         while (ClientModEvents.FORCE_SURFACE.consumeClick()) {
             sendForcedOpen(minecraft, PortalPlacementMode.SURFACE);
         }
+        while (ClientModEvents.FORCE_REMOTE.consumeClick()) {
+            sendForcedOpen(minecraft, PortalPlacementMode.REMOTE);
+        }
         while (ClientModEvents.CLOSE_PORTALS.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
                 PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS);
@@ -116,17 +115,13 @@ public final class ClientGameEvents {
         if (minecraft.player == null || minecraft.getConnection() == null
             || !minecraft.player.isShiftKeyDown() || event.getScrollDeltaY() == 0.0) return;
         var gun = minecraft.player.getMainHandItem();
-        PortalFunctionMode functionMode = "PORTAL_PAIRING".equals(
-            Nbt.getString(PortalClientState.gun(), "FunctionMode"))
-            ? PortalFunctionMode.PORTAL_PAIRING : PortalFunctionMode.COORDINATE_TRAVEL;
-        if (!gun.is(RiftContent.PORTAL_GUN.get())
-            || !PortalGunCapabilities.usesRemoteDistanceControls(
-                PortalClientState.data().settings().placementMode(), functionMode)
-            || PortalGunModules.activeCount(gun, PortalModuleKind.REMOTE,
-                PortalClientState.moduleRules()) <= 0
-            || !PortalGunModuleSettings.get(gun,
-                PortalClientState.data().settings().smartDistance())
-                .remote().scrollAdjustmentEnabled()) return;
+        if (!gun.is(RiftContent.PORTAL_GUN.get())) return;
+        PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
+            gun, PortalClientState.data().settings().smartDistance(), PortalClientState.moduleRules());
+        if (!capabilities.remote()
+            || !capabilities.remoteScrollAdjustment()
+            || !capabilities.usesRemoteDistanceControls(
+                PortalClientState.data().settings().placementMode())) return;
         event.setCanceled(true);
         PortalNetworking.sendShortcutRequest(PortalAction.ADJUST_SURFACE_RANGE,
             tag -> tag.putInt("Step", event.getScrollDeltaY() > 0.0 ? 1 : -1));

@@ -329,8 +329,8 @@ final class PortalGunActions {
             throw PortalRequestFields.error("message.riftgun.remote_module_required");
         }
         if (!capabilities.remoteScrollAdjustment()
-            || !PortalGunCapabilities.usesRemoteDistanceControls(
-                data.settings().placementMode(), capabilities.functionMode())) return false;
+            || !capabilities.usesRemoteDistanceControls(
+                data.settings().placementMode())) return false;
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(
             gun, data.settings().smartDistance());
         int current = Math.clamp(settings.desiredRemoteDistance(), 1,

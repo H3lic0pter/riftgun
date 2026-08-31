@@ -68,7 +68,7 @@ public final class PortalPlacementPreview {
         tickPending(minecraft, gun);
         tickEntityTarget(minecraft, gun);
         if (tickPrecision(minecraft, tick, gun)) return;
-        if (tickPairingEntityTargetPreview(minecraft, tick, gun)) return;
+        if (tickShiftRoutedPreview(minecraft, tick, gun)) return;
         PortalPlacementPreviewCache.Input input = input(minecraft, gun);
         if (input == null) {
             CACHE.clear();
@@ -90,9 +90,8 @@ public final class PortalPlacementPreview {
         }
         if (minecraft.player != null && minecraft.screen == null && gun != null
             && minecraft.player.isShiftKeyDown()
-            && gun.functionMode() == dev.riftgun.pairing.PortalFunctionMode.PORTAL_PAIRING
-            && gun.placementMode() == PortalPlacementMode.ENTITY_RELOCATION) {
-            return PreviewContext.PAIRING_ENTITY;
+            && usesShiftRoutedPreview(gun)) {
+            return PreviewContext.SHIFT_ROUTED;
         }
         return input(minecraft, gun) == null ? PreviewContext.NONE : PreviewContext.REMOTE;
     }
@@ -217,33 +216,36 @@ public final class PortalPlacementPreview {
         if (!CACHE.shouldRefresh(tick, input)) return true;
         Vec3 faceCenter = Vec3.atCenterOf(anchor).add(new Vec3(
             face.getStepX(), face.getStepY(), face.getStepZ()).scale(0.5));
-        CACHE.update(tick, input, surfacePreview(minecraft, gun,
+        CACHE.updateSurface(tick, input, surfacePreview(minecraft, gun,
             new SurfaceFaceRequest(anchor, face),
             minecraft.player.getEyePosition().distanceTo(faceCenter), range));
         return true;
     }
 
-    private static boolean tickPairingEntityTargetPreview(Minecraft minecraft, long tick,
-                                                            PortalPreviewGunState gun) {
+    private static boolean tickShiftRoutedPreview(Minecraft minecraft, long tick,
+                                                   PortalPreviewGunState gun) {
         if (minecraft.level == null || minecraft.player == null || minecraft.screen != null
-            || gun == null || !minecraft.player.isShiftKeyDown()
-            || gun.functionMode() != dev.riftgun.pairing.PortalFunctionMode.PORTAL_PAIRING
-            || gun.placementMode() != PortalPlacementMode.ENTITY_RELOCATION) return false;
+            || gun == null || !minecraft.player.isShiftKeyDown()) return false;
+        if (!usesShiftRoutedPreview(gun)) return false;
+        boolean smartRemote = gun.remote() && gun.placementMode() == PortalPlacementMode.SMART
+            && gun.smartFallback() == dev.riftgun.pairing.PortalFloatingFallback.REMOTE;
+        int surfaceRange = smartRemote ? gun.smartDistance() : gun.maximumSurfaceRange();
         Vec3 eye = minecraft.player.getEyePosition();
         HitResult raw = minecraft.level.clip(new ClipContext(eye,
             eye.add(minecraft.player.getLookAngle().scale(gun.maximumSurfaceRange())),
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, minecraft.player));
-        if (raw instanceof BlockHitResult hit && raw.getType() == HitResult.Type.BLOCK) {
+        if (raw instanceof BlockHitResult hit && raw.getType() == HitResult.Type.BLOCK
+            && eye.distanceTo(hit.getLocation()) <= surfaceRange) {
             SurfaceFaceRequest request = new SurfaceFaceRequest(hit.getBlockPos(), hit.getDirection());
             PortalPlacementPreviewCache.Input input = new PortalPlacementPreviewCache.Input(
-                eye, minecraft.player.getLookAngle(), gun.maximumSurfaceRange(), gun.aperture(),
+                eye, minecraft.player.getLookAngle(), surfaceRange, gun.aperture(),
                 minecraft.player.getXRot(), minecraft.player.getYRot(),
                 hit.getBlockPos(), hit.getDirection());
             if (!CACHE.shouldRefresh(tick, input)) return true;
             PortalPlacement surface = surfacePreview(minecraft, gun, request,
                 eye.distanceTo(hit.getLocation()), gun.maximumSurfaceRange());
             if (surface != null) {
-                CACHE.update(tick, input, surface);
+                CACHE.updateSurface(tick, input, surface);
                 return true;
             }
         }
@@ -253,6 +255,15 @@ public final class PortalPlacementPreview {
             minecraft.player.getXRot(), minecraft.player.getYRot());
         if (CACHE.shouldRefresh(tick, input)) updateRemotePreview(minecraft, tick, input, null);
         return true;
+    }
+
+    private static boolean usesShiftRoutedPreview(PortalPreviewGunState gun) {
+        boolean pairingEntity = gun.functionMode()
+            == dev.riftgun.pairing.PortalFunctionMode.PORTAL_PAIRING
+            && gun.placementMode() == PortalPlacementMode.ENTITY_RELOCATION;
+        boolean smartRemote = gun.remote() && gun.placementMode() == PortalPlacementMode.SMART
+            && gun.smartFallback() == dev.riftgun.pairing.PortalFloatingFallback.REMOTE;
+        return pairingEntity || smartRemote;
     }
 
     private static PortalPlacement surfacePreview(Minecraft minecraft, PortalPreviewGunState gun,
@@ -348,7 +359,7 @@ public final class PortalPlacementPreview {
             .setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
     }
 
-    private enum PreviewContext { NONE, REMOTE, PRECISION, PAIRING_ENTITY }
+    private enum PreviewContext { NONE, REMOTE, PRECISION, SHIFT_ROUTED }
 
     private PortalPlacementPreview() {}
 }

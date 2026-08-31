@@ -29,14 +29,26 @@ public final class PortalPlacementPreviewCache {
         updateMeasured(tick, input, placement, 0L);
     }
 
+    /** Attached surfaces already communicate their normal, so their outline needs no direction arrow. */
+    public void updateSurface(long tick, Input input, PortalPlacement placement) {
+        updateState(tick, input, placement, 0L, true);
+    }
+
     public void updateMeasured(long tick, Input input, PortalPlacement placement,
                                long elapsedNanos) {
+        updateState(tick, input, placement, elapsedNanos, false);
+    }
+
+    private void updateState(long tick, Input input, PortalPlacement placement,
+                             long elapsedNanos, boolean surfaceOutline) {
         lastInput = input;
         lastRefreshTick = tick;
         nextRefreshTick = tick + refreshInterval(input.range(), elapsedNanos);
         this.placement = placement;
         segments = placement == null
-            ? List.of() : PortalPlacementPreviewGeometry.visibleOutline(placement);
+            ? List.of() : surfaceOutline
+                ? PortalPlacementPreviewGeometry.corners(placement)
+                : PortalPlacementPreviewGeometry.visibleOutline(placement);
     }
 
     public List<PortalPlacementPreviewGeometry.Segment> segments() {

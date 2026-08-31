@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.pairing.PortalFloatingFallback;
 import dev.riftgun.pairing.PortalFunctionMode;
 import org.junit.jupiter.api.Test;
 
@@ -37,14 +38,27 @@ final class PortalGunCapabilitiesTest {
     }
 
     @Test
-    void remoteDistanceControlsRemoteAndPairingEntityPlacement() {
+    void remoteDistanceControlsFollowEffectiveRemoteRoutes() {
         assertTrue(PortalGunCapabilities.usesRemoteDistanceControls(
-            PortalPlacementMode.REMOTE, PortalFunctionMode.COORDINATE_TRAVEL));
+            PortalPlacementMode.REMOTE, PortalFunctionMode.COORDINATE_TRAVEL,
+            PortalFloatingFallback.FRONT));
         assertTrue(PortalGunCapabilities.usesRemoteDistanceControls(
-            PortalPlacementMode.ENTITY_RELOCATION, PortalFunctionMode.PORTAL_PAIRING));
+            PortalPlacementMode.SMART, PortalFunctionMode.COORDINATE_TRAVEL,
+            PortalFloatingFallback.REMOTE));
+        assertTrue(PortalGunCapabilities.usesRemoteDistanceControls(
+            PortalPlacementMode.SMART, PortalFunctionMode.PORTAL_PAIRING,
+            PortalFloatingFallback.REMOTE));
+        assertTrue(PortalGunCapabilities.usesRemoteDistanceControls(
+            PortalPlacementMode.ENTITY_RELOCATION, PortalFunctionMode.PORTAL_PAIRING,
+            PortalFloatingFallback.FRONT));
         assertFalse(PortalGunCapabilities.usesRemoteDistanceControls(
-            PortalPlacementMode.ENTITY_RELOCATION, PortalFunctionMode.COORDINATE_TRAVEL));
+            PortalPlacementMode.SMART, PortalFunctionMode.COORDINATE_TRAVEL,
+            PortalFloatingFallback.FRONT));
         assertFalse(PortalGunCapabilities.usesRemoteDistanceControls(
-            PortalPlacementMode.FRONT, PortalFunctionMode.PORTAL_PAIRING));
+            PortalPlacementMode.ENTITY_RELOCATION, PortalFunctionMode.COORDINATE_TRAVEL,
+            PortalFloatingFallback.REMOTE));
+        assertFalse(PortalGunCapabilities.usesRemoteDistanceControls(
+            PortalPlacementMode.FRONT, PortalFunctionMode.PORTAL_PAIRING,
+            PortalFloatingFallback.REMOTE));
     }
 }

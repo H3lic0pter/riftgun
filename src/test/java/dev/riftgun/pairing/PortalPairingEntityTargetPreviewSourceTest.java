@@ -27,22 +27,27 @@ final class PortalPairingEntityTargetPreviewSourceTest {
     }
 
     @Test
-    void heldSneakPreviewsTheSameSurfaceThenRemoteTargetingPolicy() throws IOException {
+    void heldSneakPreviewsSurfaceThenRemoteForEntityAndSmartRoutes() throws IOException {
         for (String version : new String[] {"1.21.1", "26.1.2"}) {
             Path previewPath = Path.of("versions", version, "src", "main", "java", "dev",
                 "riftgun", "client", "render", "PortalPlacementPreview.java");
             String preview = Files.readString(previewPath);
-            int start = preview.indexOf("private static boolean tickPairingEntityTargetPreview");
+            int start = preview.indexOf("private static boolean tickShiftRoutedPreview");
             int end = preview.indexOf("private static PortalPlacement surfacePreview", start);
             String livePreview = preview.substring(start, end);
 
             assertTrue(livePreview.contains("minecraft.player.isShiftKeyDown()"), version);
-            assertTrue(livePreview.contains("PortalPlacementMode.ENTITY_RELOCATION"), version);
+            assertTrue(livePreview.contains("usesShiftRoutedPreview(gun)"), version);
+            assertTrue(livePreview.contains("gun.smartDistance()"), version);
             assertTrue(livePreview.contains("SurfaceFaceRequest"), version);
             assertTrue(livePreview.contains("surfacePreview("), version);
+            assertTrue(livePreview.contains("CACHE.updateSurface("), version);
             assertTrue(livePreview.contains("updateRemotePreview("), version);
             assertTrue(livePreview.contains(
                 "gun.remote() ? gun.remoteDistance() : gun.maximumSurfaceRange()"), version);
+            assertTrue(preview.contains("PortalPlacementMode.ENTITY_RELOCATION"), version);
+            assertTrue(preview.contains("PortalPlacementMode.SMART"), version);
+            assertTrue(preview.contains("PortalFloatingFallback.REMOTE"), version);
         }
     }
 }

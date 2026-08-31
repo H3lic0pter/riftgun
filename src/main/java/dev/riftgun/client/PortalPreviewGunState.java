@@ -24,6 +24,7 @@ public record PortalPreviewGunState(
     PortalPlacementMode placementMode,
     PortalFloatingFallback smartFallback,
     int maximumSurfaceRange,
+    int smartDistance,
     int remoteDistance,
     PortalAperture aperture,
     boolean remote,
@@ -42,7 +43,8 @@ public record PortalPreviewGunState(
         return new PortalPreviewGunState(gunId, capabilities.functionMode(),
             capabilities.effectivePlacementMode(data.settings().placementMode()),
             capabilities.activeSmartFallback(), capabilities.maximumSurfaceRange(),
-            capabilities.remoteDistance(), capabilities.aperture(), capabilities.remote(),
+            capabilities.smartDistance(), capabilities.remoteDistance(), capabilities.aperture(),
+            capabilities.remote(),
             PortalGunModuleSettings.get(gun, smartDistance).remote().placementPreviewEnabled(), pending);
     }
 
@@ -70,6 +72,7 @@ public record PortalPreviewGunState(
         if (pending != null && !pending.validFor(ownerId, gunId, now)) pending = null;
         int maximum = Math.max(1, Nbt.getInt(snapshot, "MaximumSurfaceRange"));
         return new PortalPreviewGunState(gunId, function, effective, fallback, maximum,
+            Math.clamp(Nbt.getInt(snapshot, "SmartDistance"), 1, maximum),
             Math.clamp(Nbt.getInt(snapshot, "RemoteDistance"), 1, maximum),
             Nbt.getBoolean(snapshot, "ExpandedApertureEnabled")
                 ? PortalAperture.EXPANDED : PortalAperture.STANDARD,

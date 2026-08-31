@@ -295,6 +295,10 @@ public final class PortalRequestHandler {
 
     private static void openSelected(ServerPlayer player, PortalPlayerData data,
                                      PortalPlacementMode mode, PortalGunLocator.LocatedGun gun) {
+        if (mode == PortalPlacementMode.REMOTE
+            && !PortalGunCapabilities.resolve(gun.stack(), data.settings().smartDistance()).remote()) {
+            throw PortalRequestFields.error("message.riftgun.remote_module_required");
+        }
         if (PortalPlayerTargetActions.openSelected(player, data, mode, gun, false)) return;
         if (ExternalDestinationActions.openSelected(player, data, mode, gun, false)) return;
         UUID selected = data.selectedDestinationId();

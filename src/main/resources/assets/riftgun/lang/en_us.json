@@ -19,6 +19,7 @@
   "key.riftgun.open_surface_face_preview": "Precision Placement",
   "key.riftgun.force_front": "Quick Action: Open Portal in Front",
   "key.riftgun.force_surface": "Quick Action: Open Portal on a Surface",
+  "key.riftgun.force_remote": "Quick Action: Open Portal Remotely",
   "key.riftgun.close_portals": "Close Portals",
   "screen.riftgun.config": "Portal Destinations",
   "screen.riftgun.details": "DETAILS",

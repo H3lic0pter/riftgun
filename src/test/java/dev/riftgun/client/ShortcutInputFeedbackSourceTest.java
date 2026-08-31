@@ -91,6 +91,32 @@ final class ShortcutInputFeedbackSourceTest {
         assertTrue(pairing.contains("precisionRequest.previewPlacement()"));
     }
 
+    @Test
+    void remoteQuickActionIsRegisteredAndServerValidated() throws Exception {
+        for (String version : VERSIONS) {
+            String mappings = Files.readString(Path.of("versions", version, "src", "main", "java",
+                "dev", "riftgun", "client", "ClientModEvents.java"));
+            assertTrue(mappings.contains("KeyMapping FORCE_REMOTE"),
+                version + " must declare the Remote quick action");
+            assertTrue(mappings.contains("event.register(FORCE_REMOTE)"),
+                version + " must register the Remote quick action");
+
+            String events = Files.readString(Path.of("versions", version, "src", "main", "java",
+                "dev", "riftgun", "client", "ClientGameEvents.java"));
+            assertTrue(events.contains("FORCE_REMOTE.consumeClick()"),
+                version + " must consume the Remote quick action");
+            assertTrue(events.contains("sendForcedOpen(minecraft, PortalPlacementMode.REMOTE)"),
+                version + " must request Remote placement");
+        }
+
+        String handler = Files.readString(Path.of(
+            "src/main/java/dev/riftgun/network/PortalRequestHandler.java"));
+        String openSelected = method(handler, "private static void openSelected(",
+            "private static void openSelectedSurfaceFace(");
+        assertTrue(openSelected.contains("message.riftgun.remote_module_required"),
+            "the server must reject Remote quick actions without the module");
+    }
+
     private static String method(String source, String startMarker, String endMarker) {
         int start = source.indexOf(startMarker);
         int end = source.indexOf(endMarker, start + startMarker.length());

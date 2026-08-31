@@ -61,6 +61,10 @@ public final class ClientModEvents {
         "key.riftgun.force_surface", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
         RIFTGUN_CATEGORY
     );
+    public static final KeyMapping FORCE_REMOTE = new KeyMapping(
+        "key.riftgun.force_remote", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
+        RIFTGUN_CATEGORY
+    );
     public static final KeyMapping CLOSE_PORTALS = new KeyMapping(
         "key.riftgun.close_portals", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(),
         RIFTGUN_CATEGORY
@@ -106,6 +110,7 @@ public final class ClientModEvents {
         event.register(OPEN_PRECISION_PLACEMENT);
         event.register(FORCE_FRONT);
         event.register(FORCE_SURFACE);
+        event.register(FORCE_REMOTE);
         event.register(CLOSE_PORTALS);
         event.register(ENTITY_RELOCATION);
         event.register(PORTAL_PAIRING_OPERATION);
