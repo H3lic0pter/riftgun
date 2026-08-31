@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ECE", "OAO", "ELE"],
+  "key": {
+    "E": "minecraft:ender_eye",
+    "C": "minecraft:end_crystal",
+    "O": "minecraft:crying_obsidian",
+    "A": "riftgun:advanced_basic_module",
+    "L": "minecraft:lodestone"
+  },
+  "result": { "id": "riftgun:dimensional_traversal_module", "count": 1 }
+}

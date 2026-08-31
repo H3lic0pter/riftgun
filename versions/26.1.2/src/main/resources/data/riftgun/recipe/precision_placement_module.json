@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CSC", "OMO", "QLQ"],
+  "key": {
+    "C": "minecraft:copper_ingot",
+    "S": "minecraft:target",
+    "O": "minecraft:observer",
+    "M": "riftgun:basic_module",
+    "Q": "minecraft:quartz",
+    "L": "minecraft:lever"
+  },
+  "result": { "id": "riftgun:precision_placement_module", "count": 1 }
+}

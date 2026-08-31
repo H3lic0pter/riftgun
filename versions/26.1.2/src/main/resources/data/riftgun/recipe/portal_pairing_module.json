@@ -1,13 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "pattern": ["QEQ", "RMR", "QCQ"],
+  "pattern": ["KEO", "TMC", "OEK"],
   "key": {
-    "Q": "minecraft:quartz",
+    "K": "minecraft:poisonous_potato",
     "E": "minecraft:ender_pearl",
-    "R": "#c:dusts/redstone",
+    "O": "minecraft:iron_chain",
+    "T": "minecraft:oxidized_copper",
     "M": "riftgun:basic_module",
-    "C": "minecraft:compass"
+    "C": "minecraft:copper_block"
   },
   "result": { "id": "riftgun:portal_pairing_module", "count": 1 }
 }
