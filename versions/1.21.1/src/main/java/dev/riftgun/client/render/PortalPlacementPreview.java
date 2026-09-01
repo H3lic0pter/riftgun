@@ -14,6 +14,7 @@ import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
+import dev.riftgun.portal.PortalPreviewCoordinates;
 import dev.riftgun.service.PortalPlacementCapabilities;
 import dev.riftgun.service.FrontPortalPlacementPlanner;
 import dev.riftgun.service.PortalFaceExposure;
@@ -34,8 +35,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import org.joml.Matrix4f;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -105,17 +104,15 @@ public final class PortalPlacementPreview {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
 
-        PoseStack poses = event.getPoseStack();
+        PoseStack.Pose pose = event.getPoseStack().last();
         Vec3 camera = event.getCamera().getPosition();
-        poses.pushPose();
-        poses.translate(-camera.x, -camera.y, -camera.z);
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
         RenderType renderType = RenderType.lines();
-        draw(poses.last(), buffers.getBuffer(renderType), segments);
-        drawColored(poses.last(), buffers.getBuffer(renderType), pendingSegments);
-        drawColored(poses.last(), buffers.getBuffer(renderType), entityTargetSegments);
+        VertexConsumer vertices = buffers.getBuffer(renderType);
+        draw(pose, vertices, camera, segments);
+        drawColored(pose, vertices, camera, pendingSegments);
+        drawColored(pose, vertices, camera, entityTargetSegments);
         buffers.endBatch(renderType);
-        poses.popPose();
     }
 
     private static void tickPending(Minecraft minecraft, PortalPreviewGunState gun) {
@@ -332,30 +329,31 @@ public final class PortalPlacementPreview {
             PortalClientState.moduleRules(), minecraft.player.getUUID(), now);
     }
 
-    private static void draw(PoseStack.Pose pose, VertexConsumer vertices,
+    private static void draw(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
                              List<PortalPlacementPreviewGeometry.Segment> segments) {
-        Matrix4f matrix = pose.pose();
         for (PortalPlacementPreviewGeometry.Segment segment : segments) {
             Vec3 direction = segment.to().subtract(segment.from()).normalize();
-            vertex(vertices, pose, matrix, segment.from(), direction, COLOR);
-            vertex(vertices, pose, matrix, segment.to(), direction, COLOR);
+            vertex(vertices, pose, camera, segment.from(), direction, COLOR);
+            vertex(vertices, pose, camera, segment.to(), direction, COLOR);
         }
     }
 
-    private static void drawColored(PoseStack.Pose pose, VertexConsumer vertices,
+    private static void drawColored(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
                                     List<PortalPairingPreviewGeometry.ColoredSegment> segments) {
-        Matrix4f matrix = pose.pose();
         for (PortalPairingPreviewGeometry.ColoredSegment colored : segments) {
             var segment = colored.geometry();
             Vec3 direction = segment.to().subtract(segment.from()).normalize();
-            vertex(vertices, pose, matrix, segment.from(), direction, colored.color());
-            vertex(vertices, pose, matrix, segment.to(), direction, colored.color());
+            vertex(vertices, pose, camera, segment.from(), direction, colored.color());
+            vertex(vertices, pose, camera, segment.to(), direction, colored.color());
         }
     }
 
-    private static void vertex(VertexConsumer vertices, PoseStack.Pose pose, Matrix4f matrix,
+    private static void vertex(VertexConsumer vertices, PoseStack.Pose pose, Vec3 camera,
                                Vec3 point, Vec3 direction, int color) {
-        vertices.addVertex(matrix, (float) point.x, (float) point.y, (float) point.z)
+        vertices.addVertex(pose,
+                PortalPreviewCoordinates.relativeTo(camera.x, point.x),
+                PortalPreviewCoordinates.relativeTo(camera.y, point.y),
+                PortalPreviewCoordinates.relativeTo(camera.z, point.z))
             .setColor(color)
             .setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
     }

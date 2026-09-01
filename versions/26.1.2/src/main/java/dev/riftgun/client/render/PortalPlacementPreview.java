@@ -14,6 +14,7 @@ import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPlacementPreviewCache;
 import dev.riftgun.portal.PortalPlacementPreviewGeometry;
+import dev.riftgun.portal.PortalPreviewCoordinates;
 import dev.riftgun.service.PortalPlacementCapabilities;
 import dev.riftgun.service.FrontPortalPlacementPlanner;
 import dev.riftgun.service.PortalFaceExposure;
@@ -361,9 +362,9 @@ public final class PortalPlacementPreview {
     private static void vertex(VertexConsumer vertices, PoseStack.Pose pose,
                                Vec3 camera, Vec3 point, Vec3 direction, int color) {
         vertices.addVertex(pose,
-                PortalPreviewCameraCoordinates.relativeTo(camera.x, point.x),
-                PortalPreviewCameraCoordinates.relativeTo(camera.y, point.y),
-                PortalPreviewCameraCoordinates.relativeTo(camera.z, point.z))
+                PortalPreviewCoordinates.relativeTo(camera.x, point.x),
+                PortalPreviewCoordinates.relativeTo(camera.y, point.y),
+                PortalPreviewCoordinates.relativeTo(camera.z, point.z))
             .setColor(color)
             .setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z)
             .setLineWidth(2.5F);

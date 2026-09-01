@@ -37,6 +37,21 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
         String method = source.substring(methodStart, methodEnd);
 
         assertEquals(1, occurrences(method, ".submitCustomGeometry("));
+        assertTrue(source.contains(
+            "PortalPreviewCoordinates.relativeTo(camera.x, point.x)"));
+        assertFalse(source.contains("poses.translate(-state.camera()"));
+    }
+
+    @Test
+    void legacyPreviewKeepsTheSharedBatchButUsesCameraRelativeVertices() throws Exception {
+        String source = Files.readString(Path.of("versions", "1.21.1", "src", "main",
+            "java", "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
+
+        assertTrue(source.contains("minecraft.renderBuffers().bufferSource()"));
+        assertTrue(source.contains(
+            "PortalPreviewCoordinates.relativeTo(camera.x, point.x)"));
+        assertFalse(source.contains("ByteBufferBuilder"));
+        assertFalse(source.contains("poses.translate(-camera.x"));
     }
 
     private static int occurrences(String source, String token) {
