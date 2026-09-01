@@ -8,6 +8,8 @@ import dev.riftgun.external.client.ExternalDestination;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static dev.riftgun.ui.PortalConfigRows.RowKind.DESTINATION;
@@ -41,7 +43,7 @@ final class PortalConfigRowsTest {
             ExternalDestinationSource.JOURNEYMAP, true, true, false, List.of(external));
         UUID playerId = UUID.randomUUID();
         var players = new PortalConfigRows.PlayerSection(true, false,
-            List.of(new PortalConfigRows.PlayerEntry(playerId, "Moonwalker", false, 0)));
+            List.of(new TestPlayerEntry(playerId, "Moonwalker", false, 0)));
 
         var result = build(data, "moon", List.of(externalSection), players);
         assertTrue(result.rows().stream().anyMatch(row -> row.kind() == EXTERNAL_DESTINATION));
@@ -65,14 +67,16 @@ final class PortalConfigRowsTest {
         assertEquals(List.of(PortalPlayerData.DEFAULT_GROUP_ID, early, late), groups);
     }
 
-    private static PortalConfigRows.Result build(
+    private static BuiltRows build(
         PortalPlayerData data, String query,
         List<PortalConfigRows.ExternalSection> external,
         PortalConfigRows.PlayerSection players
     ) {
-        return PortalConfigRows.build(data, query,
+        Map<UUID, ExternalDestination> externalRows = new HashMap<>();
+        List<PortalConfigRows.Row> rows = PortalConfigRows.build(data, query,
             id -> data.group(id).map(DestinationGroup::name).orElse("Default"),
-            ignored -> 0.0, external, players);
+            ignored -> 0.0, external, players, externalRows);
+        return new BuiltRows(rows, externalRows);
     }
 
     private static PortalConfigRows.PlayerSection emptyPlayers() {
@@ -84,4 +88,12 @@ final class PortalConfigRowsTest {
         return new Destination(id, name, PortalPlayerData.DEFAULT_GROUP_ID, null,
             0, 64, 0, 0, 0, lastUsedAt, pinned);
     }
+
+    private record TestPlayerEntry(UUID id, String name, boolean pinned, int serverOrder)
+        implements PortalConfigRows.PlayerEntryView {}
+
+    private record BuiltRows(
+        List<PortalConfigRows.Row> rows,
+        Map<UUID, ExternalDestination> externalRows
+    ) {}
 }

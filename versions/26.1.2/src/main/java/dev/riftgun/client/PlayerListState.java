@@ -1,6 +1,7 @@
 package dev.riftgun.client;
 
 import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.ui.PortalConfigRows.PlayerEntryView;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +58,7 @@ public final class PlayerListState {
 
     public record PlayerEntry(UUID id, String name, String dimension,
                               boolean pinned, long lastUse, boolean self,
-                              int serverOrder) {
+                              int serverOrder) implements PlayerEntryView {
         public PlayerEntry withPinned(boolean nextPinned) {
             return new PlayerEntry(id, name, dimension, nextPinned, lastUse, self, serverOrder);
         }

@@ -46,7 +46,6 @@ import dev.riftgun.ui.PortalConfigLayout.Box;
 import dev.riftgun.ui.PortalConfigPage;
 import dev.riftgun.ui.PortalConfigRows;
 import dev.riftgun.ui.PortalConfigRows.ExternalSection;
-import dev.riftgun.ui.PortalConfigRows.PlayerEntry;
 import dev.riftgun.ui.PortalConfigRows.PlayerSection;
 import dev.riftgun.ui.PortalConfigRows.Row;
 import dev.riftgun.ui.PortalConfigRows.RowKind;
@@ -1918,15 +1917,10 @@ public final class PortalConfigScreen extends Screen {
                 expandedExternalGroups.contains(source),
                 ClientMapWaypointIntegration.catalog().destinations(source)));
         }
-        List<PlayerEntry> players = PlayerListState.players().stream()
-            .map(entry -> new PlayerEntry(entry.id(), entry.name(), entry.pinned(), entry.serverOrder()))
-            .toList();
-        PortalConfigRows.Result result = PortalConfigRows.build(data, query, this::groupName,
+        return PortalConfigRows.build(data, query, this::groupName,
             this::distanceSquared, externalSections,
-            new PlayerSection(playerTargets.visible(), playerTargets.expanded(), players));
-        externalRows.clear();
-        externalRows.putAll(result.externalRows());
-        return result.rows();
+            new PlayerSection(playerTargets.visible(), playerTargets.expanded(),
+                PlayerListState.players()), externalRows);
     }
 
     private void drawGunSettingDescription(GuiGraphicsExtractor graphics, Box box) {

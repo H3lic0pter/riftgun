@@ -104,8 +104,9 @@ public final class PortalPlacementPreview {
 
     @SubscribeEvent
     public static void renderLevel(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
         PortalPlacementPreviewEngine.Frame frame = ENGINE.frame();
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || frame.isEmpty()) return;
+        if (frame.isEmpty()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
 

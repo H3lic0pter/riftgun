@@ -10,7 +10,6 @@ import dev.riftgun.external.client.ExternalDestination;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -20,14 +19,15 @@ import java.util.function.ToDoubleFunction;
 
 /** Builds one semantic row list from server, map-integration, and player snapshots. */
 public final class PortalConfigRows {
-    public static Result build(PortalPlayerData data, String query,
-                               Function<UUID, String> groupName,
-                               ToDoubleFunction<Destination> distance,
-                               List<ExternalSection> externalSections,
-                               PlayerSection playerSection) {
+    public static List<Row> build(PortalPlayerData data, String query,
+                                  Function<UUID, String> groupName,
+                                  ToDoubleFunction<Destination> distance,
+                                  List<ExternalSection> externalSections,
+                                  PlayerSection playerSection,
+                                  Map<UUID, ExternalDestination> externalRows) {
         String normalized = query.strip().toLowerCase(Locale.ROOT);
         List<Row> rows = new ArrayList<>();
-        Map<UUID, ExternalDestination> externalRows = new HashMap<>();
+        externalRows.clear();
         for (UUID groupId : orderedGroupIds(data)) {
             String name = groupName.apply(groupId);
             List<Destination> destinations = data.destinations().stream()
@@ -47,7 +47,7 @@ public final class PortalConfigRows {
             addExternalRows(rows, externalRows, section, normalized);
         }
         addPlayerRows(rows, playerSection, normalized);
-        return new Result(List.copyOf(rows), Map.copyOf(externalRows));
+        return rows;
     }
 
     private static void addExternalRows(List<Row> rows,
@@ -71,12 +71,11 @@ public final class PortalConfigRows {
 
     private static void addPlayerRows(List<Row> rows, PlayerSection section, String normalized) {
         if (!section.visible()) return;
-        List<PlayerEntry> entries = section.entries().stream()
-            .filter(entry -> normalized.isEmpty()
-                || entry.name().toLowerCase(Locale.ROOT).contains(normalized))
-            .sorted(Comparator.comparing(PlayerEntry::pinned).reversed()
-                .thenComparingInt(PlayerEntry::serverOrder))
-            .toList();
+        List<PlayerEntryView> entries = new ArrayList<>(section.entries());
+        entries.removeIf(entry -> !normalized.isEmpty()
+            && !entry.name().toLowerCase(Locale.ROOT).contains(normalized));
+        entries.sort(Comparator.comparing(PlayerEntryView::pinned).reversed()
+            .thenComparingInt(PlayerEntryView::serverOrder));
         boolean sectionMatch = normalized.isEmpty() || "player".contains(normalized);
         if (!sectionMatch && entries.isEmpty()) return;
         rows.add(new Row(RowKind.PLAYER_SECTION, PortalPlayerData.PLAYER_SECTION_ID, 0));
@@ -163,11 +162,16 @@ public final class PortalConfigRows {
         List<ExternalDestination> destinations
     ) {}
 
-    public record PlayerSection(boolean visible, boolean expanded, List<PlayerEntry> entries) {}
+    public record PlayerSection(
+        boolean visible, boolean expanded, List<? extends PlayerEntryView> entries
+    ) {}
 
-    public record PlayerEntry(UUID id, String name, boolean pinned, int serverOrder) {}
-
-    public record Result(List<Row> rows, Map<UUID, ExternalDestination> externalRows) {}
+    public interface PlayerEntryView {
+        UUID id();
+        String name();
+        boolean pinned();
+        int serverOrder();
+    }
 
     private PortalConfigRows() {}
 }
