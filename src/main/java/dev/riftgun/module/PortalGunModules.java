@@ -37,7 +37,9 @@ public final class PortalGunModules {
         PortalModules.bootstrap();
         int count = 0;
         for (ItemStack stack : items) {
-            if (PortalModuleRegistry.find(stack).map(definition -> definition.kind() == kind).orElse(false)) count++;
+            if (PortalModuleRegistry.find(stack).map(definition -> definition.kind() == kind).orElse(false)) {
+                count += stack.getCount();
+            }
         }
         return count;
     }
@@ -67,13 +69,17 @@ public final class PortalGunModules {
             PortalModuleDefinition definition = PortalModuleRegistry.find(stack).orElse(null);
             if (definition == null) continue;
             if (definition.kind() == PortalModuleKind.CREATIVE) creative = true;
-            if (definition.kind() == PortalModuleKind.MODULE_BAY_EXPANSION) expansions++;
+            if (definition.kind() == PortalModuleKind.MODULE_BAY_EXPANSION) {
+                expansions += stack.getCount();
+            }
         }
         int unlocked = creative ? items.size() : slotCountForExpansionModules(expansions);
         int[] installed = new int[MODULE_KINDS.length];
         for (int slot = 0; slot < Math.min(items.size(), unlocked); slot++) {
             PortalModuleDefinition definition = PortalModuleRegistry.find(items.get(slot)).orElse(null);
-            if (definition != null) installed[definition.kind().ordinal()]++;
+            if (definition != null) {
+                installed[definition.kind().ordinal()] += items.get(slot).getCount();
+            }
         }
         int[] active = new int[installed.length];
         for (PortalModuleKind kind : MODULE_KINDS) {
@@ -114,12 +120,19 @@ public final class PortalGunModules {
     }
 
     public static boolean canRemove(NonNullList<ItemStack> items, int slot) {
+        int count = slot >= 0 && slot < items.size() ? items.get(slot).getCount() : 0;
+        return canRemove(items, slot, count);
+    }
+
+    public static boolean canRemove(NonNullList<ItemStack> items, int slot, int amount) {
         if (slot < 0 || slot >= items.size() || items.get(slot).isEmpty()) return true;
         if (!isKind(items.get(slot), PortalModuleKind.MODULE_BAY_EXPANSION)) return true;
+        if (amount <= 0) return true;
         NonNullList<ItemStack> remaining = NonNullList.withSize(items.size(), ItemStack.EMPTY);
         for (int index = 0; index < items.size(); index++) {
-            if (index != slot) remaining.set(index, items.get(index));
+            remaining.set(index, items.get(index).copy());
         }
+        remaining.get(slot).shrink(Math.min(amount, remaining.get(slot).getCount()));
         int unlocked = unlockedSlotCount(remaining);
         for (int index = unlocked; index < remaining.size(); index++) {
             if (!remaining.get(index).isEmpty()) return false;
@@ -128,11 +141,28 @@ public final class PortalGunModules {
     }
 
     public static boolean canRemove(Container container, int slot) {
+        int count = slot >= 0 && slot < container.getContainerSize()
+            ? container.getItem(slot).getCount() : 0;
+        return canRemove(container, slot, count);
+    }
+
+    public static boolean canRemove(Container container, int slot, int amount) {
         NonNullList<ItemStack> items = NonNullList.withSize(container.getContainerSize(), ItemStack.EMPTY);
         for (int index = 0; index < container.getContainerSize(); index++) {
             items.set(index, container.getItem(index));
         }
-        return canRemove(items, slot);
+        return canRemove(items, slot, amount);
+    }
+
+    public static int maximumRemovableCount(Container container, int slot, int requestedAmount) {
+        if (slot < 0 || slot >= container.getContainerSize() || requestedAmount <= 0) return 0;
+        ItemStack stack = container.getItem(slot);
+        int requested = Math.min(requestedAmount, stack.getCount());
+        if (!isKind(stack, PortalModuleKind.MODULE_BAY_EXPANSION)) return requested;
+        for (int amount = requested; amount > 0; amount--) {
+            if (canRemove(container, slot, amount)) return amount;
+        }
+        return 0;
     }
 
     public static int inactiveSlots(Iterable<ItemStack> items, PortalModuleRules rules) {
@@ -146,7 +176,7 @@ public final class PortalGunModules {
             if (definition != null) {
                 int count = seen.getOrDefault(definition.kind(), 0);
                 if (count >= definition.maximumCount(rules)) mask |= 1 << slot;
-                seen.put(definition.kind(), count + 1);
+                seen.put(definition.kind(), count + stack.getCount());
             }
             slot++;
         }
@@ -154,16 +184,34 @@ public final class PortalGunModules {
     }
 
     public static boolean canAdd(Iterable<ItemStack> items, ItemStack candidate, PortalModuleRules rules) {
+        return remainingCapacity(items, candidate, rules) > 0;
+    }
+
+    public static int remainingCapacity(Iterable<ItemStack> items, ItemStack candidate,
+                                        PortalModuleRules rules) {
         PortalModules.bootstrap();
         PortalModuleDefinition definition = PortalModuleRegistry.find(candidate).orElse(null);
-        if (definition == null || installedCount(items, definition.kind()) >= definition.maximumCount(rules)) {
-            return false;
-        }
+        if (definition == null) return 0;
         if (definition.kind() == PortalModuleKind.DURATION_EXTENSION
-            && installedCount(items, PortalModuleKind.DURATION_ETERNAL) > 0) return false;
+            && installedCount(items, PortalModuleKind.DURATION_ETERNAL) > 0) return 0;
         if (definition.kind() == PortalModuleKind.DURATION_ETERNAL
-            && installedCount(items, PortalModuleKind.DURATION_EXTENSION) > 0) return false;
-        return true;
+            && installedCount(items, PortalModuleKind.DURATION_EXTENSION) > 0) return 0;
+        return Math.max(0, definition.maximumCount(rules)
+            - installedCount(items, definition.kind()));
+    }
+
+    public static int remainingCapacity(Container container, ItemStack candidate,
+                                        PortalModuleRules rules) {
+        NonNullList<ItemStack> items = NonNullList.withSize(
+            container.getContainerSize(), ItemStack.EMPTY);
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            items.set(slot, container.getItem(slot));
+        }
+        return remainingCapacity(items, candidate, rules);
+    }
+
+    static boolean canGrowStack(int currentCount, int maximumCount) {
+        return maximumCount > currentCount;
     }
 
     private static Iterable<ItemStack> activeItems(NonNullList<ItemStack> items) {
