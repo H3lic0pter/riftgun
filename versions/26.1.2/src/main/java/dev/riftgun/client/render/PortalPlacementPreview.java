@@ -114,7 +114,9 @@ public final class PortalPlacementPreview {
         if (state == null) return;
         PoseStack poses = event.getPoseStack();
         poses.pushPose();
-        event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.linesTranslucent(),
+        // Match the 1.21.1 preview path: lines() keeps the same translucent blend but writes
+        // depth, preventing later cloud and water rendering from showing through the marker.
+        event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.lines(),
             (pose, vertices) -> {
                 draw(pose, vertices, state.camera(), state.segments());
                 drawColored(pose, vertices, state.camera(), state.pendingSegments());
