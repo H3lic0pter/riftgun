@@ -2,6 +2,7 @@ package dev.riftgun.module;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +36,31 @@ final class PortalGunCapabilitiesPerformanceSourceTest {
         String fromStack = source.substring(start, end);
 
         assertEquals(1, occurrences(fromStack, "PortalGunModuleSettings.get(gun, smartDistance)"));
+    }
+
+    @Test
+    void moduleContainerResolvesOldAndNewCountsOncePerChange() throws Exception {
+        String source = Files.readString(Path.of(
+            "src/main/java/dev/riftgun/module/PortalGunModuleContainer.java"));
+        int start = source.indexOf("public void setChanged()");
+        int end = source.indexOf("private NonNullList<ItemStack> copyItems()", start);
+        String setChanged = source.substring(start, end);
+
+        assertEquals(2, occurrences(setChanged, "PortalGunModules.activeCounts("));
+        assertFalse(setChanged.contains("activeCount("));
+    }
+
+    @Test
+    void moduleMenuDataReusesMetricsUntilTheComponentChanges() throws Exception {
+        String source = Files.readString(Path.of(
+            "src/main/java/dev/riftgun/module/PortalModuleMenu.java"));
+        int start = source.indexOf("private static ContainerData serverData(ItemStack gun)");
+        int end = source.indexOf("private static CompoundTag readReference", start);
+        String serverData = source.substring(start, end);
+
+        assertEquals(1, occurrences(serverData, "PortalGunModules.load(gun)"));
+        assertTrue(serverData.contains(
+            "if (component == cachedComponent && rules.equals(cachedRules)) return;"));
     }
 
     private static int occurrences(String source, String token) {

@@ -35,7 +35,7 @@ public final class PortalModules {
         "coordinate_override_module", PortalModuleKind.COORDINATE_OVERRIDE, ignored -> 1, 0x74D9E8);
     public static final ModuleEntry DIMENSIONAL_TRAVERSAL = register(
         "dimensional_traversal_module", PortalModuleKind.DIMENSIONAL_TRAVERSAL, ignored -> 1, 0x8E79E8);
-    public static final ModuleEntry RESERVOIR_EXPANSION = register(
+    public static final ModuleEntry RESERVOIR_EXPANSION = registerStackable(
         "reservoir_expansion_module", PortalModuleKind.RESERVOIR_EXPANSION,
         PortalModuleRules::maximumReservoirModules, 0x5BADEB);
     public static final ModuleEntry PASSIVE_TRANSIT = register(
@@ -44,17 +44,17 @@ public final class PortalModules {
         "hostile_transit_module", PortalModuleKind.HOSTILE_TRANSIT, ignored -> 1, 0xDC765F);
     public static final ModuleEntry BOSS_TRANSIT = register(
         "boss_transit_module", PortalModuleKind.BOSS_TRANSIT, ignored -> 1, 0xA77BD6);
-    public static final ModuleEntry SURFACE_RANGE = register(
+    public static final ModuleEntry SURFACE_RANGE = registerStackable(
         "surface_range_amplifier", PortalModuleKind.SURFACE_RANGE,
         PortalModuleRules::maximumSurfaceRangeModules, 0xE3B75C);
     public static final ModuleEntry APERTURE_EXPANSION = register(
         "portal_aperture_module", PortalModuleKind.APERTURE_EXPANSION, ignored -> 1, 0x70D8A8);
-    public static final ModuleEntry MODULE_BAY_EXPANSION = register(
+    public static final ModuleEntry MODULE_BAY_EXPANSION = registerStackable(
         "module_bay_expansion", PortalModuleKind.MODULE_BAY_EXPANSION,
         ignored -> PortalGunModules.MAXIMUM_EXPANSION_MODULES, 0x7CCED8);
     public static final ModuleEntry PLAYER_TARGET = register(
         "player_target_module", PortalModuleKind.PLAYER_TARGET, ignored -> 1, 0x5CC8D9);
-    public static final ModuleEntry DURATION_EXTENSION = register(
+    public static final ModuleEntry DURATION_EXTENSION = registerStackable(
         "duration_extension_module", PortalModuleKind.DURATION_EXTENSION,
         PortalModuleRules::maximumDurationExtensionModules, 0x8FC7E8);
     public static final ModuleEntry DURATION_ETERNAL = register(
@@ -80,11 +80,24 @@ public final class PortalModules {
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {
+        return register(name, kind, maximumCount, accentRgb, 1);
+    }
+
+    private static ModuleEntry registerStackable(String name, PortalModuleKind kind,
+                                                 ToIntFunction<PortalModuleRules> maximumCount,
+                                                 int accentRgb) {
+        return register(name, kind, maximumCount, accentRgb, 64);
+    }
+
+    private static ModuleEntry register(String name, PortalModuleKind kind,
+                                        ToIntFunction<PortalModuleRules> maximumCount, int accentRgb,
+                                        int itemStackSize) {
         //? if >=1.21.11 {
         /*DeferredHolder<Item, Item> item = ITEMS.register(name, id -> new Item(
-            new Item.Properties().stacksTo(1).setId(ResourceKey.create(Registries.ITEM, id))));
+            new Item.Properties().stacksTo(itemStackSize).setId(ResourceKey.create(Registries.ITEM, id))));
         *///?} else {
-        DeferredHolder<Item, Item> item = ITEMS.register(name, () -> new Item(new Item.Properties().stacksTo(1)));
+        DeferredHolder<Item, Item> item = ITEMS.register(
+            name, () -> new Item(new Item.Properties().stacksTo(itemStackSize)));
         //?}
         PortalModuleDefinition definition = PortalModuleRegistry.register(new PortalModuleDefinition(
 //? if >=1.21.11 {

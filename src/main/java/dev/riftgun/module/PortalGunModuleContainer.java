@@ -45,7 +45,9 @@ public final class PortalGunModuleContainer extends SimpleContainer {
     public boolean canPlaceItem(int slot, ItemStack stack) {
         if (slot < 0 || slot >= getContainerSize()) return false;
         if (slot >= PortalGunModules.unlockedSlotCount(getItems())) return false;
-        if (!getItem(slot).isEmpty()) return false;
+        if (!getItem(slot).isEmpty()) {
+            return ItemStack.isSameItemSameComponents(getItem(slot), stack);
+        }
         return PortalGunModules.canAdd(getItems(), stack, PortalModuleRules.current());
     }
 
@@ -67,16 +69,18 @@ public final class PortalGunModuleContainer extends SimpleContainer {
         if (previous == null) return;
 
         PortalModuleRules rules = PortalModuleRules.current();
-        int oldReservoirCount = activeCount(previous, PortalModuleKind.RESERVOIR_EXPANSION, rules);
-        int newReservoirCount = activeCount(getItems(), PortalModuleKind.RESERVOIR_EXPANSION, rules);
-        int oldActiveRange = activeCount(previous, PortalModuleKind.SURFACE_RANGE, rules);
-        int newActiveRange = activeCount(getItems(), PortalModuleKind.SURFACE_RANGE, rules);
-        int oldActiveRelocation = activeCount(previous, PortalModuleKind.ENTITY_RELOCATION, rules);
-        int newActiveRelocation = activeCount(getItems(), PortalModuleKind.ENTITY_RELOCATION, rules);
-        int oldActivePairing = activeCount(previous, PortalModuleKind.PORTAL_PAIRING, rules);
-        int newActivePairing = activeCount(getItems(), PortalModuleKind.PORTAL_PAIRING, rules);
-        int oldActiveRemote = activeCount(previous, PortalModuleKind.REMOTE, rules);
-        int newActiveRemote = activeCount(getItems(), PortalModuleKind.REMOTE, rules);
+        PortalGunModules.ActiveCounts oldCounts = PortalGunModules.activeCounts(previous, rules);
+        PortalGunModules.ActiveCounts newCounts = PortalGunModules.activeCounts(getItems(), rules);
+        int oldReservoirCount = oldCounts.count(PortalModuleKind.RESERVOIR_EXPANSION);
+        int newReservoirCount = newCounts.count(PortalModuleKind.RESERVOIR_EXPANSION);
+        int oldActiveRange = oldCounts.count(PortalModuleKind.SURFACE_RANGE);
+        int newActiveRange = newCounts.count(PortalModuleKind.SURFACE_RANGE);
+        int oldActiveRelocation = oldCounts.count(PortalModuleKind.ENTITY_RELOCATION);
+        int newActiveRelocation = newCounts.count(PortalModuleKind.ENTITY_RELOCATION);
+        int oldActivePairing = oldCounts.count(PortalModuleKind.PORTAL_PAIRING);
+        int newActivePairing = newCounts.count(PortalModuleKind.PORTAL_PAIRING);
+        int oldActiveRemote = oldCounts.count(PortalModuleKind.REMOTE);
+        int newActiveRemote = newCounts.count(PortalModuleKind.REMOTE);
 
         PortalGunModules.save(gun(), getItems());
         if (newActiveRange > oldActiveRange) {
@@ -117,10 +121,6 @@ public final class PortalGunModuleContainer extends SimpleContainer {
             PortalClientSync.snapshot(owner, false, locatedGun);
         }
         previous = copyItems();
-    }
-
-    private static int activeCount(Iterable<ItemStack> items, PortalModuleKind kind, PortalModuleRules rules) {
-        return PortalGunModules.activeCount(items, kind, rules);
     }
 
     private NonNullList<ItemStack> copyItems() {
