@@ -17,17 +17,17 @@ before `1.0.0`.
 | Minecraft | `1.21.1` | `26.1.2` |
 | NeoForge | `21.1.140` or newer | `26.1.2.95` or newer |
 | Java | `21` | `25` |
-| RyoamicLights | `0.2.11+` | Not yet available |
+| LambDynamicLights | `4.8.10+` | `4.11.1+` |
 
-Rift Gun has no required runtime dependency besides NeoForge. RyoamicLights is
-optional; it adds portal light to nearby blocks on the 1.21.1 build.
+Rift Gun has no required runtime dependency besides NeoForge. LambDynamicLights is
+optional; it adds portal light to nearby blocks on both supported builds.
 
 ## Installation
 
 1. Install the matching Minecraft version with a compatible NeoForge release.
 2. Put the Rift Gun JAR for that Minecraft version in the instance's `mods` directory.
 3. Install the same Rift Gun version on both the server and every connecting client.
-4. Optionally install JEI and/or RyoamicLights on the client (1.21.1 build only).
+4. Optionally install JEI and/or LambDynamicLights on the client.
 
 Back up the world before changing mod versions. Rift Gun stores destinations and privacy preferences as server-side player data, while visual preferences remain client-local.
 
@@ -169,7 +169,7 @@ The system first checks whether the traveler can reasonably survive an event, th
 - Shot, open/close, and transit sounds can be selected independently. The Rift theme is the default; Ender is also available for transit. Splash sound is off by default.
 - Portal colors and splash particles follow the active fuel.
 - When a supported shader environment is detected, Rift Gun uses a visible fallback surface and skips the portal surface during shadow passes. Shader-pack-specific appearance may still vary.
-- RyoamicLights integration is optional. Without it, portals render normally but do not illuminate nearby blocks.
+- LambDynamicLights integration is optional. Without it, portals render normally but do not illuminate nearby blocks.
 
 ## Configuration
 

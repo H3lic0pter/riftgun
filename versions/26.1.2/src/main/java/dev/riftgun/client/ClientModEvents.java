@@ -3,7 +3,6 @@ package dev.riftgun.client;
 import dev.riftgun.core.registry.RiftContent;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.riftgun.RiftGun;
-import dev.riftgun.client.light.PortalDynamicLights;
 import dev.riftgun.client.model.PortalGunLayeredModel;
 import dev.riftgun.client.render.EntityRelocationPortalRenderer;
 import dev.riftgun.client.render.PortalRenderTypes;
@@ -87,7 +86,6 @@ public final class ClientModEvents {
         EntityRenderers.register(RiftContent.PORTAL.get(), PortalRenderer::new);
         EntityRenderers.register(RiftContent.ENTITY_RELOCATION_PORTAL.get(), EntityRelocationPortalRenderer::new);
         PortalNetworking.setClientContextWriter(PortalClientState::writeGunReference);
-        event.enqueueWork(PortalDynamicLights::initialize);
     }
 
     @SubscribeEvent

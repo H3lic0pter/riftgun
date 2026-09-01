@@ -12,6 +12,9 @@ displayURL = "https://github.com/H3lic0pter/riftgun"
 logoFile = "icon.png"
 description = '''Create linked walk-through portals for local and cross-dimensional travel, with saved destinations, configurable placement, portal fuels, modules, player privacy, and client-side visual and sound themes.'''
 
+[modproperties."${mod_id}"."yumi:entrypoints"]
+"lambdynlights:initializer" = "dev.riftgun.client.light.RiftGunDynamicLightsInitializer"
+
 [[dependencies.${mod_id}]]
 modId = "neoforge"
 type = "required"
@@ -34,9 +37,9 @@ ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.${mod_id}]]
-modId = "ryoamiclights"
+modId = "lambdynlights"
 type = "optional"
-versionRange = "[0.2.11,)"
+versionRange = "[4.8.10,5)"
 ordering = "AFTER"
 side = "CLIENT"
 

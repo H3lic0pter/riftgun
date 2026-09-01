@@ -19,6 +19,11 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(property("java_version")
 repositories {
     mavenCentral()
     maven {
+        name = "Gegy"
+        url = uri("https://maven.gegy.dev")
+        content { includeGroup("dev.lambdaurora.lambdynamiclights") }
+    }
+    maven {
         name = "Modrinth"
         url = uri("https://api.modrinth.com/maven")
         content { includeGroup("maven.modrinth") }
@@ -95,12 +100,22 @@ sourceSets.main {
 
 dependencies {
     // Optional client integrations are never bundled. Each node declares its
-    // own versions; nodes without the properties (e.g. 26.1.2 until JEI/
-    // RyoamicLights ship builds) simply skip the dependency.
-    val ryoamicProject = findProperty("ryoamiclights_modrinth_project_id") as String?
-    val ryoamicVersion = findProperty("ryoamiclights_modrinth_version_id") as String?
-    if (ryoamicProject != null && ryoamicVersion != null) {
-        optionalClientCompileOnly("maven.modrinth:$ryoamicProject:$ryoamicVersion")
+    // own versions; nodes without a property simply skip that integration.
+    val lambDynamicLightsVersion = findProperty("lambdynamiclights_version") as String?
+    if (lambDynamicLightsVersion != null) {
+        val coordinate =
+            "dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:$lambDynamicLightsVersion"
+        if ((property("minecraft_version") as String).startsWith("1.")) {
+            // LambDynamicLights publishes a dedicated Mojmap API variant before 26.1.
+            val mappingsAttribute = org.gradle.api.attributes.Attribute.of(
+                "net.minecraft.mappings", String::class.java)
+            attributesSchema { attribute(mappingsAttribute) }
+            add(optionalClientCompileOnly.name, coordinate) {
+                attributes { attribute(mappingsAttribute, "mojmap") }
+            }
+        } else {
+            optionalClientCompileOnly(coordinate)
+        }
     }
     val immersivePortalsVersion = findProperty("immersive_portals_version") as String?
     if (immersivePortalsVersion != null) {

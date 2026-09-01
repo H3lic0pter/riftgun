@@ -12,6 +12,9 @@ displayURL = "https://github.com/H3lic0pter/riftgun"
 logoFile = "icon.png"
 description = '''Create linked walk-through portals for local and cross-dimensional travel, with saved destinations, configurable placement, portal fuels, modules, player privacy, and client-side visual and sound themes.'''
 
+[modproperties."${mod_id}"."yumi:entrypoints"]
+"lambdynlights:initializer" = "dev.riftgun.client.light.RiftGunDynamicLightsInitializer"
+
 [[mixins]]
 config = "riftgun.mixins.json"
 
@@ -34,6 +37,13 @@ modId = "jei"
 type = "optional"
 versionRange = "[19.21,)"
 ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "lambdynlights"
+type = "optional"
+versionRange = "[4.11.1,5)"
+ordering = "AFTER"
 side = "CLIENT"
 
 [[dependencies.${mod_id}]]
