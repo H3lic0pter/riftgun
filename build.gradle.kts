@@ -166,8 +166,9 @@ val apiJar = tasks.register<Jar>("apiJar") {
     description = "Builds the standalone Rift Gun integration API artifact."
     archiveClassifier.set("api")
     from(sourceSets.main.get().output)
+    from(rootProject.layout.projectDirectory.file("LICENSE")) { into("META-INF") }
     include("dev/riftgun/api/**")
-    exclude("dev/riftgun/api/RiftGunApiBootstrap.class")
+    include("LICENSE")
     dependsOn(tasks.classes)
 }
 
@@ -176,13 +177,25 @@ val apiSourcesJar = tasks.register<Jar>("apiSourcesJar") {
     description = "Builds sources for the standalone Rift Gun integration API."
     archiveClassifier.set("api-sources")
     from(sourceSets.main.get().allSource)
+    from(rootProject.layout.projectDirectory.file("LICENSE")) { into("META-INF") }
     include("dev/riftgun/api/**")
-    exclude("dev/riftgun/api/RiftGunApiBootstrap.java")
+    include("LICENSE")
 }
 
 artifacts {
     add("archives", apiJar)
     add("archives", apiSourcesJar)
+}
+
+tasks.named<Test>("test") {
+    val apiArchive = apiJar.flatMap { it.archiveFile }
+    val apiSourcesArchive = apiSourcesJar.flatMap { it.archiveFile }
+    dependsOn(apiJar, apiSourcesJar)
+    inputs.files(apiArchive, apiSourcesArchive)
+    doFirst {
+        systemProperty("riftgun.apiJar", apiArchive.get().asFile.absolutePath)
+        systemProperty("riftgun.apiSourcesJar", apiSourcesArchive.get().asFile.absolutePath)
+    }
 }
 
 // NeoGradle expanded these placeholders in mods.toml; ModDevGradle does not.

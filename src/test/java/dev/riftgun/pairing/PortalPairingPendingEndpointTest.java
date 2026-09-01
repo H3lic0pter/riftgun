@@ -1,8 +1,10 @@
 package dev.riftgun.pairing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.riftgun.portal.PortalGeometry;
 import dev.riftgun.core.nbt.Nbt;
@@ -38,11 +40,35 @@ final class PortalPairingPendingEndpointTest {
         assertEquals(PortalGeometry.SURFACE_EXPANDED, pending.placement().geometry());
         assertEquals(owner, pending.ownerId());
         assertEquals(gun, pending.gunId());
-        org.junit.jupiter.api.Assertions.assertTrue(pending.validFor(owner, gun, 179L));
-        org.junit.jupiter.api.Assertions.assertFalse(pending.validFor(owner, gun, 180L));
-        org.junit.jupiter.api.Assertions.assertFalse(
-            pending.validFor(UUID.randomUUID(), gun, 121L));
+        assertTrue(pending.validFor(owner, gun, 179L));
+        assertTrue(pending.validFor(owner, gun, 180L));
+        assertTrue(pending.validFor(owner, gun, Long.MAX_VALUE));
+        assertFalse(pending.validFor(UUID.randomUUID(), gun, 121L));
         assertEquals(pending, PortalPairingPendingEndpoint.load(pending.save()));
+    }
+
+    @Test
+    void fixedEntityTargetStillExpiresAfterItsPortalDuration() {
+        UUID owner = UUID.randomUUID();
+        UUID gun = UUID.randomUUID();
+        CompoundTag tag = new CompoundTag();
+        Nbt.putUUID(tag, "Owner", owner);
+        Nbt.putUUID(tag, "Gun", gun);
+        tag.putString("Dimension", "minecraft:overworld");
+        tag.putString("Endpoint", "ENTITY_TARGET");
+        tag.putLong("StartedAt", 120L);
+        tag.putInt("DurationTicks", 60);
+        tag.putDouble("X", 0.0);
+        tag.putDouble("Y", 64.0);
+        tag.putDouble("Z", 0.0);
+        tag.putString("Orientation", "VERTICAL");
+        tag.putString("Geometry", "FLOATING_VERTICAL");
+        tag.putFloat("Yaw", 0.0F);
+        PortalPairingPendingEndpoint target = PortalPairingPendingEndpoint.load(tag);
+        assertNotNull(target);
+
+        assertTrue(target.validFor(owner, gun, 179L));
+        assertFalse(target.validFor(owner, gun, 180L));
     }
 
     @Test

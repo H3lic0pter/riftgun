@@ -65,7 +65,11 @@ public record PortalPairingPendingEndpoint(
     }
 
     public boolean expired(long now) {
-        return durationTicks != Integer.MAX_VALUE
+        // A/B are incomplete portal-pair state, not opened portals. Keep them until the owner
+        // replaces, connects, or explicitly clears them. The duration remains serialized so old
+        // guns load without migration and ENTITY_TARGET can retain its timed lifecycle.
+        return !pairEndpoint()
+            && durationTicks != Integer.MAX_VALUE
             && now >= startedAt
             && now - startedAt >= durationTicks;
     }

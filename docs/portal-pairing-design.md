@@ -1,6 +1,6 @@
 # Portal Pairing design
 
-Status: approved design baseline (2026-08-27)
+Status: approved design baseline (2026-08-27); pending A/B lifetime revised 2026-09-01
 
 ## 1. Goal
 
@@ -188,17 +188,20 @@ the old route. Merely changing a mode does not close world state.
 
 | Current state | Successful operation | Result |
 | --- | --- | --- |
-| No endpoints | Place A or B | Store one lightweight pending endpoint; start full portal duration |
+| No endpoints | Place A or B | Store one lightweight pending endpoint until it is replaced, connected, or cleared |
 | One pending endpoint | Place other endpoint | Charge once; connect; reset both to full duration |
-| One pending endpoint | Replace same endpoint | Replace it; restart its full duration; no charge |
+| One pending endpoint | Replace same endpoint | Replace it; keep it pending without a timer; no charge |
 | Connected | Replace A or B | Charge once; atomically replace pair; reset both |
 | Any | Close portals | Close endpoints and fixed relocation target |
 | Any | Open a coordinate pair | Close pairing state after the coordinate open succeeds |
 
-Opening or replacement failures preserve the previously valid state, consume
-no fuel, and do not reset its timer. When both ends are linked they share one
-lifecycle clock and close together. Duration Extension and Eternal Duration
-continue to apply through the existing duration resolution.
+Pending A/B endpoints do not expire with Portal Duration. They remain attached
+to the owning gun until replacement, connection, explicit portal clearing, or
+another owner-group operation clears them. Opening or replacement failures
+preserve the previously valid state and consume no fuel. When both ends are
+linked they start and share one lifecycle clock and close together. Duration
+Extension and Eternal Duration apply to that connected pair through the existing
+duration resolution.
 
 ### 6.2 Fuel and dimensions
 
@@ -335,8 +338,8 @@ have been validated and connected.
   player.
 - Module removal makes Coordinate Travel effective without deleting settings.
 - A-first and B-first state transitions.
-- One-end expiry, connection reset, replacement reset, and failed-operation
-  non-reset.
+- One-end persistence beyond the configured portal duration, connection reset,
+  replacement persistence, and failed-operation preservation.
 - One initial connection charge and one charge per successful linked-end
   replacement.
 - Fuel changes before connection and cross-dimensional profile checks.
