@@ -19,12 +19,10 @@ final class PortalPairingLightweightSourceTest {
 
     @Test
     void bothClientsRenderPendingFrameAndGlyphThroughTheSameLinePath() throws Exception {
-        for (String version : new String[] {"1.21.1", "26.1.2"}) {
-            String preview = Files.readString(Path.of("versions", version, "src", "main", "java",
-                "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
-            assertTrue(preview.contains("gun.pending()"), version);
-            assertTrue(preview.contains("PortalPairingPreviewGeometry.segments("), version);
-            assertFalse(preview.contains("drawPendingLabel"), version);
-        }
+        String preview = Files.readString(Path.of("src", "main", "java", "dev", "riftgun",
+            "portal", "PortalPlacementPreviewEngine.java"));
+        assertTrue(preview.contains("gun.pending()"));
+        assertTrue(preview.contains("PortalPairingPreviewGeometry.segments("));
+        assertFalse(preview.contains("drawPendingLabel"));
     }
 }

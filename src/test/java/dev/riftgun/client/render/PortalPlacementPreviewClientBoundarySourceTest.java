@@ -25,6 +25,10 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
                 version + " preview hot path must use the domain selection directly");
             assertFalse(source.contains(".toSelection()"),
                 version + " preview hot path must not allocate a packet-to-domain wrapper");
+            assertTrue(source.contains("ENGINE.tick(input(minecraft),"));
+            assertFalse(source.contains("tickPrecision("));
+            assertFalse(source.contains("tickShiftRoutedPreview("));
+            assertFalse(source.contains("updateRemotePreview("));
         }
     }
 
@@ -33,7 +37,7 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
         String source = Files.readString(Path.of("versions", "26.1.2", "src", "main",
             "java", "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
         int methodStart = source.indexOf("public static void submitCustomGeometry(");
-        int methodEnd = source.indexOf("private static void tickPending(", methodStart);
+        int methodEnd = source.indexOf("private static void draw(", methodStart);
         String method = source.substring(methodStart, methodEnd);
 
         assertEquals(1, occurrences(method, ".submitCustomGeometry("));

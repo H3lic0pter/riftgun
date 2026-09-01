@@ -11,43 +11,38 @@ import org.junit.jupiter.api.Test;
 final class PortalPairingEntityTargetPreviewSourceTest {
     @Test
     void entityTargetMarkerIsScopedToItsGunAndEntityPairingMode() throws IOException {
-        for (String version : new String[] {"1.21.1", "26.1.2"}) {
-            Path root = Path.of("versions", version, "src", "main", "java", "dev", "riftgun");
-            String preview = Files.readString(root.resolve(
-                Path.of("client", "render", "PortalPlacementPreview.java")));
-
-            assertTrue(preview.contains("gun.pending()"), version);
-            assertTrue(preview.contains("next.entityTarget()"), version);
-            assertTrue(preview.contains("PortalFunctionMode.PORTAL_PAIRING"), version);
-            assertTrue(preview.contains("PortalPlacementMode.ENTITY_RELOCATION"), version);
-            assertTrue(preview.contains(
-                "PortalPairingPreviewGeometry.entityTargetSegments("), version);
-            assertFalse(preview.contains("entitiesForRendering()"), version);
-        }
+        String preview = sharedEngine();
+        assertTrue(preview.contains("gun.pending()"));
+        assertTrue(preview.contains("next.entityTarget()"));
+        assertTrue(preview.contains("PortalFunctionMode.PORTAL_PAIRING"));
+        assertTrue(preview.contains("PortalPlacementMode.ENTITY_RELOCATION"));
+        assertTrue(preview.contains("PortalPairingPreviewGeometry.entityTargetSegments("));
+        assertFalse(preview.contains("entitiesForRendering()"));
     }
 
     @Test
     void heldSneakPreviewsSurfaceThenRemoteForEntityAndSmartRoutes() throws IOException {
-        for (String version : new String[] {"1.21.1", "26.1.2"}) {
-            Path previewPath = Path.of("versions", version, "src", "main", "java", "dev",
-                "riftgun", "client", "render", "PortalPlacementPreview.java");
-            String preview = Files.readString(previewPath);
-            int start = preview.indexOf("private static boolean tickShiftRoutedPreview");
-            int end = preview.indexOf("private static PortalPlacement surfacePreview", start);
-            String livePreview = preview.substring(start, end);
+        String preview = sharedEngine();
+        int start = preview.indexOf("private boolean tickShiftRoutedPreview");
+        int end = preview.indexOf("public static boolean usesShiftRoutedPreview", start);
+        String livePreview = preview.substring(start, end);
 
-            assertTrue(livePreview.contains("minecraft.player.isShiftKeyDown()"), version);
-            assertTrue(livePreview.contains("usesShiftRoutedPreview(gun)"), version);
-            assertTrue(livePreview.contains("gun.smartDistance()"), version);
-            assertTrue(livePreview.contains("SurfaceFaceSelection"), version);
-            assertTrue(livePreview.contains("surfacePreview("), version);
-            assertTrue(livePreview.contains("CACHE.updateSurface("), version);
-            assertTrue(livePreview.contains("updateRemotePreview("), version);
-            assertTrue(livePreview.contains(
-                "gun.remote() ? gun.remoteDistance() : gun.maximumSurfaceRange()"), version);
-            assertTrue(preview.contains("PortalPlacementMode.ENTITY_RELOCATION"), version);
-            assertTrue(preview.contains("PortalPlacementMode.SMART"), version);
-            assertTrue(preview.contains("PortalFloatingFallback.REMOTE"), version);
-        }
+        assertTrue(livePreview.contains("input.shiftDown()"));
+        assertTrue(livePreview.contains("usesShiftRoutedPreview(gun)"));
+        assertTrue(livePreview.contains("gun.smartDistance()"));
+        assertTrue(livePreview.contains("resolver.surfaceHit("));
+        assertTrue(livePreview.contains("resolver.surface("));
+        assertTrue(livePreview.contains("cache.updateSurface("));
+        assertTrue(livePreview.contains("updateRemotePreview("));
+        assertTrue(livePreview.contains(
+            "gun.remote() ? gun.remoteDistance() : gun.maximumSurfaceRange()"));
+        assertTrue(preview.contains("PortalPlacementMode.ENTITY_RELOCATION"));
+        assertTrue(preview.contains("PortalPlacementMode.SMART"));
+        assertTrue(preview.contains("PortalFloatingFallback.REMOTE"));
+    }
+
+    private static String sharedEngine() throws IOException {
+        return Files.readString(Path.of("src", "main", "java", "dev", "riftgun", "portal",
+            "PortalPlacementPreviewEngine.java"));
     }
 }

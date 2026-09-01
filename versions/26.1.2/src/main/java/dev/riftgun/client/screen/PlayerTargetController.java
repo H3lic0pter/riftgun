@@ -8,29 +8,26 @@ import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.module.PortalModuleKind;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
+import dev.riftgun.ui.PortalPlayerTargetSession;
+import dev.riftgun.ui.PortalPlayerTargetSession.Command;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 /** Client-side state and network commands for the expandable Player Target section. */
 final class PlayerTargetController {
-    private @Nullable UUID selectedId;
-    private boolean expanded;
-    private boolean listRequested;
+    private final PortalPlayerTargetSession session;
 
     PlayerTargetController(PortalPlayerData data) {
-        sync(data);
+        session = new PortalPlayerTargetSession(data.selectedPlayerId(),
+            data.expandedGroups().contains(PortalPlayerData.PLAYER_SECTION_ID));
     }
 
     @Nullable UUID selectedId() {
-        return selectedId;
+        return session.selectedId();
     }
 
     boolean expanded() {
-        return expanded;
+        return session.expanded();
     }
 
     boolean visible() {
@@ -38,64 +35,61 @@ final class PlayerTargetController {
             && PortalClientState.gun().playerTargetEnabled();
     }
 
-    List<PlayerListState.PlayerEntry> entries(String normalizedQuery) {
-        List<PlayerListState.PlayerEntry> entries = PlayerListState.players().stream()
-            .filter(entry -> normalizedQuery.isEmpty()
-                || entry.name().toLowerCase(Locale.ROOT).contains(normalizedQuery))
-            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-        entries.sort(Comparator.comparing(PlayerListState.PlayerEntry::pinned).reversed()
-            .thenComparingInt(PlayerListState.PlayerEntry::serverOrder));
-        return entries;
-    }
-
     void requestListIfNeeded() {
-        if (!visible() || listRequested) return;
-        if (Minecraft.getInstance().getConnection() == null) return;
-        listRequested = true;
-        requestList();
+        execute(session.requestListIfNeeded(visible(),
+            Minecraft.getInstance().getConnection() != null));
     }
 
     void requestList() {
-        PortalNetworking.sendRequest(PortalAction.REQUEST_PLAYERS);
+        execute(session.requestList());
     }
 
     void select(UUID id) {
-        selectedId = id;
-        PortalNetworking.sendRequest(PortalAction.SELECT_PLAYER, tag -> Nbt.putUUID(tag, "Target", id));
+        execute(session.select(id));
     }
 
     void clearSelection() {
-        selectedId = null;
+        session.clearSelection();
     }
 
     void togglePin(UUID id, boolean pinned) {
-        PlayerListState.markPinned(id, !pinned);
-        PortalNetworking.sendRequest(PortalAction.TOGGLE_PLAYER_PIN, tag -> Nbt.putUUID(tag, "Target", id));
+        execute(session.togglePin(id, pinned));
     }
 
     void toggleExpanded() {
-        expanded = !expanded;
-        if (expanded) requestList();
-        PortalNetworking.sendRequest(PortalAction.SET_GROUP_EXPANDED, tag -> {
-            Nbt.putUUID(tag, "Group", PortalPlayerData.PLAYER_SECTION_ID);
-            tag.putBoolean("Expanded", expanded);
-        });
+        session.toggleExpanded().forEach(this::execute);
     }
 
     void openSelected() {
-        if (selectedId == null) return;
-        PortalNetworking.sendRequest(PortalAction.OPEN_PLAYER_PORTAL,
-            tag -> Nbt.putUUID(tag, "Target", selectedId));
+        execute(session.openSelected());
     }
 
     void sync(PortalPlayerData data) {
-        selectedId = data.selectedPlayerId();
-        expanded = data.expandedGroups().contains(PortalPlayerData.PLAYER_SECTION_ID);
+        session.sync(data.selectedPlayerId(),
+            data.expandedGroups().contains(PortalPlayerData.PLAYER_SECTION_ID));
     }
 
     boolean clearUnavailableSelection() {
-        if (selectedId == null || PlayerListState.player(selectedId) != null) return false;
-        selectedId = null;
-        return true;
+        return session.clearUnavailableSelection(id -> PlayerListState.player(id) != null);
+    }
+
+    private void execute(@Nullable Command command) {
+        if (command == null) return;
+        switch (command.type()) {
+            case REQUEST_LIST -> PortalNetworking.sendRequest(PortalAction.REQUEST_PLAYERS);
+            case SELECT -> PortalNetworking.sendRequest(PortalAction.SELECT_PLAYER,
+                tag -> Nbt.putUUID(tag, "Target", command.id()));
+            case SET_PINNED -> {
+                PlayerListState.markPinned(command.id(), command.value());
+                PortalNetworking.sendRequest(PortalAction.TOGGLE_PLAYER_PIN,
+                    tag -> Nbt.putUUID(tag, "Target", command.id()));
+            }
+            case SET_EXPANDED -> PortalNetworking.sendRequest(PortalAction.SET_GROUP_EXPANDED, tag -> {
+                Nbt.putUUID(tag, "Group", PortalPlayerData.PLAYER_SECTION_ID);
+                tag.putBoolean("Expanded", command.value());
+            });
+            case OPEN -> PortalNetworking.sendRequest(PortalAction.OPEN_PLAYER_PORTAL,
+                tag -> Nbt.putUUID(tag, "Target", command.id()));
+        }
     }
 }

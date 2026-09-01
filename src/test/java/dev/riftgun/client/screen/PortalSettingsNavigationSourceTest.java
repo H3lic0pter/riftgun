@@ -15,11 +15,14 @@ final class PortalSettingsNavigationSourceTest {
         for (String node : new String[] {"1.21.1", "26.1.2"}) {
             String source = Files.readString(Path.of("versions", node,
                 "src/main/java/dev/riftgun/client/screen/PortalConfigScreen.java"));
-            String settings = section(source, "} else if (modal == Modal.SETTINGS) {",
-                "} else if (modal == Modal.CONFIRM_SETTINGS) {");
-            String visuals = section(source, "} else if (modal == Modal.VISUAL_SETTINGS) {",
-                "} else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {");
-            String sounds = section(source, "} else if (modal == Modal.SOUND_SETTINGS) {",
+            String settings = section(source,
+                "} else if (session.page() == PortalConfigPage.SETTINGS) {",
+                "} else if (session.page() == PortalConfigPage.CONFIRM_SETTINGS) {");
+            String visuals = section(source,
+                "} else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {",
+                "} else if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {");
+            String sounds = section(source,
+                "} else if (session.page() == PortalConfigPage.SOUND_SETTINGS) {",
                 "\n        }");
 
             assertTrue(settings.contains("toggleLabel(\"screen.riftgun.animations\""));

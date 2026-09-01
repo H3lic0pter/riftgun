@@ -1,6 +1,9 @@
 package dev.riftgun.client.screen;
 
 import static dev.riftgun.client.screen.PortalGuiIcons.*;
+import static dev.riftgun.ui.PortalConfigLayout.*;
+import static dev.riftgun.ui.PortalConfigPresentation.*;
+import static dev.riftgun.ui.PortalConfigRows.*;
 
 import dev.riftgun.client.DimensionLabelState;
 import dev.riftgun.client.PlayerListState;
@@ -18,7 +21,6 @@ import dev.riftgun.client.render.PortalVisualType;
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.data.Destination;
 import dev.riftgun.data.DestinationGroup;
-import dev.riftgun.data.DestinationSort;
 import dev.riftgun.data.DestinationSafetyResult;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlayerSettings;
@@ -39,6 +41,18 @@ import dev.riftgun.sound.PortalSoundChannel;
 import dev.riftgun.sound.PortalSoundChoice;
 import dev.riftgun.sound.PortalSoundRegistry;
 import dev.riftgun.sound.PortalSoundSettings;
+import dev.riftgun.ui.PortalConfigLayout;
+import dev.riftgun.ui.PortalConfigLayout.Box;
+import dev.riftgun.ui.PortalConfigPage;
+import dev.riftgun.ui.PortalConfigRows;
+import dev.riftgun.ui.PortalConfigRows.ExternalSection;
+import dev.riftgun.ui.PortalConfigRows.PlayerEntry;
+import dev.riftgun.ui.PortalConfigRows.PlayerSection;
+import dev.riftgun.ui.PortalConfigRows.Row;
+import dev.riftgun.ui.PortalConfigRows.RowKind;
+import dev.riftgun.ui.PortalConfigSession;
+import dev.riftgun.ui.PortalConfigSettings;
+import dev.riftgun.ui.PortalConfigSettings.Toggle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -50,7 +64,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.nio.charset.StandardCharsets;
 import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -67,12 +80,6 @@ import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalConfigScreen extends Screen {
-    private static final int HEADER_HEIGHT = 48;
-    private static final int FOOTER_HEIGHT = 36;
-    private static final int ROW_HEIGHT = 18;
-    private static final int ROW_ACTION_SIZE = 14;
-    private static final int DETAIL_LINE_HEIGHT = 31;
-
     private int panelX;
     private int panelY;
     private int panelWidth;
@@ -110,10 +117,7 @@ public final class PortalConfigScreen extends Screen {
     private final List<Row> hitRows = new ArrayList<>();
     private final Map<UUID, Float> animatedRowY = new HashMap<>();
 
-    private Modal modal = Modal.NONE;
-    private Modal returnModal = Modal.NONE;
-    private @Nullable UUID modalTarget;
-    private boolean dirty;
+    private final PortalConfigSession session = new PortalConfigSession();
     private String formName = "";
     private String formX = "";
     private String formY = "";
@@ -306,7 +310,7 @@ public final class PortalConfigScreen extends Screen {
         listTop = panelY + HEADER_HEIGHT;
         listBottom = panelY + panelHeight - footerHeight();
 
-        if (modal != Modal.NONE) {
+        if (session.page() != PortalConfigPage.NONE) {
             initModal();
             return;
         }
@@ -329,12 +333,12 @@ public final class PortalConfigScreen extends Screen {
         int available = panelWidth - listWidth - 16;
         int compactButtonWidth = Math.max(26, (available - 6) / 3);
         firstCreateButton = button(rightX, panelY + 24, compactButtonWidth, 18,
-            "screen.riftgun.save_here", false, ignored -> openForm(Modal.CREATE_CURRENT, null));
+            "screen.riftgun.save_here", false, ignored -> openForm(PortalConfigPage.CREATE_CURRENT, null));
         coordinateButton = button(rightX + compactButtonWidth + 3, panelY + 24, compactButtonWidth, 18,
-            "screen.riftgun.add_coordinate", false, ignored -> openForm(Modal.CREATE_COORDINATE, null));
+            "screen.riftgun.add_coordinate", false, ignored -> openForm(PortalConfigPage.CREATE_COORDINATE, null));
         coordinateButton.visible = coordinateOverrideUnlocked();
         button(rightX + (compactButtonWidth + 3) * 2, panelY + 24, compactButtonWidth, 18,
-            "screen.riftgun.add_group", false, ignored -> openForm(Modal.CREATE_GROUP, null));
+            "screen.riftgun.add_group", false, ignored -> openForm(PortalConfigPage.CREATE_GROUP, null));
 
         moduleBayButton = button(panelX + panelWidth - 29, panelY + 3, 19, 18,
             Component.empty(), false, ignored -> PortalNetworking.sendRequest(PortalAction.OPEN_MODULES));
@@ -355,7 +359,7 @@ public final class PortalConfigScreen extends Screen {
         int settingsWidth = showFunctionMode
             ? Math.max(18, Math.min(54, (modeControlStart - panelX - 16) / 2)) : 54;
         ThemedButton settingsButton = button(panelX + 10, footerY, settingsWidth, 19,
-            "screen.riftgun.settings", false, ignored -> openForm(Modal.SETTINGS, null));
+            "screen.riftgun.settings", false, ignored -> openForm(PortalConfigPage.SETTINGS, null));
         settingsButton.horizontalMarquee();
         int sortX = panelX + 13 + settingsWidth;
         int sortWidth = showFunctionMode
@@ -429,7 +433,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void initModal() {
-        ModalBox box = modalBox();
+        Box box = modalBox();
         int x = box.x();
         int y = box.y();
         int fieldWidth = box.width() - 36;
@@ -438,63 +442,63 @@ public final class PortalConfigScreen extends Screen {
         visualDropdownOpen = false;
         soundDropdownChannel = null;
 
-        if (modal == Modal.CREATE_COORDINATE || modal == Modal.EDIT_DESTINATION) {
+        if (session.page() == PortalConfigPage.CREATE_COORDINATE || session.page() == PortalConfigPage.EDIT_DESTINATION) {
             addField(x + 18, y + 41, fieldWidth, formName, 48, value -> formName = value);
             int half = (fieldWidth - 10) / 2;
-            boolean coordinatesEditable = modal == Modal.CREATE_COORDINATE || coordinateEditingUnlocked();
+            boolean coordinatesEditable = session.page() == PortalConfigPage.CREATE_COORDINATE || coordinateEditingUnlocked();
             addCoordinateField(x + 18, y + 80, half, formX, value -> formX = value, coordinatesEditable);
             addCoordinateField(x + 28 + half, y + 80, half, formY, value -> formY = value, coordinatesEditable);
             addCoordinateField(x + 18, y + 119, half, formZ, value -> formZ = value, coordinatesEditable);
             addCoordinateField(x + 28 + half, y + 119, half, formYaw, value -> formYaw = value, coordinatesEditable);
             addGroupSelector(x + 18, y + 158, fieldWidth);
-        } else if (modal == Modal.CREATE_CURRENT) {
+        } else if (session.page() == PortalConfigPage.CREATE_CURRENT) {
             addField(x + 18, y + 41, fieldWidth, formName, 48, value -> formName = value);
             addGroupSelector(x + 18, y + 111, fieldWidth);
-        } else if (modal == Modal.CREATE_GROUP || modal == Modal.RENAME_GROUP) {
+        } else if (session.page() == PortalConfigPage.CREATE_GROUP || session.page() == PortalConfigPage.RENAME_GROUP) {
             addField(x + 18, y + 44, fieldWidth, formName, 32, value -> formName = value);
-        } else if (modal == Modal.SHARE_DESTINATION) {
+        } else if (session.page() == PortalConfigPage.SHARE_DESTINATION) {
             button(x + 18, y + 38, fieldWidth, 19, "screen.riftgun.share_chat", false,
                 ignored -> shareViewed(PortalAction.SHARE_DESTINATION_CHAT));
             button(x + 18, y + 62, fieldWidth, 19, "screen.riftgun.share_item", false,
                 ignored -> shareViewed(PortalAction.CREATE_COORDINATE_NOTE));
-        } else if (modal == Modal.SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SETTINGS) {
             PortalPlayerSettings settings = PortalClientState.data().settings();
             button(x + 18, y + 28, fieldWidth, 18,
                 toggleLabel("screen.riftgun.safety", settings.safetyCheckEnabled()), false,
-                ignored -> updateSetting(0));
+                ignored -> updateSetting(Toggle.SAFETY_CHECK));
             button(x + 18, y + 47, fieldWidth, 18,
                 toggleLabel("screen.riftgun.animations", settings.animationsEnabled()), false,
-                ignored -> updateSetting(4));
+                ignored -> updateSetting(Toggle.ANIMATIONS));
             button(x + 18, y + 66, fieldWidth, 18,
                 toggleLabel("screen.riftgun.sounds", settings.soundsEnabled()), false,
-                ignored -> updateSetting(5));
+                ignored -> updateSetting(Toggle.SOUNDS));
             button(x + 18, y + 85, fieldWidth, 18,
                 toggleLabel("screen.riftgun.remember_scroll_position", rememberScrollPosition()), false,
                 ignored -> toggleRememberScrollPosition());
             button(x + 18, y + 104, fieldWidth, 18,
                 "screen.riftgun.confirm_settings", false,
-                ignored -> openSettingsPage(Modal.CONFIRM_SETTINGS));
+                ignored -> openSettingsPage(PortalConfigPage.CONFIRM_SETTINGS));
             if (ClientMapWaypointIntegration.anyInstalled()) {
                 button(x + 18, y + 123, fieldWidth, 18,
                     "screen.riftgun.map_integration_settings", false,
-                    ignored -> openSettingsPage(Modal.MAP_INTEGRATION_SETTINGS));
+                    ignored -> openSettingsPage(PortalConfigPage.MAP_INTEGRATION_SETTINGS));
             }
             visualSettingsButton = button(x + box.width() - 64, y + 8, 20, 18,
                 Component.empty(), false, ignored -> openVisualSettings());
             soundSettingsButton = button(x + box.width() - 40, y + 8, 20, 18,
                 Component.empty(), false, ignored -> openSoundSettings());
-        } else if (modal == Modal.CONFIRM_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.CONFIRM_SETTINGS) {
             PortalPlayerSettings settings = PortalClientState.data().settings();
             button(x + 18, y + 35, fieldWidth, 18,
                 toggleLabel("screen.riftgun.confirm_deletion", settings.confirmDeletion()), false,
-                ignored -> updateSetting(1));
+                ignored -> updateSetting(Toggle.CONFIRM_DELETION));
             button(x + 18, y + 58, fieldWidth, 18,
                 toggleLabel("screen.riftgun.confirm_discard", settings.confirmDiscardedChanges()), false,
-                ignored -> updateSetting(2));
+                ignored -> updateSetting(Toggle.CONFIRM_DISCARD));
             button(x + 18, y + 81, fieldWidth, 18,
                 toggleLabel("screen.riftgun.confirm_clear_fluid", settings.confirmClearFluid()), false,
-                ignored -> updateSetting(3));
-        } else if (modal == Modal.MAP_INTEGRATION_SETTINGS) {
+                ignored -> updateSetting(Toggle.CONFIRM_CLEAR_FLUID));
+        } else if (session.page() == PortalConfigPage.MAP_INTEGRATION_SETTINGS) {
             int optionY = y + 34;
             if (ClientMapWaypointIntegration.installed(ExternalDestinationSource.JOURNEYMAP)) {
                 button(x + 18, optionY, fieldWidth, 18,
@@ -511,49 +515,49 @@ public final class PortalConfigScreen extends Screen {
                 optionY += 23;
             }
             addRenderableWidget(new MapWaypointLimitSlider(x + 18, optionY, fieldWidth, 18));
-        } else if (modal == Modal.GUN_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             int buttonX = x + 18;
             portalDurationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                ignored -> openGunSetting(Modal.PORTAL_DURATION_SETTINGS));
+                ignored -> openGunSetting(PortalConfigPage.PORTAL_DURATION_SETTINGS));
             buttonX += 31;
             smartRangeSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                ignored -> openGunSetting(Modal.SMART_DISTANCE_SETTINGS));
+                ignored -> openGunSetting(PortalConfigPage.SMART_DISTANCE_SETTINGS));
             buttonX += 31;
             if (remoteInstalled()) {
                 remoteSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.REMOTE_SETTINGS));
+                    ignored -> openGunSetting(PortalConfigPage.REMOTE_SETTINGS));
                 buttonX += 31;
             }
             if (hasEntityTransitModule()) {
                 entityTransitSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.ENTITY_TRANSIT_SETTINGS));
+                    ignored -> openGunSetting(PortalConfigPage.ENTITY_TRANSIT_SETTINGS));
                 buttonX += 31;
             }
             if (moduleCount("PLAYER_TARGET") > 0) {
                 playerTargetSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.PLAYER_TARGET_SETTINGS));
+                    ignored -> openGunSetting(PortalConfigPage.PLAYER_TARGET_SETTINGS));
                 buttonX += 31;
             }
             if (moduleCount("APERTURE_EXPANSION") > 0) {
                 apertureSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.APERTURE_SETTINGS));
+                    ignored -> openGunSetting(PortalConfigPage.APERTURE_SETTINGS));
                 buttonX += 31;
             }
             if (moduleCount("FALL_GUARD") > 0) {
                 fallGuardSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.FALL_GUARD_SETTINGS));
+                    ignored -> openGunSetting(PortalConfigPage.FALL_GUARD_SETTINGS));
                 buttonX += 31;
             }
             if (moduleCount("ENTITY_RELOCATION") > 0) {
                 entityRelocationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.ENTITY_RELOCATION_SETTINGS));
+                    ignored -> openGunSetting(PortalConfigPage.ENTITY_RELOCATION_SETTINGS));
                 buttonX += 31;
             }
             if (moduleCount("PORTAL_PAIRING") > 0 || remoteInstalled()) {
                 portalPairingSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
-                    ignored -> openGunSetting(Modal.PORTAL_PAIRING_SETTINGS));
+                    ignored -> openGunSetting(PortalConfigPage.PORTAL_PAIRING_SETTINGS));
             }
-        } else if (modal == Modal.PORTAL_DURATION_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.PORTAL_DURATION_SETTINGS) {
             boolean eternal = PortalClientState.gun().eternalDurationInstalled();
             int maximum = eternal ? 301 : Math.max(1, PortalClientState.gun().maximumPortalDurationSeconds());
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
@@ -564,36 +568,36 @@ public final class PortalConfigScreen extends Screen {
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY + 24, fieldWidth, 18,
                 DistanceSetting.TRANSIT_COOLDOWN, "screen.riftgun.transit_cooldown_value", 0, cooldownMaximum,
                 PortalClientState.gun().transitCooldownTenths(), 10.0));
-        } else if (modal == Modal.SMART_DISTANCE_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SMART_DISTANCE_SETTINGS) {
             int maximum = Math.max(1,
                 PortalClientState.gun().maximumSurfaceRange());
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
                 DistanceSetting.SMART_DISTANCE, "screen.riftgun.smart_distance_value", 1,
                 maximum,
                 PortalClientState.gun().smartDistance()));
-        } else if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.ENTITY_TRANSIT_SETTINGS) {
             addEntityTransitButtons(x + 18, gunSettingControlY);
-        } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.PLAYER_TARGET_SETTINGS) {
             int buttonX = x + 18;
             playerTargetButton = button(buttonX, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.PLAYER_TARGET));
             buttonX += 31;
             playerExcludeButton = button(buttonX, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> cyclePlayerExclude());
-        } else if (modal == Modal.APERTURE_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.APERTURE_SETTINGS) {
             apertureToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.EXPANDED_APERTURE));
-        } else if (modal == Modal.FALL_GUARD_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.FALL_GUARD_SETTINGS) {
             fallGuardToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.FALL_GUARD));
             entityFallGuardToggleButton = button(x + 49, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.FALL_GUARD_ENTITIES));
-        } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.ENTITY_RELOCATION_SETTINGS) {
             entityRelocationEnabledButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.ENTITY_RELOCATION));
             entityRelocationSmartButton = button(x + 49, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.ENTITY_RELOCATION_SMART_ROUTING));
-        } else if (modal == Modal.PORTAL_PAIRING_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.PORTAL_PAIRING_SETTINGS) {
             int optionY = gunSettingControlY;
             if (remoteInstalled()) {
                 coordinateFallbackButton = button(x + 18, optionY, fieldWidth, 19,
@@ -609,7 +613,7 @@ public final class PortalConfigScreen extends Screen {
                     false, ignored -> cyclePairingFallback(FallbackSetting.PAIRING_SMART));
                 pairingFallbackButton.active = remoteInstalled();
             }
-        } else if (modal == Modal.REMOTE_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.REMOTE_SETTINGS) {
             int maximum = Math.max(1,
                 PortalClientState.gun().maximumSurfaceRange());
             addRenderableWidget(new GunDistanceSlider(x + 18, gunSettingControlY, fieldWidth, 18,
@@ -628,15 +632,15 @@ public final class PortalConfigScreen extends Screen {
                 toggleLabel("screen.riftgun.remote.placement_preview",
                     PortalClientState.gun().remotePreviewEnabled()),
                 false, ignored -> toggleGunBoolean(BooleanSetting.REMOTE_PLACEMENT_PREVIEW));
-        } else if (modal == Modal.VISUAL_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
                 visualAnimationSettingsButton = button(x + fieldWidth - 2, y + 76, 20, 18,
                     Component.empty(), false, ignored -> openSwirlAnimationSettings());
             }
-        } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             addVisualOptionWidgets(box, fieldWidth);
-        } else if (modal == Modal.SOUND_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SOUND_SETTINGS) {
             int selectorY = y + 34;
             for (PortalSoundChannel channel : PortalSoundChannel.values()) {
                 addSoundSelector(channel, x + 18, selectorY, fieldWidth);
@@ -649,33 +653,33 @@ public final class PortalConfigScreen extends Screen {
         }
 
         int actionY = y + box.height() - 27;
-        if (modal.isConfirmation()) {
+        if (session.page().isConfirmation()) {
             button(x + 18, actionY, (box.width() - 42) / 2, 19,
                 "screen.riftgun.cancel", false, ignored -> cancelConfirmation());
             button(x + 24 + (box.width() - 42) / 2, actionY, (box.width() - 42) / 2, 19,
                 "screen.riftgun.confirm", false, ignored -> acceptConfirmation());
-        } else if (modal == Modal.SHARE_DESTINATION) {
+        } else if (session.page() == PortalConfigPage.SHARE_DESTINATION) {
             button(x + 18, actionY, fieldWidth, 19, "screen.riftgun.cancel", false,
                 ignored -> closeModalNow());
-        } else if (modal == Modal.SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SETTINGS) {
             button(x + 18, actionY, fieldWidth, 19, "screen.riftgun.done", false,
                 ignored -> closeModalNow());
-        } else if (modal == Modal.GUN_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             gunSettingsBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> closeModalNow());
-        } else if (modal.isGunSettingPage()) {
+        } else if (session.page().isGunSettingPage()) {
             moduleSettingBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToGunSettings());
-        } else if (modal == Modal.CONFIRM_SETTINGS || modal == Modal.MAP_INTEGRATION_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.CONFIRM_SETTINGS || session.page() == PortalConfigPage.MAP_INTEGRATION_SETTINGS) {
             button(x + 18, actionY, 24, 19, Component.literal("←"), false,
                 ignored -> backToSettings());
-        } else if (modal == Modal.VISUAL_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             visualBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToSettings());
-        } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             swirlAnimationBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToVisualSettings());
-        } else if (modal == Modal.SOUND_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SOUND_SETTINGS) {
             soundBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToSettings());
         } else {
@@ -747,7 +751,7 @@ public final class PortalConfigScreen extends Screen {
         soundDropdownButtons.put(channel, dropdown);
     }
 
-    private void addVisualOptionWidgets(ModalBox box, int width) {
+    private void addVisualOptionWidgets(Box box, int width) {
         PortalVisualOptions options = PortalVisualPreferences.selected().options();
         if (options.isEmpty()) {
             visualOptionsScroll = 0;
@@ -788,7 +792,7 @@ public final class PortalConfigScreen extends Screen {
         return widget;
     }
 
-    private void layoutVisualOptionWidgets(ModalBox box) {
+    private void layoutVisualOptionWidgets(Box box) {
         int top = visualOptionsTop(box);
         int bottom = visualOptionsBottom(box);
         for (VisualWidgetBinding binding : visualOptionWidgets) {
@@ -840,7 +844,7 @@ public final class PortalConfigScreen extends Screen {
         field.setValue(value);
         field.setResponder(next -> {
             responder.accept(next);
-            dirty = true;
+            session.markDirty();
         });
         return addRenderableWidget(field);
     }
@@ -867,11 +871,11 @@ public final class PortalConfigScreen extends Screen {
         graphics.fill(panelX, listBottom, panelX + panelWidth, listBottom + 1, PortalTheme.BORDER);
         graphics.text(font, title, panelX + 10, panelY + 8, PortalTheme.TEXT, false);
 
-        int backgroundMouseX = modal == Modal.NONE ? mouseX : Integer.MIN_VALUE;
-        int backgroundMouseY = modal == Modal.NONE ? mouseY : Integer.MIN_VALUE;
+        int backgroundMouseX = session.page() == PortalConfigPage.NONE ? mouseX : Integer.MIN_VALUE;
+        int backgroundMouseY = session.page() == PortalConfigPage.NONE ? mouseY : Integer.MIN_VALUE;
         renderRows(graphics, backgroundMouseX, backgroundMouseY);
         renderDetails(graphics, backgroundMouseX, backgroundMouseY);
-        if (modal != Modal.NONE) {
+        if (session.page() != PortalConfigPage.NONE) {
             renderModal(graphics);
         }
         for (Renderable renderable : renderables) {
@@ -1000,7 +1004,7 @@ public final class PortalConfigScreen extends Screen {
             graphics.text(font, trim(title, listWidth - 34 - 36), panelX + 28, y + 5,
                 PortalTheme.ICE, false);
         } else {
-            long count = playerTargets.entries("").size();
+            long count = PlayerListState.players().size();
             String countText = Long.toString(count);
             graphics.text(font, trim(title, listWidth - 34 - 20), panelX + 28, y + 5,
                 PortalTheme.ICE, false);
@@ -1183,16 +1187,16 @@ public final class PortalConfigScreen extends Screen {
             }
             y = detailField(graphics, "screen.riftgun.coordinates", String.format(Locale.ROOT, "%.1f  %.1f  %.1f",
                 destination.x(), destination.y(), destination.z()), x, y, textWidth);
-            detailEditY = modal == Modal.NONE ? y : -1;
-            if (modal == Modal.NONE) {
+            detailEditY = session.page() == PortalConfigPage.NONE ? y : -1;
+            if (session.page() == PortalConfigPage.NONE) {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
                 graphics.outline(x, y, right - x - 8, 18, PortalTheme.BORDER);
                 drawDetailText(graphics, Component.translatable("screen.riftgun.edit"),
                     x + 2, right - 10, y + 5, PortalTheme.TEXT, true);
             }
             y += 22;
-            detailShareY = modal == Modal.NONE ? y : -1;
-            if (modal == Modal.NONE) {
+            detailShareY = session.page() == PortalConfigPage.NONE ? y : -1;
+            if (session.page() == PortalConfigPage.NONE) {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
                 graphics.outline(x, y, right - x - 8, 18, PortalTheme.BORDER);
                 drawDetailText(graphics, Component.translatable("screen.riftgun.share"),
@@ -1238,22 +1242,22 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderModal(GuiGraphicsExtractor graphics) {
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xB8101115);
-        ModalBox box = modalBox();
+        Box box = modalBox();
         graphics.fill(box.x(), box.y(), box.x() + box.width(), box.y() + box.height(), PortalTheme.PANEL_RAISED);
         graphics.outline(box.x(), box.y(), box.width(), box.height(), PortalTheme.BORDER_FOCUS);
-        graphics.text(font, Component.translatable(modal.titleKey), box.x() + 18, box.y() + 13,
+        graphics.text(font, Component.translatable(session.page().titleKey()), box.x() + 18, box.y() + 13,
             PortalTheme.TEXT, false);
 
         int x = box.x() + 18;
         int y = box.y();
-        if (modal == Modal.CREATE_COORDINATE || modal == Modal.EDIT_DESTINATION) {
+        if (session.page() == PortalConfigPage.CREATE_COORDINATE || session.page() == PortalConfigPage.EDIT_DESTINATION) {
             label(graphics, "screen.riftgun.name", x, y + 29);
             label(graphics, "screen.riftgun.x", x, y + 68);
             label(graphics, "screen.riftgun.y", x + (box.width() - 26) / 2, y + 68);
             label(graphics, "screen.riftgun.z", x, y + 107);
             label(graphics, "screen.riftgun.yaw", x + (box.width() - 26) / 2, y + 107);
             label(graphics, "screen.riftgun.group", x, y + 146);
-        } else if (modal == Modal.CREATE_CURRENT) {
+        } else if (session.page() == PortalConfigPage.CREATE_CURRENT) {
             label(graphics, "screen.riftgun.name", x, y + 29);
             label(graphics, "screen.riftgun.coordinates", x, y + 68);
             if (minecraft != null && minecraft.player != null) {
@@ -1262,14 +1266,14 @@ public final class PortalConfigScreen extends Screen {
                     x, y + 81, PortalTheme.TEXT_MUTED, false);
             }
             label(graphics, "screen.riftgun.group", x, y + 99);
-        } else if (modal == Modal.CREATE_GROUP || modal == Modal.RENAME_GROUP) {
+        } else if (session.page() == PortalConfigPage.CREATE_GROUP || session.page() == PortalConfigPage.RENAME_GROUP) {
             label(graphics, "screen.riftgun.name", x, y + 32);
-        } else if (modal == Modal.GUN_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             graphics.text(font, Component.translatable("screen.riftgun.gun_settings_hint"),
                 x, y + 30, PortalTheme.TEXT_MUTED, false);
-        } else if (modal.isGunSettingPage()) {
+        } else if (session.page().isGunSettingPage()) {
             drawGunSettingDescription(graphics, box);
-        } else if (modal == Modal.MAP_INTEGRATION_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.MAP_INTEGRATION_SETTINGS) {
             int statusY = y + 104;
             for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
                 var result = ClientMapWaypointIntegration.catalog().readResult(source);
@@ -1280,20 +1284,20 @@ public final class PortalConfigScreen extends Screen {
                     PortalTheme.WARNING, false);
                 statusY += 12;
             }
-        } else if (modal == Modal.VISUAL_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             label(graphics, "screen.riftgun.portal_visual", x, y + 34);
-        } else if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             renderVisualOptionsChrome(graphics, box);
-        } else if (modal.isConfirmation()) {
-            Component body = modal == Modal.CONFIRM_CLEAR_FLUID
-                ? Component.translatable(modal.bodyKey, gunFluidName(), PortalClientState.gun().amount())
-                : Component.translatable(modal.bodyKey);
+        } else if (session.page().isConfirmation()) {
+            Component body = session.page() == PortalConfigPage.CONFIRM_CLEAR_FLUID
+                ? Component.translatable(session.page().bodyKey(), gunFluidName(), PortalClientState.gun().amount())
+                : Component.translatable(session.page().bodyKey());
             graphics.textWithWordWrap(font, body, x, y + 35,
                 box.width() - 36, PortalTheme.TEXT_MUTED);
         }
     }
 
-    private void renderVisualOptionsChrome(GuiGraphicsExtractor graphics, ModalBox box) {
+    private void renderVisualOptionsChrome(GuiGraphicsExtractor graphics, Box box) {
         PortalVisualOptions options = PortalVisualPreferences.selected().options();
         if (options.isEmpty()) return;
         int top = visualOptionsTop(box);
@@ -1308,8 +1312,8 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void renderVisualOptionWidgets(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        if (modal != Modal.SWIRL_ANIMATION_SETTINGS || visualOptionWidgets.isEmpty()) return;
-        ModalBox box = modalBox();
+        if (session.page() != PortalConfigPage.SWIRL_ANIMATION_SETTINGS || visualOptionWidgets.isEmpty()) return;
+        Box box = modalBox();
         int top = visualOptionsTop(box);
         int bottom = visualOptionsBottom(box);
         int effectiveMouseX = visualDropdownOpen ? Integer.MIN_VALUE : mouseX;
@@ -1329,10 +1333,10 @@ public final class PortalConfigScreen extends Screen {
             drawPlayerRefreshIcon(graphics, mapRefreshButton.getX() + 5,
                 mapRefreshButton.getY() + 4);
         }
-        if (modal.isDestinationForm() && groupDropdownButton != null) {
+        if (session.page().isDestinationForm() && groupDropdownButton != null) {
             drawDownIcon(graphics, groupDropdownButton.getX() + 6, groupDropdownButton.getY() + 7);
         }
-        if (modal == Modal.NONE && placementModeButton != null) {
+        if (session.page() == PortalConfigPage.NONE && placementModeButton != null) {
             renderMainModuleIcons(graphics);
             if (motionPredictionButton != null) {
                 boolean active = PortalClientState.data().settings().predictionMode()
@@ -1349,7 +1353,7 @@ public final class PortalConfigScreen extends Screen {
                 placementModeButton.getY(), PortalClientState.data().settings().placementMode());
             renderGunControls(graphics, mouseX, mouseY);
         }
-        if (modal == Modal.SETTINGS) {
+        if (session.page() == PortalConfigPage.SETTINGS) {
             if (visualSettingsButton != null) {
                 drawEyeIcon(graphics, visualSettingsButton.getX() + 5, visualSettingsButton.getY() + 5);
             }
@@ -1357,21 +1361,21 @@ public final class PortalConfigScreen extends Screen {
                 drawSoundIcon(graphics, soundSettingsButton.getX() + 5, soundSettingsButton.getY() + 5);
             }
         }
-        if (modal == Modal.GUN_SETTINGS) {
+        if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             renderGunSettingEntries(graphics);
             renderBackButton(graphics, gunSettingsBackButton);
         }
-        if (modal.isGunSettingPage()) {
+        if (session.page().isGunSettingPage()) {
             renderBackButton(graphics, moduleSettingBackButton);
-            if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
+            if (session.page() == PortalConfigPage.ENTITY_TRANSIT_SETTINGS) {
                 renderEntityTransitButtons(graphics);
-            } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
+            } else if (session.page() == PortalConfigPage.PLAYER_TARGET_SETTINGS) {
                 renderPlayerTargetButtons(graphics);
-            } else if (modal == Modal.APERTURE_SETTINGS && apertureToggleButton != null) {
+            } else if (session.page() == PortalConfigPage.APERTURE_SETTINGS && apertureToggleButton != null) {
                 boolean enabled = PortalClientState.gun().expandedApertureEnabled();
                 drawApertureIcon(graphics, apertureToggleButton.getX() + 7,
                     apertureToggleButton.getY() + 7, enabled);
-            } else if (modal == Modal.FALL_GUARD_SETTINGS) {
+            } else if (session.page() == PortalConfigPage.FALL_GUARD_SETTINGS) {
                 if (fallGuardToggleButton != null) {
                     boolean enabled = PortalClientState.gun().fallGuardEnabled();
                     drawFallGuardIcon(graphics, fallGuardToggleButton.getX() + 7,
@@ -1382,7 +1386,7 @@ public final class PortalConfigScreen extends Screen {
                     drawEntityFallGuardIcon(graphics, entityFallGuardToggleButton.getX() + 5,
                         entityFallGuardToggleButton.getY() + 5, enabled);
                 }
-            } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
+            } else if (session.page() == PortalConfigPage.ENTITY_RELOCATION_SETTINGS) {
                 if (entityRelocationEnabledButton != null) {
                     boolean enabled = PortalClientState.gun().entityRelocationEnabled();
                     drawEntityRelocationIcon(graphics, entityRelocationEnabledButton.getX() + 7,
@@ -1395,7 +1399,7 @@ public final class PortalConfigScreen extends Screen {
                 }
             }
         }
-        if (modal == Modal.VISUAL_SETTINGS) {
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             if (visualBackButton != null) {
                 drawCompactBackButtonIcon(graphics, visualBackButton.getX(), visualBackButton.getY());
             }
@@ -1407,7 +1411,7 @@ public final class PortalConfigScreen extends Screen {
                     visualAnimationSettingsButton.getY() + 5, PortalTheme.ICE);
             }
         }
-        if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+        if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             if (swirlAnimationBackButton != null) {
                 drawCompactBackButtonIcon(graphics, swirlAnimationBackButton.getX(),
                     swirlAnimationBackButton.getY());
@@ -1417,7 +1421,7 @@ public final class PortalConfigScreen extends Screen {
                     visualResetButton.active ? PortalTheme.ICE : PortalTheme.TEXT_MUTED);
             }
         }
-        if (modal == Modal.SOUND_SETTINGS) {
+        if (session.page() == PortalConfigPage.SOUND_SETTINGS) {
             if (soundBackButton != null) {
                 drawCompactBackButtonIcon(graphics, soundBackButton.getX(), soundBackButton.getY());
             }
@@ -1429,10 +1433,10 @@ public final class PortalConfigScreen extends Screen {
 
     /** Rendered last so icons never cover tooltip text. */
     private void renderPlacementTooltips(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        if (modal.isDestinationForm() && groupDropdownButton != null) {
+        if (session.page().isDestinationForm() && groupDropdownButton != null) {
             // no tooltip
         }
-        if (modal == Modal.NONE && placementModeButton != null) {
+        if (session.page() == PortalConfigPage.NONE && placementModeButton != null) {
             if (gunSettingsButton != null && gunSettingsButton.isHovered()) {
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.configure_gun")), mouseX, mouseY);
             }
@@ -1481,7 +1485,7 @@ public final class PortalConfigScreen extends Screen {
             }
             renderGunControlTooltips(graphics, mouseX, mouseY);
         }
-        if (modal == Modal.SETTINGS) {
+        if (session.page() == PortalConfigPage.SETTINGS) {
             if (visualSettingsButton != null && visualSettingsButton.isHovered()) {
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.visual_settings")), mouseX, mouseY);
             }
@@ -1489,23 +1493,23 @@ public final class PortalConfigScreen extends Screen {
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.sound_settings")), mouseX, mouseY);
             }
         }
-        if (modal == Modal.GUN_SETTINGS) {
+        if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             renderGunSettingTooltips(graphics, mouseX, mouseY);
             renderBackButtonTooltip(graphics, gunSettingsBackButton, mouseX, mouseY,
                 "screen.riftgun.back");
         }
-        if (modal.isGunSettingPage()) {
+        if (session.page().isGunSettingPage()) {
             renderBackButtonTooltip(graphics, moduleSettingBackButton, mouseX, mouseY,
                 "screen.riftgun.back_to_gun_settings");
-            if (modal == Modal.ENTITY_TRANSIT_SETTINGS) {
+            if (session.page() == PortalConfigPage.ENTITY_TRANSIT_SETTINGS) {
                 renderEntityTransitTooltips(graphics, mouseX, mouseY);
-            } else if (modal == Modal.PLAYER_TARGET_SETTINGS) {
+            } else if (session.page() == PortalConfigPage.PLAYER_TARGET_SETTINGS) {
                 renderPlayerTargetTooltips(graphics, mouseX, mouseY);
-            } else if (modal == Modal.APERTURE_SETTINGS && apertureToggleButton != null) {
+            } else if (session.page() == PortalConfigPage.APERTURE_SETTINGS && apertureToggleButton != null) {
                 boolean enabled = PortalClientState.gun().expandedApertureEnabled();
                 entityTooltip(graphics, apertureToggleButton,
                     "screen.riftgun.aperture", enabled, mouseX, mouseY);
-            } else if (modal == Modal.FALL_GUARD_SETTINGS) {
+            } else if (session.page() == PortalConfigPage.FALL_GUARD_SETTINGS) {
                 if (fallGuardToggleButton != null) {
                     boolean enabled = PortalClientState.gun().fallGuardEnabled();
                     entityTooltip(graphics, fallGuardToggleButton,
@@ -1516,7 +1520,7 @@ public final class PortalConfigScreen extends Screen {
                     entityTooltip(graphics, entityFallGuardToggleButton,
                         "screen.riftgun.fall_guard_entities", enabled, mouseX, mouseY);
                 }
-            } else if (modal == Modal.ENTITY_RELOCATION_SETTINGS) {
+            } else if (session.page() == PortalConfigPage.ENTITY_RELOCATION_SETTINGS) {
                 if (entityRelocationEnabledButton != null) {
                     entityTooltip(graphics, entityRelocationEnabledButton,
                         "screen.riftgun.entity_relocation_enabled",
@@ -1527,13 +1531,13 @@ public final class PortalConfigScreen extends Screen {
                         "screen.riftgun.entity_relocation_smart",
                         PortalClientState.gun().entityRelocationSmartRouting(), mouseX, mouseY);
                 }
-            } else if (modal == Modal.PORTAL_PAIRING_SETTINGS && pairingFallbackButton != null
+            } else if (session.page() == PortalConfigPage.PORTAL_PAIRING_SETTINGS && pairingFallbackButton != null
                 && !remoteInstalled() && pairingFallbackButton.isHovered()) {
                 graphics.setComponentTooltipForNextFrame(font,
                     List.of(Component.translatable("message.riftgun.remote_module_required")), mouseX, mouseY);
             }
         }
-        if (modal == Modal.VISUAL_SETTINGS) {
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             if (visualBackButton != null && visualBackButton.isHovered()) {
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.back_to_settings")), mouseX, mouseY);
             }
@@ -1546,7 +1550,7 @@ public final class PortalConfigScreen extends Screen {
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.visual.swirl_animation_settings")), mouseX, mouseY);
             }
         }
-        if (modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+        if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             if (swirlAnimationBackButton != null && swirlAnimationBackButton.isHovered()) {
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.visual.back_to_visuals")), mouseX, mouseY);
             }
@@ -1554,10 +1558,10 @@ public final class PortalConfigScreen extends Screen {
                 graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable(PortalVisualPreferences.selected().options().resetTooltipKey())), mouseX, mouseY);
             }
         }
-        if (modal == Modal.SOUND_SETTINGS && soundBackButton != null && soundBackButton.isHovered()) {
+        if (session.page() == PortalConfigPage.SOUND_SETTINGS && soundBackButton != null && soundBackButton.isHovered()) {
             graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("screen.riftgun.back_to_settings")), mouseX, mouseY);
         }
-        if (modal == Modal.EDIT_DESTINATION && !coordinateEditingUnlocked()) {
+        if (session.page() == PortalConfigPage.EDIT_DESTINATION && !coordinateEditingUnlocked()) {
             for (EditBox field : coordinateEditFields) {
                 if (field.isHovered()) {
                     graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable(
@@ -1829,15 +1833,9 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
-    private static String shortFluidAmount(int amount) {
-        if (amount < 1_000) return Integer.toString(amount);
-        if (amount % 1_000 == 0) return (amount / 1_000) + "k";
-        return String.format(Locale.ROOT, "%.1fk", amount / 1_000.0);
-    }
-
     private void renderGroupDropdown(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        List<UUID> groups = orderedGroupIds();
-        DropdownBox box = dropdownBox(groups.size());
+        List<UUID> groups = orderedGroupIds(PortalClientState.data());
+        Box box = dropdownBox(groups.size());
         graphics.nextStratum();
         graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
             box.y() + box.height() + 3, 0xCC000000);
@@ -1862,7 +1860,7 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderVisualDropdown(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         List<PortalVisualType> types = PortalVisualRegistry.values();
-        DropdownBox box = visualDropdownBox(types.size());
+        Box box = visualDropdownBox(types.size());
         Identifier selected = PortalVisualPreferences.selectedId();
         graphics.nextStratum();
         graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
@@ -1888,7 +1886,7 @@ public final class PortalConfigScreen extends Screen {
         ThemedButton selector = channel == null ? null : soundSelectors.get(channel);
         if (channel == null || selector == null) return;
         List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
-        DropdownBox box = selectorDropdownBox(selector, choices.size());
+        Box box = selectorDropdownBox(selector, choices.size());
         Identifier selected = PortalClientState.data().settings().portalSounds().selected(channel);
         graphics.nextStratum();
         graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
@@ -1911,29 +1909,27 @@ public final class PortalConfigScreen extends Screen {
 
     private List<Row> buildRows() {
         PortalPlayerData data = PortalClientState.data();
-        List<Row> rows = new ArrayList<>();
-        externalRows.clear();
-        String normalizedQuery = query.strip().toLowerCase(Locale.ROOT);
-        for (UUID groupId : orderedGroupIds()) {
-            String name = groupName(groupId);
-            List<Destination> destinations = data.destinations().stream()
-                .filter(destination -> destination.groupId().equals(groupId))
-                .filter(destination -> matches(destination, name, normalizedQuery))
-                .sorted(destinationComparator(data.settings().sort())).toList();
-            boolean groupMatch = normalizedQuery.isEmpty() || name.toLowerCase(Locale.ROOT).contains(normalizedQuery);
-            if (!groupMatch && destinations.isEmpty()) continue;
-            rows.add(new Row(RowKind.GROUP, groupId, 0));
-            if (data.expandedGroups().contains(groupId) || !normalizedQuery.isEmpty()) {
-                destinations.forEach(destination -> rows.add(new Row(RowKind.DESTINATION, destination.id(), 0)));
-            }
+        List<ExternalSection> externalSections = new ArrayList<>();
+        for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
+            externalSections.add(new ExternalSection(source,
+                ClientMapWaypointIntegration.installed(source)
+                    && ClientMapWaypointIntegration.enabled(source),
+                ClientMapWaypointIntegration.catalog().isGroupVisible(source),
+                expandedExternalGroups.contains(source),
+                ClientMapWaypointIntegration.catalog().destinations(source)));
         }
-        addExternalRows(rows, ExternalDestinationSource.JOURNEYMAP, normalizedQuery);
-        addExternalRows(rows, ExternalDestinationSource.XAERO_MINIMAP, normalizedQuery);
-        rows.addAll(playerSectionRows(normalizedQuery));
-        return rows;
+        List<PlayerEntry> players = PlayerListState.players().stream()
+            .map(entry -> new PlayerEntry(entry.id(), entry.name(), entry.pinned(), entry.serverOrder()))
+            .toList();
+        PortalConfigRows.Result result = PortalConfigRows.build(data, query, this::groupName,
+            this::distanceSquared, externalSections,
+            new PlayerSection(playerTargets.visible(), playerTargets.expanded(), players));
+        externalRows.clear();
+        externalRows.putAll(result.externalRows());
+        return result.rows();
     }
 
-    private void drawGunSettingDescription(GuiGraphicsExtractor graphics, ModalBox box) {
+    private void drawGunSettingDescription(GuiGraphicsExtractor graphics, Box box) {
         Component description = gunSettingDescription();
         if (description == null) return;
         graphics.textWithWordWrap(font, description, box.x() + 18, box.y() + 30,
@@ -1941,18 +1937,8 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private Component gunSettingDescription() {
-        return switch (modal) {
-            case PORTAL_DURATION_SETTINGS -> Component.translatable("screen.riftgun.portal_timing_hint");
-            case SMART_DISTANCE_SETTINGS -> Component.translatable("screen.riftgun.smart_range_hint");
-            case ENTITY_TRANSIT_SETTINGS -> Component.translatable("screen.riftgun.entity_transit_hint");
-            case PLAYER_TARGET_SETTINGS -> Component.translatable("screen.riftgun.player_target_hint");
-            case APERTURE_SETTINGS -> Component.translatable("screen.riftgun.aperture_hint");
-            case FALL_GUARD_SETTINGS -> Component.translatable("screen.riftgun.fall_guard_hint");
-            case ENTITY_RELOCATION_SETTINGS -> Component.translatable("screen.riftgun.entity_relocation_hint");
-            case PORTAL_PAIRING_SETTINGS -> Component.translatable("screen.riftgun.pairing.settings_hint");
-            case REMOTE_SETTINGS -> Component.translatable("screen.riftgun.remote.settings_hint");
-            default -> null;
-        };
+        String key = gunSettingDescriptionKey(session.page());
+        return key == null ? null : Component.translatable(key);
     }
 
     private int gunSettingDescriptionExtraHeight(int boxWidth) {
@@ -1962,86 +1948,14 @@ public final class PortalConfigScreen extends Screen {
         return Math.max(0, lineCount - 1) * font.lineHeight;
     }
 
-    private int gunSettingControlTop(ModalBox box) {
+    private int gunSettingControlTop(Box box) {
         return box.y() + 45 + gunSettingDescriptionExtraHeight(box.width());
-    }
-
-    private void addExternalRows(List<Row> rows, ExternalDestinationSource source, String normalizedQuery) {
-        if (!ClientMapWaypointIntegration.installed(source)
-            || !ClientMapWaypointIntegration.enabled(source)) return;
-        List<ExternalDestination> matches = ClientMapWaypointIntegration.catalog().destinations(source)
-            .stream().filter(destination -> matchesExternal(destination, normalizedQuery)).toList();
-        boolean groupMatch = normalizedQuery.isEmpty()
-            || source.displayName().toLowerCase(Locale.ROOT).contains(normalizedQuery);
-        if (!groupMatch && matches.isEmpty()) return;
-        if (!ClientMapWaypointIntegration.catalog().isGroupVisible(source)) return;
-        rows.add(new Row(RowKind.EXTERNAL_GROUP, externalGroupId(source), 0));
-        if (expandedExternalGroups.contains(source) || !normalizedQuery.isEmpty()) {
-            for (ExternalDestination destination : matches) {
-                UUID rowId = externalRowId(source, destination.stableId());
-                externalRows.put(rowId, destination);
-                rows.add(new Row(RowKind.EXTERNAL_DESTINATION, rowId, 0));
-            }
-        }
-    }
-
-    private boolean matchesExternal(ExternalDestination destination, String normalized) {
-        return normalized.isEmpty()
-            || destination.name().toLowerCase(Locale.ROOT).contains(normalized)
-            || destination.sourceGroup().toLowerCase(Locale.ROOT).contains(normalized)
-            || destination.dimensionId().toLowerCase(Locale.ROOT).contains(normalized)
-            || String.format(Locale.ROOT, "%s %s %s", destination.x(), destination.y(), destination.z())
-                .contains(normalized);
-    }
-
-    private List<Row> playerSectionRows(String normalizedQuery) {
-        List<Row> rows = new ArrayList<>();
-        if (!playerTargets.visible()) return rows;
-        boolean sectionMatch = normalizedQuery.isEmpty() || "player".contains(normalizedQuery);
-        if (!sectionMatch && playerTargets.entries(normalizedQuery).isEmpty()) return rows;
-        rows.add(new Row(RowKind.PLAYER_SECTION, PortalPlayerData.PLAYER_SECTION_ID, 0));
-        if (playerTargets.expanded() || !normalizedQuery.isEmpty()) {
-            for (PlayerListState.PlayerEntry entry : playerTargets.entries(normalizedQuery)) {
-                rows.add(new Row(RowKind.PLAYER, entry.id(), 0));
-            }
-        }
-        return rows;
-    }
-
-    private List<UUID> orderedGroupIds() {
-        List<UUID> ids = new ArrayList<>();
-        ids.add(PortalPlayerData.DEFAULT_GROUP_ID);
-        PortalClientState.data().groups().stream().sorted(Comparator.comparingInt(DestinationGroup::order))
-            .map(DestinationGroup::id).forEach(ids::add);
-        if (PortalClientState.data().destinations().stream()
-            .anyMatch(destination -> destination.groupId().equals(PortalPlayerData.SHARED_SECTION_ID))) {
-            ids.add(PortalPlayerData.SHARED_SECTION_ID);
-        }
-        return ids;
-    }
-
-    private Comparator<Destination> destinationComparator(DestinationSort sort) {
-        Comparator<Destination> pinned = Comparator.comparing(Destination::pinned).reversed();
-        Comparator<Destination> secondary = switch (sort) {
-            case RECENT -> Comparator.comparingLong(Destination::lastUsedAt).reversed();
-            case NAME -> Comparator.comparing(value -> value.name().toLowerCase(Locale.ROOT));
-            case CREATED -> Comparator.comparingLong(Destination::createdAt).reversed();
-            case DISTANCE -> Comparator.comparingDouble(this::distanceSquared);
-        };
-        return pinned.thenComparing(secondary).thenComparing(Destination::id);
     }
 
     private double distanceSquared(Destination destination) {
         if (minecraft == null || minecraft.player == null
             || !minecraft.player.level().dimension().equals(destination.dimension())) return Double.POSITIVE_INFINITY;
         return minecraft.player.position().distanceToSqr(destination.position());
-    }
-
-    private boolean matches(Destination destination, String group, String normalized) {
-        if (normalized.isEmpty() || group.toLowerCase(Locale.ROOT).contains(normalized)
-            || destination.name().toLowerCase(Locale.ROOT).contains(normalized)) return true;
-        return String.format(Locale.ROOT, "%s %s %s", destination.x(), destination.y(), destination.z())
-            .contains(normalized);
     }
 
     @Override
@@ -2061,7 +1975,7 @@ public final class PortalConfigScreen extends Screen {
             groupDropdownOpen = false;
             return true;
         }
-        if (modal != Modal.NONE && modal.isDestinationForm() && groupSelector != null
+        if (session.page() != PortalConfigPage.NONE && session.page().isDestinationForm() && groupSelector != null
             && (event.button() == 0 || event.button() == 1) && event.x() >= groupSelector.getX()
             && event.x() < groupSelector.getX() + groupSelector.getWidth()
             && event.y() >= groupSelector.getY() && event.y() < groupSelector.getY() + groupSelector.getHeight()) {
@@ -2073,7 +1987,7 @@ public final class PortalConfigScreen extends Screen {
             setFocused(groupSelector);
             return true;
         }
-        if (modal == Modal.VISUAL_SETTINGS && visualSelector != null
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS && visualSelector != null
             && (event.button() == 0 || event.button() == 1) && event.x() >= visualSelector.getX()
             && event.x() < visualSelector.getX() + visualSelector.getWidth()
             && event.y() >= visualSelector.getY() && event.y() < visualSelector.getY() + visualSelector.getHeight()) {
@@ -2085,7 +1999,7 @@ public final class PortalConfigScreen extends Screen {
             setFocused(visualSelector);
             return true;
         }
-        if (modal == Modal.SOUND_SETTINGS && (event.button() == 0 || event.button() == 1)) {
+        if (session.page() == PortalConfigPage.SOUND_SETTINGS && (event.button() == 0 || event.button() == 1)) {
             for (var entry : soundSelectors.entrySet()) {
                 ThemedButton selector = entry.getValue();
                 if (event.x() < selector.getX() || event.x() >= selector.getX() + selector.getWidth()
@@ -2100,7 +2014,7 @@ public final class PortalConfigScreen extends Screen {
                 return true;
             }
         }
-        if (modal != Modal.NONE) return super.mouseClicked(event, doubleClick);
+        if (session.page() != PortalConfigPage.NONE) return super.mouseClicked(event, doubleClick);
         if (event.button() == 0 && event.x() >= panelX + listWidth && event.x() < panelX + panelWidth
             && event.y() >= listTop && event.y() < listBottom) {
             if (clickDetail(event.x(), event.y())) return true;
@@ -2162,7 +2076,7 @@ public final class PortalConfigScreen extends Screen {
                 boolean custom = !row.id().equals(PortalPlayerData.DEFAULT_GROUP_ID)
                     && !row.id().equals(PortalPlayerData.SHARED_SECTION_ID);
                 if (custom && event.x() >= right - 30 && event.x() < right - 16) {
-                    openForm(Modal.RENAME_GROUP, row.id());
+                    openForm(PortalConfigPage.RENAME_GROUP, row.id());
                 } else if (custom && event.x() >= right - 14) {
                     requestDeleteGroup(row.id());
                 } else if (custom && event.x() < panelX + 16) {
@@ -2190,12 +2104,12 @@ public final class PortalConfigScreen extends Screen {
         }
         int visibleEditY = detailEditY;
         if (viewed() != null && mouseY >= visibleEditY && mouseY < visibleEditY + 18) {
-            openForm(Modal.EDIT_DESTINATION, viewedDestination);
+            openForm(PortalConfigPage.EDIT_DESTINATION, viewedDestination);
             return true;
         }
         int visibleShareY = detailShareY;
         if (viewed() != null && mouseY >= visibleShareY && mouseY < visibleShareY + 18) {
-            openForm(Modal.SHARE_DESTINATION, viewedDestination);
+            openForm(PortalConfigPage.SHARE_DESTINATION, viewedDestination);
             return true;
         }
         return false;
@@ -2250,13 +2164,13 @@ public final class PortalConfigScreen extends Screen {
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
         if (visualDropdownOpen) return true;
         if (groupDropdownOpen) {
-            int visible = Math.min(7, orderedGroupIds().size());
+            int visible = Math.min(7, orderedGroupIds(PortalClientState.data()).size());
             groupDropdownScroll = Mth.clamp(groupDropdownScroll - (int) Math.signum(vertical), 0,
-                Math.max(0, orderedGroupIds().size() - visible));
+                Math.max(0, orderedGroupIds(PortalClientState.data()).size() - visible));
             return true;
         }
-        if (modal == Modal.SWIRL_ANIMATION_SETTINGS && !visualOptionWidgets.isEmpty()) {
-            ModalBox box = modalBox();
+        if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS && !visualOptionWidgets.isEmpty()) {
+            Box box = modalBox();
             int top = visualOptionsTop(box);
             int bottom = visualOptionsBottom(box);
             if (mouseX >= box.x() + 17 && mouseX < box.x() + box.width() - 17
@@ -2268,7 +2182,7 @@ public final class PortalConfigScreen extends Screen {
                 return true;
             }
         }
-        if (modal == Modal.NONE && mouseY >= listTop && mouseY < listBottom) {
+        if (session.page() == PortalConfigPage.NONE && mouseY >= listTop && mouseY < listBottom) {
             if (mouseX < panelX + listWidth) {
                 listScroll = Mth.clamp(listScroll - (int) Math.signum(vertical) * ROW_HEIGHT * 2,
                     0, listMaxScroll());
@@ -2288,54 +2202,54 @@ public final class PortalConfigScreen extends Screen {
         if (soundDropdownChannel != null) return soundDropdownKeyPressed(event.key());
         if (visualDropdownOpen) return visualDropdownKeyPressed(event.key());
         if (groupDropdownOpen) return dropdownKeyPressed(event.key());
-        if (modal != Modal.NONE && modal.isDestinationForm() && groupSelector != null
+        if (session.page() != PortalConfigPage.NONE && session.page().isDestinationForm() && groupSelector != null
             && groupSelector.isFocused() && (event.key() == 263 || event.key() == 262)) {
             shiftFormGroup(event.key() == 263 ? -1 : 1);
             return true;
         }
-        if (modal == Modal.VISUAL_SETTINGS && visualSelector != null && visualSelector.isFocused()
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS && visualSelector != null && visualSelector.isFocused()
             && (event.key() == 263 || event.key() == 262)) {
             shiftVisual(event.key() == 263 ? -1 : 1);
             return true;
         }
-        if (modal == Modal.SOUND_SETTINGS && (event.key() == 263 || event.key() == 262)) {
+        if (session.page() == PortalConfigPage.SOUND_SETTINGS && (event.key() == 263 || event.key() == 262)) {
             for (var entry : soundSelectors.entrySet()) {
                 if (!entry.getValue().isFocused()) continue;
                 shiftSound(entry.getKey(), event.key() == 263 ? -1 : 1);
                 return true;
             }
         }
-        if (event.key() == 256 && modal == Modal.SWIRL_ANIMATION_SETTINGS) {
+        if (event.key() == 256 && session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             backToVisualSettings();
             return true;
         }
-        if (event.key() == 256 && modal.isGunSettingPage()) {
+        if (event.key() == 256 && session.page().isGunSettingPage()) {
             backToGunSettings();
             return true;
         }
-        if (event.key() == 256 && modal == Modal.VISUAL_SETTINGS) {
+        if (event.key() == 256 && session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             backToSettings();
             return true;
         }
-        if (event.key() == 256 && modal == Modal.SOUND_SETTINGS) {
+        if (event.key() == 256 && session.page() == PortalConfigPage.SOUND_SETTINGS) {
             backToSettings();
             return true;
         }
-        if (event.key() == 256 && (modal == Modal.CONFIRM_SETTINGS
-            || modal == Modal.MAP_INTEGRATION_SETTINGS)) {
+        if (event.key() == 256 && (session.page() == PortalConfigPage.CONFIRM_SETTINGS
+            || session.page() == PortalConfigPage.MAP_INTEGRATION_SETTINGS)) {
             backToSettings();
             return true;
         }
-        if (event.key() == 256 && modal != Modal.NONE) {
+        if (event.key() == 256 && session.page() != PortalConfigPage.NONE) {
             requestCloseModal();
             return true;
         }
-        if ((event.key() == 257 || event.key() == 335) && modal != Modal.NONE) {
-            if (modal.isConfirmation()) acceptConfirmation();
+        if ((event.key() == 257 || event.key() == 335) && session.page() != PortalConfigPage.NONE) {
+            if (session.page().isConfirmation()) acceptConfirmation();
             else submitModal();
             return true;
         }
-        if (modal == Modal.NONE && event.key() == 258) {
+        if (session.page() == PortalConfigPage.NONE && event.key() == 258) {
             if (searchBox != null && searchBox.isFocused() && !Minecraft.getInstance().hasShiftDown()) {
                 focusFirstRow();
                 return true;
@@ -2346,7 +2260,7 @@ public final class PortalConfigScreen extends Screen {
                 return true;
             }
         }
-        if (modal == Modal.NONE && listFocused && listKeyPressed(event.key())) return true;
+        if (session.page() == PortalConfigPage.NONE && listFocused && listKeyPressed(event.key())) return true;
         return super.keyPressed(event);
     }
 
@@ -2382,13 +2296,13 @@ public final class PortalConfigScreen extends Screen {
             return true;
         }
         if (keyCode == 69 && focusedRowKind == RowKind.DESTINATION && focusedRowId != null) {
-            openForm(Modal.EDIT_DESTINATION, focusedRowId);
+            openForm(PortalConfigPage.EDIT_DESTINATION, focusedRowId);
             return true;
         }
         if (keyCode == 82 && focusedRowKind == RowKind.GROUP && focusedRowId != null
             && !focusedRowId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && !focusedRowId.equals(PortalPlayerData.SHARED_SECTION_ID)) {
-            openForm(Modal.RENAME_GROUP, focusedRowId);
+            openForm(PortalConfigPage.RENAME_GROUP, focusedRowId);
             return true;
         }
         if (keyCode == 261 && focusedRowId != null) {
@@ -2440,7 +2354,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void shareViewed(PortalAction action) {
-        UUID id = modalTarget;
+        UUID id = session.target();
         if (id == null) return;
         PortalNetworking.sendRequest(action, tag -> Nbt.putUUID(tag, "Destination", id));
         closeModalNow();
@@ -2530,7 +2444,7 @@ public final class PortalConfigScreen extends Screen {
 
     private void requestDeleteDestination(UUID id) {
         if (PortalClientState.data().settings().confirmDeletion()) {
-            openForm(Modal.CONFIRM_DELETE_DESTINATION, id);
+            openForm(PortalConfigPage.CONFIRM_DELETE_DESTINATION, id);
         } else {
             PortalNetworking.sendRequest(PortalAction.DELETE_DESTINATION, tag -> Nbt.putUUID(tag, "Destination", id));
         }
@@ -2539,7 +2453,7 @@ public final class PortalConfigScreen extends Screen {
     private void requestDeleteGroup(UUID id) {
         if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) return;
         if (PortalClientState.data().settings().confirmDeletion()) {
-            openForm(Modal.CONFIRM_DELETE_GROUP, id);
+            openForm(PortalConfigPage.CONFIRM_DELETE_GROUP, id);
         } else {
             PortalNetworking.sendRequest(PortalAction.DELETE_GROUP, tag -> Nbt.putUUID(tag, "Group", id));
         }
@@ -2548,7 +2462,7 @@ public final class PortalConfigScreen extends Screen {
     private void requestClearFluid() {
         if (PortalClientState.gun().amount() <= 0) return;
         if (PortalClientState.data().settings().confirmClearFluid()) {
-            openForm(Modal.CONFIRM_CLEAR_FLUID, null);
+            openForm(PortalConfigPage.CONFIRM_CLEAR_FLUID, null);
         } else {
             PortalNetworking.sendRequest(PortalAction.CLEAR_GUN_FLUID);
         }
@@ -2568,25 +2482,13 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void cycleSort() {
-        PortalPlayerSettings current = PortalClientState.data().settings();
-        sendSettings(new PortalPlayerSettings(current.safetyCheckEnabled(), current.confirmDeletion(),
-            current.confirmDiscardedChanges(), current.confirmClearFluid(), current.animationsEnabled(), current.soundsEnabled(),
-            current.sort().next(), current.placementMode(), current.smartDistance(),
-            current.predictionMode(), current.portalSounds()));
+        sendSettings(PortalConfigSettings.cycleSort(PortalClientState.data().settings()));
     }
 
     private void cyclePlacementMode() {
         PortalPlayerSettings old = PortalClientState.data().settings();
-        PortalPlacementMode mode = old.placementMode().next();
-        while ((mode == PortalPlacementMode.ENTITY_RELOCATION
-                && !PortalClientState.gun().entityRelocationEnabled())
-            || (mode == PortalPlacementMode.REMOTE
-                && !remoteInstalled())) {
-            mode = mode.next();
-        }
-        PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-            old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-            mode, old.smartDistance(), old.predictionMode(), old.portalSounds());
+        PortalPlayerSettings next = PortalConfigSettings.cyclePlacementMode(old,
+            PortalClientState.gun().entityRelocationEnabled(), remoteInstalled());
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
@@ -2610,60 +2512,57 @@ public final class PortalConfigScreen extends Screen {
 
     private void cycleMotionPrediction() {
         PortalPlayerSettings old = PortalClientState.data().settings();
-        PortalPlayerSettings next = new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-            old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(),
-            old.sort(), old.placementMode(), old.smartDistance(), old.predictionMode().next(),
-            old.portalSounds());
+        PortalPlayerSettings next = PortalConfigSettings.cyclePredictionMode(old);
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
     }
 
     private void openGunSettings() {
-        modal = Modal.GUN_SETTINGS;
+        session.navigate(PortalConfigPage.GUN_SETTINGS);
         rebuildWidgets();
     }
 
-    private void openGunSetting(Modal page) {
+    private void openGunSetting(PortalConfigPage page) {
         if (!page.isGunSettingPage()) return;
-        modal = page;
+        session.navigate(page);
         rebuildWidgets();
     }
 
     private void backToGunSettings() {
-        modal = Modal.GUN_SETTINGS;
+        session.navigate(PortalConfigPage.GUN_SETTINGS);
         rebuildWidgets();
     }
 
     private void openVisualSettings() {
-        modal = Modal.VISUAL_SETTINGS;
+        session.navigate(PortalConfigPage.VISUAL_SETTINGS);
         visualOptionsScroll = 0;
         rebuildWidgets();
     }
 
     private void openSoundSettings() {
-        modal = Modal.SOUND_SETTINGS;
+        session.navigate(PortalConfigPage.SOUND_SETTINGS);
         soundDropdownChannel = null;
         rebuildWidgets();
     }
 
     private void openSwirlAnimationSettings() {
         if (PortalVisualPreferences.selected().options().isEmpty()) return;
-        modal = Modal.SWIRL_ANIMATION_SETTINGS;
+        session.navigate(PortalConfigPage.SWIRL_ANIMATION_SETTINGS);
         visualOptionsScroll = 0;
         rebuildWidgets();
     }
 
     private void backToVisualSettings() {
         flushVisualSettings();
-        modal = Modal.VISUAL_SETTINGS;
+        session.navigate(PortalConfigPage.VISUAL_SETTINGS);
         visualOptionsScroll = 0;
         rebuildWidgets();
     }
 
     private void backToSettings() {
         flushVisualSettings();
-        modal = Modal.SETTINGS;
+        session.navigate(PortalConfigPage.SETTINGS);
         visualDropdownOpen = false;
         soundDropdownChannel = null;
         rebuildWidgets();
@@ -2843,64 +2742,31 @@ public final class PortalConfigScreen extends Screen {
         return 0;
     }
 
-    private void updateSetting(int setting) {
+    private void updateSetting(Toggle setting) {
         PortalPlayerSettings old = PortalClientState.data().settings();
-        PortalPlayerSettings next = switch (setting) {
-            case 0 -> new PortalPlayerSettings(!old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
-            case 1 -> new PortalPlayerSettings(old.safetyCheckEnabled(), !old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
-            case 2 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                !old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
-            case 3 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), !old.confirmClearFluid(), old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
-            case 4 -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.confirmClearFluid(), !old.animationsEnabled(), old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
-            default -> new PortalPlayerSettings(old.safetyCheckEnabled(), old.confirmDeletion(),
-                old.confirmDiscardedChanges(), old.confirmClearFluid(), old.animationsEnabled(), !old.soundsEnabled(), old.sort(),
-                old.placementMode(), old.smartDistance(), old.predictionMode(), old.portalSounds());
-        };
+        PortalPlayerSettings next = PortalConfigSettings.toggle(old, setting);
         PortalClientState.data().settings(next);
         sendSettings(next);
         rebuildWidgets();
     }
 
     private void sendSettings(PortalPlayerSettings settings) {
-        PortalNetworking.sendRequest(PortalAction.SET_SETTINGS, tag -> {
-            tag.putBoolean("SafetyCheck", settings.safetyCheckEnabled());
-            tag.putBoolean("ConfirmDeletion", settings.confirmDeletion());
-            tag.putBoolean("ConfirmDiscardedChanges", settings.confirmDiscardedChanges());
-            tag.putBoolean("ConfirmClearFluid", settings.confirmClearFluid());
-            tag.putBoolean("Animations", settings.animationsEnabled());
-            tag.putBoolean("Sounds", settings.soundsEnabled());
-            tag.putString("Sort", settings.sort().name());
-            tag.putString("PlacementMode", settings.placementMode().name());
-            tag.putInt("SmartDistance", settings.smartDistance());
-            tag.putString("MotionPrediction", settings.predictionMode().name());
-            tag.put("PortalSounds", settings.portalSounds().save());
-        });
+        PortalNetworking.sendRequest(PortalAction.SET_SETTINGS, tag -> tag.merge(settings.save()));
     }
 
-    private void openForm(Modal next, @Nullable UUID target) {
-        modal = next;
-        modalTarget = target;
+    private void openForm(PortalConfigPage next, @Nullable UUID target) {
+        session.open(next, target);
         groupDropdownOpen = false;
         visualDropdownOpen = false;
-        dirty = false;
         formName = "";
         formX = formY = formZ = formYaw = "";
         formGroup = creationGroup();
-        if (next == Modal.CREATE_COORDINATE && minecraft != null && minecraft.player != null) {
+        if (next == PortalConfigPage.CREATE_COORDINATE && minecraft != null && minecraft.player != null) {
             formX = Double.toString(minecraft.player.getX());
             formY = Double.toString(minecraft.player.getY());
             formZ = Double.toString(minecraft.player.getZ());
             formYaw = Float.toString(minecraft.player.getYRot());
-        } else if (next == Modal.EDIT_DESTINATION && target != null) {
+        } else if (next == PortalConfigPage.EDIT_DESTINATION && target != null) {
             Destination destination = PortalClientState.data().destination(target).orElse(null);
             if (destination != null) {
                 formName = destination.name();
@@ -2910,21 +2776,21 @@ public final class PortalConfigScreen extends Screen {
                 formYaw = Float.toString(destination.yaw());
                 formGroup = destination.groupId();
             }
-        } else if (next == Modal.RENAME_GROUP && target != null) {
+        } else if (next == PortalConfigPage.RENAME_GROUP && target != null) {
             formName = PortalClientState.data().group(target).map(DestinationGroup::name).orElse("");
         }
         rebuildWidgets();
     }
 
     private void submitModal() {
-        switch (modal) {
+        switch (session.page()) {
             case CREATE_CURRENT -> sendDestinationForm(PortalAction.CREATE_CURRENT, false);
             case CREATE_COORDINATE -> sendDestinationForm(PortalAction.CREATE_COORDINATE, true);
             case EDIT_DESTINATION -> sendDestinationForm(PortalAction.EDIT_DESTINATION, true);
             case CREATE_GROUP -> PortalNetworking.sendRequest(PortalAction.CREATE_GROUP,
                 tag -> tag.putString("Name", formName));
             case RENAME_GROUP -> PortalNetworking.sendRequest(PortalAction.RENAME_GROUP, tag -> {
-                if (modalTarget != null) Nbt.putUUID(tag, "Group", modalTarget);
+                if (session.target() != null) Nbt.putUUID(tag, "Group", session.target());
                 tag.putString("Name", formName);
             });
             default -> { return; }
@@ -2936,8 +2802,8 @@ public final class PortalConfigScreen extends Screen {
         PortalNetworking.sendRequest(action, tag -> {
             tag.putString("Name", formName);
             Nbt.putUUID(tag, "Group", formGroup);
-            if (action == PortalAction.EDIT_DESTINATION && modalTarget != null) {
-                Nbt.putUUID(tag, "Destination", modalTarget);
+            if (action == PortalAction.EDIT_DESTINATION && session.target() != null) {
+                Nbt.putUUID(tag, "Destination", session.target());
             }
             if (coordinates) {
                 tag.putString("X", formX);
@@ -2956,12 +2822,11 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void requestCloseModal() {
-        if (modal == Modal.CONFIRM_DIRTY) {
+        if (session.page() == PortalConfigPage.CONFIRM_DIRTY) {
             cancelConfirmation();
-        } else if (modal.hasInputs() && dirty
+        } else if (session.page().hasInputs() && session.dirty()
             && PortalClientState.data().settings().confirmDiscardedChanges()) {
-            returnModal = modal;
-            modal = Modal.CONFIRM_DIRTY;
+            session.requestClose();
             groupDropdownOpen = false;
             visualDropdownOpen = false;
             rebuildWidgets();
@@ -2971,65 +2836,60 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void acceptConfirmation() {
-        if (modal == Modal.CONFIRM_DIRTY) {
+        if (session.page() == PortalConfigPage.CONFIRM_DIRTY) {
             closeModalNow();
-        } else if (modal == Modal.CONFIRM_DELETE_DESTINATION && modalTarget != null) {
-            UUID id = modalTarget;
+        } else if (session.page() == PortalConfigPage.CONFIRM_DELETE_DESTINATION && session.target() != null) {
+            UUID id = session.target();
             PortalNetworking.sendRequest(PortalAction.DELETE_DESTINATION, tag -> Nbt.putUUID(tag, "Destination", id));
             closeModalNow();
-        } else if (modal == Modal.CONFIRM_DELETE_GROUP && modalTarget != null) {
-            UUID id = modalTarget;
+        } else if (session.page() == PortalConfigPage.CONFIRM_DELETE_GROUP && session.target() != null) {
+            UUID id = session.target();
             PortalNetworking.sendRequest(PortalAction.DELETE_GROUP, tag -> Nbt.putUUID(tag, "Group", id));
             closeModalNow();
-        } else if (modal == Modal.CONFIRM_CLEAR_FLUID) {
+        } else if (session.page() == PortalConfigPage.CONFIRM_CLEAR_FLUID) {
             PortalNetworking.sendRequest(PortalAction.CLEAR_GUN_FLUID);
             closeModalNow();
         }
     }
 
     private void cancelConfirmation() {
-        if (modal == Modal.CONFIRM_DIRTY) {
-            modal = returnModal;
-            rebuildWidgets();
-        } else {
-            closeModalNow();
-        }
+        session.cancelConfirmation();
+        groupDropdownOpen = false;
+        visualDropdownOpen = false;
+        rebuildWidgets();
     }
 
     private void closeModalNow() {
-        modal = Modal.NONE;
-        returnModal = Modal.NONE;
-        modalTarget = null;
+        session.close();
         groupDropdownOpen = false;
         visualDropdownOpen = false;
-        dirty = false;
         rebuildWidgets();
     }
 
     private void openGroupDropdown() {
         groupDropdownOpen = true;
-        List<UUID> groups = orderedGroupIds();
+        List<UUID> groups = orderedGroupIds(PortalClientState.data());
         groupDropdownIndex = Math.max(0, groups.indexOf(formGroup));
         groupDropdownScroll = Mth.clamp(groupDropdownIndex - 3, 0, Math.max(0, groups.size() - 7));
         setFocused(groupSelector);
     }
 
     private void shiftFormGroup(int delta) {
-        List<UUID> groups = orderedGroupIds();
+        List<UUID> groups = orderedGroupIds(PortalClientState.data());
         UUID next = GroupSelection.cycle(groups, formGroup, delta);
         if (!next.equals(formGroup)) selectFormGroup(next);
     }
 
     private void selectFormGroup(UUID id) {
         formGroup = id;
-        dirty = true;
+        session.markDirty();
         if (groupSelector != null) groupSelector.setMessage(
             Component.translatable("screen.riftgun.group_value", groupName(formGroup)));
     }
 
     private boolean clickGroupDropdown(double mouseX, double mouseY) {
-        List<UUID> groups = orderedGroupIds();
-        DropdownBox box = dropdownBox(groups.size());
+        List<UUID> groups = orderedGroupIds(PortalClientState.data());
+        Box box = dropdownBox(groups.size());
         if (mouseX < box.x() || mouseX >= box.x() + box.width()
             || mouseY < box.y() || mouseY >= box.y() + box.height()) return false;
         int visible = Math.min(7, groups.size());
@@ -3041,7 +2901,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private boolean dropdownKeyPressed(int keyCode) {
-        List<UUID> groups = orderedGroupIds();
+        List<UUID> groups = orderedGroupIds(PortalClientState.data());
         if (keyCode == 256) {
             groupDropdownOpen = false;
             return true;
@@ -3119,7 +2979,7 @@ public final class PortalConfigScreen extends Screen {
         ThemedButton selector = channel == null ? null : soundSelectors.get(channel);
         if (channel == null || selector == null) return false;
         List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
-        DropdownBox box = selectorDropdownBox(selector, choices.size());
+        Box box = selectorDropdownBox(selector, choices.size());
         if (mouseX < box.x() || mouseX >= box.x() + box.width()
             || mouseY < box.y() || mouseY >= box.y() + box.height()) return false;
         if (mouseY < box.y() + 2 || mouseY >= box.y() + 2 + choices.size() * ROW_HEIGHT) return true;
@@ -3166,7 +3026,7 @@ public final class PortalConfigScreen extends Screen {
 
     private boolean clickVisualDropdown(double mouseX, double mouseY) {
         List<PortalVisualType> types = PortalVisualRegistry.values();
-        DropdownBox box = visualDropdownBox(types.size());
+        Box box = visualDropdownBox(types.size());
         if (mouseX < box.x() || mouseX >= box.x() + box.width()
             || mouseY < box.y() || mouseY >= box.y() + box.height()) return false;
         if (mouseY < box.y() + 2 || mouseY >= box.y() + 2 + types.size() * ROW_HEIGHT) return true;
@@ -3237,11 +3097,11 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private int listMaxScroll() {
-        return Math.max(0, listContentHeight - listViewportHeight());
+        return maximumScroll(listContentHeight, listViewportHeight());
     }
 
     private int detailMaxScroll() {
-        return Math.max(0, detailContentHeight - listViewportHeight());
+        return maximumScroll(detailContentHeight, listViewportHeight());
     }
 
     private void renderScrollbar(GuiGraphicsExtractor graphics, int x, int top, int bottom, int scroll,
@@ -3251,17 +3111,6 @@ public final class PortalConfigScreen extends Screen {
         int thumb = scrollbarThumbHeight(top, bottom, contentHeight, viewportHeight);
         int thumbY = scrollbarThumbY(top, bottom, scroll, contentHeight, viewportHeight);
         graphics.fill(x, thumbY, x + 2, thumbY + thumb, PortalTheme.ICE);
-    }
-
-    private static int scrollbarThumbHeight(int top, int bottom, int contentHeight, int viewportHeight) {
-        int track = bottom - top - 4;
-        return Math.max(12, track * viewportHeight / Math.max(viewportHeight, contentHeight));
-    }
-
-    private static int scrollbarThumbY(int top, int bottom, int scroll, int contentHeight, int viewportHeight) {
-        int max = Math.max(1, contentHeight - viewportHeight);
-        int thumb = scrollbarThumbHeight(top, bottom, contentHeight, viewportHeight);
-        return top + 2 + (bottom - top - 4 - thumb) * scroll / max;
     }
 
     public void refreshFromServer(Set<UUID> ignoredInvalidatedSafety) {
@@ -3297,7 +3146,7 @@ public final class PortalConfigScreen extends Screen {
         }
         if (selectedGroup != null && !selectedGroup.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && PortalClientState.data().group(selectedGroup).isEmpty()) selectedGroup = null;
-        if (modal == Modal.NONE) rebuildWidgets();
+        if (session.page() == PortalConfigPage.NONE) rebuildWidgets();
     }
 
     public void onPortalOpened() {
@@ -3317,17 +3166,17 @@ public final class PortalConfigScreen extends Screen {
         if (playerTargets.clearUnavailableSelection()) {
             updateOpenPortalButton();
         }
-        if (modal == Modal.NONE) rebuildWidgets();
+        if (session.page() == PortalConfigPage.NONE) rebuildWidgets();
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openCoordinateEditorForQa() {
-        openForm(Modal.CREATE_COORDINATE, null);
+        openForm(PortalConfigPage.CREATE_COORDINATE, null);
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openGroupDropdownForQa() {
-        if (modal.isDestinationForm()) openGroupDropdown();
+        if (session.page().isDestinationForm()) openGroupDropdown();
     }
 
     /** Used only by the opt-in visual QA harness. */
@@ -3337,13 +3186,13 @@ public final class PortalConfigScreen extends Screen {
 
     /** Used only by the opt-in visual QA harness. */
     public void openPlacementSettingsForQa() {
-        modal = Modal.SMART_DISTANCE_SETTINGS;
+        session.navigate(PortalConfigPage.SMART_DISTANCE_SETTINGS);
         rebuildWidgets();
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openVisualSettingsForQa() {
-        modal = Modal.VISUAL_SETTINGS;
+        session.navigate(PortalConfigPage.VISUAL_SETTINGS);
         rebuildWidgets();
     }
 
@@ -3356,12 +3205,12 @@ public final class PortalConfigScreen extends Screen {
 
     /** Used only by the opt-in visual QA harness. */
     public void openSwirlAnimationSettingsForQa() {
-        if (modal == Modal.VISUAL_SETTINGS) openSwirlAnimationSettings();
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS) openSwirlAnimationSettings();
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openVisualDropdownForQa() {
-        if (modal == Modal.VISUAL_SETTINGS) openVisualDropdown();
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS) openVisualDropdown();
     }
 
     /** Used only by the opt-in visual QA harness. */
@@ -3372,19 +3221,19 @@ public final class PortalConfigScreen extends Screen {
 
     /** Used only by the opt-in visual QA harness. */
     public void openSmartRangeSettingsForQa() {
-        modal = Modal.SMART_DISTANCE_SETTINGS;
+        session.navigate(PortalConfigPage.SMART_DISTANCE_SETTINGS);
         rebuildWidgets();
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openRemoteSettingsForQa() {
-        modal = Modal.REMOTE_SETTINGS;
+        session.navigate(PortalConfigPage.REMOTE_SETTINGS);
         rebuildWidgets();
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openPairingSettingsForQa() {
-        modal = Modal.PORTAL_PAIRING_SETTINGS;
+        session.navigate(PortalConfigPage.PORTAL_PAIRING_SETTINGS);
         rebuildWidgets();
     }
 
@@ -3395,19 +3244,19 @@ public final class PortalConfigScreen extends Screen {
 
     /** Used only by the opt-in visual QA harness. */
     public void openPortalDurationSettingsForQa() {
-        modal = Modal.PORTAL_DURATION_SETTINGS;
+        session.navigate(PortalConfigPage.PORTAL_DURATION_SETTINGS);
         rebuildWidgets();
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openEntityTransitSettingsForQa() {
-        modal = Modal.ENTITY_TRANSIT_SETTINGS;
+        session.navigate(PortalConfigPage.ENTITY_TRANSIT_SETTINGS);
         rebuildWidgets();
     }
 
     /** Used only by the opt-in visual QA harness. */
     public void openApertureSettingsForQa() {
-        modal = Modal.APERTURE_SETTINGS;
+        session.navigate(PortalConfigPage.APERTURE_SETTINGS);
         rebuildWidgets();
     }
 
@@ -3415,8 +3264,8 @@ public final class PortalConfigScreen extends Screen {
         return viewedDestination == null ? null : PortalClientState.data().destination(viewedDestination).orElse(null);
     }
 
-    private void openSettingsPage(Modal page) {
-        modal = page;
+    private void openSettingsPage(PortalConfigPage page) {
+        session.navigate(page);
         rebuildWidgets();
     }
 
@@ -3486,29 +3335,6 @@ public final class PortalConfigScreen extends Screen {
         if (notifyServer) PortalNetworking.sendRequest(PortalAction.CLEAR_EXTERNAL_DESTINATION);
     }
 
-    private static UUID externalGroupId(ExternalDestinationSource source) {
-        return UUID.nameUUIDFromBytes(("riftgun:external-group:" + source.name())
-            .getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static UUID externalSectionId(ExternalDestinationSource source) {
-        return source == ExternalDestinationSource.JOURNEYMAP
-            ? PortalPlayerData.JOURNEYMAP_SECTION_ID
-            : PortalPlayerData.XAERO_MINIMAP_SECTION_ID;
-    }
-
-    private static UUID externalRowId(ExternalDestinationSource source, String stableId) {
-        return UUID.nameUUIDFromBytes(("riftgun:external:" + source.name() + ':' + stableId)
-            .getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static @Nullable ExternalDestinationSource externalSource(UUID groupId) {
-        for (ExternalDestinationSource source : ExternalDestinationSource.values()) {
-            if (externalGroupId(source).equals(groupId)) return source;
-        }
-        return null;
-    }
-
     private String groupName(UUID id) {
         if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
             return Component.translatable("screen.riftgun.default_group").getString();
@@ -3521,12 +3347,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private Component gunFluidName() {
-        String id = PortalClientState.gun().fluidId();
-        if (id.isEmpty()) return Component.translatable("screen.riftgun.empty_fluid");
-        int separator = id.indexOf(':');
-        String namespace = separator >= 0 ? id.substring(0, separator) : "minecraft";
-        String path = separator >= 0 ? id.substring(separator + 1) : id;
-        return Component.translatable("fluid." + namespace + "." + path);
+        return Component.translatable(fluidTranslationKey(PortalClientState.gun().fluidId()));
     }
 
     private void label(GuiGraphicsExtractor graphics, String key, int x, int y) {
@@ -3539,24 +3360,9 @@ public final class PortalConfigScreen extends Screen {
             : font.plainSubstrByWidth(value, maxWidth - 8) + "…";
     }
 
-    private static String friendlyDimension(String path) {
-        String[] words = path.replace('_', ' ').split(" ");
-        StringBuilder result = new StringBuilder();
-        for (String word : words) {
-            if (!result.isEmpty()) result.append(' ');
-            result.append(word.isEmpty() ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1));
-        }
-        return result.toString();
-    }
-
     private static String displayDimension(String dimensionId) {
         return DimensionLabelState.label(dimensionId).orElseGet(() -> friendlyDimension(
             dimensionId.substring(dimensionId.lastIndexOf(':') + 1)));
-    }
-
-    private static Component toggleLabel(String key, boolean value, Object... arguments) {
-        return Component.translatable(key, arguments).append(": ").append(Component.translatable(
-            value ? "screen.riftgun.on" : "screen.riftgun.off"));
     }
 
     private static Component visualName(PortalVisualType type) {
@@ -3570,148 +3376,34 @@ public final class PortalConfigScreen extends Screen {
             .append(Component.translatable(choice.nameKey()));
     }
 
-    private ModalBox modalBox() {
+    private Box modalBox() {
         int boxWidth = Math.min(340, panelWidth - 16);
-        int desiredHeight = switch (modal) {
-            case CREATE_COORDINATE, EDIT_DESTINATION -> 214;
-            case CREATE_CURRENT -> 164;
-            case SETTINGS -> 201;
-            case CONFIRM_SETTINGS -> 140;
-            case MAP_INTEGRATION_SETTINGS -> 170;
-            case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
-                 APERTURE_SETTINGS,
-                 PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS, ENTITY_RELOCATION_SETTINGS,
-                 PORTAL_PAIRING_SETTINGS -> 132;
-            case REMOTE_SETTINGS -> 180;
-            case ENTITY_TRANSIT_SETTINGS -> 163;
-            case VISUAL_SETTINGS -> 132;
-            case SWIRL_ANIMATION_SETTINGS -> 210;
-            case SOUND_SETTINGS -> 178;
-            case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,
-                 CONFIRM_DIRTY, CONFIRM_CLEAR_FLUID -> 112;
-            case SHARE_DESTINATION -> 132;
-            case NONE -> 0;
-        };
-        if (modal.isGunSettingPage()) {
-            desiredHeight += gunSettingDescriptionExtraHeight(boxWidth);
-        }
-        int boxHeight = Math.min(desiredHeight, height - 8);
-        return new ModalBox((width - boxWidth) / 2, (height - boxHeight) / 2, boxWidth, boxHeight);
+        return PortalConfigLayout.modalBox(session.page(), width, height, panelWidth,
+            gunSettingDescriptionExtraHeight(boxWidth));
     }
 
-    private static int visualOptionsTop(ModalBox box) {
-        return box.y() + 34;
+    private int visualOptionsMaxScroll(Box box) {
+        return maximumScroll(visualOptionsContentHeight, visualOptionsViewportHeight(box));
     }
 
-    private static int visualOptionsBottom(ModalBox box) {
-        return box.y() + box.height() - 31;
+    private Box dropdownBox(int groupCount) {
+        return PortalConfigLayout.dropdownBox(modalBox(), groupSelectorX, groupSelectorY,
+            groupSelectorWidth, groupCount, 7);
     }
 
-    private static int visualOptionsViewportHeight(ModalBox box) {
-        return Math.max(1, visualOptionsBottom(box) - visualOptionsTop(box));
+    private Box visualDropdownBox(int typeCount) {
+        return PortalConfigLayout.selectorDropdownBox(modalBox(), visualSelectorX,
+            visualSelectorY, visualSelectorWidth, typeCount);
     }
 
-    private int visualOptionsMaxScroll(ModalBox box) {
-        return Math.max(0, visualOptionsContentHeight - visualOptionsViewportHeight(box));
+    private Box selectorDropdownBox(ThemedButton selector, int choiceCount) {
+        return PortalConfigLayout.selectorDropdownBox(modalBox(), selector.getX(), selector.getY(),
+            selector.getWidth() + 22, choiceCount);
     }
 
-    private DropdownBox dropdownBox(int groupCount) {
-        int visible = Math.min(7, groupCount);
-        int height = visible * ROW_HEIGHT + 4;
-        ModalBox modalBounds = modalBox();
-        int minY = modalBounds.y() + 3;
-        int maxY = modalBounds.y() + modalBounds.height() - height - 3;
-        int upward = groupSelectorY - height - 2;
-        int downward = groupSelectorY + 20;
-        int top = upward >= minY ? upward : Math.min(downward, maxY);
-        top = Mth.clamp(top, minY, Math.max(minY, maxY));
-        return new DropdownBox(groupSelectorX, top, groupSelectorWidth, height);
-    }
-
-    private DropdownBox visualDropdownBox(int typeCount) {
-        int height = typeCount * ROW_HEIGHT + 4;
-        ModalBox modalBounds = modalBox();
-        int minY = modalBounds.y() + 3;
-        int maxY = modalBounds.y() + modalBounds.height() - height - 3;
-        int downward = visualSelectorY + 20;
-        int upward = visualSelectorY - height - 2;
-        int top = downward <= maxY ? downward : Math.max(minY, upward);
-        return new DropdownBox(visualSelectorX, top, visualSelectorWidth, height);
-    }
-
-    private DropdownBox selectorDropdownBox(ThemedButton selector, int choiceCount) {
-        int height = choiceCount * ROW_HEIGHT + 4;
-        ModalBox modalBounds = modalBox();
-        int width = selector.getWidth() + 22;
-        int minY = modalBounds.y() + 3;
-        int maxY = modalBounds.y() + modalBounds.height() - height - 3;
-        int downward = selector.getY() + 20;
-        int upward = selector.getY() - height - 2;
-        int top = downward <= maxY ? downward : Math.max(minY, upward);
-        return new DropdownBox(selector.getX(), top, width, height);
-    }
-
-    private enum RowKind { GROUP, DESTINATION, EXTERNAL_GROUP, EXTERNAL_DESTINATION, PLAYER_SECTION, PLAYER }
-    private record Row(RowKind kind, UUID id, int y) {}
-    private record ModalBox(int x, int y, int width, int height) {}
-    private record DropdownBox(int x, int y, int width, int height) {}
     private record VisualWidgetBinding(AbstractWidget widget, int contentOffset) {}
     private record VisualToggleBinding(ThemedButton widget, PortalVisualOption.Toggle option) {}
 
-    private enum Modal {
-        NONE("", "", false, false),
-        CREATE_CURRENT("screen.riftgun.create_current", "", true, false),
-        CREATE_COORDINATE("screen.riftgun.create_coordinate", "", true, true),
-        EDIT_DESTINATION("screen.riftgun.edit_destination", "", true, true),
-        CREATE_GROUP("screen.riftgun.create_group", "", true, false),
-        RENAME_GROUP("screen.riftgun.rename_group", "", true, false),
-        SHARE_DESTINATION("screen.riftgun.share", "", false, false),
-        SETTINGS("screen.riftgun.settings", "", false, false),
-        CONFIRM_SETTINGS("screen.riftgun.confirm_settings", "", false, false),
-        MAP_INTEGRATION_SETTINGS("screen.riftgun.map_integration_settings", "", false, false),
-        GUN_SETTINGS("screen.riftgun.configure_gun", "", false, false),
-        PORTAL_DURATION_SETTINGS("screen.riftgun.portal_duration", "", false, false),
-        SMART_DISTANCE_SETTINGS("screen.riftgun.smart_range", "", false, false),
-        REMOTE_SETTINGS("screen.riftgun.remote.settings", "", false, false),
-        ENTITY_TRANSIT_SETTINGS("screen.riftgun.entity_transit", "", false, false),
-        APERTURE_SETTINGS("screen.riftgun.aperture", "", false, false),
-        FALL_GUARD_SETTINGS("screen.riftgun.fall_guard", "", false, false),
-        ENTITY_RELOCATION_SETTINGS("screen.riftgun.entity_relocation", "", false, false),
-        PORTAL_PAIRING_SETTINGS("screen.riftgun.pairing.settings", "", false, false),
-        PLAYER_TARGET_SETTINGS("screen.riftgun.player_target", "", false, false),
-        VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
-        SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
-        SOUND_SETTINGS("screen.riftgun.sound_settings", "", false, false),
-        CONFIRM_DELETE_DESTINATION("screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
-        CONFIRM_DELETE_GROUP("screen.riftgun.delete", "screen.riftgun.delete_group_body", false, false),
-        CONFIRM_DIRTY("screen.riftgun.unsaved", "screen.riftgun.unsaved_body", false, false),
-        CONFIRM_CLEAR_FLUID("screen.riftgun.clear_fluid", "screen.riftgun.clear_fluid_body", false, false);
-
-        private final String titleKey;
-        private final String bodyKey;
-        private final boolean hasName;
-        private final boolean hasCoordinates;
-
-        Modal(String titleKey, String bodyKey, boolean hasName, boolean hasCoordinates) {
-            this.titleKey = titleKey;
-            this.bodyKey = bodyKey;
-            this.hasName = hasName;
-            this.hasCoordinates = hasCoordinates;
-        }
-
-        boolean isConfirmation() { return name().startsWith("CONFIRM_"); }
-        boolean isGunSettingPage() {
-            return this == PORTAL_DURATION_SETTINGS || this == SMART_DISTANCE_SETTINGS
-                || this == REMOTE_SETTINGS || this == ENTITY_TRANSIT_SETTINGS
-                || this == APERTURE_SETTINGS || this == PLAYER_TARGET_SETTINGS
-                || this == FALL_GUARD_SETTINGS || this == ENTITY_RELOCATION_SETTINGS
-                || this == PORTAL_PAIRING_SETTINGS;
-        }
-        boolean hasInputs() { return hasName || hasCoordinates; }
-        boolean isDestinationForm() {
-            return this == CREATE_CURRENT || this == CREATE_COORDINATE || this == EDIT_DESTINATION;
-        }
-    }
 
     private final class MapWaypointLimitSlider extends AbstractSliderButton {
         private MapWaypointLimitSlider(int x, int y, int width, int height) {

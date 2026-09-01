@@ -23,6 +23,7 @@ final class GuiCaptureHarness {
             int scale = Integer.getInteger("riftgun.guiCaptureScale", 0);
             if (scale > 0) {
                 minecraft.options.guiScale().set(scale);
+                minecraft.resizeGui();
             }
         }
         if (ticks == 40) openRepresentativeScreen();
