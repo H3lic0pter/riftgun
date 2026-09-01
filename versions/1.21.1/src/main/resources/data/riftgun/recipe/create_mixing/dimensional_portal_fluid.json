@@ -1,0 +1,16 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "create" },
+    { "type": "riftgun:create_mixing_recipes_enabled" }
+  ],
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    { "type": "neoforge:single", "amount": 1000, "fluid": "minecraft:water" },
+    { "item": "minecraft:chorus_fruit" },
+    { "item": "minecraft:ender_pearl" }
+  ],
+  "results": [
+    { "amount": 1000, "id": "riftgun:dimensional_portal_fluid" }
+  ]
+}

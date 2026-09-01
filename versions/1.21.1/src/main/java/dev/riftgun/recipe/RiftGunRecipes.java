@@ -1,19 +1,24 @@
 package dev.riftgun.recipe;
 
+import com.mojang.serialization.MapCodec;
 import dev.riftgun.core.RiftConstants;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 public final class RiftGunRecipes {
     private static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS =
         DeferredRegister.create(Registries.RECIPE_SERIALIZER, RiftConstants.MOD_ID);
     private static final DeferredRegister<RecipeType<?>> TYPES =
         DeferredRegister.create(Registries.RECIPE_TYPE, RiftConstants.MOD_ID);
+    private static final DeferredRegister<MapCodec<? extends ICondition>> CONDITIONS =
+        DeferredRegister.create(NeoForgeRegistries.Keys.CONDITION_CODECS, RiftConstants.MOD_ID);
 
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<FluidTransmutationRecipe>>
         FLUID_TRANSMUTATION_SERIALIZER = SERIALIZERS.register(
@@ -31,10 +36,14 @@ public final class RiftGunRecipes {
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<ZeroPointFuelModuleRecipe>>
         ZERO_POINT_FUEL_MODULE_SERIALIZER = SERIALIZERS.register(
             "zero_point_fuel_module", () -> new SimpleCraftingRecipeSerializer<>(ZeroPointFuelModuleRecipe::new));
+    public static final DeferredHolder<MapCodec<? extends ICondition>,
+        MapCodec<CreateMixingRecipesEnabledCondition>> CREATE_MIXING_RECIPES_ENABLED = CONDITIONS.register(
+            "create_mixing_recipes_enabled", () -> CreateMixingRecipesEnabledCondition.CODEC);
 
     public static void register(IEventBus bus) {
         SERIALIZERS.register(bus);
         TYPES.register(bus);
+        CONDITIONS.register(bus);
     }
 
     private RiftGunRecipes() {}

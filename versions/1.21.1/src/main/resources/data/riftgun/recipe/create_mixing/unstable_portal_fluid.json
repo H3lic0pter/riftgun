@@ -1,0 +1,17 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "create" },
+    { "type": "riftgun:create_mixing_recipes_enabled" }
+  ],
+  "type": "create:mixing",
+  "ingredients": [
+    { "type": "neoforge:single", "amount": 1000, "fluid": "minecraft:water" },
+    { "tag": "c:gems/lapis" },
+    { "tag": "c:ingots/copper" },
+    { "item": "minecraft:rotten_flesh" }
+  ],
+  "results": [
+    { "amount": 1000, "id": "riftgun:unstable_portal_fluid" },
+    { "id": "minecraft:copper_ingot" }
+  ]
+}

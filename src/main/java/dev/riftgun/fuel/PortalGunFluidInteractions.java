@@ -22,8 +22,7 @@ public final class PortalGunFluidInteractions {
     private static boolean fillFrom(Player player, InteractionHand hand,
                                     @Nullable IFluidHandler source, int maximum) {
         if (source == null) return false;
-        return apply(player, hand, FluidUtil.tryFillContainer(
-            player.getItemInHand(hand), source, maximum, player, true));
+        return PortalGunFluidTransfer.fillFrom(player, hand, source, maximum);
     }
 
     private static boolean emptyInto(Player player, InteractionHand hand,

@@ -13,7 +13,9 @@ final class ConfigBootstrapTest {
 
         assertDoesNotThrow(() -> Class.forName(ServerConfig.class.getName(), true, loader));
         assertDoesNotThrow(() -> Class.forName(ClientConfig.class.getName(), true, loader));
+        assertDoesNotThrow(() -> Class.forName(IntegrationConfig.class.getName(), true, loader));
         assertEquals(256, RiftConfigs.server().destinations().maximumDestinations());
         assertEquals("riftgun:swirl", RiftConfigs.client().portalVisualType());
+        assertEquals(true, IntegrationConfig.VALUES.createMixingRecipesEnabled.getDefault());
     }
 }

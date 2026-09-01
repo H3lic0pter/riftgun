@@ -3,6 +3,7 @@ package dev.riftgun;
 import dev.riftgun.api.RiftGunApiBootstrap;
 import dev.riftgun.core.runtime.RiftRuntime;
 import dev.riftgun.config.ClientConfig;
+import dev.riftgun.config.IntegrationConfig;
 import dev.riftgun.config.ServerConfig;
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.core.fuel.RiftFuelStores;
@@ -139,6 +140,7 @@ public final class RiftGun {
         modBus.addListener(this::onConfigLoaded);
         modBus.addListener(this::onConfigReloaded);
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
+        container.registerConfig(ModConfig.Type.COMMON, IntegrationConfig.SPEC);
         container.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
     }
 
@@ -152,6 +154,7 @@ public final class RiftGun {
 
     private static void publishConfig(ModConfig config) {
         if (config.getSpec() == ServerConfig.SPEC) ServerConfig.publishSnapshot();
+        if (config.getSpec() == IntegrationConfig.SPEC) IntegrationConfig.publishSnapshot();
         if (config.getSpec() == ClientConfig.SPEC) ClientConfig.publishSnapshot();
     }
 

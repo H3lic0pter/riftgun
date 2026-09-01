@@ -1,0 +1,17 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "create" },
+    { "type": "riftgun:create_mixing_recipes_enabled" }
+  ],
+  "type": "create:mixing",
+  "ingredients": [
+    { "type": "neoforge:single", "amount": 1000, "fluid": "minecraft:water" },
+    { "tag": "c:crops/nether_wart" },
+    { "tag": "c:gems/quartz" },
+    { "tag": "c:gems/diamond" }
+  ],
+  "results": [
+    { "amount": 1000, "id": "riftgun:portal_fluid" },
+    { "chance": 0.5, "id": "minecraft:diamond" }
+  ]
+}

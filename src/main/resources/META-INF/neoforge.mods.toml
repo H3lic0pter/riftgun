@@ -61,3 +61,11 @@ type = "optional"
 versionRange = "[6.0.7,)"
 ordering = "AFTER"
 side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "create"
+type = "optional"
+reason = "Adds Mechanical Mixer recipes for RiftGun portal fluids."
+versionRange = "[6.0.7,)"
+ordering = "AFTER"
+side = "BOTH"
