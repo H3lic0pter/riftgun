@@ -193,11 +193,16 @@ public final class PortalRenderTypes extends RenderType {
     }
 
     public static RenderType endframeFrame() {
-        return RenderType.entityCutout(ENDFRAME_FRAME_TEXTURE);
+        return RenderType.entityCutoutNoCullZOffset(ENDFRAME_FRAME_TEXTURE);
     }
 
     public static RenderType endframeStar(PortalSurfaceRenderPath path) {
         return path == PortalSurfaceRenderPath.CUSTOM ? ENDFRAME_STAR : RenderType.endPortal();
+    }
+
+    /** Iris replaces its own end-portal renderer with this full entity pipeline under shaders. */
+    public static RenderType endframeNativeShaderCenter() {
+        return RenderType.entitySolid(END_PORTAL_LOCATION);
     }
 
     public static RenderType endframeFrameRotating() {

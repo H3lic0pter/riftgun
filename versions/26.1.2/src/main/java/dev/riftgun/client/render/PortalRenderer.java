@@ -31,8 +31,9 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity, PortalRen
         if (state.portal instanceof PortalEntity entity && entity.pairingDormant()) return;
         PortalVisualType type = PortalVisualPreferences.selected();
         PortalVisualStyle style = PortalVisualStyles.resolve(state.portal);
+        PortalRenderFrameState frameState = PortalRenderFrameState.current();
         PortalVisualRenderContext context = new PortalVisualRenderContext(state.portal, state.partialTick,
-            poseStack, collector, PortalRenderFrameState.current().surfaceRenderPath(),
+            poseStack, collector, frameState.surfaceRenderPath(), frameState.shaderPackProfile(),
             style);
         type.renderer().submit(context);
         super.submit(state, poseStack, collector, camera);

@@ -1,15 +1,22 @@
 package dev.riftgun.client.render;
 
+import dev.riftgun.internal.shader.ShaderPackProfile;
+import dev.riftgun.internal.shader.ShaderPackProfileRegistry;
+
 /** Shader-pack activation sampled once per frame, with pass-local shadow state resolved on use. */
 public final class PortalRenderFrameState {
     private static volatile PortalRenderFrameState current =
-        new PortalRenderFrameState(false, () -> PortalShaderEnvironment.State.INACTIVE);
+        new PortalRenderFrameState(false, ShaderPackProfile.EMPTY,
+            () -> PortalShaderEnvironment.State.INACTIVE);
 
     private final boolean shaderPackActive;
+    private final ShaderPackProfile shaderPackProfile;
     private final PortalShaderEnvironment environment;
 
-    private PortalRenderFrameState(boolean shaderPackActive, PortalShaderEnvironment environment) {
+    private PortalRenderFrameState(boolean shaderPackActive, ShaderPackProfile shaderPackProfile,
+                                   PortalShaderEnvironment environment) {
         this.shaderPackActive = shaderPackActive;
+        this.shaderPackProfile = shaderPackProfile;
         this.environment = environment;
     }
 
@@ -23,12 +30,19 @@ public final class PortalRenderFrameState {
 
     static void refresh(PortalShaderEnvironment environment) {
         PortalShaderEnvironment.State snapshot = environment.snapshot();
-        current = new PortalRenderFrameState(snapshot.shaderPackActive(), environment);
+        ShaderPackProfile profile = snapshot.shaderPackActive()
+            ? ShaderPackProfileRegistry.resolve(snapshot.shaderPackName())
+            : ShaderPackProfile.EMPTY;
+        current = new PortalRenderFrameState(snapshot.shaderPackActive(), profile, environment);
     }
 
     public PortalSurfaceRenderPath surfaceRenderPath() {
         return PortalShaderCompatibility.selectPath(
             shaderPackActive, shaderPackActive && environment.shadowPass());
+    }
+
+    public ShaderPackProfile shaderPackProfile() {
+        return shaderPackProfile;
     }
 
     private static final class EnvironmentHolder {

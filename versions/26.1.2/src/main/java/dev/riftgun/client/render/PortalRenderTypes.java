@@ -200,11 +200,13 @@ public final class PortalRenderTypes {
             .createRenderSetup()
     );
 
+    /** View-offset cutout keeps the liquid ring in front of shader-native end-portal material. */
     private static final RenderType ENDFRAME_FALLBACK = RenderType.create(
         "riftgun_endframe_fallback",
-        RenderSetup.builder(RenderPipelines.ENTITY_CUTOUT)
+        RenderSetup.builder(RenderPipelines.ENTITY_CUTOUT_Z_OFFSET)
             .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE,
                 () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+            .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
             .bufferSize(256)
             .createRenderSetup()
     );
@@ -274,6 +276,11 @@ public final class PortalRenderTypes {
 
     public static RenderType endframeStar(PortalSurfaceRenderPath path) {
         return path == PortalSurfaceRenderPath.CUSTOM ? ENDFRAME_STAR : RenderTypes.endPortal();
+    }
+
+    /** Iris replaces its own end-portal renderer with this full entity pipeline under shaders. */
+    public static RenderType endframeNativeShaderCenter() {
+        return RenderTypes.entitySolid(END_PORTAL_LOCATION);
     }
 
     public static RenderType endframeFrameGlow() {

@@ -3,6 +3,7 @@ package dev.riftgun.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.portal.PortalVisualSource;
+import dev.riftgun.internal.shader.ShaderPackProfile;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 
@@ -19,6 +20,7 @@ public record PortalVisualRenderContext(
     PoseStack poseStack,
     SubmitNodeCollector collector,
     PortalSurfaceRenderPath surfaceRenderPath,
+    ShaderPackProfile shaderPackProfile,
     PortalVisualStyle style
 ) {
     public float visibleProgress() {

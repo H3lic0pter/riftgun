@@ -29,8 +29,9 @@ public final class EntityRelocationPortalRenderer extends EntityRenderer<EntityR
     public void submit(PortalRenderState state, PoseStack poseStack,
                        SubmitNodeCollector collector, CameraRenderState camera) {
         PortalVisualType type = PortalVisualPreferences.selected();
+        PortalRenderFrameState frameState = PortalRenderFrameState.current();
         type.renderer().submit(new PortalVisualRenderContext(state.portal, state.partialTick,
-            poseStack, collector, PortalRenderFrameState.current().surfaceRenderPath(),
+            poseStack, collector, frameState.surfaceRenderPath(), frameState.shaderPackProfile(),
             PortalVisualStyles.resolve(state.portal)));
         super.submit(state, poseStack, collector, camera);
     }

@@ -1,9 +1,13 @@
 package dev.riftgun.client.render;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.riftgun.core.config.RiftConfigs;
 import dev.riftgun.portal.PortalVisualSource;
+import dev.riftgun.internal.shader.ShaderPackProfile;
 import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -14,7 +18,8 @@ import org.joml.Matrix4f;
  * the PortalGun overlay ring tinted with the portal fluid colour. On the custom
  * shader path the ring spins on the GPU like a vortex; under a shader pack a
  * standard entity pipeline carries CPU-rotated UVs plus a restrained glow.
- * Shader-pack rendering intentionally leaves the inner disc empty.
+ * Registered shader packs may opt into a native Iris block-entity material for
+ * the inner disc; unregistered packs leave it empty.
  */
 final class EndframePortalVisualRenderer implements PortalVisualRenderer {
     /** Half-thickness of the two-faced star slab. Kept small so the overlay
@@ -44,7 +49,8 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
         PortalRenderBasis basis = PortalRenderBasis.from(portal);
         PortalSurfaceRenderPath path = context.surfaceRenderPath();
         if (path == PortalSurfaceRenderPath.SKIP_SURFACE) return;
-        Matrix4f matrix = context.poseStack().last().pose();
+        PoseStack.Pose pose = context.poseStack().last();
+        Matrix4f matrix = pose.pose();
         float eased = Mth.sin(progress * Mth.HALF_PI);
         float width = portal.portalWidth() * eased;
         float height = portal.portalHeight() * eased;
@@ -52,6 +58,8 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
         if (path == PortalSurfaceRenderPath.CUSTOM) {
             drawStar(matrix, basis, context.buffers().getBuffer(PortalRenderTypes.endframeStar(path)),
                 width, height);
+        } else {
+            drawRegisteredShaderCenter(context, pose, basis, width, height);
         }
 
         float rotation = rotationRadians(context);
@@ -73,6 +81,72 @@ final class EndframePortalVisualRenderer implements PortalVisualRenderer {
                 width, height, RING_LAYER_OFFSET, context.style().surfaceColor(),
                 FALLBACK_GLOW_BRIGHTNESS, false, 0, 0, cosine, sine);
         }
+    }
+
+    private static void drawRegisteredShaderCenter(PortalVisualRenderContext context,
+                                                    PoseStack.Pose pose,
+                                                    PortalRenderBasis basis, float width, float height) {
+        ShaderPackProfile.EndframeCenter center = context.shaderPackProfile().endframeCenter();
+        if (center.mode() != ShaderPackProfile.EndframeCenter.Mode.IRIS_BLOCK_ENTITY) return;
+
+        IrisBlockEntityMaterialBridge bridge = IrisBlockEntityMaterialBridge.instance();
+        RenderType wrapped = bridge.wrap(PortalRenderTypes.endframeNativeShaderCenter());
+        if (wrapped == null) return;
+        MultiBufferSource buffers = bridge.originalBufferSource(context.buffers());
+        if (buffers == null) return;
+        bridge.renderWithMaterial(center.materialId(), () ->
+            drawNativeShaderStar(pose, basis, buffers.getBuffer(wrapped), width, height));
+    }
+
+    private static void drawNativeShaderStar(PoseStack.Pose pose, PortalRenderBasis basis,
+                                             VertexConsumer vertices, float width, float height) {
+        float hw = width * 0.5F * STAR_RADIUS_SCALE;
+        float hh = height * 0.5F * STAR_RADIUS_SCALE;
+        float half = STAR_DEPTH * 0.5F;
+        nativeShaderStarFan(vertices, pose, basis, hw, hh, half, false);
+        nativeShaderStarFan(vertices, pose, basis, hw, hh, -half, true);
+    }
+
+    private static void nativeShaderStarFan(VertexConsumer vertices, PoseStack.Pose pose,
+                                            PortalRenderBasis basis, float hw, float hh,
+                                            float z, boolean reversed) {
+        float normalSign = reversed ? -1.0F : 1.0F;
+        for (int segment = 0; segment < EndframeVisualGeometry.STAR_SEGMENTS; segment++) {
+            int first = reversed ? segment + 1 : segment;
+            int second = reversed ? segment : segment + 1;
+            nativeShaderStarVertex(vertices, pose, basis, normalSign,
+                0.0F, 0.0F, z, 0.1F, 0.1F);
+            nativeShaderStarRimVertex(vertices, pose, basis, normalSign, first, hw, hh, z);
+            nativeShaderStarRimVertex(vertices, pose, basis, normalSign, second, hw, hh, z);
+            nativeShaderStarVertex(vertices, pose, basis, normalSign,
+                0.0F, 0.0F, z, 0.1F, 0.1F);
+        }
+    }
+
+    private static void nativeShaderStarRimVertex(VertexConsumer vertices, PoseStack.Pose pose,
+                                                  PortalRenderBasis basis, float normalSign, int rim,
+                                                  float hw, float hh, float z) {
+        float rimX = EndframeVisualGeometry.rimX(rim);
+        float rimY = EndframeVisualGeometry.rimY(rim);
+        nativeShaderStarVertex(vertices, pose, basis, normalSign, rimX * hw, rimY * hh, z,
+            0.1F + rimX * 0.1F, 0.1F - rimY * 0.1F);
+    }
+
+    private static void nativeShaderStarVertex(VertexConsumer vertices, PoseStack.Pose pose,
+                                               PortalRenderBasis basis, float normalSign,
+                                               float x, float y, float z, float u, float v) {
+        float worldX = (float) (basis.right().x * x + basis.up().x * y + basis.normal().x * z);
+        float worldY = (float) (basis.right().y * x + basis.up().y * y + basis.normal().y * z);
+        float worldZ = (float) (basis.right().z * x + basis.up().z * y + basis.normal().z * z);
+        vertices.addVertex(pose, worldX, worldY, worldZ)
+            .setColor(0.075F, 0.15F, 0.2F, 1.0F)
+            .setUv(u, v)
+            .setOverlay(OverlayTexture.NO_OVERLAY)
+            .setLight(LightTexture.FULL_BRIGHT)
+            .setNormal(pose,
+                (float) basis.normal().x * normalSign,
+                (float) basis.normal().y * normalSign,
+                (float) basis.normal().z * normalSign);
     }
 
     private static float rotationRadians(PortalVisualRenderContext context) {

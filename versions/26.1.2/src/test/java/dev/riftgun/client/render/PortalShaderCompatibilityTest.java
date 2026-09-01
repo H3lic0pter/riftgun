@@ -1,7 +1,9 @@
 package dev.riftgun.client.render;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
+import dev.riftgun.internal.shader.ShaderPackProfile;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
@@ -80,6 +82,25 @@ class PortalShaderCompatibilityTest {
             shadowPass.set(true);
             assertEquals(PortalSurfaceRenderPath.SKIP_SURFACE,
                 PortalShaderCompatibility.currentPath());
+        } finally {
+            PortalRenderFrameState.refresh(() -> PortalShaderEnvironment.State.INACTIVE);
+        }
+    }
+
+    @Test
+    void resolvesTheRegisteredShaderProfileOncePerFrame() {
+        try {
+            PortalRenderFrameState.refresh(() ->
+                PortalShaderEnvironment.State.active("ComplementaryUnbound_r5.8.1.zip"));
+            ShaderPackProfile.EndframeCenter center =
+                PortalRenderFrameState.current().shaderPackProfile().endframeCenter();
+            assertEquals(ShaderPackProfile.EndframeCenter.Mode.IRIS_BLOCK_ENTITY, center.mode());
+            assertEquals(5025, center.materialId());
+
+            PortalRenderFrameState.refresh(() ->
+                PortalShaderEnvironment.State.active("ComplementaryUnbound_r6.0.zip"));
+            assertSame(ShaderPackProfile.EMPTY,
+                PortalRenderFrameState.current().shaderPackProfile());
         } finally {
             PortalRenderFrameState.refresh(() -> PortalShaderEnvironment.State.INACTIVE);
         }
