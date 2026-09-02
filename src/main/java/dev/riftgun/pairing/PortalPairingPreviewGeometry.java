@@ -8,7 +8,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** Static world-space line geometry for pending pairing endpoints. */
 public final class PortalPairingPreviewGeometry {
-    private static final int FRAME_COLOR = 0xD9F0F0F0;
+    private static final int FRAME_COLOR = 0xFFF0F0F0;
 
     public static List<ColoredSegment> segments(
         PortalPlacement placement, PortalPairingEndpoint endpoint

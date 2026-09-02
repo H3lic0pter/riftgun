@@ -2,6 +2,7 @@ package dev.riftgun.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.PortalPreviewGunState;
@@ -23,7 +24,7 @@ import dev.riftgun.service.RemotePortalPlacementResolver;
 import dev.riftgun.service.SurfaceFacePlacementPlanner;
 import dev.riftgun.service.SurfaceFaceSelection;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
@@ -37,9 +38,10 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4fStack;
 
 import java.util.List;
 
@@ -50,7 +52,7 @@ public final class PortalPlacementPreview {
     private static final ContextKey<RenderState> RENDER_STATE_KEY = new ContextKey<>(
         Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "remote_placement_preview"));
     private static final PortalPlacementPreviewEngine ENGINE = new PortalPlacementPreviewEngine();
-    private static @Nullable PairingMarkerOverlay pairingMarkerOverlay;
+    private static @Nullable RenderState afterLevelState;
 
     public static void tick(Minecraft minecraft) {
         ENGINE.tick(input(minecraft), new MinecraftResolver(minecraft));
@@ -112,52 +114,45 @@ public final class PortalPlacementPreview {
     @SubscribeEvent
     public static void extractLevelRenderState(ExtractLevelRenderStateEvent event) {
         PortalPlacementPreviewEngine.Frame frame = ENGINE.frame();
-        boolean shaderPackActive = PortalRenderFrameState.current().shaderPackActive();
-        event.getRenderState().setRenderData(RENDER_STATE_KEY, frame.isEmpty() ? null
-            : new RenderState(frame, event.getCamera().position(), shaderPackActive));
-        if (!shaderPackActive || frame.pendingSegments().isEmpty()
-            && frame.entityTargetSegments().isEmpty()) {
-            pairingMarkerOverlay = null;
-            return;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        CameraRenderState camera = event.getRenderState().cameraRenderState;
-        pairingMarkerOverlay = PairingMarkerOverlay.project(frame.pendingSegments(),
-            frame.entityTargetSegments(), camera.pos, camera.projectionMatrix,
-            camera.viewRotationMatrix, minecraft.getWindow().getGuiScaledWidth(),
-            minecraft.getWindow().getGuiScaledHeight(), minecraft.getWindow().getGuiScale());
+        RenderState state = frame.isEmpty() ? null
+            : new RenderState(frame, event.getCamera().position());
+        event.getRenderState().setRenderData(RENDER_STATE_KEY, state);
+        afterLevelState = state;
     }
 
     @SubscribeEvent
     public static void submitCustomGeometry(SubmitCustomGeometryEvent event) {
         RenderState state = event.getLevelRenderState().getRenderData(RENDER_STATE_KEY);
         if (state == null) return;
-        boolean hasWorldGeometry = !state.frame().segments().isEmpty()
-            || !state.shaderPackActive() && (!state.frame().pendingSegments().isEmpty()
-                || !state.frame().entityTargetSegments().isEmpty());
-        if (!hasWorldGeometry) return;
+        if (state.frame().segments().isEmpty()) return;
         PoseStack poses = event.getPoseStack();
         poses.pushPose();
         event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.lines(),
-            (pose, vertices) -> {
-                drawLines(pose, vertices, state.camera(), state.frame().segments(), COLOR);
-                if (!state.shaderPackActive()) {
-                    drawColored(pose, vertices, state.camera(), state.frame().pendingSegments());
-                    drawColored(pose, vertices, state.camera(),
-                        state.frame().entityTargetSegments());
-                }
-            });
+            (pose, vertices) -> drawLines(pose, vertices, state.camera(),
+                state.frame().segments(), COLOR));
         poses.popPose();
     }
 
     @SubscribeEvent
-    public static void renderPairingOverlay(RenderGuiEvent.Pre event) {
-        if (Minecraft.getInstance().level == null) {
-            pairingMarkerOverlay = null;
-            return;
+    public static void renderPairingMarker(RenderLevelStageEvent.AfterLevel event) {
+        RenderState state = afterLevelState;
+        if (state == null || state.frame().pendingSegments().isEmpty()
+            && state.frame().entityTargetSegments().isEmpty()) return;
+
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return;
+        Matrix4fStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushMatrix().mul(event.getModelViewMatrix());
+        MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
+        try {
+            VertexConsumer vertices = buffers.getBuffer(PortalRenderTypes.pairingMarker());
+            PoseStack.Pose pose = event.getPoseStack().last();
+            drawColored(pose, vertices, state.camera(), state.frame().pendingSegments());
+            drawColored(pose, vertices, state.camera(), state.frame().entityTargetSegments());
+            buffers.endBatch(PortalRenderTypes.pairingMarker());
+        } finally {
+            modelView.popMatrix();
         }
-        PairingMarkerOverlay overlay = pairingMarkerOverlay;
-        if (overlay != null) event.getGuiGraphics().submitGuiElementRenderState(overlay);
     }
 
     private static void drawLines(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
@@ -207,15 +202,9 @@ public final class PortalPlacementPreview {
 
         @Override
         public boolean markerVisible(PortalPairingPendingEndpoint endpoint) {
-            if (minecraft.level == null || minecraft.player == null
-                || !minecraft.level.dimension().equals(endpoint.dimension())) return false;
-            Vec3 target = endpoint.placement().center();
-            if (!minecraft.level.hasChunkAt(BlockPos.containing(target))) return false;
-            Vec3 camera = minecraft.gameRenderer.getMainCamera().position();
-            HitResult hit = minecraft.level.clip(new ClipContext(camera, target,
-                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, minecraft.player));
-            return hit.getType() != HitResult.Type.BLOCK
-                || hit.getLocation().distanceToSqr(target) <= 0.0004;
+            return minecraft.level != null
+                && minecraft.level.dimension().equals(endpoint.dimension())
+                && minecraft.level.hasChunkAt(BlockPos.containing(endpoint.placement().center()));
         }
 
         @Override
@@ -284,8 +273,7 @@ public final class PortalPlacementPreview {
         }
     }
 
-    private record RenderState(PortalPlacementPreviewEngine.Frame frame, Vec3 camera,
-                               boolean shaderPackActive) {}
+    private record RenderState(PortalPlacementPreviewEngine.Frame frame, Vec3 camera) {}
 
     private PortalPlacementPreview() {}
 }

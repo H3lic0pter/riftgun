@@ -29,7 +29,7 @@ final class PortalPairingPreviewGeometryTest {
         assertTrue(b.subList(corners.size(), b.size()).stream().allMatch(colored ->
             colored.color() == 0xFFE19A52 && inFront(colored.geometry(), placement)));
         assertTrue(a.subList(0, corners.size()).stream().allMatch(colored ->
-            colored.color() == 0xD9F0F0F0));
+            colored.color() == 0xFFF0F0F0));
     }
 
     @Test

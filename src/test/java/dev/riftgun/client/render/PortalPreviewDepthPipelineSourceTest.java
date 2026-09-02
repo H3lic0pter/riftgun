@@ -21,6 +21,7 @@ final class PortalPreviewDepthPipelineSourceTest {
         assertTrue(marker.contains("OptionalDouble.of(2.5)"));
         assertTrue(marker.contains(".setDepthTestState(LEQUAL_DEPTH_TEST)"));
         assertTrue(marker.contains(".setWriteMaskState(COLOR_WRITE)"));
+        assertTrue(marker.contains(".setTransparencyState(NO_TRANSPARENCY)"));
         assertTrue(marker.contains(".setCullState(NO_CULL)"));
         assertTrue(marker.contains(".setOutputState(MAIN_TARGET)"));
         assertFalse(marker.contains(".setOutputState(ITEM_ENTITY_TARGET)"));
@@ -34,40 +35,39 @@ final class PortalPreviewDepthPipelineSourceTest {
     }
 
     @Test
-    void modernPairingLinesUsePostProcessedOpaqueGuiGeometryWithShaders() throws Exception {
+    void modernPairingLinesUseOpaquePostCompositeWorldDepth() throws Exception {
         String renderTypes = read("26.1.2", "PortalRenderTypes.java");
         String preview = read("26.1.2", "PortalPlacementPreview.java");
-        String overlay = read("26.1.2", "PairingMarkerOverlay.java");
         String clientEvents = Files.readString(Path.of("versions", "26.1.2", "src", "main",
             "java", "dev", "riftgun", "client", "ClientModEvents.java"));
 
         assertTrue(preview.contains("RenderTypes.lines()"));
         assertTrue(preview.contains("state.frame().pendingSegments()"));
         assertTrue(preview.contains("state.frame().entityTargetSegments()"));
-        assertTrue(preview.contains("PortalRenderFrameState.current().shaderPackActive()"));
-        assertTrue(preview.contains("if (!state.shaderPackActive())"));
-        assertTrue(preview.contains("RenderGuiEvent.Pre"));
-        assertTrue(preview.contains("submitGuiElementRenderState"));
-        assertTrue(preview.contains("PairingMarkerOverlay.project"));
-        assertTrue(preview.contains("minecraft.gameRenderer.getMainCamera().position()"));
-        assertTrue(preview.contains("minecraft.level.clip"));
+        assertTrue(preview.contains("RenderLevelStageEvent.AfterLevel"));
+        assertTrue(preview.contains("RenderSystem.getModelViewStack()"));
+        assertTrue(preview.contains(".mul(event.getModelViewMatrix())"));
+        assertTrue(preview.contains("PortalRenderTypes.pairingMarker()"));
         assertTrue(preview.contains(".setLineWidth(2.5F)"));
-        assertTrue(preview.contains("colored.color() | 0xFF000000"));
-        assertTrue(overlay.contains("implements GuiElementRenderState"));
-        assertTrue(overlay.contains("RenderPipelines.GUI"));
-        assertTrue(overlay.contains("TextureSetup.noTexture()"));
-        assertTrue(overlay.contains("colored.color() | 0xFF000000"));
-        assertFalse(preview.contains("RenderLevelStageEvent.AfterLevel"));
-        assertFalse(preview.contains("PortalRenderTypes.pairingMarker()"));
-        assertFalse(overlay.contains("RenderPipeline.builder"));
-        assertFalse(renderTypes.contains("public static final RenderPipeline PAIRING_MARKER"));
-        assertFalse(renderTypes.contains("core/rendertype_rift_pairing_marker"));
-        assertFalse(clientEvents.contains(
+        assertFalse(preview.contains("RenderGuiEvent"));
+        assertFalse(preview.contains("PairingMarkerOverlay"));
+        assertFalse(preview.contains("gameRenderer.getMainCamera()"));
+        assertFalse(preview.contains("shaderPackActive"));
+        assertTrue(renderTypes.contains("public static final RenderPipeline PAIRING_MARKER"));
+        assertTrue(renderTypes.contains("RenderPipelines.MATRICES_PROJECTION_SNIPPET"));
+        assertTrue(renderTypes.contains("RenderPipelines.GLOBALS_SNIPPET"));
+        assertTrue(renderTypes.contains("core/rendertype_rift_pairing_marker"));
+        assertTrue(renderTypes.contains("withColorTargetState(ColorTargetState.DEFAULT)"));
+        assertTrue(renderTypes.contains(
+            "new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false)"));
+        assertTrue(clientEvents.contains(
             "event.registerPipeline(PortalRenderTypes.Pipelines.PAIRING_MARKER)"));
-        assertFalse(Files.exists(Path.of("versions", "26.1.2", "src", "main", "resources",
+        assertTrue(Files.exists(Path.of("versions", "26.1.2", "src", "main", "resources",
             "assets", "riftgun", "shaders", "core", "rendertype_rift_pairing_marker.vsh")));
-        assertFalse(Files.exists(Path.of("versions", "26.1.2", "src", "main", "resources",
+        assertTrue(Files.exists(Path.of("versions", "26.1.2", "src", "main", "resources",
             "assets", "riftgun", "shaders", "core", "rendertype_rift_pairing_marker.fsh")));
+        assertFalse(Files.exists(Path.of("versions", "26.1.2", "src", "main", "java",
+            "dev", "riftgun", "client", "render", "PairingMarkerOverlay.java")));
     }
 
     @Test
@@ -78,6 +78,22 @@ final class PortalPreviewDepthPipelineSourceTest {
         assertTrue(legacy.contains("vertexColor * ColorModulator"));
         assertFalse(legacy.contains("fog"));
         assertFalse(legacy.contains("light"));
+    }
+
+    @Test
+    void lineExpansionPreservesWorldDepthExactlyInBothVersions() throws Exception {
+        for (Path shader : new Path[] {
+            Path.of("src", "main", "resources", "assets", "minecraft", "shaders", "core",
+                "rendertype_rift_pairing_marker.vsh"),
+            Path.of("versions", "26.1.2", "src", "main", "resources", "assets", "riftgun",
+                "shaders", "core", "rendertype_rift_pairing_marker.vsh")
+        }) {
+            String source = Files.readString(shader);
+            assertFalse(source.contains("VIEW_SHRINK"));
+            assertFalse(source.contains("VIEW_SCALE"));
+            assertFalse(source.contains("fog"));
+            assertTrue(source.contains("ProjMat * ModelViewMat * vec4(Position, 1.0)"));
+        }
     }
 
     @Test

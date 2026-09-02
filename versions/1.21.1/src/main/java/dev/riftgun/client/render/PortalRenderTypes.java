@@ -70,7 +70,7 @@ public final class PortalRenderTypes extends RenderType {
         CompositeState.builder()
             .setShaderState(new ShaderStateShard(() -> pairingMarkerShader))
             .setLineState(new LineStateShard(OptionalDouble.of(2.5)))
-            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+            .setTransparencyState(NO_TRANSPARENCY)
             .setCullState(NO_CULL)
             .setDepthTestState(LEQUAL_DEPTH_TEST)
             .setWriteMaskState(COLOR_WRITE)

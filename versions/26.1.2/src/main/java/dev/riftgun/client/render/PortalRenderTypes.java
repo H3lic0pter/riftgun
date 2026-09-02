@@ -63,6 +63,22 @@ public final class PortalRenderTypes {
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .build();
 
+        /** Opaque fixed-width lines drawn after shader-pack composition against world depth. */
+        public static final RenderPipeline PAIRING_MARKER = RenderPipeline.builder(
+                RenderPipelines.MATRICES_PROJECTION_SNIPPET,
+                RenderPipelines.GLOBALS_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/riftgun_pairing_marker"))
+            .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID,
+                "core/rendertype_rift_pairing_marker"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID,
+                "core/rendertype_rift_pairing_marker"))
+            .withColorTargetState(ColorTargetState.DEFAULT)
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL_LINE_WIDTH,
+                VertexFormat.Mode.LINES)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .build();
+
         /** Rotating swirl material under a fixed aperture: opaque inside, feathered at the rim. */
         public static final RenderPipeline SWIRL = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
             .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/rift_portal_swirl"))
@@ -151,6 +167,13 @@ public final class PortalRenderTypes {
         "rift_portal_border",
         RenderSetup.builder(RenderPipelines.LINES_TRANSLUCENT)
             .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+            .bufferSize(256)
+            .createRenderSetup()
+    );
+
+    private static final RenderType PAIRING_MARKER = RenderType.create(
+        "riftgun_pairing_marker",
+        RenderSetup.builder(Pipelines.PAIRING_MARKER)
             .bufferSize(256)
             .createRenderSetup()
     );
@@ -244,6 +267,10 @@ public final class PortalRenderTypes {
 
     public static RenderType border() {
         return BORDER;
+    }
+
+    public static RenderType pairingMarker() {
+        return PAIRING_MARKER;
     }
 
     public static RenderType swirlEdge() {
