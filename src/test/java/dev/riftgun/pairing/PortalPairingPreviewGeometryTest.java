@@ -1,7 +1,7 @@
 package dev.riftgun.pairing;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.riftgun.portal.PortalGeometry;
@@ -14,38 +14,37 @@ import org.junit.jupiter.api.Test;
 
 final class PortalPairingPreviewGeometryTest {
     @Test
-    void frameContainsVisibleEndpointGlyphInTheSameLineBuffer() {
-        PortalPlacement placement = new PortalPlacement(Vec3.ZERO,
-            PortalOrientation.VERTICAL, PortalGeometry.SURFACE_VERTICAL,
-            0.0F, null, null);
-
+    void frameContainsEndpointGlyphInThePortalPlane() {
+        PortalPlacement placement = placement();
         List<PortalPlacementPreviewGeometry.Segment> corners =
             PortalPlacementPreviewGeometry.corners(placement);
         var a = PortalPairingPreviewGeometry.segments(placement, PortalPairingEndpoint.A);
         var b = PortalPairingPreviewGeometry.segments(placement, PortalPairingEndpoint.B);
 
-        assertEquals(corners.size() + 3, a.size(), "Ⅰ needs one stem and two bars");
-        assertEquals(corners.size() + 4, b.size(), "Ⅱ needs two stems and two bars");
-        assertNotEquals(a, b, "A and B glyph geometry must differ");
+        assertEquals(corners.size() + 3, a.size(), "I needs one stem and two bars");
+        assertEquals(corners.size() + 4, b.size(), "II needs two stems and two bars");
+        assertNotEquals(a, b);
         assertTrue(a.subList(corners.size(), a.size()).stream().allMatch(colored ->
-            colored.color() == 0xFF9CC9D8
-                && inFront(colored.geometry(), placement)));
+            colored.color() == 0xFF9CC9D8 && inFront(colored.geometry(), placement)));
         assertTrue(b.subList(corners.size(), b.size()).stream().allMatch(colored ->
-            colored.color() == 0xFFE19A52
-                && inFront(colored.geometry(), placement)));
+            colored.color() == 0xFFE19A52 && inFront(colored.geometry(), placement)));
+        assertTrue(a.subList(0, corners.size()).stream().allMatch(colored ->
+            colored.color() == 0xD9F0F0F0));
     }
 
     @Test
     void entityTargetContainsOnlyTheBlueFirstNumeral() {
-        PortalPlacement placement = new PortalPlacement(Vec3.ZERO,
-            PortalOrientation.VERTICAL, PortalGeometry.SURFACE_VERTICAL,
-            0.0F, null, null);
-
+        PortalPlacement placement = placement();
         var marker = PortalPairingPreviewGeometry.entityTargetSegments(placement);
 
-        assertEquals(3, marker.size(), "entity target must omit all four frame corners");
+        assertEquals(3, marker.size());
         assertTrue(marker.stream().allMatch(segment ->
             segment.color() == 0xFF9CC9D8 && inFront(segment.geometry(), placement)));
+    }
+
+    private static PortalPlacement placement() {
+        return new PortalPlacement(Vec3.ZERO, PortalOrientation.VERTICAL,
+            PortalGeometry.SURFACE_VERTICAL, 0.0F, null, null);
     }
 
     private static boolean inFront(PortalPlacementPreviewGeometry.Segment segment,

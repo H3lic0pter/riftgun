@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.world.phys.Vec3;
 
-/** Line geometry rendered by the same pipeline for a pending endpoint frame and glyph. */
+/** Static world-space line geometry for pending pairing endpoints. */
 public final class PortalPairingPreviewGeometry {
     private static final int FRAME_COLOR = 0xD9F0F0F0;
 
@@ -20,7 +20,7 @@ public final class PortalPairingPreviewGeometry {
         return List.copyOf(segments);
     }
 
-    /** Entity relocation uses only its fixed-target numeral, without a portal footprint. */
+    /** Entity relocation keeps only its fixed-target numeral. */
     public static List<ColoredSegment> entityTargetSegments(PortalPlacement placement) {
         List<ColoredSegment> segments = new ArrayList<>();
         addGlyph(segments, placement, PortalPairingEndpoint.A);

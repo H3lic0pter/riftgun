@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class PortalPlacementPreviewClientBoundarySourceTest {
@@ -21,6 +21,8 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
             assertFalse(source.contains("PORTAL_SPLASH"));
             assertFalse(source.contains("addParticle"));
             assertFalse(source.contains("PortalEntity"));
+            assertFalse(source.contains("PortalPreviewVisualSource"));
+            assertFalse(source.contains("PortalVisualDispatcher"));
             assertFalse(source.contains("SurfaceFaceRequest"),
                 version + " preview hot path must use the domain selection directly");
             assertFalse(source.contains(".toSelection()"),
@@ -33,14 +35,21 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
     }
 
     @Test
-    void modernPreviewSubmitsOneGeometryNodePerFrame() throws Exception {
+    void modernPreviewKeepsPlacementAndPairingInOneDepthTestedBatch() throws Exception {
         String source = Files.readString(Path.of("versions", "26.1.2", "src", "main",
             "java", "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
         int methodStart = source.indexOf("public static void submitCustomGeometry(");
-        int methodEnd = source.indexOf("private static void draw(", methodStart);
+        int methodEnd = source.indexOf("private static void drawLines(", methodStart);
         String method = source.substring(methodStart, methodEnd);
 
         assertEquals(1, occurrences(method, ".submitCustomGeometry("));
+        assertTrue(method.contains("RenderTypes.lines()"));
+        assertTrue(method.contains("state.frame().pendingSegments()"));
+        assertTrue(method.contains("state.frame().entityTargetSegments()"));
+        assertTrue(method.contains("drawColored("));
+        assertFalse(source.contains("RenderLevelStageEvent.AfterLevel"));
+        assertFalse(source.contains("PortalRenderTypes.pairingMarker()"));
+        assertFalse(source.contains("MultiBufferSource"));
         assertTrue(source.contains(
             "PortalPreviewCoordinates.relativeTo(camera.x, point.x)"));
         assertFalse(source.contains("poses.translate(-state.camera()"));
@@ -54,6 +63,8 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
         assertTrue(source.contains("minecraft.renderBuffers().bufferSource()"));
         assertTrue(source.contains(
             "PortalPreviewCoordinates.relativeTo(camera.x, point.x)"));
+        assertTrue(source.contains("PortalRenderTypes.pairingMarker()"));
+        assertTrue(source.contains("drawColored("));
         assertFalse(source.contains("ByteBufferBuilder"));
         assertFalse(source.contains("poses.translate(-camera.x"));
     }

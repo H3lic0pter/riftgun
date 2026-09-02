@@ -2,6 +2,7 @@ package dev.riftgun.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.riftgun.RiftGun;
 import dev.riftgun.client.PortalClientState;
 import dev.riftgun.client.PortalPreviewGunState;
@@ -36,6 +37,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4fStack;
 
 import java.util.List;
 
@@ -104,44 +106,70 @@ public final class PortalPlacementPreview {
 
     @SubscribeEvent
     public static void renderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
+        boolean placementPass = event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES;
+        boolean pairingPass = event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL;
+        if (!placementPass && !pairingPass) return;
         PortalPlacementPreviewEngine.Frame frame = ENGINE.frame();
         if (frame.isEmpty()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
 
-        PoseStack.Pose pose = event.getPoseStack().last();
+        PoseStack poses = event.getPoseStack();
+        PoseStack.Pose pose = poses.last();
         Vec3 camera = event.getCamera().getPosition();
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        RenderType renderType = RenderType.lines();
-        VertexConsumer vertices = buffers.getBuffer(renderType);
-        draw(pose, vertices, camera, frame.segments());
-        drawColored(pose, vertices, camera, frame.pendingSegments());
-        drawColored(pose, vertices, camera, frame.entityTargetSegments());
-        buffers.endBatch(renderType);
+        if (placementPass) {
+            if (!frame.segments().isEmpty()) {
+                RenderType placementLines = RenderType.lines();
+                drawLines(pose, buffers.getBuffer(placementLines), camera, frame.segments(), COLOR);
+                buffers.endBatch(placementLines);
+            }
+            return;
+        }
+
+        if (!frame.pendingSegments().isEmpty() || !frame.entityTargetSegments().isEmpty()) {
+            Matrix4fStack modelView = RenderSystem.getModelViewStack();
+            modelView.pushMatrix().mul(event.getModelViewMatrix());
+            RenderSystem.applyModelViewMatrix();
+            RenderType pairingMarker = PortalRenderTypes.pairingMarker();
+            try {
+                VertexConsumer vertices = buffers.getBuffer(pairingMarker);
+                drawColored(pose, vertices, camera, frame.pendingSegments());
+                drawColored(pose, vertices, camera, frame.entityTargetSegments());
+                buffers.endBatch(pairingMarker);
+            } finally {
+                modelView.popMatrix();
+                RenderSystem.applyModelViewMatrix();
+            }
+        }
     }
 
-    private static void draw(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
-                             List<PortalPlacementPreviewGeometry.Segment> segments) {
+    private static void drawLines(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
+                                  List<PortalPlacementPreviewGeometry.Segment> segments,
+                                  int color) {
         for (PortalPlacementPreviewGeometry.Segment segment : segments) {
-            Vec3 direction = segment.to().subtract(segment.from()).normalize();
-            vertex(vertices, pose, camera, segment.from(), direction, COLOR);
-            vertex(vertices, pose, camera, segment.to(), direction, COLOR);
+            drawLine(pose, vertices, camera, segment, color);
         }
     }
 
-    private static void drawColored(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
-                                    List<PortalPairingPreviewGeometry.ColoredSegment> segments) {
+    private static void drawLine(PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
+                                 PortalPlacementPreviewGeometry.Segment segment, int color) {
+        Vec3 direction = segment.to().subtract(segment.from()).normalize();
+        lineVertex(vertices, pose, camera, segment.from(), direction, color);
+        lineVertex(vertices, pose, camera, segment.to(), direction, color);
+    }
+
+    private static void drawColored(
+        PoseStack.Pose pose, VertexConsumer vertices, Vec3 camera,
+        List<PortalPairingPreviewGeometry.ColoredSegment> segments
+    ) {
         for (PortalPairingPreviewGeometry.ColoredSegment colored : segments) {
-            var segment = colored.geometry();
-            Vec3 direction = segment.to().subtract(segment.from()).normalize();
-            vertex(vertices, pose, camera, segment.from(), direction, colored.color());
-            vertex(vertices, pose, camera, segment.to(), direction, colored.color());
+            drawLine(pose, vertices, camera, colored.geometry(), colored.color());
         }
     }
 
-    private static void vertex(VertexConsumer vertices, PoseStack.Pose pose, Vec3 camera,
-                               Vec3 point, Vec3 direction, int color) {
+    private static void lineVertex(VertexConsumer vertices, PoseStack.Pose pose, Vec3 camera,
+                                   Vec3 point, Vec3 direction, int color) {
         vertices.addVertex(pose,
                 PortalPreviewCoordinates.relativeTo(camera.x, point.x),
                 PortalPreviewCoordinates.relativeTo(camera.y, point.y),

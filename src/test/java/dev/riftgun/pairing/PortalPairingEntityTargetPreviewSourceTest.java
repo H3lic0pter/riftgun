@@ -16,7 +16,8 @@ final class PortalPairingEntityTargetPreviewSourceTest {
         assertTrue(preview.contains("next.entityTarget()"));
         assertTrue(preview.contains("PortalFunctionMode.PORTAL_PAIRING"));
         assertTrue(preview.contains("PortalPlacementMode.ENTITY_RELOCATION"));
-        assertTrue(preview.contains("PortalPairingPreviewGeometry.entityTargetSegments("));
+        assertTrue(preview.contains(
+            "PortalPairingPreviewGeometry.entityTargetSegments(next.placement())"));
         assertFalse(preview.contains("entitiesForRendering()"));
     }
 

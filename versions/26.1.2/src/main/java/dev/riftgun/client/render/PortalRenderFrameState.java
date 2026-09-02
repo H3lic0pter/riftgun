@@ -41,6 +41,10 @@ public final class PortalRenderFrameState {
             shaderPackActive, shaderPackActive && environment.shadowPass());
     }
 
+    public boolean shaderPackActive() {
+        return shaderPackActive;
+    }
+
     public ShaderPackProfile shaderPackProfile() {
         return shaderPackProfile;
     }

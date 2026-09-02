@@ -95,6 +95,14 @@ public final class ClientModEvents {
         event.registerShader(
             new ShaderInstance(
                 event.getResourceProvider(),
+                ResourceLocation.withDefaultNamespace("rendertype_rift_pairing_marker"),
+                DefaultVertexFormat.POSITION_COLOR_NORMAL
+            ),
+            PortalRenderTypes::setPairingMarkerShader
+        );
+        event.registerShader(
+            new ShaderInstance(
+                event.getResourceProvider(),
                 ResourceLocation.withDefaultNamespace("rendertype_rift_portal"),
                 DefaultVertexFormat.POSITION_COLOR
             ),

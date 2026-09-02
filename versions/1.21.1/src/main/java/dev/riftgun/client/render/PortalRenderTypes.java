@@ -23,6 +23,7 @@ public final class PortalRenderTypes extends RenderType {
     private static final ResourceLocation END_PORTAL_LOCATION =
         ResourceLocation.withDefaultNamespace("textures/entity/end_portal.png");
     private static ShaderInstance portalShader;
+    private static ShaderInstance pairingMarkerShader;
     private static ShaderInstance swirlShader;
     private static ShaderInstance endframeShader;
 
@@ -55,6 +56,25 @@ public final class PortalRenderTypes extends RenderType {
             .setLayeringState(VIEW_OFFSET_Z_LAYERING)
             .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
             .setOutputState(ITEM_ENTITY_TARGET)
+            .createCompositeState(false)
+    );
+
+    /** Post-composite pairing wireframe: fixed width, world-depth occluded, no depth writes. */
+    private static final RenderType PAIRING_MARKER = create(
+        "riftgun_pairing_marker",
+        DefaultVertexFormat.POSITION_COLOR_NORMAL,
+        VertexFormat.Mode.LINES,
+        256,
+        false,
+        false,
+        CompositeState.builder()
+            .setShaderState(new ShaderStateShard(() -> pairingMarkerShader))
+            .setLineState(new LineStateShard(OptionalDouble.of(2.5)))
+            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+            .setCullState(NO_CULL)
+            .setDepthTestState(LEQUAL_DEPTH_TEST)
+            .setWriteMaskState(COLOR_WRITE)
+            .setOutputState(MAIN_TARGET)
             .createCompositeState(false)
     );
 
@@ -172,6 +192,10 @@ public final class PortalRenderTypes extends RenderType {
         return BORDER;
     }
 
+    public static RenderType pairingMarker() {
+        return PAIRING_MARKER;
+    }
+
     public static RenderType swirl() {
         return SWIRL;
     }
@@ -219,6 +243,10 @@ public final class PortalRenderTypes extends RenderType {
 
     public static void setPortalShader(ShaderInstance shader) {
         portalShader = shader;
+    }
+
+    public static void setPairingMarkerShader(ShaderInstance shader) {
+        pairingMarkerShader = shader;
     }
 
     public static void setSwirlShader(ShaderInstance shader) {

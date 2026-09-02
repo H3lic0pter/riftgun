@@ -18,11 +18,12 @@ final class PortalPairingLightweightSourceTest {
     }
 
     @Test
-    void bothClientsRenderPendingFrameAndGlyphThroughTheSameLinePath() throws Exception {
+    void clientBuildsEntityFreeVectorLinesForThePendingEndpoint() throws Exception {
         String preview = Files.readString(Path.of("src", "main", "java", "dev", "riftgun",
             "portal", "PortalPlacementPreviewEngine.java"));
         assertTrue(preview.contains("gun.pending()"));
         assertTrue(preview.contains("PortalPairingPreviewGeometry.segments("));
-        assertFalse(preview.contains("drawPendingLabel"));
+        assertFalse(preview.contains("new PortalEntity("));
+        assertFalse(preview.contains("PortalPreviewVisualSource"));
     }
 }

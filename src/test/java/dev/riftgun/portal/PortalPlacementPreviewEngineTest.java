@@ -106,14 +106,14 @@ final class PortalPlacementPreviewEngineTest {
         engine.tick(input(level, 0L, false, false,
             gun(PortalFunctionMode.PORTAL_PAIRING, PortalPlacementMode.FRONT,
                 PortalFloatingFallback.FRONT, false, pair), null), resolver);
-        assertFalse(engine.frame().pendingSegments().isEmpty());
+        assertEquals(11, engine.frame().pendingSegments().size());
         assertTrue(engine.frame().entityTargetSegments().isEmpty());
 
         engine.tick(input(level, 1L, false, false,
             gun(PortalFunctionMode.PORTAL_PAIRING, PortalPlacementMode.ENTITY_RELOCATION,
                 PortalFloatingFallback.FRONT, false, entity), null), resolver);
         assertTrue(engine.frame().pendingSegments().isEmpty());
-        assertFalse(engine.frame().entityTargetSegments().isEmpty());
+        assertEquals(3, engine.frame().entityTargetSegments().size());
 
         resolver.markerVisible = false;
         engine.tick(input(level, 2L, false, false,
