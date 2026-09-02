@@ -15,7 +15,7 @@ public final class NeoForgeNetworkAdapter implements NetworkTransport {
     public static void register(RegisterPayloadHandlersEvent event) {
         NeoForgeNetworkAdapter adapter = new NeoForgeNetworkAdapter();
         RiftNetwork.install(adapter);
-        var registrar = event.registrar("1");
+        var registrar = event.registrar("2");
         registrar.playToServer(PortalRequestPayload.TYPE, PortalRequestPayload.STREAM_CODEC,
             (payload, context) -> {
                 if (context.player() instanceof ServerPlayer player) {

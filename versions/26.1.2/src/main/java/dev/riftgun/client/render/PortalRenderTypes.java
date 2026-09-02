@@ -64,10 +64,10 @@ public final class PortalRenderTypes {
             .build();
 
         /** Opaque fixed-width lines drawn after shader-pack composition against world depth. */
-        public static final RenderPipeline PAIRING_MARKER = RenderPipeline.builder(
+        public static final RenderPipeline PREVIEW_LINES = RenderPipeline.builder(
                 RenderPipelines.MATRICES_PROJECTION_SNIPPET,
                 RenderPipelines.GLOBALS_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/riftgun_pairing_marker"))
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/riftgun_preview_lines"))
             .withVertexShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID,
                 "core/rendertype_rift_pairing_marker"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID,
@@ -171,9 +171,9 @@ public final class PortalRenderTypes {
             .createRenderSetup()
     );
 
-    private static final RenderType PAIRING_MARKER = RenderType.create(
-        "riftgun_pairing_marker",
-        RenderSetup.builder(Pipelines.PAIRING_MARKER)
+    private static final RenderType PREVIEW_LINES = RenderType.create(
+        "riftgun_preview_lines",
+        RenderSetup.builder(Pipelines.PREVIEW_LINES)
             .bufferSize(256)
             .createRenderSetup()
     );
@@ -269,8 +269,8 @@ public final class PortalRenderTypes {
         return BORDER;
     }
 
-    public static RenderType pairingMarker() {
-        return PAIRING_MARKER;
+    public static RenderType previewLines() {
+        return PREVIEW_LINES;
     }
 
     public static RenderType swirlEdge() {

@@ -90,8 +90,8 @@ public record PortalGunCapabilities(
             pairingInstalled,
             pairingInstalled ? settings.portalPairing().functionMode() : PortalFunctionMode.COORDINATE_TRAVEL,
             remoteInstalled ? settings.remote().coordinateSmartFallback() : PortalFloatingFallback.FRONT,
-            pairingInstalled && remoteInstalled
-                ? settings.portalPairing().smartFallback() : PortalFloatingFallback.FRONT,
+            configuredPairingSmartFallback(pairingInstalled, remoteInstalled,
+                settings.portalPairing().smartFallback()),
             fallGuardInstalled && settings.fallGuardEnabled(),
             fallGuardInstalled && settings.fallGuardEntitiesEnabled()
         );
@@ -133,6 +133,12 @@ public record PortalGunCapabilities(
 
     static int configuredSmartDistance(int desiredDistance, int maximumRange) {
         return Mth.clamp(desiredDistance, 1, Math.max(1, maximumRange));
+    }
+
+    static PortalFloatingFallback configuredPairingSmartFallback(boolean pairingInstalled,
+                                                                  boolean remoteInstalled,
+                                                                  PortalFloatingFallback saved) {
+        return pairingInstalled && remoteInstalled ? saved : PortalFloatingFallback.FRONT;
     }
 
     public static int configuredDurationSeconds(ItemStack gun, int requestedSeconds) {

@@ -5,7 +5,7 @@ creates linked, walk-through portals for local and cross-dimensional travel,
 with saved destinations, modular gun upgrades, configurable placement, player
 privacy, three portal-fluid tiers, and client-local visual and sound themes.
 
-The project is currently in beta on both supported versions. The 26.1.2 port
+The project is currently in release-candidate testing on both supported versions. The 26.1.2 port
 is newer and has seen less testing than the 1.21.1 build. Back up worlds
 before updating and expect configuration or save-data migration requirements
 before `1.0.0`.
@@ -17,7 +17,10 @@ before `1.0.0`.
 | Minecraft | `1.21.1` | `26.1.2` |
 | NeoForge | `21.1.140` or newer | `26.1.2.95` or newer |
 | Java | `21` | `25` |
+| JEI (optional) | `19.21.1.248+` | `29.29.0.76+` |
 | LambDynamicLights | `4.8.10+` | `4.11.1+` |
+| JourneyMap (optional) | `1.21.1-6.0.0-beta.1+` | `26.1-6.0.0-beta.1+` |
+| Xaero's Minimap (optional) | `26.4.2` through `26.4.x` | `26.4.2` through `26.4.x` |
 
 Rift Gun has no required runtime dependency besides NeoForge. LambDynamicLights is
 optional; it adds portal light to nearby blocks on both supported builds.
@@ -26,7 +29,7 @@ optional; it adds portal light to nearby blocks on both supported builds.
 
 1. Install the matching Minecraft version with a compatible NeoForge release.
 2. Put the Rift Gun JAR for that Minecraft version in the instance's `mods` directory.
-3. Install the same Rift Gun version on both the server and every connecting client.
+3. Install the same Rift Gun version on both the server and every connecting client. The current network protocol is `2`; older protocol-`1` builds are intentionally rejected.
 4. Optionally install JEI and/or LambDynamicLights on the client.
 
 Back up the world before changing mod versions. Rift Gun stores destinations and privacy preferences as server-side player data, while visual preferences remain client-local.
@@ -48,7 +51,7 @@ Destinations support shared groups, pinning, remembered sorting, coordinate entr
 
 - `SMART` uses surface placement within the configured smart distance and front placement beyond it.
 - `FRONT` creates a floating vertical portal. Looking steeply down or up creates a horizontal top or bottom portal.
-- `REMOTE` projects a fixed floating portal along the view ray and is available with Portal Pairing.
+- `REMOTE` projects a fixed floating portal along the view ray and requires the independent Remote Module.
 - `SURFACE` attaches a portal to the targeted block face and is limited by the gun's surface range.
 - Motion prediction can be disabled or configured from the gun GUI. Projection mode is the default.
 - Standard portals accept players, dropped items, and vehicles. Mob categories require their corresponding transit modules.
@@ -100,6 +103,7 @@ The gun starts with nine module slots. Each Module Bay Expansion adds three slot
 | Module | Function | Default limit |
 | --- | --- | --- |
 | Coordinate Override | Unlocks coordinate-created destinations and coordinate editing | 1 |
+| Dimensional Traversal | Adds exact cross-dimensional destination creation and bounded automatic destination search | 1 |
 | Reservoir Expansion | Adds `8000 mB` nominal capacity | 2 |
 | Passive Transit | Allows passive and friendly mobs when enabled | 1 |
 | Hostile Transit | Allows hostile mobs when enabled | 1 |
@@ -114,7 +118,9 @@ The gun starts with nine module slots. Each Module Bay Expansion adds three slot
 | Matter Anchor | Prevents a dropped Portal Gun from despawning or being destroyed by fire, lava, or explosions | 1 |
 | Projectile Transit | Allows eligible projectiles to cross portals while preserving transformed velocity and orientation | 1 |
 | Entity Relocation | Opens a short-lived visual gate around a targeted entity and sends it to the selected destination | 1 |
-| Portal Pairing | Adds manual A/B endpoint placement, REMOTE placement, and the Coordinate Travel / Portal Pairing function switch | 1 |
+| Remote | Unlocks fixed-distance `REMOTE` floating placement and the optional SMART fallback | 1 |
+| Precision Placement | Adds a face/orientation radial for exact portal placement | 1 |
+| Portal Pairing | Adds manual A/B endpoint placement and the Coordinate Travel / Portal Pairing function switch | 1 |
 | Zero-Point Fuel | Makes the loaded portal-fluid profile unlimited; supplies Dimensional Portal Fluid behavior when empty | 1 |
 | Creative | Grants every module function at its configured maximum and unlocks all module slots | 1 |
 
@@ -142,6 +148,10 @@ use identical normal portal visuals. Replacing either endpoint rebuilds the
 pair, consumes one charge, and resets the shared duration. The dedicated
 endpoint and function-switch keys are unbound by default.
 
+Pairing does not grant `REMOTE`. Pairing SMART routing falls back to `REMOTE`
+only when the same gun has both the Portal Pairing Module and Remote Module;
+otherwise it safely falls back to `FRONT` without overwriting the saved choice.
+
 ### Player targets and privacy
 
 The Player Target Module can open an exit near an online player. The Privacy
@@ -168,14 +178,32 @@ The system first checks whether the traveler can reasonably survive an event, th
 - Visual selection and swirl animation settings are client-local, so different players may see the same portal differently.
 - Shot, open/close, and transit sounds can be selected independently. The Rift theme is the default; Ender is also available for transit. Splash sound is off by default.
 - Portal colors and splash particles follow the active fuel.
-- When a supported shader environment is detected, Rift Gun uses a visible fallback surface and skips the portal surface during shadow passes. Shader-pack-specific appearance may still vary.
+- Pending Pairing endpoints use client-rendered, world-oriented white wireframes with colored `I`/`II` strokes. They keep the original portal orientation, use world depth so blocks occlude them, and render as opaque geometry rather than allowing the background to show through.
+- Pairing markers are batched without marker entities or per-marker buffer flushes. Their frame/number geometry stays in world space while the shader expands strokes to a fixed screen-space width, so camera movement cannot rescale the stored marker shape.
+- When a supported shader environment is detected, Rift Gun uses a visible fallback surface and skips the portal surface during shadow passes. Complementary Reimagined and Complementary Unbound r5.x also receive the registered Endframe central-surface path; unregistered packs keep the conservative fallback.
 - LambDynamicLights integration is optional. Without it, portals render normally but do not illuminate nearby blocks.
+
+### Optional integrations
+
+- JEI displays Rift Gun crafting and portal-fluid transmutation recipes.
+- JourneyMap and Xaero's Minimap contribute read-only waypoint groups to the
+  destination GUI. Their client data is copied into the current GUI session;
+  changing server or closing the session clears it, and refresh removes stale
+  selections. Opening a selected waypoint still sends only a bounded request:
+  the server rejects unknown dimensions, non-finite/out-of-range coordinates,
+  and overlong fields instead of trusting client waypoint state.
+- LambDynamicLights adds nearby block illumination for real portals only. Pair
+  preview markers never register as dynamic lights.
+- On 1.21.1, Create adds optional Mechanical Mixer recipes and Immersive
+  Portals provides its node-specific integration. Neither integration is
+  included in the 26.1.2 artifact.
 
 ## Configuration
 
 Player-facing options are available from the Portal Gun GUI. NeoForge also generates:
 
 - `config/riftgun-client.toml` for client-local visuals and optional dynamic-light brightness.
+- `config/riftgun-common.toml` on 1.21.1 for the optional Create Mechanical Mixer recipe switch. This file is not generated by the 26.1.2 node, which does not include Create integration.
 - `<world>/serverconfig/riftgun-server.toml` for destination limits, fuel costs, module limits, portal duration, passenger-tree transit and relocation, special-entity swept collision, destination-readiness timeouts, privacy timeouts, shortcut gun lookup, prediction tuning, unstable-fluid classification, crisis behavior, and opt-in transit diagnostics.
 
 Entity Relocation can move eligible vehicles, dropped items, and complete passenger trees. Servers can independently disable passenger-tree relocation, cap each tree's member count, tune utility-entity fuel cost, and set the temporary immunity that prevents relocated non-player entities from immediately triggering normal portal exits. Transit diagnostics remain disabled by default under `debug.enableTransitDiagnostics`.
@@ -216,7 +244,7 @@ Server configuration changes should normally be made while the server is stopped
 - Cross-dimensional destinations that are not loaded use a deferred exit path; the exit may appear immediately after the first traveler reaches the destination.
 - Shader compatibility uses a conservative fallback. Unlisted shader packs may render portal brightness or transparency differently.
 - Lava Hazard performs a bounded search and may cancel when it cannot construct a valid natural-lava scenario.
-- Public extension seams exist for portal fuels, visuals, sounds, crises, and gun locators, but API stability is not guaranteed before `1.0.0`.
+- Public extension seams exist for portal fuels, visuals, sounds, crises, gun locators, coordinate notes, dimension labels, portal-open policies, transit authorization, and portal opening. API stability is not guaranteed before `1.0.0`.
 
 ## Development
 
@@ -236,6 +264,13 @@ Built jars land under `versions/<version>/build/libs/`. The project targets
 Java 21 for Minecraft 1.21.1 and Java 25 for Minecraft 26.1.2. Source code and
 issue tracking are hosted at
 [github.com/H3lic0pter/riftgun](https://github.com/H3lic0pter/riftgun).
+
+Each node also publishes `-api.jar` and `-api-sources.jar` Addon API artifacts.
+Addon callbacks are isolated by provider ID: a failed dimension-label provider
+is skipped so later providers or the built-in label can answer, while a failed
+portal-open policy denies the request. Each failing provider is warned only once
+per process to prevent log spam. The removed destination-provider draft API is
+not part of the `1.2.0` public artifact.
 
 ## License and attribution
 

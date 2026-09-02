@@ -9,12 +9,12 @@ import org.junit.jupiter.api.Test;
 
 final class PortalPreviewDepthPipelineSourceTest {
     @Test
-    void legacyPairingLinesUseFixedWidthReadOnlyWorldDepth() throws Exception {
+    void legacyPreviewLinesUseFixedWidthReadOnlyWorldDepth() throws Exception {
         String renderTypes = read("1.21.1", "PortalRenderTypes.java");
         String preview = read("1.21.1", "PortalPlacementPreview.java");
         String clientEvents = Files.readString(Path.of("versions", "1.21.1", "src", "main",
             "java", "dev", "riftgun", "client", "ClientModEvents.java"));
-        int markerStart = renderTypes.indexOf("private static final RenderType PAIRING_MARKER");
+        int markerStart = renderTypes.indexOf("private static final RenderType PREVIEW_LINES");
         int markerEnd = renderTypes.indexOf("private static final RenderType SWIRL", markerStart);
         String marker = renderTypes.substring(markerStart, markerEnd);
 
@@ -25,35 +25,43 @@ final class PortalPreviewDepthPipelineSourceTest {
         assertTrue(marker.contains(".setCullState(NO_CULL)"));
         assertTrue(marker.contains(".setOutputState(MAIN_TARGET)"));
         assertFalse(marker.contains(".setOutputState(ITEM_ENTITY_TARGET)"));
-        assertTrue(marker.contains("new ShaderStateShard(() -> pairingMarkerShader)"));
+        assertTrue(marker.contains("new ShaderStateShard(() -> previewLinesShader)"));
         assertFalse(marker.contains("RENDERTYPE_LINES_SHADER"));
         assertTrue(clientEvents.contains("rendertype_rift_pairing_marker"));
         assertTrue(preview.contains("RenderLevelStageEvent.Stage.AFTER_LEVEL"));
         assertTrue(preview.contains("RenderSystem.getModelViewStack()"));
         assertTrue(preview.contains(".mul(event.getModelViewMatrix())"));
-        assertTrue(preview.contains("PortalRenderTypes.pairingMarker()"));
+        assertTrue(preview.contains("PortalRenderTypes.previewLines()"));
+        assertFalse(preview.contains("RenderType.lines()"));
+        assertTrue(preview.indexOf("frame.segments()")
+            < preview.indexOf("frame.pendingSegments()"));
+        assertTrue(preview.contains("color | 0xFF000000"));
     }
 
     @Test
-    void modernPairingLinesUseOpaquePostCompositeWorldDepth() throws Exception {
+    void modernPreviewLinesUseOpaquePostCompositeWorldDepth() throws Exception {
         String renderTypes = read("26.1.2", "PortalRenderTypes.java");
         String preview = read("26.1.2", "PortalPlacementPreview.java");
         String clientEvents = Files.readString(Path.of("versions", "26.1.2", "src", "main",
             "java", "dev", "riftgun", "client", "ClientModEvents.java"));
 
-        assertTrue(preview.contains("RenderTypes.lines()"));
+        assertFalse(preview.contains("RenderTypes.lines()"));
+        assertTrue(preview.contains("state.frame().segments()"));
         assertTrue(preview.contains("state.frame().pendingSegments()"));
         assertTrue(preview.contains("state.frame().entityTargetSegments()"));
         assertTrue(preview.contains("RenderLevelStageEvent.AfterLevel"));
         assertTrue(preview.contains("RenderSystem.getModelViewStack()"));
         assertTrue(preview.contains(".mul(event.getModelViewMatrix())"));
-        assertTrue(preview.contains("PortalRenderTypes.pairingMarker()"));
+        assertTrue(preview.contains("PortalRenderTypes.previewLines()"));
         assertTrue(preview.contains(".setLineWidth(2.5F)"));
+        assertTrue(preview.contains("color | 0xFF000000"));
+        assertTrue(preview.indexOf("state.frame().segments()")
+            < preview.indexOf("state.frame().pendingSegments()"));
         assertFalse(preview.contains("RenderGuiEvent"));
         assertFalse(preview.contains("PairingMarkerOverlay"));
         assertFalse(preview.contains("gameRenderer.getMainCamera()"));
         assertFalse(preview.contains("shaderPackActive"));
-        assertTrue(renderTypes.contains("public static final RenderPipeline PAIRING_MARKER"));
+        assertTrue(renderTypes.contains("public static final RenderPipeline PREVIEW_LINES"));
         assertTrue(renderTypes.contains("RenderPipelines.MATRICES_PROJECTION_SNIPPET"));
         assertTrue(renderTypes.contains("RenderPipelines.GLOBALS_SNIPPET"));
         assertTrue(renderTypes.contains("core/rendertype_rift_pairing_marker"));
@@ -61,7 +69,7 @@ final class PortalPreviewDepthPipelineSourceTest {
         assertTrue(renderTypes.contains(
             "new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false)"));
         assertTrue(clientEvents.contains(
-            "event.registerPipeline(PortalRenderTypes.Pipelines.PAIRING_MARKER)"));
+            "event.registerPipeline(PortalRenderTypes.Pipelines.PREVIEW_LINES)"));
         assertTrue(Files.exists(Path.of("versions", "26.1.2", "src", "main", "resources",
             "assets", "riftgun", "shaders", "core", "rendertype_rift_pairing_marker.vsh")));
         assertTrue(Files.exists(Path.of("versions", "26.1.2", "src", "main", "resources",

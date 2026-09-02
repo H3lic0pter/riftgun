@@ -106,9 +106,7 @@ public final class PortalPlacementPreview {
 
     @SubscribeEvent
     public static void renderLevel(RenderLevelStageEvent event) {
-        boolean placementPass = event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES;
-        boolean pairingPass = event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL;
-        if (!placementPass && !pairingPass) return;
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) return;
         PortalPlacementPreviewEngine.Frame frame = ENGINE.frame();
         if (frame.isEmpty()) return;
         Minecraft minecraft = Minecraft.getInstance();
@@ -118,29 +116,19 @@ public final class PortalPlacementPreview {
         PoseStack.Pose pose = poses.last();
         Vec3 camera = event.getCamera().getPosition();
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        if (placementPass) {
-            if (!frame.segments().isEmpty()) {
-                RenderType placementLines = RenderType.lines();
-                drawLines(pose, buffers.getBuffer(placementLines), camera, frame.segments(), COLOR);
-                buffers.endBatch(placementLines);
-            }
-            return;
-        }
-
-        if (!frame.pendingSegments().isEmpty() || !frame.entityTargetSegments().isEmpty()) {
-            Matrix4fStack modelView = RenderSystem.getModelViewStack();
-            modelView.pushMatrix().mul(event.getModelViewMatrix());
+        Matrix4fStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushMatrix().mul(event.getModelViewMatrix());
+        RenderSystem.applyModelViewMatrix();
+        RenderType previewLines = PortalRenderTypes.previewLines();
+        try {
+            VertexConsumer vertices = buffers.getBuffer(previewLines);
+            drawLines(pose, vertices, camera, frame.segments(), COLOR);
+            drawColored(pose, vertices, camera, frame.pendingSegments());
+            drawColored(pose, vertices, camera, frame.entityTargetSegments());
+            buffers.endBatch(previewLines);
+        } finally {
+            modelView.popMatrix();
             RenderSystem.applyModelViewMatrix();
-            RenderType pairingMarker = PortalRenderTypes.pairingMarker();
-            try {
-                VertexConsumer vertices = buffers.getBuffer(pairingMarker);
-                drawColored(pose, vertices, camera, frame.pendingSegments());
-                drawColored(pose, vertices, camera, frame.entityTargetSegments());
-                buffers.endBatch(pairingMarker);
-            } finally {
-                modelView.popMatrix();
-                RenderSystem.applyModelViewMatrix();
-            }
         }
     }
 
@@ -174,7 +162,7 @@ public final class PortalPlacementPreview {
                 PortalPreviewCoordinates.relativeTo(camera.x, point.x),
                 PortalPreviewCoordinates.relativeTo(camera.y, point.y),
                 PortalPreviewCoordinates.relativeTo(camera.z, point.z))
-            .setColor(color)
+            .setColor(color | 0xFF000000)
             .setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z);
     }
 

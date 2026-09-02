@@ -35,20 +35,22 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
     }
 
     @Test
-    void modernPreviewSeparatesPlacementSubmissionFromPostCompositePairing() throws Exception {
+    void modernPreviewBatchesPlacementAndPairingAfterComposition() throws Exception {
         String source = Files.readString(Path.of("versions", "26.1.2", "src", "main",
             "java", "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
-        int methodStart = source.indexOf("public static void submitCustomGeometry(");
-        int methodEnd = source.indexOf("@SubscribeEvent", methodStart + 1);
-        String method = source.substring(methodStart, methodEnd);
-
-        assertEquals(1, occurrences(method, ".submitCustomGeometry("));
-        assertTrue(method.contains("RenderTypes.lines()"));
-        assertFalse(method.contains("state.frame().pendingSegments()"));
-        assertFalse(method.contains("state.frame().entityTargetSegments()"));
-        assertFalse(method.contains("drawColored("));
+        assertFalse(source.contains("public static void submitCustomGeometry("));
+        assertFalse(source.contains("SubmitCustomGeometryEvent"));
+        assertFalse(source.contains("RenderTypes.lines()"));
         assertTrue(source.contains("RenderLevelStageEvent.AfterLevel"));
-        assertTrue(source.contains("PortalRenderTypes.pairingMarker()"));
+        assertTrue(source.contains("PortalRenderTypes.previewLines()"));
+        assertTrue(source.contains(
+            "drawLines(pose, vertices, state.camera(), state.frame().segments(), COLOR)"));
+        assertTrue(source.contains(
+            "drawColored(pose, vertices, state.camera(), state.frame().pendingSegments())"));
+        assertTrue(source.contains(
+            "drawColored(pose, vertices, state.camera(), state.frame().entityTargetSegments())"));
+        assertEquals(1, occurrences(source,
+            "buffers.endBatch(PortalRenderTypes.previewLines())"));
         assertTrue(source.contains("MultiBufferSource.BufferSource"));
         assertTrue(source.contains(
             "PortalPreviewCoordinates.relativeTo(camera.x, point.x)"));
@@ -58,15 +60,17 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
     }
 
     @Test
-    void legacyPreviewKeepsTheSharedBatchButUsesCameraRelativeVertices() throws Exception {
+    void legacyPreviewUsesOnePostCompositeBatchWithCameraRelativeVertices() throws Exception {
         String source = Files.readString(Path.of("versions", "1.21.1", "src", "main",
             "java", "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
 
         assertTrue(source.contains("minecraft.renderBuffers().bufferSource()"));
         assertTrue(source.contains(
             "PortalPreviewCoordinates.relativeTo(camera.x, point.x)"));
-        assertTrue(source.contains("PortalRenderTypes.pairingMarker()"));
+        assertTrue(source.contains("PortalRenderTypes.previewLines()"));
         assertTrue(source.contains("drawColored("));
+        assertFalse(source.contains("RenderType.lines()"));
+        assertEquals(1, occurrences(source, "buffers.endBatch(previewLines)"));
         assertFalse(source.contains("ByteBufferBuilder"));
         assertFalse(source.contains("poses.translate(-camera.x"));
     }
@@ -92,11 +96,11 @@ final class PortalPlacementPreviewClientBoundarySourceTest {
         String source = Files.readString(Path.of("versions", "26.1.2", "src", "main",
             "java", "dev", "riftgun", "client", "render", "PortalPlacementPreview.java"));
         int methodStart = source.indexOf(
-            "public static void renderPairingMarker(RenderLevelStageEvent.AfterLevel event)");
+            "public static void renderPreviewLines(RenderLevelStageEvent.AfterLevel event)");
         int methodEnd = source.indexOf("private static void drawLines(", methodStart);
         String method = source.substring(methodStart, methodEnd);
 
-        assertTrue(source.contains("afterLevelState = state"));
+        assertTrue(source.contains("afterLevelState = frame.isEmpty() ? null"));
         assertTrue(method.contains("RenderState state = afterLevelState"));
         assertFalse(method.contains("getRenderData(RENDER_STATE_KEY)"));
     }

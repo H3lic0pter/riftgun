@@ -49,7 +49,6 @@ repositories {
 val optionalClientCompileOnly = configurations.create("optionalClientCompileOnly")
 val optionalClientRuntimeOnly = configurations.create("optionalClientRuntimeOnly")
 configurations.compileOnly.get().extendsFrom(optionalClientCompileOnly)
-configurations.runtimeOnly.get().extendsFrom(optionalClientRuntimeOnly)
 // ModDevGradle wires Minecraft/NeoForge into the main source set only; tests that
 // touch Minecraft types need the same dependencies on their compile and runtime paths.
 configurations.configureEach {
@@ -71,6 +70,7 @@ neoForge {
     runs {
         create("client") {
             client()
+            additionalRuntimeClasspathConfiguration.extendsFrom(optionalClientRuntimeOnly)
             systemProperty("riftgun.guiCapture", System.getProperty("riftgun.guiCapture", "false"))
             systemProperty("riftgun.guiCaptureScale", System.getProperty("riftgun.guiCaptureScale", "0"))
             systemProperty("riftgun.radialCapture", System.getProperty("riftgun.radialCapture", "false"))

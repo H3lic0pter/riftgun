@@ -1,38 +1,33 @@
 # Rift Gun 下一版本发布准备审查
 
-- 审查日期：2026-09-01
+- 审查日期：2026-09-03
 - 审查分支：`dev`
-- 审查终点：`e968e61`（`perf(gui): trim preview and row allocations`）及当前工作树
+- 审查终点：`c207f9a` + 当前 `0.2.0-rc.1` 准备工作树（尚未提交）
 - 上次发布基线：`cfc26e47d95d7f7abf1800a225f05987800d8f07`
 - 基线 tag：`mc1.21.1-v0.1.1-r1`、`mc26.1.2-v0.1.1-r1`
-- 审查范围：基线之后 66 个 commit、425 个文件
-- 变更规模：新增 23,730 行、删除 3,528 行（不含当前工作树）
-- 当前结论：**No-Go，不应直接发布**
+- 审查范围：基线之后 69 个 commit、434 个文件
+- 变更规模：新增 25,632 行、删除 3,528 行
+- 当前结论：**RC 产物已生成；公开发布仍为 No-Go，等待最终游戏内矩阵**
 
 ## 1. 执行摘要
 
 自 `0.1.1-r1` 发布以来，Rift Gun 已经从一次常规修补演变为包含新玩法、
 新 GUI、新扩展 API、新第三方集成和新渲染兼容层的大版本更新。主要功能已具备，
-两条版本线的自动化测试也全部通过，但发布产物、网络兼容声明和产品规范尚未完全
-收束。
-
-当前有两类明确发布阻断：
-
-1. 两节点仍使用已经发布过的 `0.1.1-r1` 版本号，网络 registrar 也仍为协议
-   `"1"`，但本轮已经改变网络 snapshot schema。
-2. REMOTE 到底由 Portal Pairing Module 提供，还是由独立 Remote Module 提供，
-   设计、README 和实现目前互相矛盾。
+两条版本线的自动化测试也全部通过。当前工作树已经收束 release identity、网络协议、
+REMOTE/Pairing 产品边界、recipe 文档、公共 callback、API artifact 和 optional client
+runtime 边界，并生成两份 `0.2.0-rc.1` 候选主 JAR。
 
 原 API artifact 阻断已在当前工作树修复：binary artifact 包含
 `RiftGunApiBootstrap`，binary/source artifacts 均包含 `META-INF/LICENSE`，并由最终
 artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编译 fixture 覆盖。
 
-解决上述阻断后，仍需修正 26.1.2 JEI metadata、收紧公共 callback 的故障隔离、
-更新玩家文档，并完成双 Minecraft 节点的真实运行环境 smoke test。
+剩余阻断主要是无法由 unit/build 代替的游戏内验证：Pair marker 在最终 JAR 下的
+shaders off/on、远坐标、遮挡和性能；最低 optional mod 组合；新旧 protocol 实际混连；
+旧世界/旧枪/旧 config；以及 GUI scale。两节点 dedicated server 的无 client mod 启动
+已经到达 `Done`。
 
-考虑本轮新增能力和变更规模，建议下一版本进入 **`0.2.0` 系列**，而不是继续把它
-描述为 `0.1.1-r2` 级别的小修补。若仍需公开预发布验证，可先发布
-`0.2.0-rc.1`，通过矩阵后再发布正式构建。
+本轮候选版本已确定为 **`0.2.0-rc.1`**。通过最终矩阵后再决定是否保留此候选、制作
+下一 RC，或进入正式 `0.2.0`；当前不创建 tag、不对外发布。
 
 ## 2. 审查方法和证据
 
@@ -44,17 +39,22 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 本次已确认：
 
 - `git diff --check cfc26e4..HEAD` 通过。
-- Minecraft 1.21.1：540 项测试，0 failure、0 error、0 skipped。
-- Minecraft 26.1.2：536 项测试，0 failure、0 error、0 skipped。
+- Minecraft 1.21.1：558 项测试，0 failure、0 error、0 skipped。
+- Minecraft 26.1.2：554 项测试，0 failure、0 error、0 skipped。
 - 两节点完整 `build` 已通过。
 - 跨版本 GUI/preview 重复状态已在 `76ed68a` 抽到 shared 层，并加入 architecture
   source test 防止业务逻辑重新漂回节点 adapter。
 - 当前源码没有遗留试错/逐帧 debug log。
-- 预览 marker 仍使用共享 batch，不会为任意 I/II 标记添加动态光源。
+- 普通 placement preview 保持原有 batch；Pair I/II marker 使用一个独立的
+  post-composite line batch，不会为任意 I/II 标记添加动态光源。
 - LambDynamicLights 保持 client-only、optional、`compileOnly`，未嵌入发布 JAR。
-- 当前工作树显示三个 `.M`，但 blob 与 index hash 相同，`git diff --quiet`
-  返回成功；它们是换行符/stat 噪声，不是语义修改。打 tag 前仍必须刷新索引并确认
-  `git status --short` 真正为空。
+- 两节点 dedicated server 在临时移除 run 目录中的 Sodium/Iris 后，仅加载 Minecraft、
+  NeoForge 和 Rift Gun `0.2.0-rc.1`，并分别到达 `Done`。测试后四个 client mod 文件已
+  原样恢复，临时目录已删除。
+- dedicated smoke 还发现并修复 `optionalClientRuntimeOnly` 被全局并入
+  `runtimeOnly` 的构建边界问题；JEI 等 client runtime 现在只进入 client run。
+- 当前工作树包含本轮 RC 准备修改，尚未提交。最终 tag 前仍须提交并确认
+  `git status --short` 为空。
 
 自动化测试不能证明以下事项，因此不能用“build 通过”替代发布 smoke test：
 
@@ -106,6 +106,15 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 - 修复中央盘面与外圈的遮挡顺序，使外圈覆盖中央盘面。
 - 修复 1.21.1 Portal Pairing I/II preview 随玩家移动产生的闪烁、遮挡和周期性
   跳回问题。
+- 两节点的 Pair I/II marker 均改为 opaque、unlit、unfogged 的固定宽度线框，保持
+  原本朝向、颜色、I/II 字形和外框，并使用 read-only world depth 逐像素遮挡。
+- 移除 line shader 中的 `VIEW_SHRINK`，避免以 view-space depth 偏移换取可见性而导致
+  远距离遮挡误差。
+- 26.1.2 不再使用 GUI overlay、中心 raycast 或逐帧 world-to-screen 投影；Pair marker
+  在 shader composition 后、world depth 清除前以一个专用 line batch 绘制。
+- 26.1.2 的 `LevelRenderState` 会在 `AfterLevel` 发布前 reset。Pair marker 必须使用
+  extraction 阶段单独保留的 immutable render state，不能在 `AfterLevel` 中重新读取
+  已清空的 render data；该生命周期约束已有 source regression test。
 - 预览 marker 不发光；只有真实传送门可由 optional dynamic-light provider 提供
   附近方块光照。
 - 清理 shader 试错日志并保留一次性 compatibility warning。
@@ -123,39 +132,22 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 - 同一测试使用仅含 binary API JAR 的 classpath 编译最小 Addon fixture，避免主工程
   test classpath 掩盖缺失类。
 
-### S2 — P1：mod 版本和网络协议没有随 wire schema 推进
+### S2 — 已修复：mod 版本和网络协议随 wire schema 推进
 
-**证据**
+**解决结果**
 
-- [`versions/1.21.1/gradle.properties`](../versions/1.21.1/gradle.properties#L10)
-  仍为 `mod_version=0.1.1-r1`。
-- [`versions/26.1.2/gradle.properties`](../versions/26.1.2/gradle.properties#L9)
-  仍为 `mod_version=0.1.1-r1`。
-- 1.21.1 和 26.1.2 的 `NeoForgeNetworkAdapter` 仍使用 registrar `"1"`：
-  [1.21.1](../versions/1.21.1/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java#L18)、
-  [26.1.2](../versions/26.1.2/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java#L16)。
-- 本轮新增 `PortalGunViewState` envelope，并改变 `Gun` snapshot 的字段集合。
-  例如旧 schema 的 `SurfaceRange` 已被新的 REMOTE/Precision/Pairing 状态取代或扩展。
+- Tree 默认属性与两节点均使用 `mod_version=0.2.0-rc.1`，最终构建的文件名与
+  `neoforge.mods.toml` 内 version 一致。
+- 两节点 `NeoForgeNetworkAdapter` registrar 均从 `"1"` 推进到 `"2"`；不提供旧
+  snapshot compatibility codec，旧 protocol-1 peer 应在握手阶段被拒绝。
+- [`ReleaseCandidateIdentitySourceTest`](../src/test/java/dev/riftgun/architecture/ReleaseCandidateIdentitySourceTest.java)
+  固定两节点版本、protocol、release-note 文件名和 26.1.2 JEI 下界。
+- 两份 release notes 明确要求 client/server 安装同一 `0.2.0-rc.1` 构建。
 
-**影响**
+**剩余人工验证**
 
-- 新 artifact 会复用已发布 artifact identity，用户和发布平台难以区分文件。
-- 旧客户端和新服务器可能以“相同 mod 版本、相同 network protocol”建立连接，
-  之后再以默认值静默解析不存在或含义已变化的 NBT 字段。
-- 静默错读比明确断开更危险，因为它可能表现为错误 GUI、错误 module state 或错误请求。
-
-**发布前要求**
-
-- 两节点同步推进 mod version。
-- 明确审查旧 `0.1.1-r1` 与新 schema 是否双向兼容。
-- 如果不能证明双向兼容，推进 registrar protocol，使 NeoForge 在握手阶段拒绝新旧混连。
-- 添加新旧 protocol mismatch 的集成测试或最小手工记录。
-
-**验收条件**
-
-- 发布 JAR 文件名、manifest version 和 release notes 使用同一新版本。
-- 新客户端/旧服务器、旧客户端/新服务器均被明确拒绝，或存在经过测试的兼容 codec。
-- 相同新版本的客户端和服务器可以正常完成 snapshot、radial、外部地图目标和开门请求。
+- N02/N03/N05/N06 仍需用旧 `0.1.1-r1` 与候选 JAR 实际混连，记录 NeoForge 拒绝信息；
+  该项不再需要代码决策，但仍是公开发布 gate。
 
 ### S3 — 已修复：API artifacts 缺少 MIT LICENSE
 
@@ -165,83 +157,30 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
   `META-INF/LICENSE`。
 - artifact-content test 同时检查 binary 和 sources JAR，防止 task 重构再次遗漏。
 
-### S4 — P2：公共 provider callback 缺少故障隔离
+### S4 — 已修复：公共 provider callback 故障隔离
 
-**证据**
+**解决结果**
 
-- [`RiftGunDimensionLabels.java`](../src/main/java/dev/riftgun/api/RiftGunDimensionLabels.java#L27)
-  在生成 snapshot label 时依次调用第三方 provider。
-- [`RiftGunPortalOpenPolicies.java`](../src/main/java/dev/riftgun/api/RiftGunPortalOpenPolicies.java#L25)
-  在开门请求热路径调用第三方 policy。
-- provider 抛出的 `RuntimeException` 当前会向 RiftGun 主流程传播。
+- Dimension label provider 的 `RuntimeException`/null 返回被单 provider 隔离；失败后继续
+  后续 provider，最终仍可使用内置 fallback。
+- Portal-open policy 的同类失败按已确认策略 fail-closed，返回本地化拒绝原因。
+- warning 包含 provider ID，并用 process-wide concurrent set 保证每个 ID 只记录一次；
+  callback 仍可在后续请求重试，不会因一次失败被永久摘除。
+- [`RiftGunCallbackIsolationTest`](../src/test/java/dev/riftgun/api/RiftGunCallbackIsolationTest.java)
+  覆盖首个 label provider 失败后后续 provider 工作，以及 policy 重复失败始终拒绝。
 
-**影响**
+### S5 — 已修复：README 补齐 1.21.1 common config
 
-- 一个坏 Addon 可以阻断所有 dimension label，甚至中断 GUI snapshot。
-- 一个坏 portal-open policy 可以阻断正常开门流程。
-- 公共扩展点发布后，这类失败会被玩家归因于 RiftGun。
+- README 和 1.21.1 release notes 均说明 `config/riftgun-common.toml` 只用于 1.21.1
+  Create Mechanical Mixer recipe switch，并要求 game restart。
+- 26.1.2 release notes 明确该 node 不包含 Create，也不生成此 common config。
 
-**发布前要求**
+### S6 — 已修复：未接通 destination-provider draft 不再公开
 
-- 每个 provider 独立 `try/catch RuntimeException`。
-- Dimension label provider 出错时跳过该 provider，继续尝试后续 provider 或 fallback。
-- Portal-open policy 建议 fail-closed，避免异常时绕过权限限制。
-- 使用 provider ID 输出一次性或 rate-limited warning，禁止每 tick/每帧刷 log。
-- 添加“第一个 provider 抛异常、第二个仍可工作”的测试。
-
-**验收条件**
-
-- 坏 provider 不会让整个 snapshot 或 server tick 失败。
-- policy 异常不会放宽访问权限。
-- 日志足够定位 provider ID，但不会在重复请求中刷屏。
-
-### S5 — P2：README 遗漏 1.21.1 common config
-
-**证据**
-
-- [`versions/1.21.1/.../RiftGun.java`](../versions/1.21.1/src/main/java/dev/riftgun/RiftGun.java#L143)
-  注册 `IntegrationConfig.SPEC` 为 COMMON config。
-- [`README.md`](../README.md#L176) 目前只说明 client/server config。
-
-**影响**
-
-- 玩家不知道 `riftgun-common.toml` 的存在。
-- Create mixer integration 开关及其重启/加载语义不清楚。
-
-**发布前要求**
-
-- README 增加 `riftgun-common.toml`，并标注它目前只适用于 1.21.1 的 Create integration。
-- 说明开关需要重启、reload 还是重新进入世界才能生效。
-- release notes 单独列出新 config，避免旧玩家漏看。
-
-**验收条件**
-
-- README 中的配置文件列表与两个节点实际注册结果一致。
-- 每个配置文件注明 side、主要用途和生效时机。
-
-### S6 — P3：`RiftGunDestinationProviders` 是未接通的公开 API
-
-**证据**
-
-- [`RiftGunDestinationProviders.java`](../src/main/java/dev/riftgun/api/RiftGunDestinationProviders.java#L9)
-  提供注册和查询 API。
-- 生产代码没有消费 `RiftGunDestinationProviders`；只有测试调用它。
-
-**影响**
-
-- Addon 可以成功注册 provider，但玩家不会在 RiftGun 中看到任何结果。
-- API version 已到 `1.2.0`，继续公开该接口会固化一个没有行为契约的 seam。
-
-**发布前建议**
-
-- 若本轮承诺支持通用 destination provider：接入 GUI/source aggregation，并定义
-  server trust boundary、排序、刷新和生命周期。
-- 若本轮只支持内置 JourneyMap/Xaero bridge：暂时从 public API artifact 移除该接口，
-  待生产消费点完成后再发布。
-
-**验收条件**
-
-- 注册 provider 后有明确、可测试的生产行为；或 API JAR 不再承诺该能力。
+- 已删除 `RiftGunDestinationProvider`、`RiftGunDestinationProviders` 和
+  `ProvidedPortalDestination`，不对 `1.2.0` Addon API 固化无生产消费点的契约。
+- `PublicApiArtifactTest` 对 binary/source API JAR 都加入 absence assertion，防止这些
+  draft 类型被旧 build output 或后续重构重新带入。
 
 ### S7 — 已关闭（原 P3）：跨版本 GUI/preview 状态已完成共享重构
 
@@ -271,138 +210,57 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
   的有意边界；除非以后出现新的真实漂移证据，不要求为本次发布继续抽象。
 - GUI normal/max scale 的视觉验收仍然保留，因为 shared state test 不能代替像素级检查。
 
-### S8 — P2：26.1.2 JEI dependency range 与编译版本不一致
+### S8 — 代码已修复：26.1.2 JEI dependency range
 
-**证据**
+- 26.1.2 metadata 下界已改为 `[29.29.0.76,)`，与编译版本、README 和 release notes
+  一致；最终 JAR 内容审计也确认该值。
+- 最低版本真实 client smoke（I02）仍需执行，完成前不能把“声明一致”扩大为“运行兼容已证实”。
 
-- [`versions/26.1.2/gradle.properties`](../versions/26.1.2/gradle.properties#L7)
-  编译 `jei_version=29.29.0.76`。
-- [`versions/26.1.2/.../neoforge.mods.toml`](../versions/26.1.2/src/main/resources/META-INF/neoforge.mods.toml#L38)
-  声明 `versionRange="[19.21,)"`。
+### S9 — 已修复：optional client runtime 污染 dedicated server run
 
-**影响**
-
-- metadata 会把没有验证过、可能不兼容当前 bridge API 的 JEI 版本视为可接受。
-- 1.21.1 的 version range 被复制到 26.1.2，平台兼容声明不准确。
-
-**发布前要求**
-
-- 以真实验证的最低 26.1.2 JEI 版本为下界，建议从当前编译版本
-  `29.29.0.76` 开始，除非兼容测试证明可以放宽。
-- 在 release smoke matrix 中测试 metadata 下界，而不只是开发环境当前版本。
-
-**验收条件**
-
-- manifest 范围与已验证版本一致。
-- 无 JEI 时 RiftGun 正常启动；安装范围下界 JEI 时配方类别能正常加载。
+- dedicated smoke 首次发现 JEI/Sodium client runtime 曾通过全局 `runtimeOnly` 进入
+  `runServer` classpath；构建脚本现仅将 `optionalClientRuntimeOnly` 接到 client run 的
+  `additionalRuntimeClasspathConfiguration`。
+- source guard 固定该边界；清空 node `run/mods` 后两节点 server 都只发现 Minecraft、
+  NeoForge 和 Rift Gun，并成功到达 `Done`。
 
 ## 5. Spec 审查发现
 
-### P1 — P1：REMOTE capability 的产品定义冲突
+### P1 — 已修复：REMOTE capability 产品定义统一
 
-**互相冲突的来源**
-
-- [`portal-pairing-design.md`](portal-pairing-design.md#L38) 规定 REMOTE 仅在枪具有
-  Portal Pairing capability 时可见/可选。
-- [`README.md`](../README.md#L117) 说 Portal Pairing Module 添加 REMOTE placement。
-- [`PortalGunCapabilities.java`](../src/main/java/dev/riftgun/module/PortalGunCapabilities.java#L59)
-  以独立 `PortalModuleKind.REMOTE` 判断 REMOTE 是否安装。
-- [`PortalModules.java`](../src/main/java/dev/riftgun/module/PortalModules.java#L66)
-  注册了独立 Remote Module。
-
-**当前实际行为**
-
-- 只安装 Portal Pairing Module 时，玩家不能使用 REMOTE。
-- 只安装 Remote Module 时，可获得 REMOTE 相关能力；Pairing 的 SMART fallback 还同时
-  取决于 Pairing 与 Remote 是否安装。
-
-**建议**
-
-丢掉过时的文档。以目前为准
-
-**验收条件**
-
-- 无模块、只装 Pairing、只装 Remote、同时安装两者，四种组合都有 capability test。
-- GUI 可见性、radial 可选项和 server request validation 使用同一个能力模型。
+- REMOTE 只由独立 Remote Module 提供；Portal Pairing Module 只提供 A/B placement 与
+  Coordinate Travel / Portal Pairing function switch。
+- Pairing SMART 的已保存 `REMOTE` fallback 仅在 Pairing + Remote 同时安装时生效；
+  缺任一模块都临时解析为 `FRONT`，不覆盖持久化偏好。
+- README、Pairing 设计和两份 release notes 已统一。
+- `PortalGunCapabilitiesTest` 覆盖无模块、Pairing only、Remote only、两者同时四种组合；
+  GUI/radial/server validation 继续消费同一 resolved capability。
 
 
-### P2 — P1：release notes 草稿已创建，release identity 尚未推进
+### P2 — RC identity 已完成，最终发布 identity 待定
 
-**现状**
+- 两节点、主/API artifact、metadata、标题和文档均使用 `0.2.0-rc.1`。
+- 草稿已重命名为
+  [`1.21.1-v0.2.0-rc.1.md`](release-notes/1.21.1-v0.2.0-rc.1.md) 与
+  [`26.1.2-v0.2.0-rc.1.md`](release-notes/26.1.2-v0.2.0-rc.1.md)；旧 `r1` 草稿已移除。
+- 图片 placeholder 按产品决定保留；发布日期与最终 SHA 仍为 `TBD`。本节第 9 章只记录
+  当前候选哈希，不把它冒充最终发布哈希。
+- 当前不创建 tag、不发布；游戏内矩阵后再确认最终 identity。
 
-- 两节点仍为 `0.1.1-r1`。
-- 已按 `0.2.0-r1` 创建两节点草稿：
-  - [`1.21.1-v0.2.0-r1.md`](release-notes/1.21.1-v0.2.0-r1.md)
-  - [`26.1.2-v0.2.0-r1.md`](release-notes/26.1.2-v0.2.0-r1.md)
-- 草稿仍保留发布日期、最终 artifact、SHA-256、network protocol、REMOTE capability、
-  recipe 基线和图片的发布前 TODO；创建草稿不代表该 finding 已关闭。
-- 本轮包含新 gameplay、API、network schema、optional dependency 和 shader 行为，不属于
-  旧发布的 rebuild。
+### P3 — 已修复：recipe 文档以现有 JSON 为权威
 
-**发布前要求**
+- Dimensional Traversal 设计现记录 `ECE / OAO / ELE` 及实际材料。
+- Portal Pairing 设计现记录 `KEO / TMC / OEK` 及实际材料。
+- recipe JSON 未改动；两节点继续共享同一资源基线。
 
-- 确定下一版本号，建议使用 `0.2.0` 系列。
-- 使用`docs/release-note-prompt.md`分别新增：
-  - `docs/release-notes/1.21.1-v<version>.md`
-  - `docs/release-notes/26.1.2-v<version>.md`
-- 两份 release notes 共享核心内容，但平台差异不能省略。
-- release notes 至少写明：
-  - Portal Pairing、Remote、Precision Placement、Dimensional Traversal。
-  - 模块堆叠和 recipe 变化。
-  - JourneyMap/Xaero 只读 waypoint integration。
-  - Public Addon API `1.2.0` 及其稳定性声明。
-  - RyoamicLights → LambDynamicLights 迁移。
-  - Complementary Reimagined/Unbound 的中央末地盘面支持。
-  - network compatibility 与 client/server 同版本要求。
-  - 新 config 文件和升级/备份说明。
+### P4 — 已修复：README 覆盖完整玩家与 Addon 边界
 
-**验收条件**
-
-- Gradle version、JAR 文件名、manifest、tag、release title、release notes 完全一致。
-- 两节点 release notes 明确各自 Java、NeoForge 和 optional dependency 版本。
-
-### P3 — P2：两处 recipe 与当前设计文档不一致
-
-#### Dimensional Traversal
-
-- [`dimensional-traversal-design.md`](dimensional-traversal-design.md#L19) 明确写
-  “No crafting recipe in this iteration”。
-- 当前两个节点都提供 `dimensional_traversal_module.json`。
-
-#### Portal Pairing
-
-- [`portal-pairing-design.md`](portal-pairing-design.md#L64) 规定 Ender Pearl、Compass、
-  Redstone、Quartz 主题。
-- 当前 recipe 使用 poisonous potato、chain、oxidized copper、copper block 等材料。
-
-**建议**
-
-丢掉过时的文档。
-
-### P4 — P2：README 未覆盖完整玩家能力
-
-**缺失或不完整内容**
-
-- 模块表缺少 Dimensional Traversal、Remote、Precision Placement。
-- Portal Pairing 对 REMOTE 的描述与实现冲突。
-- 没有充分解释 JourneyMap/Xaero 的只读数据流、server validation 和会话生命周期。
-- 没有面向 Addon 作者说明 API artifact、API version 和 pre-1.0 稳定性。
-- 没有说明 `riftgun-common.toml`。
-- 旧 release notes 仍提到 RyoamicLights，新版本升级文档尚未解释迁移。
-
-**发布前要求**
-
-- 更新 Requirements、Getting Started、Modules、Optional Integrations、Configuration、
-  Compatibility 和 Development/API 章节。
-- 明确“没有 LambDynamicLights 时不崩溃，只是不产生附近方块动态光”。
-- 明确 I/II preview marker 永远不参与动态光源注册。
-- 对地图 integration 说明客户端读取 waypoint、服务器重新校验维度和坐标，不能把客户端
-  waypoint 当成可信 server state。
-
-**验收条件**
-
-- 一名未阅读设计文档的玩家只看 README 即可正确选择模块和 optional mods。
-- README 版本表与两个 manifest/Gradle 文件一致。
+- 模块表已补 Dimensional Traversal、Remote、Precision Placement，并纠正 Pairing。
+- Requirements 与两个 node metadata 对齐；Optional Integrations 说明地图 waypoint 的
+  client session/read-only 属性和 server validation、动态光边界以及 node 差异。
+- Configuration 补 1.21.1 common config；Development 补 API artifact、callback
+  failure semantics、一次性 warning 和 pre-1.0 稳定性。
+- shader/Pair marker 章节明确 opaque、world depth、原朝向、无 marker entity/动态光源。
 
 ### P5 — P2：缺少真实运行环境的发布验证记录
 
@@ -425,28 +283,30 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 - [x] 修复 standalone API JAR 缺失类引用。
 - [x] 为 API JAR/API sources JAR 加入 LICENSE。
 - [x] 增加 API artifact 独立编译/链接/内容测试。
-- [ ] 决定 REMOTE capability 模型并统一实现、测试、设计和 README。
-- [ ] 确定下一版本号并同时更新两个节点。
-- [ ] 审查 wire schema；不兼容时推进 network protocol。
+- [x] 决定 REMOTE capability 模型并统一实现、测试、设计和 README。
+- [x] 确定 RC 版本号 `0.2.0-rc.1` 并同时更新两个节点。
+- [x] 审查 wire schema；两节点 network protocol 均推进到 `2`。
 - [ ] 新旧 client/server mismatch 能明确拒绝，而不是进入游戏后错读 snapshot。
 
 ### 6.2 P1：release candidate 前完成
 
-- [ ] 修正 26.1.2 JEI dependency range。
-- [ ] 为公共 dimension label/open policy callback 增加异常隔离。
-- [ ] 决定 Dimensional Traversal 与 Portal Pairing recipe 的权威版本。
-- [ ] 补 README 的模块、地图、动态光源、common config 和 API 文档。
-- [x] 分别起草两个节点 `0.2.0-r1` release notes；最终发布前清除草稿 TODO。
-- [ ] 检查主 JAR/API JAR/sources JAR 内容、命名、许可证和无意捆绑依赖。
+- [x] 修正 26.1.2 JEI dependency range。
+- [x] 为公共 dimension label/open policy callback 增加异常隔离。
+- [x] 决定 Dimensional Traversal 与 Portal Pairing recipe 的权威版本。
+- [x] 补 README 的模块、地图、动态光源、common config 和 API 文档。
+- [x] 分别完成两个节点 `0.2.0-rc.1` release notes；保留已确认的图片 placeholder。
+- [x] 检查主 JAR/API JAR/sources JAR 内容、命名、许可证和无意捆绑依赖。
+- [ ] 用最终 JAR 在两个节点完成 Pair I/II marker 的 shaders off、Complementary、
+  camera motion、远坐标和遮挡专项验证。
 - [ ] 建立并执行第 7 节 smoke matrix。
 
 ### 6.3 P2：正式发布前完成或明确登记为已知问题
 
-- [ ] 接通或暂缓发布 `RiftGunDestinationProviders`。
-- [ ] 记录 26.1.2 相比 1.21.1 的平台差异，例如 Create/Immersive Portals 支持范围。
+- [x] 从 public API 移除未接通的 `RiftGunDestinationProviders` draft。
+- [x] 记录 26.1.2 相比 1.21.1 的平台差异，例如 Create/Immersive Portals 支持范围。
 - [ ] 记录性能基线，尤其是多传送门 + shader + dynamic lights 场景。
 - [ ] 清理工作树换行符/stat 噪声，确保 tag 从完全 clean 的 commit 创建。
-- [ ] 检查所有玩家可见中英文翻译键。
+- [x] 双节点完整测试包含翻译键/资源检查，新 callback failure key 两种语言均存在。
 - [ ] 检查 GUI normal/max scale 的 icon bounds 与 `_on`/`_off` 对齐。
 
 ### 6.4 发布后技术债
@@ -468,12 +328,12 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 
 | ID | 节点 | 场景 | 预期结果 | 状态 |
 |---|---|---|---|---|
-| A01 | 1.21.1 | Java 21 执行 `build` | 所有 tests 和 JAR verification 通过 | 已通过，548 tests；版本 bump 后重跑 |
-| A02 | 26.1.2 | Java 25 执行 `build` | 所有 tests 和 JAR verification 通过 | 已通过，544 tests；版本 bump 后重跑 |
-| A03 | 两者 | `git diff --check` | 无 whitespace error | 已通过，最终 commit 后重跑 |
-| A04 | 两者 | 检查主 JAR | 正确 version、LICENSE、无 accidental nested dependency | 待执行 |
-| A05 | 两者 | 检查 API JAR | class closure 自洽、包含 LICENSE | 自动化已通过；最终版本 bump 后重跑 |
-| A06 | 两者 | 最小 Addon fixture 只依赖 API JAR | 编译和基础入口 smoke 通过 | 自动化已通过；最终版本 bump 后重跑 |
+| A01 | 1.21.1 | Java 21 执行 `build` | 所有 tests 和 JAR verification 通过 | 已通过，558 tests |
+| A02 | 26.1.2 | Java 25 执行 `build` | 所有 tests 和 JAR verification 通过 | 已通过，554 tests |
+| A03 | 两者 | `git diff --check` | 无 whitespace error | 当前工作树已通过；最终 commit 后重跑 |
+| A04 | 两者 | 检查主 JAR | 正确 version、LICENSE、无 accidental nested dependency | 已通过；候选 SHA 见第 9 节 |
+| A05 | 两者 | 检查 API JAR | class closure 自洽、包含 LICENSE | 已通过；并确认 removed draft API 缺席 |
+| A06 | 两者 | 最小 Addon fixture 只依赖 API JAR | 编译和基础入口 smoke 通过 | 已通过 |
 | A07 | 两者 | GUI/preview shared seam architecture tests | 节点 adapter 不重新拥有共享业务状态 | 已通过 |
 
 ### 7.2 无 optional mod 基线
@@ -482,8 +342,8 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 |---|---|---|---|---|
 | B01 | 1.21.1 | client，仅 NeoForge + RiftGun | 启动、进世界、开 GUI、开门正常 | 待执行 |
 | B02 | 26.1.2 | client，仅 NeoForge + RiftGun | 同上 | 待执行 |
-| B03 | 1.21.1 | dedicated server，仅 NeoForge + RiftGun | 无 client classloading crash | 待执行 |
-| B04 | 26.1.2 | dedicated server，仅 NeoForge + RiftGun | 无 client classloading crash | 待执行 |
+| B03 | 1.21.1 | dedicated server，仅 NeoForge + RiftGun | 无 client classloading crash | 已到达 `Done (4.093s)` |
+| B04 | 26.1.2 | dedicated server，仅 NeoForge + RiftGun | 无 client classloading crash | 已到达 `Done (0.762s)` |
 | B05 | 两者 | client 连接同版本 dedicated server | snapshot、radial、开门和传送正常 | 待执行 |
 
 ### 7.3 网络兼容
@@ -491,11 +351,11 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 | ID | 客户端 | 服务端 | 预期结果 | 状态 |
 |---|---|---|---|---|
 | N01 | 新 1.21.1 | 新 1.21.1 | 正常连接和交互 | 待执行 |
-| N02 | 旧 0.1.1-r1 | 新 1.21.1 | 握手阶段明确拒绝，除非有已验证兼容 codec | 当前风险 |
-| N03 | 新 1.21.1 | 旧 0.1.1-r1 | 同上 | 当前风险 |
+| N02 | 旧 0.1.1-r1 | 新 1.21.1 | 握手阶段明确拒绝，除非有已验证兼容 codec | protocol 1→2 已隔离；实测待执行 |
+| N03 | 新 1.21.1 | 旧 0.1.1-r1 | 同上 | protocol 2→1 已隔离；实测待执行 |
 | N04 | 新 26.1.2 | 新 26.1.2 | 正常连接和交互 | 待执行 |
-| N05 | 旧 0.1.1-r1 | 新 26.1.2 | 明确拒绝或已验证兼容 | 当前风险 |
-| N06 | 新 26.1.2 | 旧 0.1.1-r1 | 明确拒绝或已验证兼容 | 当前风险 |
+| N05 | 旧 0.1.1-r1 | 新 26.1.2 | 明确拒绝或已验证兼容 | protocol 1→2 已隔离；实测待执行 |
+| N06 | 新 26.1.2 | 旧 0.1.1-r1 | 明确拒绝或已验证兼容 | protocol 2→1 已隔离；实测待执行 |
 
 ### 7.4 LambDynamicLights
 
@@ -536,16 +396,18 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 | R02 | 两者 | Complementary Reimagined r5.x | 中央末地盘面可见，外圈遮挡中央盘面 | 用户已验证功能，最终 JAR 重测 |
 | R03 | 两者 | Complementary Unbound r5.x | 同上 | 用户已验证功能，最终 JAR 重测 |
 | R04 | 两者 | 未注册 shader pack | 默认中央留空，不强行注入盘面 | 待执行 |
-| R05 | 1.21.1 | I/II preview，玩家步行/冲刺/转头 | 不遮挡闪烁、不周期位移/跳回 | 用户已验证修复，最终 JAR 重测 |
-| R06 | 1.21.1 | 远离世界原点的 I/II preview | camera-relative 精度稳定 | 待执行 |
-| R07 | 两者 | preview 与实体/方块遮挡 | depth 行为正确 | 待执行 |
-| R08 | 两者 | 大量可见传送门 | 无逐帧 log、无明显 allocation/frame-time 回退 | 待 profile |
+| R05 | 两者 | I/II marker，玩家步行/冲刺/转头及 hurt/nausea camera effects | 保持 world projection；不闪烁、不错误缩放、倾斜或跳回 | 1.21.1 曾验证；最终 JAR 两节点重测 |
+| R06 | 两者 | 远离世界原点、改变距离和观察角度 | camera-relative 精度稳定，线宽固定 | 待执行 |
+| R07 | 两者 | shaders off，I/II marker 与实体/方块遮挡 | marker 完全不透明；按 world depth 逐像素遮挡，不穿墙 | 26.1.2 修复后待最终 JAR 重测 |
+| R08 | 两者 | Complementary Reimagined，I/II marker | shader composition 后仍清晰可见；不透底、不穿墙 | 待最终 JAR 重测 |
+| R09 | 26.1.2 | Pair marker 跨 `ExtractLevelRenderStateEvent` → `AfterLevel` | reset 后仍使用同帧 retained state；有无光影均显示 | source regression 已通过；游戏待重测 |
+| R10 | 两者 | 大量可见传送门及一个 Pair marker | 无逐帧 log、raycast、投影 allocation 或明显 frame-time 回退 | 待 profile |
 
 ### 7.7 Gameplay、GUI 和升级
 
 | ID | 场景 | 预期结果 | 状态 |
 |---|---|---|---|
-| G01 | 无模块/Pairing only/Remote only/两者同时 | capability、radial、server validation 符合最终决策 | 当前 spec 冲突 |
+| G01 | 无模块/Pairing only/Remote only/两者同时 | capability、radial、server validation 符合最终决策 | 四组合 pure test 已通过；GUI/server 游戏内待测 |
 | G02 | Dimensional Traversal 开关和目标维度 | 配置、GUI、开门、燃料约束一致 | 待执行 |
 | G03 | Precision Placement 各 face/orientation | preview 与最终 portal 坐标一致 | 待执行 |
 | G04 | 极大 X/Y/Z 输入 | 提交后 clamp；Y 使用目标维度 build height | 待执行 |
@@ -564,7 +426,13 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 - 没有发现新的发布级逐帧日志。
 - `TransitDiagnostics` 的 info 输出受显式 diagnostics 开关控制，不属于遗留 debug log。
 - datapack fuel reload 的一次性 info 日志属于正常生命周期日志。
-- 1.21.1 preview 修复保留一个共享 render batch，没有退回每 marker 独立 flush。
+- 普通 placement preview 保留原 batch；Pair I/II marker 合并到一个独立的
+  post-composite line batch，没有退回每 segment 独立 flush。
+- Pair marker geometry 只在 endpoint 改变时重建；每帧只复用 retained immutable
+  render state，不执行中心 raycast、world-to-screen 投影、framebuffer copy 或额外
+  post-process。
+- 一个完整 Pair marker 仅包含约 11–12 条线；专用 pipeline 静态复用，depth read-only，
+  不写入 depth，也不创建逐帧 pipeline/render type。
 - preview 世界坐标先以 double 执行 `point - camera`，再转 float，避免远坐标精度损失。
 - marker 不注册 dynamic luminance。
 - LambDynamicLights 通过 optional initializer/provider 集成，没有把上游实现打包进 RiftGun。
@@ -591,18 +459,28 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 
 ## 9. 发布 artifact 审计
 
-对两个节点的最终构建分别执行并记录：
+对两个节点的当前候选构建分别执行并记录：
 
-- [ ] 主 JAR 名称包含正确 Minecraft version 和 mod version。
-- [ ] manifest 中 mod version 与文件名一致。
-- [ ] 主 JAR 含 `META-INF/LICENSE`。
+- [x] 主 JAR 名称包含正确 Minecraft version 和 mod version。
+- [x] `neoforge.mods.toml` 中 mod version 与文件名一致。
+- [x] 主 JAR 含 `META-INF/LICENSE`。
 - [x] API JAR/API sources JAR 含许可证。
 - [x] API JAR 公开类依赖闭包完整，并包含所需 API runtime bridge。
-- [ ] JAR 未嵌入 LambDynamicLights、JEI、JourneyMap、Xaero、Create 或 shader pack。
-- [ ] 没有 debug fixture、测试类、开发配置或本机绝对路径。
-- [ ] 资源包、语言文件、shader、recipe 和 tags 均存在于正确节点。
-- [ ] 计算并保存 SHA-256。
-- [ ] 用待发布 JAR 而不是开发 classes 目录完成最终 smoke test。
+- [x] JAR 未嵌入 LambDynamicLights、JEI、JourneyMap、Xaero、Create 或 shader pack。
+- [x] 没有 nested JAR、测试类、开发目录或本机绝对路径。
+- [x] 资源包、双语语言文件、shader、recipe 和 module tag 均存在于正确节点。
+- [x] 26.1.2 主 JAR 包含 Pair marker 专用 `.vsh`/`.fsh`，且不再包含废弃的
+  `PairingMarkerOverlay` class。
+- [x] 计算并保存当前候选 SHA-256。
+- [ ] 用待发布 JAR 而不是开发 classes 目录完成最终 smoke test；任何 marker/render
+  代码变化都会使之前的 shaders off/on 验证结果失效。
+
+当前候选哈希（不是最终发布哈希；release notes 保持 `TBD`）：
+
+- `riftgun-1.21.1-v0.2.0-rc.1.jar`：
+  `BC69E1BEE7AE10943B5566FDDF11D673D6E5F84C3A5ECF6390D308D40ABFC834`
+- `riftgun-26.1.2-v0.2.0-rc.1.jar`：
+  `D302DB21D687128F8B829166DD02C4D02E9A46F70853DD406C6C94ABC63A7128`
 
 ## 10. Release notes 必须包含的内容
 
@@ -619,7 +497,8 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
    - 不安装时不会崩溃，只是没有附近方块动态光。
    - 1.21.1 最低 `4.8.10`，26.1.2 最低 `4.11.1`。
 7. Shader compatibility：两个 Complementary 系列支持中央末地盘面，其他光影 fallback
-   仍中央留空。
+   仍中央留空；Pair I/II marker 在 shaders off/on 下保持 opaque、固定宽度并遵循
+   world-depth 遮挡。
 8. Recipe/Create integration 变化。
 9. 新 config 文件和生效方式。
 10. 网络兼容：client/server 必须使用相同新版本。
@@ -628,16 +507,17 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 
 ## 11. 推荐执行顺序
 
-1. 先决定 REMOTE 与 recipe 两个产品问题，避免代码修复后再次返工。
+1. [已完成] 决定 REMOTE 与 recipe 两个产品问题。
 2. [已完成] 修复 API artifact class closure 和 LICENSE，并加 artifact tests。
-3. 加固第三方 callback；处理 destination provider API 是否发布。
-4. 修正 JEI metadata、README 和设计文档。
-5. 确定 `0.2.0` 系列版本并更新两个节点。
-6. 审查/推进 network protocol。
-7. 生成 release candidate JAR，记录 SHA-256。
-8. 使用最终 JAR 执行第 7 节矩阵。
+3. [已完成] 加固第三方 callback；从 artifact 移除 destination provider draft。
+4. [已完成] 修正 JEI metadata、README 和设计文档。
+5. [已完成] 确定 `0.2.0-rc.1` 并更新两个节点。
+6. [已完成] network protocol 推进到 `2`。
+7. [已完成] 生成 release candidate JAR，记录临时候选 SHA-256。
+8. 使用最终 JAR 执行第 7 节矩阵，尤其重测 R05–R09 的 Pair marker 生命周期、
+   camera projection、光影可见性和遮挡。
 9. 修复回归后重新构建；任何代码变化都会使之前 artifact smoke 结果失效。
-10. 完成两份 release notes。
+10. [已完成] 完成两份 RC release notes；日期、最终 SHA 与图片等待发布前补充。
 11. 确认 CI green、`git diff --check` 通过、工作树 clean。
 12. 从已验证 commit 创建两个 tag 和发布 artifact。
 
@@ -645,11 +525,11 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 
 只有同时满足以下条件才可判定 **Go**：
 
-- [ ] S1、S2、S3、P1、P2 全部关闭。
-- [ ] 所有 P1/P2 项已修复，或经明确产品决策登记为可接受风险。
-- [ ] 两版本完整 build/test 在最终 commit 上通过。
-- [ ] API artifact 独立 fixture 通过。
-- [ ] dedicated server 无 optional client mod 启动通过。
+- [x] S1、S2、S3、P1 的代码/产品决策已关闭；P2 的最终 release identity 待矩阵后确认。
+- [x] 已知 P1/P2 代码与文档项已修复；剩余项目为真实环境验证。
+- [x] 两版本完整 build/test 在当前 RC 工作树通过；最终 commit 后需重跑。
+- [x] API artifact 独立 fixture 通过。
+- [x] dedicated server 无 optional client mod 启动通过。
 - [ ] network mismatch 行为符合明确策略。
 - [ ] Lamb、JEI、地图、shader 的最低声明版本已实际验证。
 - [ ] 旧世界、旧枪 NBT、旧 config 升级通过。
@@ -657,5 +537,6 @@ artifact 内容检查、隔离 classloader 链接 smoke test 和最小 Addon 编
 - [ ] release notes 与 artifact 内容、版本和已知问题一致。
 - [ ] 工作树完全 clean，tag 指向经过验证的精确 commit。
 
-只要新旧网络端仍可能以协议 `"1"` 混连，或 REMOTE capability 仍存在互相冲突的
-对外说明，就应维持 **No-Go**。
+网络协议与 REMOTE 对外说明已经收束。当前维持 **No-Go** 的原因是：最终 JAR 的
+Pair marker/shader 游戏内矩阵、optional mod 最低版本、真实 mixed-protocol、升级和
+GUI scale 尚未完成；此外工作树尚未提交，发布日期、最终 SHA 与 tag 仍未锁定。

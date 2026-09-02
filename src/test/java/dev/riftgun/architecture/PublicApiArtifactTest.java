@@ -2,6 +2,7 @@ package dev.riftgun.architecture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
@@ -24,6 +25,9 @@ final class PublicApiArtifactTest {
         try (JarFile jar = new JarFile(artifact.toFile())) {
             assertNotNull(jar.getJarEntry("dev/riftgun/api/RiftGunApiBootstrap.class"));
             assertNotNull(jar.getJarEntry("META-INF/LICENSE"));
+            assertNull(jar.getJarEntry("dev/riftgun/api/RiftGunDestinationProvider.class"));
+            assertNull(jar.getJarEntry("dev/riftgun/api/RiftGunDestinationProviders.class"));
+            assertNull(jar.getJarEntry("dev/riftgun/api/ProvidedPortalDestination.class"));
         }
 
         try (URLClassLoader loader = new URLClassLoader(
@@ -40,6 +44,9 @@ final class PublicApiArtifactTest {
         try (JarFile jar = new JarFile(artifact.toFile())) {
             assertNotNull(jar.getJarEntry("dev/riftgun/api/RiftGunApiBootstrap.java"));
             assertNotNull(jar.getJarEntry("META-INF/LICENSE"));
+            assertNull(jar.getJarEntry("dev/riftgun/api/RiftGunDestinationProvider.java"));
+            assertNull(jar.getJarEntry("dev/riftgun/api/RiftGunDestinationProviders.java"));
+            assertNull(jar.getJarEntry("dev/riftgun/api/ProvidedPortalDestination.java"));
         }
     }
 

@@ -36,9 +36,9 @@ reinstall.
 
 Concrete placement and prediction modes remain player settings for save
 compatibility and consistent handling across guns. `REMOTE` is visible and
-selectable only when the resolved gun has Portal Pairing capability. The
-Creative Module grants that capability through the existing maximum-capability
-path.
+selectable only when the resolved gun has the independent Remote Module. Portal
+Pairing does not grant remote placement. The Creative Module grants both
+capabilities through the existing maximum-capability path.
 
 Function and concrete modes are orthogonal. Entity Relocation observes the
 function mode to choose its destination source, but otherwise remains a
@@ -53,7 +53,10 @@ Add two independent SMART floating-fallback values:
 
 Persist them in the existing per-gun module-settings component. Model them as
 an enum even if the first GUI presents each as a two-state control. When the
-module is absent, keep the values but hide their settings entry.
+owning module is absent, keep the value but hide its settings entry. A Pairing
+SMART fallback resolves to `REMOTE` only when both Portal Pairing and Remote
+modules are active; otherwise it resolves to `FRONT` without erasing the saved
+preference.
 
 ## 3. Module and item
 
@@ -61,8 +64,9 @@ module is absent, keep the values but hide their settings entry.
 - Maximum active count per gun: 1.
 - No module incompatibilities.
 - Ordinary mid-game module based on `riftgun:basic_module`.
-- Recipe theme: Ender Pearl, Compass, Redstone, and Quartz. The exact shaped
-  arrangement may follow the surrounding module recipe conventions.
+- Shaped recipe: `KEO / TMC / OEK`, where `K` is Poisonous Potato, `E` is Ender
+  Pearl, `O` is Chain, `T` is Oxidized Copper, `M` is Basic Module, and `C` is
+  Copper Block.
 - Add the item to the Rift creative tab and recipe/JEI discovery paths in the
   same way as other modules.
 - Item and GUI artwork must be authored as PNG. GUI sprites use the repository's

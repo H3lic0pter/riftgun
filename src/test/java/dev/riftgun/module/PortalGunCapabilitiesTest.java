@@ -27,6 +27,22 @@ final class PortalGunCapabilitiesTest {
     }
 
     @Test
+    void pairingRemoteFallbackRequiresBothIndependentModules() {
+        assertEquals(PortalFloatingFallback.FRONT,
+            PortalGunCapabilities.configuredPairingSmartFallback(
+                false, false, PortalFloatingFallback.REMOTE));
+        assertEquals(PortalFloatingFallback.FRONT,
+            PortalGunCapabilities.configuredPairingSmartFallback(
+                true, false, PortalFloatingFallback.REMOTE));
+        assertEquals(PortalFloatingFallback.FRONT,
+            PortalGunCapabilities.configuredPairingSmartFallback(
+                false, true, PortalFloatingFallback.REMOTE));
+        assertEquals(PortalFloatingFallback.REMOTE,
+            PortalGunCapabilities.configuredPairingSmartFallback(
+                true, true, PortalFloatingFallback.REMOTE));
+    }
+
+    @Test
     void unavailableRemoteUsesFrontWithoutChangingThePreferredValue() {
         PortalPlacementMode preferred = PortalPlacementMode.REMOTE;
 

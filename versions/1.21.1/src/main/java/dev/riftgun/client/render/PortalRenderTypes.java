@@ -23,7 +23,7 @@ public final class PortalRenderTypes extends RenderType {
     private static final ResourceLocation END_PORTAL_LOCATION =
         ResourceLocation.withDefaultNamespace("textures/entity/end_portal.png");
     private static ShaderInstance portalShader;
-    private static ShaderInstance pairingMarkerShader;
+    private static ShaderInstance previewLinesShader;
     private static ShaderInstance swirlShader;
     private static ShaderInstance endframeShader;
 
@@ -60,15 +60,15 @@ public final class PortalRenderTypes extends RenderType {
     );
 
     /** Post-composite pairing wireframe: fixed width, world-depth occluded, no depth writes. */
-    private static final RenderType PAIRING_MARKER = create(
-        "riftgun_pairing_marker",
+    private static final RenderType PREVIEW_LINES = create(
+        "riftgun_preview_lines",
         DefaultVertexFormat.POSITION_COLOR_NORMAL,
         VertexFormat.Mode.LINES,
         256,
         false,
         false,
         CompositeState.builder()
-            .setShaderState(new ShaderStateShard(() -> pairingMarkerShader))
+            .setShaderState(new ShaderStateShard(() -> previewLinesShader))
             .setLineState(new LineStateShard(OptionalDouble.of(2.5)))
             .setTransparencyState(NO_TRANSPARENCY)
             .setCullState(NO_CULL)
@@ -192,8 +192,8 @@ public final class PortalRenderTypes extends RenderType {
         return BORDER;
     }
 
-    public static RenderType pairingMarker() {
-        return PAIRING_MARKER;
+    public static RenderType previewLines() {
+        return PREVIEW_LINES;
     }
 
     public static RenderType swirl() {
@@ -245,8 +245,8 @@ public final class PortalRenderTypes extends RenderType {
         portalShader = shader;
     }
 
-    public static void setPairingMarkerShader(ShaderInstance shader) {
-        pairingMarkerShader = shader;
+    public static void setPreviewLinesShader(ShaderInstance shader) {
+        previewLinesShader = shader;
     }
 
     public static void setSwirlShader(ShaderInstance shader) {

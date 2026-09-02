@@ -25,10 +25,7 @@ import dev.riftgun.service.SurfaceFacePlacementPlanner;
 import dev.riftgun.service.SurfaceFaceSelection;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
@@ -39,7 +36,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4fStack;
 
@@ -49,8 +45,6 @@ import java.util.List;
 @EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
 public final class PortalPlacementPreview {
     private static final int COLOR = 0xD9F0F0F0;
-    private static final ContextKey<RenderState> RENDER_STATE_KEY = new ContextKey<>(
-        Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "remote_placement_preview"));
     private static final PortalPlacementPreviewEngine ENGINE = new PortalPlacementPreviewEngine();
     private static @Nullable RenderState afterLevelState;
 
@@ -114,30 +108,14 @@ public final class PortalPlacementPreview {
     @SubscribeEvent
     public static void extractLevelRenderState(ExtractLevelRenderStateEvent event) {
         PortalPlacementPreviewEngine.Frame frame = ENGINE.frame();
-        RenderState state = frame.isEmpty() ? null
+        afterLevelState = frame.isEmpty() ? null
             : new RenderState(frame, event.getCamera().position());
-        event.getRenderState().setRenderData(RENDER_STATE_KEY, state);
-        afterLevelState = state;
     }
 
     @SubscribeEvent
-    public static void submitCustomGeometry(SubmitCustomGeometryEvent event) {
-        RenderState state = event.getLevelRenderState().getRenderData(RENDER_STATE_KEY);
-        if (state == null) return;
-        if (state.frame().segments().isEmpty()) return;
-        PoseStack poses = event.getPoseStack();
-        poses.pushPose();
-        event.getSubmitNodeCollector().submitCustomGeometry(poses, RenderTypes.lines(),
-            (pose, vertices) -> drawLines(pose, vertices, state.camera(),
-                state.frame().segments(), COLOR));
-        poses.popPose();
-    }
-
-    @SubscribeEvent
-    public static void renderPairingMarker(RenderLevelStageEvent.AfterLevel event) {
+    public static void renderPreviewLines(RenderLevelStageEvent.AfterLevel event) {
         RenderState state = afterLevelState;
-        if (state == null || state.frame().pendingSegments().isEmpty()
-            && state.frame().entityTargetSegments().isEmpty()) return;
+        if (state == null) return;
 
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
@@ -145,11 +123,12 @@ public final class PortalPlacementPreview {
         modelView.pushMatrix().mul(event.getModelViewMatrix());
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
         try {
-            VertexConsumer vertices = buffers.getBuffer(PortalRenderTypes.pairingMarker());
+            VertexConsumer vertices = buffers.getBuffer(PortalRenderTypes.previewLines());
             PoseStack.Pose pose = event.getPoseStack().last();
+            drawLines(pose, vertices, state.camera(), state.frame().segments(), COLOR);
             drawColored(pose, vertices, state.camera(), state.frame().pendingSegments());
             drawColored(pose, vertices, state.camera(), state.frame().entityTargetSegments());
-            buffers.endBatch(PortalRenderTypes.pairingMarker());
+            buffers.endBatch(PortalRenderTypes.previewLines());
         } finally {
             modelView.popMatrix();
         }
@@ -175,10 +154,7 @@ public final class PortalPlacementPreview {
         List<PortalPairingPreviewGeometry.ColoredSegment> segments
     ) {
         for (PortalPairingPreviewGeometry.ColoredSegment colored : segments) {
-            // Pairing markers are HUD-like guidance: alpha blending must not let the scene show
-            // through the line itself, while the native line pass still provides world occlusion.
-            drawLine(pose, vertices, camera, colored.geometry(),
-                colored.color() | 0xFF000000);
+            drawLine(pose, vertices, camera, colored.geometry(), colored.color());
         }
     }
 
@@ -188,7 +164,7 @@ public final class PortalPlacementPreview {
                 PortalPreviewCoordinates.relativeTo(camera.x, point.x),
                 PortalPreviewCoordinates.relativeTo(camera.y, point.y),
                 PortalPreviewCoordinates.relativeTo(camera.z, point.z))
-            .setColor(color)
+            .setColor(color | 0xFF000000)
             .setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z)
             .setLineWidth(2.5F);
     }

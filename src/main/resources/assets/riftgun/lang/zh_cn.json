@@ -482,6 +482,7 @@
   "screen.riftgun.mode_radial.switch_to_coordinate": "左键：切换到坐标模式",
   "screen.riftgun.mode_radial.switch_to_pairing": "左键：切换到配对模式",
   "message.riftgun.pairing_mode": "配对模式：%s",
+  "message.riftgun.portal_open_policy_failed": "传送门访问策略执行失败，本次请求已拒绝",
   "message.riftgun.portal_pairing_module_required": "需要已启用的传送门配对模块",
   "message.riftgun.remote_module_required": "需要已启用的远端模块",
   "message.riftgun.remote_invalid": "远端传送门位置已失效",

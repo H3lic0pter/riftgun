@@ -16,7 +16,9 @@ dice button keep their behavior and layout from commit `8c7a9a3`.
 - Registry name: `dimensional_traversal_module`.
 - Maximum active count: one per gun.
 - Independent of the Coordinate Override Module.
-- No crafting recipe in this iteration.
+- Shaped recipe: `ECE / OAO / ELE`, where `E` is Eye of Ender, `C` is End
+  Crystal, `O` is Crying Obsidian, `A` is Advanced Basic Module, and `L` is
+  Lodestone.
 - Present in the creative inventory, JEI, and the `#riftgun:module` item tag.
 - The Creative Module grants its capability like every other module.
 - Normal tooltip:

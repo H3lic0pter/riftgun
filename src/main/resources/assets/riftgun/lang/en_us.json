@@ -482,6 +482,7 @@
   "screen.riftgun.mode_radial.switch_to_coordinate": "Left-click: Switch to Coordinate Mode",
   "screen.riftgun.mode_radial.switch_to_pairing": "Left-click: Switch to Pairing Mode",
   "message.riftgun.pairing_mode": "Pairing Mode: %s",
+  "message.riftgun.portal_open_policy_failed": "A portal access policy failed; the request was denied",
   "message.riftgun.portal_pairing_module_required": "An enabled Portal Pairing Module is required",
   "message.riftgun.remote_module_required": "An enabled Remote Module is required",
   "message.riftgun.remote_invalid": "Remote portal placement is no longer valid",
