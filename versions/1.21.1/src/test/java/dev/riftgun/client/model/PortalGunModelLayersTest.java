@@ -12,6 +12,36 @@ import org.junit.jupiter.api.Test;
 
 final class PortalGunModelLayersTest {
     @Test
+    void assignsFacesToStableOrderedRenderLayers() {
+        assertEquals(0, PortalGunModelLayers.RenderLayer.BODY.ordinal());
+        assertEquals(1, PortalGunModelLayers.RenderLayer.CORE.ordinal());
+        assertEquals(2, PortalGunModelLayers.RenderLayer.FLUID.ordinal());
+        assertEquals(3, PortalGunModelLayers.RenderLayer.GLASS.ordinal());
+
+        assertEquals(PortalGunModelLayers.RenderLayer.BODY,
+            PortalGunModelLayers.renderLayer(-1));
+        assertEquals(PortalGunModelLayers.RenderLayer.GLASS,
+            PortalGunModelLayers.renderLayer(1));
+        for (int tint = 2; tint <= 8; tint++) {
+            assertEquals(PortalGunModelLayers.RenderLayer.FLUID,
+                PortalGunModelLayers.renderLayer(tint));
+        }
+        assertEquals(PortalGunModelLayers.RenderLayer.CORE,
+            PortalGunModelLayers.renderLayer(9));
+        assertEquals(PortalGunModelLayers.RenderLayer.CORE,
+            PortalGunModelLayers.renderLayer(10));
+
+        assertEquals(PortalGunModelLayers.RenderPass.OPAQUE,
+            PortalGunModelLayers.renderPass(-1));
+        assertEquals(PortalGunModelLayers.RenderPass.TRANSLUCENT,
+            PortalGunModelLayers.renderPass(1));
+        assertEquals(PortalGunModelLayers.RenderPass.TRANSLUCENT,
+            PortalGunModelLayers.renderPass(2));
+        assertEquals(PortalGunModelLayers.RenderPass.TRANSLUCENT,
+            PortalGunModelLayers.renderPass(9));
+    }
+
+    @Test
     void selectsOnlyTheActiveLiquidLevelAndOptionalCore() {
         assertTrue(PortalGunModelLayers.includesTint(0, -1));
         assertFalse(PortalGunModelLayers.includesTint(0, 2));

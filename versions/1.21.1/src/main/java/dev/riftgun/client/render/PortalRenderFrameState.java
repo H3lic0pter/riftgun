@@ -41,6 +41,11 @@ public final class PortalRenderFrameState {
             shaderPackActive, shaderPackActive && environment.shadowPass());
     }
 
+    /** Cached by {@link #refresh()} once per render frame. */
+    public boolean shaderPackActive() {
+        return shaderPackActive;
+    }
+
     public ShaderPackProfile shaderPackProfile() {
         return shaderPackProfile;
     }

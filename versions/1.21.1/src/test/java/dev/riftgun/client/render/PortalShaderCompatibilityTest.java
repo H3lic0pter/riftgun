@@ -1,7 +1,9 @@
 package dev.riftgun.client.render;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.riftgun.internal.shader.ShaderPackProfile;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,6 +84,26 @@ class PortalShaderCompatibilityTest {
             shadowPass.set(true);
             assertEquals(PortalSurfaceRenderPath.SKIP_SURFACE,
                 PortalShaderCompatibility.currentPath());
+        } finally {
+            PortalRenderFrameState.refresh(() -> PortalShaderEnvironment.State.INACTIVE);
+        }
+    }
+
+    @Test
+    void exposesCachedShaderActivationWithoutResamplingTheEnvironment() {
+        AtomicInteger snapshots = new AtomicInteger();
+        try {
+            PortalRenderFrameState.refresh(() -> {
+                snapshots.incrementAndGet();
+                return PortalShaderEnvironment.State.COMPATIBILITY_FALLBACK;
+            });
+            for (int item = 0; item < 30; item++) {
+                assertTrue(PortalRenderFrameState.current().shaderPackActive());
+            }
+            assertEquals(1, snapshots.get());
+
+            PortalRenderFrameState.refresh(() -> PortalShaderEnvironment.State.INACTIVE);
+            assertFalse(PortalRenderFrameState.current().shaderPackActive());
         } finally {
             PortalRenderFrameState.refresh(() -> PortalShaderEnvironment.State.INACTIVE);
         }
