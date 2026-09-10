@@ -521,5 +521,17 @@
   "screen.riftgun.dimensional_navigation.save": "Save Coordinates",
   "screen.riftgun.dimensional_navigation.open": "Open Portal",
   "screen.riftgun.dimensional_navigation.search": "Search dimensions...",
-  "screen.riftgun.dimensional_navigation.random_disabled": "Random rifts are disabled by the server"
+  "screen.riftgun.dimensional_navigation.random_disabled": "Random rifts are disabled by the server",
+"screen.riftgun.random_group": "Random",
+  "screen.riftgun.search_on_open": "Search for a safe spot on every use",
+  "screen.riftgun.existing_dimensions": "Existing dimensions",
+  "screen.riftgun.text_dimension": "From text",
+  "screen.riftgun.dimension_text_hint": "Enter book text. The dimension is generated on first use.",
+  "message.riftgun.infinity_unavailable": "A supported Infinite Dimensions installation is required",
+  "message.riftgun.infinity_text_too_long": "Dimension text exceeds 16384 characters",
+  "message.riftgun.infinity_key_missing": "Put the configured Portal key in your inventory to create this dimension",
+  "message.riftgun.infinity_generation_failed": "Dimension generation failed. Saved destination kept; check the server log.",
+  "message.riftgun.random_group_fixed": "Automatic search destinations must stay in Random",
+  "message.riftgun.random_private": "Automatic search destinations cannot be shared",
+  "message.riftgun.random_read_only": "Random destinations cannot be edited"
 }

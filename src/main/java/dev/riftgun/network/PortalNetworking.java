@@ -115,6 +115,7 @@ public final class PortalNetworking {
         RandomRiftManager.Snapshot randomRift = RandomRiftManager.snapshot(player);
         CompoundTag randomRiftTag = new CompoundTag();
         randomRiftTag.putBoolean("Enabled", randomRift.enabled());
+        randomRiftTag.putBoolean("InfinityAvailable", dev.riftgun.compat.infinity.InfiniteDimensionsCompat.available());
         randomRiftTag.putBoolean("Searching", randomRift.searching());
         randomRiftTag.putInt("CooldownTicks", randomRift.cooldownTicks());
         envelope.put("RandomRift", randomRiftTag);

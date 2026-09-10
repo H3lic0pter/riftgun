@@ -16,13 +16,9 @@ public final class DimensionalNavigationWorkflow {
         @Nullable UUID selectedDestination
     ) {
         if (controller.saving()) return null;
-        if (controller.mode() == DimensionalTraversalMode.AUTOMATIC_SEARCH) {
-            return new Command(PortalAction.OPEN_DIMENSIONAL_RIFT, controller.dimension(),
-                null, controller.group(), true);
-        }
         controller.beginSave(selectedDestination);
         return new Command(PortalAction.CREATE_DIMENSIONAL_COORDINATE, controller.dimension(),
-            fields, controller.group(), false);
+            fields, controller.group(), false, controller.mode() == DimensionalTraversalMode.AUTOMATIC_SEARCH);
     }
 
     public static Coordinates coordinateDefaults(
@@ -53,9 +49,10 @@ public final class DimensionalNavigationWorkflow {
     public record Coordinates(String x, String y, String z, String yaw) {}
 
     public record Command(PortalAction action, String dimension, @Nullable ExactFields fields,
-                          UUID group, boolean closesScreen) {
+                          UUID group, boolean closesScreen, boolean automaticSearch) {
         public void writeTo(CompoundTag tag) {
             tag.putString("Dimension", dimension);
+            tag.putBoolean("AutomaticSearch", automaticSearch);
             if (fields == null) return;
             tag.putString("Name", fields.name());
             tag.putString("X", fields.x());

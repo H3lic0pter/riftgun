@@ -405,6 +405,9 @@ public final class PortalRequestHandler {
         PortalAction action, ServerPlayer player, PortalPlayerData data,
         PortalGunLocator.LocatedGun gun
     ) {
+        if (action == PortalAction.CREATE_DIMENSIONAL_COORDINATE) {
+            dev.riftgun.service.PortalClientSync.snapshot(player, false, gun);
+        }
         if (action.requiresGunRollback()) {
             PortalNetworking.sendGunRollback(player, data, gun);
         }

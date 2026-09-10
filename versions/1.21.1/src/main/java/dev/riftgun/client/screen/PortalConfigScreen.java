@@ -717,6 +717,10 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void addGroupSelector(int x, int y, int width) {
+        if (session.page() == PortalConfigPage.EDIT_DESTINATION && viewed() != null && viewed().automaticSearch()) {
+            button(x, y, width, 18, Component.translatable("screen.riftgun.random_group"), false, ignored -> {}).active = false;
+            return;
+        }
         groupSelectorX = x;
         groupSelectorY = y;
         groupSelectorWidth = width;
@@ -966,10 +970,10 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderGroupRow(GuiGraphics graphics, UUID id, int y, boolean hover, boolean focused) {
         PortalPlayerData data = PortalClientState.data();
-        boolean shared = id.equals(PortalPlayerData.SHARED_SECTION_ID);
+        boolean shared = id.equals(PortalPlayerData.SHARED_SECTION_ID) || id.equals(PortalPlayerData.RANDOM_SECTION_ID);
         boolean custom = !id.equals(PortalPlayerData.DEFAULT_GROUP_ID) && !shared;
         boolean expanded = data.expandedGroups().contains(id);
-        String name = shared ? Component.translatable("screen.riftgun.shared_group").getString()
+        String name = shared ? groupName(id)
             : custom ? data.group(id).map(DestinationGroup::name).orElse("?")
             : Component.translatable("screen.riftgun.default_group").getString();
         if (custom) drawDragHandle(graphics, panelX + 8, y + 5);
@@ -1186,18 +1190,19 @@ public final class PortalConfigScreen extends Screen {
                     x, right - 8, y, PortalTheme.WARNING, false);
                 y += 18;
             }
-            y = detailField(graphics, "screen.riftgun.coordinates", String.format(Locale.ROOT, "%.1f  %.1f  %.1f",
-                destination.x(), destination.y(), destination.z()), x, y, textWidth);
-            detailEditY = session.page() == PortalConfigPage.NONE ? y : -1;
+            y = detailField(graphics, "screen.riftgun.coordinates", destination.automaticSearch()
+                ? Component.translatable("screen.riftgun.search_on_open").getString()
+                : String.format(Locale.ROOT, "%.1f  %.1f  %.1f", destination.x(), destination.y(), destination.z()), x, y, textWidth);
+            detailEditY = session.page() == PortalConfigPage.NONE && !destination.automaticSearch() ? y : -1;
             if (session.page() == PortalConfigPage.NONE) {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
                 graphics.renderOutline(x, y, right - x - 8, 18, PortalTheme.BORDER);
                 drawDetailText(graphics, Component.translatable("screen.riftgun.edit"),
-                    x + 2, right - 10, y + 5, PortalTheme.TEXT, true);
+                    x + 2, right - 10, y + 5, destination.automaticSearch() ? PortalTheme.TEXT_MUTED : PortalTheme.TEXT, true);
             }
             y += 22;
-            detailShareY = session.page() == PortalConfigPage.NONE ? y : -1;
-            if (session.page() == PortalConfigPage.NONE) {
+            detailShareY = session.page() == PortalConfigPage.NONE && !destination.automaticSearch() ? y : -1;
+            if (detailShareY >= 0) {
                 graphics.fill(x, y, right - 8, y + 18, PortalTheme.PANEL_RAISED);
                 graphics.renderOutline(x, y, right - x - 8, 18, PortalTheme.BORDER);
                 drawDetailText(graphics, Component.translatable("screen.riftgun.share"),
@@ -2091,7 +2096,7 @@ public final class PortalConfigScreen extends Screen {
                     return true;
                 }
                 boolean custom = !row.id().equals(PortalPlayerData.DEFAULT_GROUP_ID)
-                    && !row.id().equals(PortalPlayerData.SHARED_SECTION_ID);
+                    && !row.id().equals(PortalPlayerData.SHARED_SECTION_ID) && !row.id().equals(PortalPlayerData.RANDOM_SECTION_ID);
                 if (custom && mouseX >= right - 30 && mouseX < right - 16) {
                     openForm(PortalConfigPage.RENAME_GROUP, row.id());
                 } else if (custom && mouseX >= right - 14) {
@@ -2284,7 +2289,7 @@ public final class PortalConfigScreen extends Screen {
     private boolean listKeyPressed(int keyCode) {
         if ((keyCode == 265 || keyCode == 264) && hasAltDown() && focusedRowKind == RowKind.GROUP
             && focusedRowId != null && !focusedRowId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
-            && !focusedRowId.equals(PortalPlayerData.SHARED_SECTION_ID)) {
+            && !focusedRowId.equals(PortalPlayerData.SHARED_SECTION_ID) && !focusedRowId.equals(PortalPlayerData.RANDOM_SECTION_ID)) {
             moveGroup(focusedRowId, keyCode == 265 ? -1 : 1);
             return true;
         }
@@ -2318,7 +2323,7 @@ public final class PortalConfigScreen extends Screen {
         }
         if (keyCode == 82 && focusedRowKind == RowKind.GROUP && focusedRowId != null
             && !focusedRowId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
-            && !focusedRowId.equals(PortalPlayerData.SHARED_SECTION_ID)) {
+            && !focusedRowId.equals(PortalPlayerData.SHARED_SECTION_ID) && !focusedRowId.equals(PortalPlayerData.RANDOM_SECTION_ID)) {
             openForm(PortalConfigPage.RENAME_GROUP, focusedRowId);
             return true;
         }
@@ -2590,6 +2595,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private boolean coordinateEditingUnlocked() {
+        if (viewed() != null && viewed().automaticSearch()) return false;
         return coordinateOverrideUnlocked()
             || PortalClientState.gun().dimensionalTraversalInstalled()
                 && PortalClientState.gun().dimensionalTraversalEnabled();
@@ -2715,7 +2721,7 @@ public final class PortalConfigScreen extends Screen {
 
     private void moveDestinationToGroup(UUID destination, UUID group) {
         Destination current = PortalClientState.data().destination(destination).orElse(null);
-        if (current == null) return;
+        if (current == null || current.automaticSearch() || group.equals(PortalPlayerData.RANDOM_SECTION_ID)) return;
         PortalClientState.data().replaceDestination(current.withGroup(group));
         PortalClientState.data().selectedDestinationId(destination);
         PortalClientState.data().lastViewedDestinationId(destination);
@@ -2739,7 +2745,7 @@ public final class PortalConfigScreen extends Screen {
         for (Row row : hitRows) {
             if (mouseY < row.y() || mouseY >= row.y() + ROW_HEIGHT) continue;
             UUID group = row.kind() == RowKind.GROUP ? row.id() : destinationGroup(row.id());
-            return PortalPlayerData.SHARED_SECTION_ID.equals(group) ? null : group;
+            return PortalPlayerData.SHARED_SECTION_ID.equals(group) || PortalPlayerData.RANDOM_SECTION_ID.equals(group) ? null : group;
         }
         return null;
     }
@@ -2772,6 +2778,8 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void openForm(PortalConfigPage next, @Nullable UUID target) {
+        if (next == PortalConfigPage.EDIT_DESTINATION && target != null
+            && PortalClientState.data().destination(target).map(Destination::automaticSearch).orElse(false)) return;
         session.open(next, target);
         groupDropdownOpen = false;
         visualDropdownOpen = false;
@@ -2832,9 +2840,9 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private UUID creationGroup() {
-        if (selectedGroup != null && !selectedGroup.equals(PortalPlayerData.SHARED_SECTION_ID)) return selectedGroup;
+        if (selectedGroup != null && !selectedGroup.equals(PortalPlayerData.SHARED_SECTION_ID) && !selectedGroup.equals(PortalPlayerData.RANDOM_SECTION_ID)) return selectedGroup;
         Destination current = viewed();
-        return current == null || current.groupId().equals(PortalPlayerData.SHARED_SECTION_ID)
+        return current == null || current.automaticSearch() || current.groupId().equals(PortalPlayerData.SHARED_SECTION_ID)
             ? PortalPlayerData.DEFAULT_GROUP_ID : current.groupId();
     }
 
@@ -3342,6 +3350,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private String groupName(UUID id) {
+        if (id.equals(PortalPlayerData.RANDOM_SECTION_ID)) return Component.translatable("screen.riftgun.random_group").getString();
         if (id.equals(PortalPlayerData.DEFAULT_GROUP_ID)) {
             return Component.translatable("screen.riftgun.default_group").getString();
         }

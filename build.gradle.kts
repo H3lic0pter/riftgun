@@ -99,6 +99,16 @@ sourceSets.main {
 }
 
 dependencies {
+    val infinityVersion = findProperty("infinity_version") as String?
+    if (infinityVersion != null) {
+        compileOnly("maven.modrinth:infinite-dimensions:$infinityVersion") { isTransitive = false }
+        testImplementation("maven.modrinth:infinite-dimensions:$infinityVersion") { isTransitive = false }
+        if (providers.gradleProperty("withInfinity").orNull == "true") {
+            runtimeOnly("maven.modrinth:infinite-dimensions:$infinityVersion") { isTransitive = false }
+            runtimeOnly("maven.modrinth:architectury-api:13.0.11+neoforge") { isTransitive = false }
+            runtimeOnly("maven.modrinth:cloth-config:15.0.140+neoforge") { isTransitive = false }
+        }
+    }
     // Optional client integrations are never bundled. Each node declares its
     // own versions; nodes without a property simply skip that integration.
     val lambDynamicLightsVersion = findProperty("lambdynamiclights_version") as String?

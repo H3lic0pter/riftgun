@@ -106,18 +106,18 @@ public final class DimensionalNavigationScreen extends Screen {
         automatic.active = PortalClientState.randomRift().getBoolean("Enabled").orElse(false);
         if (!automatic.active) automatic.setTooltip(Tooltip.create(
             Component.translatable("screen.riftgun.dimensional_navigation.random_disabled")));
+        nameField = null;
         if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) initExactFields(left, contentWidth);
+        nameField = field(left + 54, panelY + 126, contentWidth - 54, name, 48, value -> name = value, false);
         ThemedButton action = button(left, panelY + panelHeight - 31, contentWidth, 20,
-            Component.translatable(controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES
-                ? "screen.riftgun.dimensional_navigation.save"
-                : "screen.riftgun.dimensional_navigation.open"), true,
+            Component.translatable("screen.riftgun.dimensional_navigation.save"), true,
             ignored -> performAction());
         action.active = !controller.saving() && (controller.mode() != DimensionalTraversalMode.AUTOMATIC_SEARCH
             || PortalClientState.randomRift().getBoolean("Enabled").orElse(false));
     }
 
     private void initExactFields(int left, int contentWidth) {
-        nameField = field(left + 54, panelY + 126, contentWidth - 54, name, 48, value -> name = value, false);
+
         int gap = 4;
         int coordinateWidth = (contentWidth - gap * 3) / 4;
         xField = field(left, panelY + 165, coordinateWidth, x, 64, value -> x = value, true);
@@ -222,9 +222,9 @@ public final class DimensionalNavigationScreen extends Screen {
         graphics.text(font, title, panelX + 12, panelY + 12, PortalTheme.TEXT, false);
         graphics.text(font, Component.translatable("screen.riftgun.dimensional_navigation.dimension"),
             panelX + 18, panelY + 29, PortalTheme.TEXT_MUTED, false);
-        if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
-            graphics.text(font, Component.translatable("screen.riftgun.name"),
+        graphics.text(font, Component.translatable("screen.riftgun.name"),
                 panelX + 18, panelY + 131, PortalTheme.TEXT_MUTED, false);
+        if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
             int left = panelX + 18;
             int contentWidth = panelWidth - 36;
             int gap = 4;

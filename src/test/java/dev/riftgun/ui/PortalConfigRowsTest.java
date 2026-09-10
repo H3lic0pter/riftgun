@@ -20,6 +20,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class PortalConfigRowsTest {
     @Test
+    void randomGroupAppearsAfterPlayersAndHidesWhenEmpty() {
+        PortalPlayerData data = new PortalPlayerData();
+        UUID player = UUID.randomUUID();
+        var players = new PortalConfigRows.PlayerSection(true, true,
+            List.of(new TestPlayerEntry(player, "Player", false, 0)));
+        assertTrue(build(data, "", List.of(), players).rows().stream()
+            .noneMatch(row -> row.id().equals(PortalPlayerData.RANDOM_SECTION_ID)));
+        Destination random = new Destination(UUID.randomUUID(), "Explore", PortalPlayerData.DEFAULT_GROUP_ID,
+            null, 0, 0, 0, 0, 0, 0, false, true, null);
+        data.destinations().add(random);
+        var rows = build(data, "", List.of(), players).rows();
+        int playerIndex = java.util.stream.IntStream.range(0, rows.size())
+            .filter(i -> rows.get(i).id().equals(player)).findFirst().orElseThrow();
+        assertEquals(PortalPlayerData.RANDOM_SECTION_ID, rows.get(playerIndex + 1).id());
+        assertEquals(random.id(), rows.get(playerIndex + 2).id());
+        data.expandedGroups().remove(PortalPlayerData.RANDOM_SECTION_ID);
+        assertTrue(build(data, "", List.of(), players).rows().stream().noneMatch(row -> row.id().equals(random.id())));
+        assertTrue(build(data, "Explore", List.of(), players).rows().stream().anyMatch(row -> row.id().equals(random.id())));
+        data.destinations().clear();
+        assertTrue(build(data, "", List.of(), players).rows().stream()
+            .noneMatch(row -> row.id().equals(PortalPlayerData.RANDOM_SECTION_ID)));
+    }
+
+    @Test
     void pinnedDestinationsSortBeforeRecentEntries() {
         PortalPlayerData data = new PortalPlayerData();
         UUID olderPinned = UUID.randomUUID();

@@ -47,6 +47,15 @@ public final class PortalConfigRows {
             addExternalRows(rows, externalRows, section, normalized);
         }
         addPlayerRows(rows, playerSection, normalized);
+        List<Destination> random = data.destinations().stream().filter(Destination::automaticSearch)
+            .filter(destination -> matches(destination, groupName.apply(PortalPlayerData.RANDOM_SECTION_ID), normalized))
+            .sorted(destinationComparator(data.settings().sort(), ignored -> Double.POSITIVE_INFINITY)).toList();
+        if (!random.isEmpty()) {
+            rows.add(new Row(RowKind.GROUP, PortalPlayerData.RANDOM_SECTION_ID, 0));
+            if (data.expandedGroups().contains(PortalPlayerData.RANDOM_SECTION_ID) || !normalized.isEmpty()) {
+                random.forEach(destination -> rows.add(new Row(RowKind.DESTINATION, destination.id(), 0)));
+            }
+        }
         return rows;
     }
 

@@ -521,5 +521,17 @@
   "screen.riftgun.dimensional_navigation.save": "保存坐标",
   "screen.riftgun.dimensional_navigation.open": "开启传送门",
   "screen.riftgun.dimensional_navigation.search": "搜索维度……",
-  "screen.riftgun.dimensional_navigation.random_disabled": "服务器已禁用随机传送门"
+  "screen.riftgun.dimensional_navigation.random_disabled": "服务器已禁用随机传送门",
+"screen.riftgun.random_group": "随机",
+  "screen.riftgun.search_on_open": "每次开门时搜索安全落点",
+  "screen.riftgun.existing_dimensions": "已有维度",
+  "screen.riftgun.text_dimension": "文字生成",
+  "screen.riftgun.dimension_text_hint": "输入书中的文字；首次开门才生成维度",
+  "message.riftgun.infinity_unavailable": "未安装受支持的 Infinite Dimensions",
+  "message.riftgun.infinity_text_too_long": "维度文字过长（最多 16384 个字符）",
+  "message.riftgun.infinity_key_missing": "生成此维度需要 Portal key，请放入背包后重试",
+  "message.riftgun.infinity_generation_failed": "维度生成失败，已保留坐标；详情见服务器日志",
+  "message.riftgun.random_group_fixed": "自动搜索坐标只能保存在随机分组",
+  "message.riftgun.random_private": "自动搜索坐标仅限个人使用，无法分享",
+  "message.riftgun.random_read_only": "随机坐标不允许编辑"
 }

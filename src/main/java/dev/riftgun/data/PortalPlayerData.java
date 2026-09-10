@@ -21,7 +21,8 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 public final class PortalPlayerData {
-    public static final int CURRENT_VERSION = 10;
+    public static final int CURRENT_VERSION = 11;
+    public static final UUID RANDOM_SECTION_ID = new UUID(0L, 0x500L);
     public static final UUID DEFAULT_GROUP_ID = new UUID(0L, 0L);
     /** Sentinel id for the Player section's collapsed/expanded state in {@link #expandedGroups()}. */
     public static final UUID PLAYER_SECTION_ID = new UUID(0L, 0x100L);
@@ -53,6 +54,7 @@ public final class PortalPlayerData {
     public PortalPlayerData() {
         expandedGroups.add(DEFAULT_GROUP_ID);
         expandedGroups.add(PLAYER_SECTION_ID);
+        expandedGroups.add(RANDOM_SECTION_ID);
         expandedGroups.add(SHARED_SECTION_ID);
         expandedGroups.add(JOURNEYMAP_SECTION_ID);
         expandedGroups.add(XAERO_MINIMAP_SECTION_ID);
@@ -475,6 +477,7 @@ public final class PortalPlayerData {
     }
 
     private void migrate(int storedVersion) {
+        if (storedVersion < 11) expandedGroups.add(RANDOM_SECTION_ID);
         // Settings, sound themes, and v4 safety history use missing-field defaults.
         if (storedVersion < 10) {
             expandedGroups.add(JOURNEYMAP_SECTION_ID);
@@ -486,6 +489,7 @@ public final class PortalPlayerData {
         Set<UUID> groupIds = new HashSet<>();
         groupIds.add(DEFAULT_GROUP_ID);
         groupIds.add(SHARED_SECTION_ID);
+        groupIds.add(RANDOM_SECTION_ID);
         groups.removeIf(group -> group.id().equals(DEFAULT_GROUP_ID) || !groupIds.add(group.id()));
 
         for (int index = 0; index < destinations.size(); index++) {

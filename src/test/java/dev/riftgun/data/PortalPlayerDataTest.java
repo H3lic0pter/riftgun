@@ -35,6 +35,37 @@ final class PortalPlayerDataTest {
     //?}
 
     @Test
+    void deferredTargetsRetainTheirDescriptorThroughEditsAndReload() {
+        PortalPlayerData data = new PortalPlayerData();
+        Destination saved = new Destination(UUID.randomUUID(), "Explore", UUID.randomUUID(), NETHER,
+            0, 0, 0, 0, 12, 0, false, true, "hello\nworld");
+        Destination changed = saved.withDetails("Renamed", UUID.randomUUID(), NETHER, 0, 0, 0, 0)
+            .withPinned(true).usedAt(42);
+        data.destinations().add(changed);
+        data.selectedDestinationId(changed.id());
+        data.expandedGroups().remove(PortalPlayerData.RANDOM_SECTION_ID);
+        PortalPlayerData loaded = PortalPlayerData.load(data.save());
+        assertEquals(changed, loaded.destination(changed.id()).orElseThrow());
+        assertEquals(PortalPlayerData.RANDOM_SECTION_ID, changed.groupId());
+        assertEquals("hello\nworld", changed.infinityText());
+        assertTrue(changed.automaticSearch());
+        assertFalse(loaded.expandedGroups().contains(PortalPlayerData.RANDOM_SECTION_ID));
+    }
+
+    @Test
+    void legacyCoordinatesStayExactAndEmptyTextIsNotConfusedWithAbsentText() {
+        Destination exact = new Destination(UUID.randomUUID(), "Base", PortalPlayerData.DEFAULT_GROUP_ID,
+            OVERWORLD, 1, 64, 2, 90, 1, 0, false);
+        CompoundTag legacy = exact.save();
+        legacy.remove("AutomaticSearch");
+        assertEquals(exact, Destination.load(legacy));
+        assertFalse(Destination.load(legacy).automaticSearch());
+        Destination empty = new Destination(exact.id(), exact.name(), exact.groupId(), exact.dimension(),
+            1, 64, 2, 90, 1, 0, false, false, "");
+        assertEquals("", Destination.load(empty.save()).infinityText());
+    }
+
+    @Test
     void defaultNamesRemainMonotonicAcrossPersistence() {
         PortalPlayerData data = new PortalPlayerData();
         assertEquals("Location1", data.nextLocationName());

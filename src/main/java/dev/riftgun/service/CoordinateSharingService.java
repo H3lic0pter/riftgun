@@ -52,6 +52,7 @@ public final class CoordinateSharingService {
         COOLDOWN("message.riftgun.coordinate_share_cooldown"),
         PAPER_REQUIRED("message.riftgun.coordinate_paper_required"),
         INVENTORY_FULL("message.riftgun.inventory_full"),
+        RANDOM_PRIVATE("message.riftgun.random_private"),
         INVALID("message.riftgun.invalid_request");
 
         private final String key;
@@ -65,6 +66,7 @@ public final class CoordinateSharingService {
         PortalPlayerData data = PortalDataStore.load(player);
         Destination destination = data.destination(destinationId).orElse(null);
         if (destination == null) return tell(player, Result.MISSING);
+        if (destination.automaticSearch()) return tell(player, Result.RANDOM_PRIVATE);
         MinecraftServer server = server(player);
         if (server == null || server.getLevel(destination.dimension()) == null) {
             return tell(player, Result.DIMENSION_UNAVAILABLE);
@@ -96,6 +98,7 @@ public final class CoordinateSharingService {
         PortalPlayerData data = PortalDataStore.load(player);
         Destination destination = data.destination(destinationId).orElse(null);
         if (destination == null) return tell(player, Result.MISSING);
+        if (destination.automaticSearch()) return tell(player, Result.RANDOM_PRIVATE);
         MinecraftServer server = server(player);
         if (server == null || server.getLevel(destination.dimension()) == null) {
             return tell(player, Result.DIMENSION_UNAVAILABLE);

@@ -65,9 +65,50 @@ final class PortalDestinationActions {
         if (!PortalGunCapabilities.resolve(gun, data.settings().smartDistance()).dimensionalTraversal()) {
             throw PortalRequestFields.error("message.riftgun.dimensional_traversal_module_required");
         }
+        boolean automatic = Nbt.getBoolean(request, "AutomaticSearch");
+        if (automatic && !RiftConfigs.server().randomRift().enabled()) {
+            throw PortalRequestFields.error("message.riftgun.random_rift_disabled");
+        }
+        if (request.contains("InfinityText")) {
+            requireDestinationCapacity(data);
+            requireCoordinateLengths(request);
+            try {
+                String text = Nbt.getString(request, "InfinityText");
+                var dimension = dev.riftgun.compat.infinity.InfiniteDimensionsCompat.resolve(player, text);
+                double x = automatic ? 0 : CoordinateParser.parse(coordinate(request, "X", true), player.getX());
+                double y = automatic ? 0 : CoordinateParser.parse(coordinate(request, "Y", true), player.getY());
+                double z = automatic ? 0 : CoordinateParser.parse(coordinate(request, "Z", true), player.getZ());
+                float yaw = CoordinateParser.parseYaw(Nbt.getString(request, "Yaw"), player.getYRot());
+                UUID id = UUID.randomUUID();
+                data.destinations().add(new Destination(id,
+                    automatic ? automaticDestinationName(data, Nbt.getString(request, "Name"),
+                        () -> DimensionalTraversalTargets.name(player, dimension))
+                        : destinationName(data, Nbt.getString(request, "Name"), true),
+                    validGroup(data, PortalRequestFields.optionalGroupId(request, "Group")), dimension,
+                    x, y, z, yaw, player.level().getGameTime(), 0L, false, automatic, text));
+                if (automatic) data.expandedGroups().add(PortalPlayerData.RANDOM_SECTION_ID);
+                select(data, id);
+                return true;
+            } catch (IllegalArgumentException error) {
+                if (error.getMessage() != null && (error.getMessage().startsWith("message.")
+                    || error.getMessage().startsWith("error.infinity."))) throw PortalRequestFields.error(error.getMessage());
+                throw PortalRequestFields.error("message.riftgun.invalid_coordinate");
+            }
+        }
         ServerLevel target = DimensionalTraversalTargets.resolve(
                 player, Nbt.getString(request, "Dimension"))
             .orElseThrow(() -> PortalRequestFields.error("message.riftgun.dimension_unavailable"));
+        if (automatic) {
+            requireDestinationCapacity(data);
+            UUID id = UUID.randomUUID();
+            data.destinations().add(new Destination(id,
+                automaticDestinationName(data, Nbt.getString(request, "Name"),
+                    () -> DimensionalTraversalTargets.name(player, target.dimension())), PortalPlayerData.RANDOM_SECTION_ID,
+                target.dimension(), 0, 0, 0, 0, player.level().getGameTime(), 0L, false, true, null));
+            data.expandedGroups().add(PortalPlayerData.RANDOM_SECTION_ID);
+            select(data, id);
+            return true;
+        }
         double baseX = DimensionalTraversalTargets.mapCoordinate(player.getX(), player.level(), target);
         double baseZ = DimensionalTraversalTargets.mapCoordinate(player.getZ(), player.level(), target);
         return createCoordinateDestination(player, data, request, target,
@@ -107,6 +148,7 @@ final class PortalDestinationActions {
         UUID destinationId = PortalRequestFields.id(request, "Destination");
         Destination current = data.destination(destinationId).orElseThrow(
             () -> PortalRequestFields.error("message.riftgun.destination_missing"));
+        if (current.automaticSearch()) throw PortalRequestFields.error("message.riftgun.random_read_only");
         UUID requestedGroup = PortalRequestFields.optionalGroupId(request, "Group");
         UUID group = current.groupId().equals(PortalPlayerData.SHARED_SECTION_ID)
             && PortalPlayerData.SHARED_SECTION_ID.equals(requestedGroup)
@@ -131,12 +173,13 @@ final class PortalDestinationActions {
             ServerLevel target = player.getServer() == null ? null
                 : player.getServer().getLevel(current.dimension());
 //?}
-            if (target == null) throw PortalRequestFields.error("message.riftgun.dimension_unavailable");
-            DestinationCoordinateBounds.Coordinates coordinates =
-                DestinationCoordinateBounds.clamp(target, x, y, z);
-            x = coordinates.x();
-            y = coordinates.y();
-            z = coordinates.z();
+            if (target == null && current.infinityText() == null) {
+                throw PortalRequestFields.error("message.riftgun.dimension_unavailable");
+            }
+            if (target != null) {
+                DestinationCoordinateBounds.Coordinates coordinates = DestinationCoordinateBounds.clamp(target, x, y, z);
+                x = coordinates.x(); y = coordinates.y(); z = coordinates.z();
+            }
         }
         data.replaceDestination(current.withDetails(name, group, current.dimension(), x, y, z, yaw));
         return true;
@@ -247,6 +290,10 @@ final class PortalDestinationActions {
     static boolean moveDestinationGroup(PortalPlayerData data, CompoundTag request) {
         Destination destination = data.destination(PortalRequestFields.id(request, "Destination"))
             .orElseThrow(() -> PortalRequestFields.error("message.riftgun.destination_missing"));
+        if (destination.automaticSearch() || PortalPlayerData.RANDOM_SECTION_ID.equals(
+            PortalRequestFields.optionalGroupId(request, "Group"))) {
+            throw PortalRequestFields.error("message.riftgun.random_group_fixed");
+        }
         UUID groupId = validGroup(data, PortalRequestFields.optionalGroupId(request, "Group"));
         if (destination.groupId().equals(groupId)) return false;
         data.replaceDestination(destination.withGroup(groupId));
@@ -259,6 +306,7 @@ final class PortalDestinationActions {
         if (!groupId.equals(PortalPlayerData.DEFAULT_GROUP_ID)
             && !groupId.equals(PortalPlayerData.PLAYER_SECTION_ID)
             && !groupId.equals(PortalPlayerData.SHARED_SECTION_ID)
+            && !groupId.equals(PortalPlayerData.RANDOM_SECTION_ID)
             && !groupId.equals(PortalPlayerData.JOURNEYMAP_SECTION_ID)
             && !groupId.equals(PortalPlayerData.XAERO_MINIMAP_SECTION_ID)
             && data.group(groupId).isEmpty()) {
@@ -290,6 +338,11 @@ final class PortalDestinationActions {
                 throw PortalRequestFields.error("message.riftgun.invalid_coordinate");
             }
         }
+    }
+
+    static String automaticDestinationName(PortalPlayerData data, String raw,
+                                          java.util.function.Supplier<String> dimensionName) {
+        return raw == null || raw.isBlank() ? dimensionName.get() : destinationName(data, raw, false);
     }
 
     private static String destinationName(PortalPlayerData data, String raw, boolean allowDefault) {

@@ -44,6 +44,7 @@ public final class PortalOpenCoordinator {
             failMessage(player, "message.riftgun.destination_missing");
             return;
         }
+        if (RandomRiftManager.requestSaved(player, data, destination, mode, locatedGun, fromGui, null)) return;
         PortalOpenResult result = open(
             player, data, destination, mode, locatedGun, null, null, true, fromGui,
             Optional.empty(), null);
@@ -65,6 +66,8 @@ public final class PortalOpenCoordinator {
             failMessage(player, "message.riftgun.destination_missing");
             return;
         }
+        if (RandomRiftManager.requestSaved(player, data, destination, mode, locatedGun, false,
+            PrecisionPlacementIntent.surface(request))) return;
         PortalOpenResult result = open(player, data, destination, mode, locatedGun,
             null, null, true, false, Optional.empty(), PrecisionPlacementIntent.surface(request));
         if (result.opened()) {
@@ -84,6 +87,7 @@ public final class PortalOpenCoordinator {
             failMessage(player, "message.riftgun.destination_missing");
             return;
         }
+        if (RandomRiftManager.requestSaved(player, data, destination, mode, locatedGun, false, request)) return;
         PortalOpenResult result = open(player, data, destination, mode, locatedGun,
             null, null, true, false, Optional.empty(), request);
         if (result.opened()) {
@@ -93,6 +97,20 @@ public final class PortalOpenCoordinator {
     }
 
     /** Opens a temporary destination without changing the player's saved or selected destinations. */
+    static boolean openResolvedSaved(ServerPlayer player, PortalPlayerData data,
+                                     Destination saved, Destination resolved, PortalPlacementMode mode,
+                                     PortalGunLocator.LocatedGun gun, boolean fromGui,
+                                     @Nullable PrecisionPlacementIntent precision) {
+        PortalOpenResult result = open(player, data, resolved, mode, gun, null, null, false,
+            fromGui, Optional.empty(), precision);
+        if (result.opened()) {
+            // Keep the saved search/text descriptor, never replace it with the sampled XYZ.
+            data.replaceDestination(saved.usedAt(player.level().getGameTime()));
+            PortalDataStore.save(player, data);
+        } else displayFailure(player, result);
+        return result.opened();
+    }
+
     public static boolean openTransient(ServerPlayer player, PortalPlayerData data,
                                         Destination destination, PortalPlacementMode mode,
                                         PortalGunLocator.LocatedGun locatedGun, boolean fromGui) {

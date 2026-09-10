@@ -23,9 +23,13 @@ import net.minecraft.util.Mth;
 public final class DimensionalNavigationScreen extends Screen {
     private static final int PANEL_WIDTH = 380;
     private static final int PANEL_HEIGHT = 230;
+    // Keep text entry within the original dimension-picker area.
+    private static final int TEXT_INPUT_HEIGHT = 32;
     private static final int FIELD_HEIGHT = 18;
     private final PortalConfigScreen parent;
     private final DimensionalNavigationController controller;
+    private boolean textSource;
+    private String dimensionText = "";
     private String name = "";
     private String x = "";
     private String y = "";
@@ -68,16 +72,41 @@ public final class DimensionalNavigationScreen extends Screen {
             Component.empty(), false, ignored -> onClose());
         backButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.translatable("screen.riftgun.back")));
-        dimensionSelector = button(left, panelY + 39, contentWidth - 22, 18,
-            Component.literal(displayDimension(controller.dimension())), false, ignored -> {});
-        dimensionSelector.horizontalMarquee();
-        dimensionSelector.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-            Component.literal(controller.dimension())));
-        dimensionDropdownButton = button(left + contentWidth - 20, panelY + 39, 20, 18,
-            Component.empty(), false, ignored -> openDimensionDropdown());
-        button(left, panelY + 64, contentWidth, 19,
-            Component.translatable("screen.riftgun.dimensional_navigation.choose_dimension"), false,
-            ignored -> minecraft.setScreen(new DimensionSelectionScreen(this)));
+        dimensionSelector = null;
+        dimensionDropdownButton = null;
+        nameField = null;
+        boolean infinity = PortalClientState.randomRift().getBoolean("InfinityAvailable")
+            && dev.riftgun.compat.infinity.InfiniteDimensionsCompat.available();
+        if (!infinity) textSource = false;
+        if (infinity) {
+            Component label = Component.literal("Infinite Dimensions");
+            int toggleX = panelX + 12 + font.width(title) + 8;
+            int toggleWidth = Math.min(font.width(label) + 12, backButton.getX() - toggleX - 6);
+            ThemedButton toggle = button(toggleX, panelY + 7, Math.max(20, toggleWidth), 18,
+                label, false, ignored -> selectSource(!textSource));
+            toggle.horizontalMarquee();
+            if (textSource) toggle.accented(0xFF31506B, 0xFF3F698C, PortalTheme.TEXT);
+        }
+        if (textSource) {
+            var input = addRenderableWidget(new net.minecraft.client.gui.components.MultiLineEditBox(
+                font, left, panelY + 39, contentWidth, TEXT_INPUT_HEIGHT,
+                Component.translatable("screen.riftgun.dimension_text_hint"),
+                Component.translatable("screen.riftgun.text_dimension")));
+            input.setCharacterLimit(dev.riftgun.compat.infinity.InfiniteDimensionsCompat.MAX_TEXT_LENGTH);
+            input.setValue(dimensionText);
+            input.setValueListener(value -> dimensionText = value);
+        } else {
+            dimensionSelector = button(left, panelY + 39, contentWidth - 22, 18,
+                Component.literal(displayDimension(controller.dimension())), false, ignored -> {});
+            dimensionSelector.horizontalMarquee();
+            dimensionSelector.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                Component.literal(controller.dimension())));
+            dimensionDropdownButton = button(left + contentWidth - 20, panelY + 39, 20, 18,
+                Component.empty(), false, ignored -> openDimensionDropdown());
+            button(left, panelY + 64, contentWidth, 19,
+                Component.translatable("screen.riftgun.dimensional_navigation.choose_dimension"), false,
+                ignored -> minecraft.setScreen(new DimensionSelectionScreen(this)));
+        }
         int segmentWidth = (contentWidth - 3) / 2;
         ThemedButton exact = button(left, panelY + 91, segmentWidth, 20,
             Component.translatable("screen.riftgun.dimensional_navigation.exact"), false,
@@ -98,10 +127,9 @@ public final class DimensionalNavigationScreen extends Screen {
         if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
             initExactFields(left, contentWidth);
         }
+        nameField = field(left + 54, panelY + 126, contentWidth - 54, name, 48, value -> name = value, false);
         ThemedButton action = button(left, panelY + panelHeight - 31, contentWidth, 20,
-            Component.translatable(controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES
-                ? "screen.riftgun.dimensional_navigation.save"
-                : "screen.riftgun.dimensional_navigation.open"), true,
+            Component.translatable("screen.riftgun.dimensional_navigation.save"), true,
             ignored -> performAction());
         action.active = !controller.saving()
             && (controller.mode() != DimensionalTraversalMode.AUTOMATIC_SEARCH
@@ -109,7 +137,7 @@ public final class DimensionalNavigationScreen extends Screen {
     }
 
     private void initExactFields(int left, int contentWidth) {
-        nameField = field(left + 54, panelY + 126, contentWidth - 54, name, 48, value -> name = value, false);
+
         int gap = 4;
         int coordinateWidth = (contentWidth - gap * 3) / 4;
         xField = field(left, panelY + 165, coordinateWidth, x, 64, value -> x = value, true);
@@ -131,6 +159,13 @@ public final class DimensionalNavigationScreen extends Screen {
             if (coordinate) controller.coordinatesEdited(true);
         });
         return addRenderableWidget(field);
+    }
+
+    private void selectSource(boolean text) {
+        textSource = text;
+        controller.closeDropdown();
+        clearWidgets();
+        init();
     }
 
     void selectDimension(String id) {
@@ -162,7 +197,12 @@ public final class DimensionalNavigationScreen extends Screen {
         DimensionalNavigationWorkflow.Command command = DimensionalNavigationWorkflow.begin(
             controller, exactFields(), PortalClientState.data().selectedDestinationId());
         if (command == null) return;
-        PortalNetworking.sendRequest(command.action(), command::writeTo);
+        PortalNetworking.sendRequest(command.action(), tag -> {
+            command.writeTo(tag);
+            if (textSource) {
+                tag.putString("InfinityText", dimensionText);
+            }
+        });
         if (command.closesScreen()) {
             minecraft.setScreen(null);
             return;
@@ -214,11 +254,12 @@ public final class DimensionalNavigationScreen extends Screen {
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PortalTheme.PANEL);
         graphics.renderOutline(panelX, panelY, panelWidth, panelHeight, PortalTheme.BORDER);
         graphics.drawString(font, title, panelX + 12, panelY + 12, PortalTheme.TEXT, false);
-        graphics.drawString(font, Component.translatable("screen.riftgun.dimensional_navigation.dimension"),
+        graphics.drawString(font, Component.translatable(textSource ? "screen.riftgun.text_dimension"
+            : "screen.riftgun.dimensional_navigation.dimension"),
             panelX + 18, panelY + 29, PortalTheme.TEXT_MUTED, false);
-        if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
-            graphics.drawString(font, Component.translatable("screen.riftgun.name"),
+        graphics.drawString(font, Component.translatable("screen.riftgun.name"),
                 panelX + 18, panelY + 131, PortalTheme.TEXT_MUTED, false);
+        if (controller.mode() == DimensionalTraversalMode.EXACT_COORDINATES) {
             int left = panelX + 18;
             int contentWidth = panelWidth - 36;
             int gap = 4;

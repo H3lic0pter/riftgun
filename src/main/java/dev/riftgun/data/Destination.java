@@ -24,8 +24,21 @@ public record Destination(
     float yaw,
     long createdAt,
     long lastUsedAt,
-    boolean pinned
+    boolean pinned,
+    boolean automaticSearch,
+    String infinityText
 ) {
+    /** Legacy coordinates have no deferred dimension or search behaviour. */
+    public Destination(UUID id, String name, UUID groupId, ResourceKey<Level> dimension,
+                       double x, double y, double z, float yaw, long createdAt,
+                       long lastUsedAt, boolean pinned) {
+        this(id, name, groupId, dimension, x, y, z, yaw, createdAt, lastUsedAt, pinned, false, null);
+    }
+
+    public Destination {
+        if (automaticSearch) groupId = PortalPlayerData.RANDOM_SECTION_ID;
+    }
+
     public Vec3 position() {
         return new Vec3(x, y, z);
     }
@@ -33,7 +46,7 @@ public record Destination(
     public Destination withDetails(String nextName, UUID nextGroupId, ResourceKey<Level> nextDimension,
                                    double nextX, double nextY, double nextZ, float nextYaw) {
         return new Destination(id, nextName, nextGroupId, nextDimension, nextX, nextY, nextZ, nextYaw,
-            createdAt, lastUsedAt, pinned);
+            createdAt, lastUsedAt, pinned, automaticSearch, infinityText);
     }
 
     public Destination withGroup(UUID nextGroupId) {
@@ -41,11 +54,13 @@ public record Destination(
     }
 
     public Destination withPinned(boolean nextPinned) {
-        return new Destination(id, name, groupId, dimension, x, y, z, yaw, createdAt, lastUsedAt, nextPinned);
+        return new Destination(id, name, groupId, dimension, x, y, z, yaw, createdAt, lastUsedAt,
+            nextPinned, automaticSearch, infinityText);
     }
 
     public Destination usedAt(long time) {
-        return new Destination(id, name, groupId, dimension, x, y, z, yaw, createdAt, time, pinned);
+        return new Destination(id, name, groupId, dimension, x, y, z, yaw, createdAt, time,
+            pinned, automaticSearch, infinityText);
     }
 
     public CompoundTag save() {
@@ -65,6 +80,8 @@ public record Destination(
         tag.putLong("CreatedAt", createdAt);
         tag.putLong("LastUsedAt", lastUsedAt);
         tag.putBoolean("Pinned", pinned);
+        tag.putBoolean("AutomaticSearch", automaticSearch);
+        if (infinityText != null) tag.putString("InfinityText", infinityText);
         return tag;
     }
 
@@ -90,7 +107,9 @@ public record Destination(
             Nbt.getFloat(tag, "Yaw"),
             Nbt.getLong(tag, "CreatedAt"),
             Nbt.getLong(tag, "LastUsedAt"),
-            Nbt.getBoolean(tag, "Pinned")
+            Nbt.getBoolean(tag, "Pinned"),
+            Nbt.getBoolean(tag, "AutomaticSearch"),
+            tag.contains("InfinityText") ? Nbt.getString(tag, "InfinityText") : null
         );
     }
 }

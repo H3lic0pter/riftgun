@@ -68,8 +68,14 @@ final class DimensionalNavigationControllerTest {
             "Base", "1", "64", "2", "90");
 
         var automatic = DimensionalNavigationWorkflow.begin(controller, fields, null);
-        assertEquals(PortalAction.OPEN_DIMENSIONAL_RIFT, automatic.action());
-        assertTrue(automatic.closesScreen());
+        assertEquals(PortalAction.CREATE_DIMENSIONAL_COORDINATE, automatic.action());
+        assertFalse(automatic.closesScreen());
+        var automaticPayload = new net.minecraft.nbt.CompoundTag();
+        automatic.writeTo(automaticPayload);
+        assertTrue(Nbt.getBoolean(automaticPayload, "AutomaticSearch"));
+        assertEquals("Base", Nbt.getString(automaticPayload, "Name"));
+        assertTrue(controller.saving());
+        controller.acceptSnapshot(UUID.randomUUID());
 
         assertTrue(controller.selectMode(DimensionalTraversalMode.EXACT_COORDINATES, true));
         UUID selected = UUID.randomUUID();
@@ -79,6 +85,7 @@ final class DimensionalNavigationControllerTest {
 
         assertEquals(PortalAction.CREATE_DIMENSIONAL_COORDINATE, exact.action());
         assertFalse(exact.closesScreen());
+        assertFalse(Nbt.getBoolean(payload, "AutomaticSearch"));
         assertEquals("Base", Nbt.getString(payload, "Name"));
         assertEquals("minecraft:the_nether", Nbt.getString(payload, "Dimension"));
         assertTrue(controller.saving());
