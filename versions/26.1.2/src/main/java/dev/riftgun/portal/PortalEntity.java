@@ -431,6 +431,13 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         entityData.set(PHASE, nextPhase.ordinal());
         entityData.set(PHASE_TICKS, nextPhaseTicks);
 
+        // The partner may already be removed; CLOSED cleanup must not depend on it.
+        if (nextPhase == PortalLifecycle.Phase.CLOSED) {
+            releaseChunkTicket();
+            discard();
+            return;
+        }
+
         PortalEntity linked = loadPairingPartner(linkedPortal());
         if (!pairingStateValid(linked)) {
             startClosing();
@@ -439,11 +446,6 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
         SweptPortalIndex.refresh(this);
 
-        if (nextPhase == PortalLifecycle.Phase.CLOSED) {
-            releaseChunkTicket();
-            discard();
-            return;
-        }
         if (tickCount % 5 == 0 && !anchorStillValid()) {
             startClosing();
             return;
