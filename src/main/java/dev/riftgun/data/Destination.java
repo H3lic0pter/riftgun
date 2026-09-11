@@ -64,6 +64,15 @@ public record Destination(
     }
 
     public CompoundTag save() {
+        return encode(true);
+    }
+
+    /** Client views need the descriptor kind, never the potentially large source text. */
+    public CompoundTag clientSnapshot() {
+        return encode(false);
+    }
+
+    private CompoundTag encode(boolean includeText) {
         CompoundTag tag = new CompoundTag();
         Nbt.putUUID(tag, "Id", id);
         tag.putString("Name", name);
@@ -81,7 +90,10 @@ public record Destination(
         tag.putLong("LastUsedAt", lastUsedAt);
         tag.putBoolean("Pinned", pinned);
         tag.putBoolean("AutomaticSearch", automaticSearch);
-        if (infinityText != null) tag.putString("InfinityText", infinityText);
+        if (infinityText != null) {
+            if (includeText) tag.putString("InfinityText", infinityText);
+            else tag.putBoolean("InfinityTarget", true);
+        }
         return tag;
     }
 
@@ -109,7 +121,8 @@ public record Destination(
             Nbt.getLong(tag, "LastUsedAt"),
             Nbt.getBoolean(tag, "Pinned"),
             Nbt.getBoolean(tag, "AutomaticSearch"),
-            tag.contains("InfinityText") ? Nbt.getString(tag, "InfinityText") : null
+            tag.contains("InfinityText") ? Nbt.getString(tag, "InfinityText")
+                : Nbt.getBoolean(tag, "InfinityTarget") ? "" : null
         );
     }
 }

@@ -27,7 +27,7 @@ public final class PortalDataStore {
     }
 
     public static CompoundTag snapshot(ServerPlayer player) {
-        return load(player).save();
+        return load(player).clientSnapshot();
     }
 
     private static Map<ResourceLocation, PortalPermissionPolicy> permissionDefaults() {

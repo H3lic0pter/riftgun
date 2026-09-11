@@ -254,6 +254,15 @@ public final class PortalPlayerData {
     }
 
     public CompoundTag save() {
+        return encode(false);
+    }
+
+    /** Network projection omits server-only destination source text. */
+    public CompoundTag clientSnapshot() {
+        return encode(true);
+    }
+
+    private CompoundTag encode(boolean client) {
         CompoundTag root = new CompoundTag();
         root.putInt("Version", CURRENT_VERSION);
         root.putLong("NextLocationNumber", nextLocationNumber);
@@ -292,7 +301,8 @@ public final class PortalPlayerData {
         root.put("Groups", groupTags);
 
         ListTag destinationTags = new ListTag();
-        destinations.forEach(destination -> destinationTags.add(destination.save()));
+        destinations.forEach(destination -> destinationTags.add(
+            client ? destination.clientSnapshot() : destination.save()));
         root.put("Destinations", destinationTags);
 
         ListTag provenanceTags = new ListTag();

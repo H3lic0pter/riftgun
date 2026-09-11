@@ -103,7 +103,7 @@ public final class PortalNetworking {
         envelope.putBoolean("OpenRadial", openRadial);
         if (openRadial) envelope.putInt("RadialRequestId", radialRequestId);
         PortalPlayerData data = PortalDataStore.load(player);
-        envelope.put("Data", data.save());
+        envelope.put("Data", data.clientSnapshot());
         putDimensionLabels(envelope, player, data.destinations().stream().map(destination -> {
 //? if >=1.21.11 {
             /*return destination.dimension().identifier().toString();
@@ -318,7 +318,7 @@ public final class PortalNetworking {
     public static void sendPrivacyTerminal(ServerPlayer player) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "PrivacyTerminal");
-        envelope.put("Data", PortalDataStore.load(player).save());
+        envelope.put("Data", PortalDataStore.load(player).clientSnapshot());
         envelope.put("Players", privacyRoster(player));
         envelope.put("Permissions", privacyPermissions());
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));

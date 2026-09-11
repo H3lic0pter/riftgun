@@ -529,6 +529,7 @@
   "screen.riftgun.dimension_text_hint": "输入书中的文字；首次开门才生成维度",
   "message.riftgun.infinity_unavailable": "未安装受支持的 Infinite Dimensions",
   "message.riftgun.infinity_text_too_long": "维度文字过长（最多 16384 个字符）",
+  "message.riftgun.infinity_text_budget": "已保存的维度文字超过 256 KiB，请先删除部分文字目标",
   "message.riftgun.infinity_key_missing": "生成此维度需要 Portal key，请放入背包后重试",
   "message.riftgun.infinity_generation_failed": "维度生成失败，已保留坐标；详情见服务器日志",
   "message.riftgun.random_group_fixed": "自动搜索坐标只能保存在随机分组",

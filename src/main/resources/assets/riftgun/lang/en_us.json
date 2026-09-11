@@ -529,6 +529,7 @@
   "screen.riftgun.dimension_text_hint": "Enter book text. The dimension is generated on first use.",
   "message.riftgun.infinity_unavailable": "A supported Infinite Dimensions installation is required",
   "message.riftgun.infinity_text_too_long": "Dimension text exceeds 16384 characters",
+  "message.riftgun.infinity_text_budget": "Saved dimension text exceeds 256 KiB; delete a text destination first",
   "message.riftgun.infinity_key_missing": "Put the configured Portal key in your inventory to create this dimension",
   "message.riftgun.infinity_generation_failed": "Dimension generation failed. Saved destination kept; check the server log.",
   "message.riftgun.random_group_fixed": "Automatic search destinations must stay in Random",

@@ -1,6 +1,8 @@
 package dev.riftgun.compat.infinity;
 
 import dev.riftgun.data.Destination;
+import dev.riftgun.service.DeferredDimensionPreparation;
+import dev.riftgun.service.DimensionGenerationBudget;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -28,16 +30,25 @@ public final class InfiniteDimensionsCompat {
     }
 
     /** Returns true once the upstream server has installed the queued dimension. */
-    public static boolean prepare(ServerPlayer player, Destination destination) {
+    public static boolean prepare(ServerPlayer player, Destination destination,
+                                  DeferredDimensionPreparation preparation,
+                                  DimensionGenerationBudget budget) {
         MinecraftServer server = player.getServer();
         requireReady(server);
         var access = (MinecraftServerAccess) server;
-        var level = server.getLevel(destination.dimension());
-        if (level != null) {
-            if (!InfinityMethods.dimExists(level)) throw new IllegalArgumentException("message.riftgun.dimension_unavailable");
+        return preparation.tick(() -> {
+            var level = server.getLevel(destination.dimension());
+            if (level == null) return false;
+            if (!InfinityMethods.dimExists(level)) {
+                throw new IllegalArgumentException("message.riftgun.dimension_unavailable");
+            }
             return true;
-        }
-        if (access.infinity$hasToAdd(destination.dimension())) return false;
+        }, () -> access.infinity$hasToAdd(destination.dimension()), budget,
+            () -> generate(player, destination));
+    }
+
+    private static void generate(ServerPlayer player, Destination destination) {
+        MinecraftServer server = player.getServer();
         var required = InfinityMod.provider.getPortalKeyAsItem();
         ItemStack key = ItemStack.EMPTY;
         if (required.isPresent()) {
@@ -57,7 +68,6 @@ public final class InfiniteDimensionsCompat {
             PortalCreator.recordIdTranslation(server, destination.dimension().location(),
                 InfinityMethods.dimTextPreprocess(destination.infinityText()));
         }
-        return server.getLevel(destination.dimension()) != null;
     }
 
     private static void requireReady(MinecraftServer server) {

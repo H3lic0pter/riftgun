@@ -13,6 +13,7 @@ import dev.riftgun.fuel.PortalFuelManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -161,14 +162,15 @@ public final class RandomRiftManager {
     }
 
     public static void tick(MinecraftServer server) {
+        DimensionGenerationBudget generationBudget = new DimensionGenerationBudget();
         for (UUID playerId : new ArrayList<>(searches(server).keySet())) {
             Search search = searches(server).get(playerId);
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);
             if (search == null || player == null) {
-                searches(server).remove(playerId);
+                cancel(server, playerId);
                 continue;
             }
-            tickSearch(player, search);
+            tickSearch(player, search, generationBudget);
         }
     }
 
@@ -203,7 +205,8 @@ public final class RandomRiftManager {
         PREPARATION_LEASES.clear();
     }
 
-    private static void tickSearch(ServerPlayer player, Search search) {
+    private static void tickSearch(ServerPlayer player, Search search,
+                                   DimensionGenerationBudget generationBudget) {
         RiftConfig.RandomRiftConfig config = RiftConfigs.server().randomRift();
         PortalGunLocator.LocatedGun gun = PortalGunLocator.resolveReference(player, search.gunReference)
             .orElse(null);
@@ -230,10 +233,19 @@ public final class RandomRiftManager {
         }
 
         if (search.saved != null && !search.dimensionPrepared) {
+            var policy = dev.riftgun.api.RiftGunPortalOpenPolicies.evaluate(player);
+            var fuel = PortalFuelManager.plan(player, gun.stack(), search.targetDimension);
+            if (!policy.allowed() || !fuel.successful()) {
+                cancel(playerServer(player), player.getUUID());
+                if (!policy.allowed()) Msg.displayClientMessage(player, policy.message(), true);
+                else message(player, fuel.errorKey());
+                PortalClientSync.snapshot(player, false, gun);
+                return;
+            }
             try {
                 if (search.saved.infinityText() != null
-                    && !dev.riftgun.compat.infinity.InfiniteDimensionsCompat.prepare(player, search.saved)) {
-                    if (++search.dimensionWaitTicks > 200) throw new IllegalArgumentException("message.riftgun.dimension_unavailable");
+                    && !dev.riftgun.compat.infinity.InfiniteDimensionsCompat.prepare(
+                        player, search.saved, search.dimensionPreparation, generationBudget)) {
                     return;
                 }
                 search.dimensionPrepared = true;
@@ -407,7 +419,7 @@ public final class RandomRiftManager {
     }
 
     private static Map<UUID, Search> searches(MinecraftServer server) {
-        return SEARCHES.computeIfAbsent(server, ignored -> new HashMap<>());
+        return SEARCHES.computeIfAbsent(server, ignored -> new LinkedHashMap<>());
     }
 
     private static Map<UUID, Long> cooldowns(MinecraftServer server) {
@@ -492,7 +504,7 @@ public final class RandomRiftManager {
         private PrecisionPlacementIntent precision;
         private boolean dimensionPrepared;
         private boolean centerInitialized;
-        private int dimensionWaitTicks;
+        private final DeferredDimensionPreparation dimensionPreparation = new DeferredDimensionPreparation();
         private final CompoundTag gunReference;
         private final SearchKind kind;
         private final UUID ticketId = UUID.randomUUID();

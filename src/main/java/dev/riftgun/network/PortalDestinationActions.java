@@ -75,6 +75,9 @@ final class PortalDestinationActions {
             try {
                 String text = Nbt.getString(request, "InfinityText");
                 var dimension = dev.riftgun.compat.infinity.InfiniteDimensionsCompat.resolve(player, text);
+                if (!dev.riftgun.data.DestinationTextBudget.canAdd(data, text)) {
+                    throw PortalRequestFields.error("message.riftgun.infinity_text_budget");
+                }
                 double x = automatic ? 0 : CoordinateParser.parse(coordinate(request, "X", true), player.getX());
                 double y = automatic ? 0 : CoordinateParser.parse(coordinate(request, "Y", true), player.getY());
                 double z = automatic ? 0 : CoordinateParser.parse(coordinate(request, "Z", true), player.getZ());
