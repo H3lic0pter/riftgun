@@ -47,7 +47,7 @@ final class PortalTransitOrchestrator {
                 && (!crisisExit || entity instanceof ServerPlayer
                 && portal.crisis().allowsReturn(entity)));
         if (TransitDiagnostics.enabled() && touching.isEmpty()
-            && now - lastBlockedRouteNotifiedAt >= 20L) {
+            && notificationCooldownElapsed(now)) {
             List<Entity> nearby = portal.level().getEntities(portal, search, entity ->
                 !(entity instanceof PortalEntity) && !entity.isPassenger()
                     && PortalTriggerShape.intersects(portal.placement(), entity.getBoundingBox(),
@@ -137,7 +137,7 @@ final class PortalTransitOrchestrator {
 
     private void notifyBlockedRoute(List<Entity> touching, long now, String reason,
                                  @Nullable PortalEntity target) {
-        if (touching.isEmpty() || now - lastBlockedRouteNotifiedAt < 20L) return;
+        if (touching.isEmpty() || !notificationCooldownElapsed(now)) return;
         lastBlockedRouteNotifiedAt = now;
         Entity first = touching.getFirst();
         TransitDiagnostics.portal("contact blocked portal={} root={} type={} dimension={} reason={} target={} targetDimension={}",
@@ -156,6 +156,11 @@ final class PortalTransitOrchestrator {
         for (Entity entity : touching) {
             notifyRefusal(entity, Component.translatable("message.riftgun.exit_not_ready"));
         }
+    }
+
+    private boolean notificationCooldownElapsed(long now) {
+        return lastBlockedRouteNotifiedAt == Long.MIN_VALUE
+            || now - lastBlockedRouteNotifiedAt >= 20L;
     }
 
     /** Tells the touching player (or the riders of the touched mount) why the transit was refused. */
