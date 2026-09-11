@@ -5,10 +5,13 @@ creates linked, walk-through portals for local and cross-dimensional travel,
 with saved destinations, modular gun upgrades, configurable placement, player
 privacy, three portal-fluid tiers, and client-local visual and sound themes.
 
-The project is currently in release-candidate testing on both supported versions. The 26.1.2 port
+The project is preparing version 0.2.1 for both supported versions. The 26.1.2 port
 is newer and has seen less testing than the 1.21.1 build. Back up worlds
 before updating and expect configuration or save-data migration requirements
 before `1.0.0`.
+
+Release notes: [1.21.1](docs/release-notes/1.21.1-v0.2.1.md) and
+[26.1.2](docs/release-notes/26.1.2-v0.2.1.md).
 
 ## Requirements
 

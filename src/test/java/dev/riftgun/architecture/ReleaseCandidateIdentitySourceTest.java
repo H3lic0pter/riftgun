@@ -10,10 +10,11 @@ import org.junit.jupiter.api.Test;
 
 final class ReleaseCandidateIdentitySourceTest {
     @Test
-    void bothNodesPublishTheSameRcAndRejectProtocolOnePeers() throws IOException {
-        assertContains("gradle.properties", "mod_version=0.2.0-rc.1");
-        assertContains("versions/1.21.1/gradle.properties", "mod_version=0.2.0-rc.1");
-        assertContains("versions/26.1.2/gradle.properties", "mod_version=0.2.0-rc.1");
+    void bothNodesPublishTheSameReleaseAndRejectProtocolOnePeers() throws IOException {
+        assertContains("gradle.properties", "mod_version=0.2.1");
+        assertContains("versions/1.21.1/gradle.properties", "mod_version=0.2.1");
+        assertContains("versions/26.1.2/gradle.properties", "mod_version=0.2.1");
+        assertContains("build.gradle.kts", "inputs.properties(metadata)");
         assertContains("versions/1.21.1/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java",
             "event.registrar(\"2\")");
         assertContains("versions/26.1.2/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java",
@@ -21,11 +22,11 @@ final class ReleaseCandidateIdentitySourceTest {
     }
 
     @Test
-    void releaseNotesAndModernJeiFloorMatchTheCandidate() throws IOException {
+    void releaseNotesAndModernJeiFloorMatchTheRelease() throws IOException {
         assertTrue(Files.isRegularFile(Path.of(
-            "docs/release-notes/1.21.1-v0.2.0-rc.1.md")));
+            "docs/release-notes/1.21.1-v0.2.1.md")));
         assertTrue(Files.isRegularFile(Path.of(
-            "docs/release-notes/26.1.2-v0.2.0-rc.1.md")));
+            "docs/release-notes/26.1.2-v0.2.1.md")));
         assertFalse(Files.exists(Path.of(
             "docs/release-notes/1.21.1-v0.2.0-r1.md")));
         assertFalse(Files.exists(Path.of(

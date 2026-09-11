@@ -211,15 +211,17 @@ tasks.named<Test>("test") {
 
 // NeoGradle expanded these placeholders in mods.toml; ModDevGradle does not.
 tasks.processResources {
+    val metadata = mapOf(
+        "mod_id" to project.property("mod_id") as String,
+        "mod_version" to project.property("mod_version") as String,
+        "mod_name" to project.property("mod_name") as String,
+        "neoforge_version" to project.property("neoforge_version") as String,
+        "minecraft_version" to project.property("minecraft_version") as String,
+    )
+    inputs.properties(metadata)
     // Node resource dirs shadow shared ones per version (see sourceSets above).
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     filesMatching("META-INF/neoforge.mods.toml") {
-        expand(
-            "mod_id" to project.property("mod_id") as String,
-            "mod_version" to project.property("mod_version") as String,
-            "mod_name" to project.property("mod_name") as String,
-            "neoforge_version" to project.property("neoforge_version") as String,
-            "minecraft_version" to project.property("minecraft_version") as String,
-        )
+        expand(metadata)
     }
 }
