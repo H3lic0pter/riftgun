@@ -97,6 +97,21 @@ final class PortalGunSkinDefinitionTest {
     }
 
     @Test
+    void bundledArcaneRiftStaffUsesTheLayeredDynamicContract() throws Exception {
+        try (var stream = getClass().getResourceAsStream(
+                "/assets/riftgun/portal_gun_skins/arcane_rift_staff.json")) {
+            var json = JsonParser.parseReader(
+                new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+            var skin = PortalGunSkinDefinition.parse("riftgun:arcane_rift_staff", json);
+            assertEquals("riftgun:item/portal_gun/arcane_rift_staff", skin.model());
+            assertTrue(skin.layered());
+            assertTrue(skin.fluid());
+            assertFalse(skin.zeroPoint());
+            assertTrue(skin.modeColors().isEmpty());
+        }
+    }
+
+    @Test
     void omittedPaletteLeavesTexturesUntintedInBothModes() {
         var skin = PortalGunSkinDefinition.parse("example:icon", description("layered", "3d"));
         for (boolean pairing : new boolean[] {false, true}) {

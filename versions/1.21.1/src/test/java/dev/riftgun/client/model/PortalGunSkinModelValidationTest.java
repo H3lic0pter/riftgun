@@ -30,6 +30,25 @@ import static org.mockito.Mockito.when;
 
 final class PortalGunSkinModelValidationTest {
     @Test
+    void bundledArcaneRiftStaffModelParsesAndUsesOnlyLayeredTintSlots() throws Exception {
+        String path = "/assets/riftgun/models/item/portal_gun/arcane_rift_staff.json";
+        try (var stream = PortalGunSkinModelValidationTest.class.getResourceAsStream(path)) {
+            assertNotNull(stream, path);
+            JsonObject model = JsonParser.parseReader(
+                new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+            BlockModel.fromStream(new StringReader(model.toString()));
+
+            Set<Integer> tints = new HashSet<>();
+            model.getAsJsonArray("elements").forEach(element ->
+                element.getAsJsonObject().getAsJsonObject("faces").entrySet().forEach(face -> {
+                    JsonObject definition = face.getValue().getAsJsonObject();
+                    if (definition.has("tintindex")) tints.add(definition.get("tintindex").getAsInt());
+                }));
+            assertEquals(Set.of(2, 3, 4, 5, 6, 7, 8, 11), tints);
+        }
+    }
+
+    @Test
     void bundledApertureIshModelParsesAndMarksOnlyGladosAsZeroPointGeometry() throws Exception {
         String path = "/assets/riftgun/models/item/portal_gun/aperture_ish.json";
         try (var stream = PortalGunSkinModelValidationTest.class.getResourceAsStream(path)) {

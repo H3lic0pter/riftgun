@@ -1,0 +1,10 @@
+{
+  "name": "skin.riftgun.arcane_rift_staff",
+  "model": "riftgun:item/portal_gun/arcane_rift_staff",
+  "renderer": "layered",
+  "display": "3d",
+  "dynamic": {
+    "fluid": true,
+    "zero_point": false
+  }
+}
