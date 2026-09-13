@@ -25,15 +25,24 @@ public final class PortalClientState {
     public static void handle(CompoundTag envelope) {
         String kind = Nbt.getString(envelope, "Kind");
         if (kind.equals("Appearance")) {
+            dev.riftgun.client.appearance.SkinRecommendations.receive(envelope);
             if (Minecraft.getInstance().screen
                 instanceof dev.riftgun.client.screen.PortalGunAppearanceScreen screen) {
                 screen.handleResponse(envelope);
             }
             return;
         }
+        if (kind.equals("PortalSounds")) {
+            dev.riftgun.client.appearance.SkinRecommendations.receiveSounds(envelope);
+            if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
+                screen.refreshFromServer(Set.of());
+            }
+            return;
+        }
         if (kind.equals("Snapshot")) {
             DimensionLabelState.replace(envelope);
             data = PortalPlayerData.load(Nbt.getCompound(envelope, "Data"));
+            dev.riftgun.client.appearance.SkinRecommendations.preservePendingSounds();
             gunReference = envelope.contains("GunReference")
                 ? Nbt.getCompound(envelope, "GunReference").copy() : new CompoundTag();
             gun = envelope.contains("Gun")
@@ -93,6 +102,8 @@ public final class PortalClientState {
     }
 
     public static void writeGunReference(CompoundTag request) {
+        // A delayed appearance ACK may target a different gun from the currently open screen.
+        if (request.contains("GunReference")) return;
         boolean gunScreen = Minecraft.getInstance().screen
             instanceof dev.riftgun.client.screen.PortalConfigScreen
             || Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.ModeRadialScreen

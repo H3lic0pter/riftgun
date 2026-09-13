@@ -92,5 +92,6 @@ public final class PortalGunAppearanceSession {
     public ItemStack preview() { return preview; }
     public String error() { return error; }
     public boolean loading() { return !requestId.isEmpty(); }
+    public CompoundTag reference() { return reference.copy(); }
 
 }

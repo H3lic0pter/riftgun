@@ -46,7 +46,8 @@ final class PortalGunVisualSnapshotTest {
     }
 
     @Test
-    void fuelAccentFallsBackToLightGrayOnlyWhenFuelIsAbsent() {
+    void fuelAccentFallsBackToDarkRedOnlyWhenFuelIsAbsent() {
+        assertEquals(0xFF680A1C, PortalGunVisualSnapshot.EMPTY_FUEL_ACCENT_ARGB);
         assertEquals(PortalGunVisualSnapshot.EMPTY_FUEL_ACCENT_ARGB,
             PortalGunVisualSnapshot.create(0, false, 0x4FCB72)
                 .color(PortalGunVisualSnapshot.FUEL_ACCENT_TINT));

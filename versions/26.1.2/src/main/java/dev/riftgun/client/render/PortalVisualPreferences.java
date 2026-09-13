@@ -11,15 +11,17 @@ public final class PortalVisualPreferences {
 
     public static Identifier selectedId() {
         Identifier parsed = Identifier.tryParse(RiftConfigs.client().portalVisualType());
-        Identifier resolved = parsed == null ? PortalVisualRegistry.DEFAULT_ID
-            : PortalVisualSelection.resolve(PortalVisualRegistry.values(), parsed, PortalVisualRegistry.DEFAULT_ID);
-        if (parsed == null || !parsed.equals(resolved)) save(resolved);
-        return resolved;
+        if (parsed != null && PortalVisualRegistry.values().stream().anyMatch(type -> type.id().equals(parsed))) return parsed;
+        Identifier custom = Identifier.tryParse(ClientConfig.VALUES.portalVisualType.get());
+        return custom == null ? PortalVisualRegistry.DEFAULT_ID
+            : PortalVisualSelection.resolve(PortalVisualRegistry.values(), custom, PortalVisualRegistry.DEFAULT_ID);
     }
 
     public static void select(Identifier id) {
         Identifier resolved = PortalVisualSelection.resolve(
             PortalVisualRegistry.values(), id, PortalVisualRegistry.DEFAULT_ID);
+        ClientConfig.VALUES.skinRecommendations.useCustom(
+            dev.riftgun.config.SkinRecommendationConfig.Category.PORTAL_VISUAL);
         save(resolved);
     }
 
@@ -34,11 +36,13 @@ public final class PortalVisualPreferences {
 
     private static void save(Identifier id) {
         String value = id.toString();
-        if (value.equals(RiftConfigs.client().portalVisualType())) return;
         ClientConfig.VALUES.portalVisualType.set(value);
         ClientConfig.publishSnapshot();
         ClientConfig.SPEC.save();
     }
 
     private PortalVisualPreferences() {}
+    public static void notifySelectionChanged() {
+        // This version has no server-assisted portal visual integration.
+    }
 }

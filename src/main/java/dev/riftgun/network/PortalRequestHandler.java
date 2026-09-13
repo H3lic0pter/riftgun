@@ -33,6 +33,10 @@ public final class PortalRequestHandler {
     public static void handle(ServerPlayer player, CompoundTag request) {
         PortalAction action = parseAction(request);
         if (action == null) return;
+        if (action == PortalAction.SET_PORTAL_SOUNDS) {
+            PortalSoundRequests.handle(player, request);
+            return;
+        }
         if (action == PortalAction.OPEN_APPEARANCE || action == PortalAction.SET_APPEARANCE) {
             PortalAppearanceRequests.handle(player, request, action == PortalAction.SET_APPEARANCE);
             return;
@@ -296,7 +300,7 @@ public final class PortalRequestHandler {
                 closePortals(player);
                 yield false;
             }
-            case OPEN_GUI, OPEN_MODE_RADIAL, OPEN_MODULES, OPEN_APPEARANCE, SET_APPEARANCE,
+            case OPEN_GUI, OPEN_MODE_RADIAL, OPEN_MODULES, OPEN_APPEARANCE, SET_APPEARANCE, SET_PORTAL_SOUNDS,
                  SET_PRIVACY, SET_PRIVACY_OVERRIDE,
                  REQUEST_PRIVACY_PLAYERS -> false;
         };

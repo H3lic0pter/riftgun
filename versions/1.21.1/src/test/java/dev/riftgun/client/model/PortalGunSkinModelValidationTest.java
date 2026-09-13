@@ -44,7 +44,28 @@ final class PortalGunSkinModelValidationTest {
                     JsonObject definition = face.getValue().getAsJsonObject();
                     if (definition.has("tintindex")) tints.add(definition.get("tintindex").getAsInt());
                 }));
-            assertEquals(Set.of(2, 3, 4, 5, 6, 7, 8, 11), tints);
+            assertEquals(Set.of(2, 3, 4, 5, 6, 7, 8, 9, 10, 11), tints);
+            assertEquals(Set.of(11), groupTints(model, "Permanent rift"));
+            assertEquals(Set.of(11), groupTints(model, "Sigil"));
+            assertEquals(Set.of(9, 10), groupTints(model, "Suspended crystals"));
+            assertTrue(groupTints(model, "Heartwood").isEmpty());
+            assertTrue(groupTints(model, "Binding").isEmpty());
+            assertEquals(Set.of(11), groupTints(model, "Engraved ferrules"));
+            assertTrue(groupTints(model, "Crown root").isEmpty());
+            assertTrue(groupTints(model, "Swept crown").isEmpty());
+            assertEquals(Set.of(11), groupTints(model, "Crown inlay"));
+            assertEquals(Set.of(11), groupTints(model, "Crystal heel"));
+            assertTrue(groupTints(model, "Runic gauge").isEmpty());
+            assertEquals(Set.of(2, 3, 4, 5, 6, 7, 8), groupTints(model, "Fuel tiers 2-8"));
+            assertNotNull(getClass().getResourceAsStream(
+                "/assets/riftgun/textures/item/arcane_rift_staff/tintable_body.png"));
+            assertEquals(Set.of(
+                "neck_amethyst", "left_crown_inlay", "right_crown_inlay",
+                "heel_crystal_0", "heel_crystal_1", "heel_crystal_2",
+                "heel_crystal_3", "heel_crystal_4", "heel_crystal_5",
+                "permanent_void_orb_0", "permanent_void_orb_1", "permanent_void_orb_2",
+                "permanent_void_orb_3", "permanent_void_orb_4", "permanent_void_orb_5",
+                "permanent_void_orb_6", "rift_sigil"), tintedElements(model, 11));
         }
     }
 
@@ -149,6 +170,35 @@ final class PortalGunSkinModelValidationTest {
                 collectElements(child.getAsJsonObject().getAsJsonArray("children"), elements);
             }
         });
+    }
+
+    private static Set<Integer> groupTints(JsonObject model, String name) {
+        JsonObject group = model.getAsJsonArray("groups").asList().stream()
+            .map(value -> value.getAsJsonObject())
+            .filter(value -> value.get("name").getAsString().equals(name))
+            .findFirst().orElseThrow();
+        Set<Integer> elements = new HashSet<>();
+        collectElements(group.getAsJsonArray("children"), elements);
+        Set<Integer> tints = new HashSet<>();
+        elements.forEach(index -> model.getAsJsonArray("elements").get(index)
+            .getAsJsonObject().getAsJsonObject("faces").entrySet().forEach(face -> {
+                JsonObject definition = face.getValue().getAsJsonObject();
+                if (definition.has("tintindex")) tints.add(definition.get("tintindex").getAsInt());
+            }));
+        return tints;
+    }
+
+    private static Set<String> tintedElements(JsonObject model, int tint) {
+        Set<String> names = new HashSet<>();
+        model.getAsJsonArray("elements").forEach(value -> {
+            JsonObject element = value.getAsJsonObject();
+            boolean present = element.getAsJsonObject("faces").entrySet().stream()
+                .map(face -> face.getValue().getAsJsonObject())
+                .anyMatch(face -> face.has("tintindex")
+                    && face.get("tintindex").getAsInt() == tint);
+            if (present) names.add(element.get("name").getAsString());
+        });
+        return names;
     }
 
     private static ResourceManager resources(String model, Map<String, String> models) {

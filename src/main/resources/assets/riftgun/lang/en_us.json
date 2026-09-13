@@ -1,4 +1,8 @@
 {
+  "screen.riftgun.appearance.recommend.sounds": "Use recommended sounds: %s",
+  "screen.riftgun.appearance.recommend.portal_visual": "Use recommended portal visual: %s",
+  "screen.riftgun.appearance.recommend.shot_animation": "Use recommended shot animation: %s",
+  "screen.riftgun.appearance.recommend.tooltip": "On: apply this skin's recommendation and update it when applying another skin.\nOff: restore custom settings.",
   "screen.riftgun.gun_animation": "First-person shot: %s",
   "screen.riftgun.gun_animation.swing": "Classic swing",
   "screen.riftgun.gun_animation.recoil": "Light recoil",

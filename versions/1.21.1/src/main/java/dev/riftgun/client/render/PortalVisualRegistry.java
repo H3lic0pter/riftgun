@@ -53,6 +53,9 @@ public final class PortalVisualRegistry {
             && (!IMMERSIVE_PORTAL_ID.equals(id) || ImmersivePortalCompat.isAvailable());
     }
 
+    /** Includes IP before its server capability reply, so the initial selection handshake can request it. */
+    public static boolean registered(ResourceLocation id) { return TYPES.containsKey(id); }
+
     public static List<PortalVisualType> values() {
         return TYPES.values().stream()
             .filter(type -> !IMMERSIVE_PORTAL_ID.equals(type.id())

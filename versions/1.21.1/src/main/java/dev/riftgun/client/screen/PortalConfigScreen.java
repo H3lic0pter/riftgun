@@ -629,9 +629,8 @@ public final class PortalConfigScreen extends Screen {
         } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
             button(x + 18, y + 100, fieldWidth, 18, gunAnimationLabel(), false, widget -> {
-                ClientConfig.VALUES.gunAnimation.set(ClientConfig.VALUES.gunAnimation.get().next());
-                ClientConfig.publishSnapshot();
-                ClientConfig.SPEC.save();
+                dev.riftgun.client.appearance.SkinRecommendations.selectAnimation(
+                    dev.riftgun.core.config.RiftConfigs.client().gunAnimation().next());
                 widget.setMessage(gunAnimationLabel());
             });
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
@@ -821,7 +820,7 @@ public final class PortalConfigScreen extends Screen {
 
     private static Component gunAnimationLabel() {
         return Component.translatable("screen.riftgun.gun_animation", Component.translatable(
-            switch (ClientConfig.VALUES.gunAnimation.get()) {
+            switch (dev.riftgun.core.config.RiftConfigs.client().gunAnimation()) {
                 case OFF -> "screen.riftgun.gun_animation.off";
                 case RECOIL -> "screen.riftgun.gun_animation.recoil";
                 case SWING -> "screen.riftgun.gun_animation.swing";
@@ -2795,7 +2794,11 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void sendSettings(PortalPlayerSettings settings) {
-        PortalNetworking.sendRequest(PortalAction.SET_SETTINGS, tag -> tag.merge(settings.save()));
+        PortalNetworking.sendRequest(PortalAction.SET_SETTINGS, tag -> {
+            tag.merge(settings.save());
+            // Unrelated settings must not replay sounds from an older snapshot.
+            tag.remove("PortalSounds");
+        });
     }
 
     private void openForm(PortalConfigPage next, @Nullable UUID target) {
@@ -3000,19 +3003,17 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void selectSound(PortalSoundChannel channel, ResourceLocation id) {
-        PortalSoundSettings current = PortalClientState.data().settings().portalSounds();
+        PortalSoundSettings current = dev.riftgun.client.appearance.SkinRecommendations.customSounds();
         updatePortalSounds(current.withSelection(channel, id));
     }
 
     private void toggleSplashSound() {
-        PortalSoundSettings current = PortalClientState.data().settings().portalSounds();
+        PortalSoundSettings current = dev.riftgun.client.appearance.SkinRecommendations.customSounds();
         updatePortalSounds(current.withSplashEnabled(!current.splashEnabled()));
     }
 
     private void updatePortalSounds(PortalSoundSettings sounds) {
-        PortalPlayerSettings next = PortalClientState.data().settings().withPortalSounds(sounds);
-        PortalClientState.data().settings(next);
-        sendSettings(next);
+        dev.riftgun.client.appearance.SkinRecommendations.selectCustomSounds(sounds);
         rebuildWidgets();
     }
 

@@ -5,6 +5,6 @@
   "display": "3d",
   "dynamic": {
     "fluid": true,
-    "zero_point": false
+    "zero_point": true
   }
 }

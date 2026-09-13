@@ -21,7 +21,7 @@ public final class ClientConfig {
     /** Rebuilds and atomically publishes a complete loader-neutral snapshot. */
     public static void publishSnapshot() {
         RiftConfigs.publishClient(new ClientVisualConfig(
-            VALUES.portalVisualType.get(), VALUES.swirlAnimationEnabled.get(),
+            VALUES.skinRecommendations.visual(VALUES.portalVisualType.get()), VALUES.swirlAnimationEnabled.get(),
             VALUES.swirlOuterPeriod.get(), VALUES.swirlInnerPeriod.get(),
             VALUES.swirlInwardPeriod.get(), VALUES.swirlInwardDirection.get(),
             VALUES.endframeRotationEnabled.get(), VALUES.endframeRotationPeriod.get(),
@@ -29,13 +29,14 @@ public final class ClientConfig {
             VALUES.portalDynamicLightLevel.get(),
             List.copyOf(VALUES.surfaceFaceRadialOrder.get()),
             VALUES.surfaceFaceRadialOffsetX.get(), VALUES.surfaceFaceRadialOffsetY.get(),
-            VALUES.gunAnimation.get(),
+            VALUES.skinRecommendations.animation(VALUES.gunAnimation.get()),
             new GunRecoilConfig(VALUES.gunKickMillis.get(), VALUES.gunRecoveryMillis.get(),
                 VALUES.gunShotStrength.get(), VALUES.gunMaxBackwardOffset.get(),
                 VALUES.gunMaxPitchDegrees.get(), VALUES.gunUseEquipRecoveryMillis.get())));
     }
 
     public static final class Values {
+        public final SkinRecommendationConfig skinRecommendations;
         public final ModConfigSpec.ConfigValue<String> portalVisualType;
         public final ModConfigSpec.BooleanValue swirlAnimationEnabled;
         public final ModConfigSpec.DoubleValue swirlOuterPeriod;
@@ -62,6 +63,7 @@ public final class ClientConfig {
         public final ModConfigSpec.IntValue maximumMapWaypoints;
 
         private Values(ModConfigSpec.Builder builder) {
+            skinRecommendations = new SkinRecommendationConfig(builder);
             builder.push("visuals").push("gun");
             gunAnimation = builder.comment(
                     "First-person shot animation: OFF, RECOIL, SWING, or LOWER (vanilla lowering and recovery without swinging). Third-person always uses the vanilla swing")

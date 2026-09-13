@@ -11,29 +11,22 @@ public final class PortalVisualPreferences {
     }
 
     public static ResourceLocation selectedId() {
-        ResourceLocation parsed = ResourceLocation.tryParse(RiftConfigs.client().portalVisualType());
-        if (parsed == null) {
-            save(PortalVisualRegistry.DEFAULT_ID);
-            return PortalVisualRegistry.DEFAULT_ID;
-        }
-        if (PortalVisualRegistry.IMMERSIVE_PORTAL_ID.equals(parsed)
-            && !ImmersivePortalCompat.isAvailable()) {
-            return PortalVisualRegistry.DEFAULT_ID;
-        }
-        ResourceLocation resolved = PortalVisualSelection.resolve(
-            PortalVisualRegistry.values(), parsed, PortalVisualRegistry.DEFAULT_ID);
-        if (!parsed.equals(resolved)) save(resolved);
-        return resolved;
+        ResourceLocation configured = configuredId();
+        return PortalVisualRegistry.contains(configured) ? configured : PortalVisualRegistry.DEFAULT_ID;
     }
 
     public static ResourceLocation configuredId() {
         ResourceLocation parsed = ResourceLocation.tryParse(RiftConfigs.client().portalVisualType());
-        return parsed == null ? PortalVisualRegistry.DEFAULT_ID : parsed;
+        if (parsed != null && PortalVisualRegistry.registered(parsed)) return parsed;
+        ResourceLocation custom = ResourceLocation.tryParse(ClientConfig.VALUES.portalVisualType.get());
+        return custom != null && PortalVisualRegistry.registered(custom) ? custom : PortalVisualRegistry.DEFAULT_ID;
     }
 
     public static void select(ResourceLocation id) {
         ResourceLocation resolved = PortalVisualSelection.resolve(
             PortalVisualRegistry.values(), id, PortalVisualRegistry.DEFAULT_ID);
+        ClientConfig.VALUES.skinRecommendations.useCustom(
+            dev.riftgun.config.SkinRecommendationConfig.Category.PORTAL_VISUAL);
         save(resolved);
     }
 
@@ -48,7 +41,6 @@ public final class PortalVisualPreferences {
 
     private static void save(ResourceLocation id) {
         String value = id.toString();
-        if (value.equals(RiftConfigs.client().portalVisualType())) return;
         ClientConfig.VALUES.portalVisualType.set(value);
         ClientConfig.publishSnapshot();
         ClientConfig.SPEC.save();
@@ -56,4 +48,7 @@ public final class PortalVisualPreferences {
     }
 
     private PortalVisualPreferences() {}
+    public static void notifySelectionChanged() {
+        ImmersivePortalCompat.sendSelection();
+    }
 }

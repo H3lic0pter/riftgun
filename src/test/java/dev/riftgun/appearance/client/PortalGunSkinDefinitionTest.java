@@ -106,7 +106,7 @@ final class PortalGunSkinDefinitionTest {
             assertEquals("riftgun:item/portal_gun/arcane_rift_staff", skin.model());
             assertTrue(skin.layered());
             assertTrue(skin.fluid());
-            assertFalse(skin.zeroPoint());
+            assertTrue(skin.zeroPoint());
             assertTrue(skin.modeColors().isEmpty());
         }
     }

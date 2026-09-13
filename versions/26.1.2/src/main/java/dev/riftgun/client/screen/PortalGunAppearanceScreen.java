@@ -7,6 +7,9 @@ import dev.riftgun.client.PortalClientState;
 import dev.riftgun.appearance.client.PortalGunAppearanceSession;
 import dev.riftgun.appearance.client.PortalGunSkinCatalog;
 import dev.riftgun.appearance.client.PortalGunSkinDefinition;
+import dev.riftgun.client.appearance.SkinRecommendations;
+import dev.riftgun.config.ClientConfig;
+import dev.riftgun.config.SkinRecommendationConfig.Category;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 
-/** A per-item preview editor. Only Apply sends a mutation to the server. */
+/** A per-item preview editor with independent, immediately applied recommendation preferences. */
 public final class PortalGunAppearanceScreen extends Screen {
     private static final int ROW_HEIGHT = 26;
     private final Screen parent;
@@ -49,7 +52,7 @@ public final class PortalGunAppearanceScreen extends Screen {
         panelX = (width - panelWidth) / 2;
         panelY = (height - panelHeight) / 2;
         listWidth = Math.max(106, panelWidth * 43 / 100);
-        rows = Math.max(1, (panelHeight - 116) / ROW_HEIGHT);
+        rows = Math.max(1, (panelHeight - 144) / ROW_HEIGHT);
         catalog = PortalGunSkinCatalog.snapshot();
         skins = catalog.values().stream().sorted(Comparator
             .comparing((PortalGunSkinDefinition skin) -> !skin.id().equals(PortalGunSkin.DEFAULT))
@@ -75,10 +78,30 @@ public final class PortalGunAppearanceScreen extends Screen {
         var next = addRenderableWidget(new ThemedButton(panelX + listWidth - 30, listFooter, 28, 18,
             Component.literal(">"), false, ignored -> { offset += rows; rebuildWidgets(); }));
         next.active = offset + rows < skins.size();
+        int recommendationGap = 6;
+        int recommendationWidth = (panelWidth - 20 - recommendationGap * 2) / 3;
+        Category[] categories = Category.values();
+        for (int index = 0; index < categories.length; index++) {
+            Category category = categories[index];
+            String key = "screen.riftgun.appearance.recommend." + category.name().toLowerCase(java.util.Locale.ROOT);
+            Component label = Component.translatable(key, Component.translatable(
+                ClientConfig.VALUES.skinRecommendations.enabled(category).get()
+                    ? "screen.riftgun.on" : "screen.riftgun.off"));
+            var recommendation = new ThemedButton(
+                panelX + 10 + index * (recommendationWidth + recommendationGap),
+                panelY + panelHeight - 56, recommendationWidth, 20, label, false, ignored -> {
+                    SkinRecommendations.toggle(category, session.selection().current(), session.reference());
+                    rebuildWidgets();
+                }).horizontalMarquee();
+            recommendation.active = session.selection().ready() && !session.loading() && session.error().isEmpty();
+            recommendation.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(
+                "screen.riftgun.appearance.recommend.tooltip")));
+            addRenderableWidget(recommendation);
+        }
         addRenderableWidget(new ThemedButton(panelX + 10, panelY + panelHeight - 28, 90, 20,
             Component.translatable("screen.riftgun.appearance.back"), false, ignored -> onClose()));
         apply = addRenderableWidget(new ThemedButton(panelX + panelWidth - 100, panelY + panelHeight - 28, 90, 20,
-            Component.translatable("screen.riftgun.appearance.apply"), false, ignored -> { session.apply(); apply.active = false; }));
+            Component.translatable("screen.riftgun.appearance.apply"), false, ignored -> { session.apply(); rebuildWidgets(); }));
         apply.active = session.canApply();
         session.open();
     }
@@ -105,20 +128,20 @@ public final class PortalGunAppearanceScreen extends Screen {
         var selected = PortalGunSkinCatalog.resolve(session.selection().selected());
         graphics.text(font, font.plainSubstrByWidth(name(selected), available),
             right, panelY + 38, PortalTheme.TEXT, false);
-        renderPreview(graphics, selected, right, panelY + 55, available, panelHeight - 140);
+        renderPreview(graphics, selected, right, panelY + 55, available, Math.max(12, panelHeight - 168));
         String detail = session.selection().ready() && !PortalGunSkinCatalog.contains(session.selection().current())
             ? I18n.get("screen.riftgun.appearance.missing", session.selection().current())
             : selected.flat() ? "" : I18n.get("screen.riftgun.appearance.drag");
-        int detailY = panelY + panelHeight - 78;
+        int detailY = panelY + panelHeight - 106;
         for (var line : font.split(Component.literal(detail), available)) {
-            if (detailY > panelY + panelHeight - 60) break;
+            if (detailY > panelY + panelHeight - 88) break;
             graphics.text(font, line, right, detailY, PortalTheme.TEXT_MUTED, false);
             detailY += 9;
         }
         String status = !session.error().isEmpty() ? session.error()
             : session.loading() ? "screen.riftgun.appearance.waiting" : "";
         graphics.text(font, font.plainSubstrByWidth(status.isEmpty() ? "" : I18n.get(status), panelWidth - 20),
-            panelX + 10, panelY + panelHeight - 44, PortalTheme.TEXT_MUTED, false);
+            panelX + 10, panelY + panelHeight - 72, PortalTheme.TEXT_MUTED, false);
         for (var widget : renderables) widget.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
@@ -188,7 +211,7 @@ public final class PortalGunAppearanceScreen extends Screen {
     }
     private boolean inPreview(double x, double y) {
         return x >= panelX + listWidth + 10 && x < panelX + panelWidth - 10
-            && y >= panelY + 55 && y < panelY + panelHeight - 85;
+            && y >= panelY + 55 && y < panelY + panelHeight - 113;
     }
 
     private static String name(PortalGunSkinDefinition skin) {

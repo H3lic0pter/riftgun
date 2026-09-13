@@ -16,7 +16,7 @@ public record PortalGunVisualSnapshot(
     public static final int INNER_CORE_TINT = 10;
     /** Always-visible model detail colored with the current portal fuel. */
     public static final int FUEL_ACCENT_TINT = 11;
-    public static final int EMPTY_FUEL_ACCENT_ARGB = 0xFFD8D8D8;
+    public static final int EMPTY_FUEL_ACCENT_ARGB = 0xFF680A1C;
     /** Untinted model detail shown only while zero-point fuel is active. */
     public static final int ZERO_POINT_MARKER_TINT = 12;
     /** Skin-defined, always-visible mode color slots occupy 40 through 100, inclusive. */

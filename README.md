@@ -50,6 +50,62 @@ Destinations support shared groups, pinning, remembered sorting, coordinate entr
 
 ## Gun behavior
 
+### Skin recommendations
+
+The appearance screen has three independent switches, all enabled by default: **Use recommended sounds**,
+**Use recommended portal visual**, and **Use recommended shot animation**. Applying a skin successfully
+updates the enabled categories. Browsing previews or a rejected skin change does not change preferences.
+Turning a switch off immediately restores that category's custom setting; turning it on applies the
+currently applied skin's recommendation. Editing a setting manually applies and saves the new custom
+choice without changing its recommendation switch. The next successful skin application updates that
+category again if its recommendation switch is still enabled.
+
+Recommendations are editable in `config/riftgun-client.toml`:
+
+```toml
+[appearance.recommendations]
+sounds = true
+portalVisual = true
+shotAnimation = true
+
+[appearance.presets.default]
+shotSound = "riftgun:rift"
+portalSound = "riftgun:rift"
+transitSound = "riftgun:rift"
+portalVisual = "riftgun:swirl"
+shotAnimation = "RECOIL"
+
+[appearance.presets.aperture_ish]
+shotSound = "riftgun:aperture_ish"
+portalSound = "riftgun:rift"
+transitSound = "riftgun:rift"
+portalVisual = "riftgun:endframe"
+shotAnimation = "RECOIL"
+
+[appearance.presets.arcane_rift_staff]
+shotSound = "CUSTOM"
+portalSound = "CUSTOM"
+transitSound = "CUSTOM"
+portalVisual = "CUSTOM"
+shotAnimation = "SWING"
+```
+
+`CUSTOM` restores the saved custom choice for that field. Animation values also accept `OFF`, `RECOIL`,
+`SWING`, and `LOWER`. Sounds use the existing choices for each channel; unavailable choices retain the
+custom sound. Splash sound and recoil tuning remain custom. Presets apply to the existing player/client
+preferences, so portal visuals change globally for this client; existing portals retain their saved
+lifecycle sound snapshots. Sound selection uses a dedicated acknowledged request that changes only
+sound preferences, independently of placement mode and installed gun modules. The original custom value
+is captured before the first replacement; subsequent edits are committed after server confirmation.
+Snapshots never silently redefine an existing custom backup, and delayed snapshots retain the latest pending choice. Multiplayer servers
+must run a build that supports this sound request together with the client.
+
+The existing `portalVisualType` and `visuals.gun.animation` remain the custom settings.
+The appearance section also stores the last applied skins and a sound backup per server/save and player;
+these survive restarts and should normally be left to the GUI. File edits refresh visual/animation
+overlays on config reload; updated sound presets are applied at the next skin application or when
+the recommended-sounds switch is re-enabled.
+
 ### Portal placement and behavior
 
 First-person firing offers **Off**, **Light recoil**, **Classic swing**, and **Lower and return** in one cycling
