@@ -29,7 +29,7 @@ final class PortalGunSkinCatalogTest {
             ResourceManager resources = mock(ResourceManager.class);
             when(resources.listResources(eq("portal_gun_skins"), any())).thenAnswer(ignored -> Map.of(
                 id("addon:portal_gun_skins/flat.json"), resource(description("addon:item/flat"))));
-            when(resources.listResources(eq("models"), any())).thenAnswer(ignored -> Map.of(
+            models(resources, Map.of(
                 id("addon:models/item/flat.json"), resource("{\"parent\":\"addon:item/base\"}"),
                 id("addon:models/item/base.json"), resource("{\"elements\":[{\"faces\":{\"north\":{\"tintindex\":"
                     + tint + "}}}]}")));
@@ -79,13 +79,16 @@ final class PortalGunSkinCatalogTest {
         ResourceManager resources = mock(ResourceManager.class);
         when(resources.listResources(eq("portal_gun_skins"), any())).thenAnswer(ignored -> Map.of(
             id("addon:portal_gun_skins/flat.json"), resource(description("addon:item/flat"))));
-        when(resources.listResources(eq("models"), any())).thenAnswer(ignored -> Map.of(
+        models(resources, Map.of(
             id("addon:models/item/flat.json"), resource("{\"parent\":\"minecraft:item/generated\"}"),
             id("minecraft:models/item/generated.json"), resource("{\"parent\":\"builtin/generated\"}")));
         var loaded = PortalGunSkinCatalog.load(resources);
         assertTrue(loaded.containsKey("addon:flat"));
         assertTrue(loaded.get("addon:flat").flat());
         assertTrue(loaded.containsKey(PortalGunSkin.DEFAULT));
+        verify(resources, never()).listResources(eq("models"), any());
+        verify(resources).getResource(id("addon:models/item/flat.json"));
+        verify(resources).getResource(id("minecraft:models/item/generated.json"));
     }
 
     @Test
@@ -97,7 +100,7 @@ final class PortalGunSkinCatalogTest {
             id("addon:portal_gun_skins/parent.json"), resource(description("addon:item/parent")),
             id("addon:portal_gun_skins/cycle.json"), resource(description("addon:item/cycle")),
             id("addon:portal_gun_skins/broken.json"), resource("{invalid")));
-        when(resources.listResources(eq("models"), any())).thenAnswer(ignored -> Map.of(
+        models(resources, Map.of(
             id("addon:models/item/good.json"), resource("{}"),
             id("addon:models/item/parent.json"), resource("{\"parent\":\"addon:missing_parent\"}"),
             id("addon:models/item/cycle.json"), resource("{\"parent\":\"addon:item/cycle\"}")));
@@ -110,9 +113,13 @@ final class PortalGunSkinCatalogTest {
         ResourceManager resources = mock(ResourceManager.class);
         when(resources.listResources(eq("portal_gun_skins"), any())).thenAnswer(ignored -> Map.of(
             id("riftgun:portal_gun_skins/default.json"), resource(description("addon:item/flat"))));
-        when(resources.listResources(eq("models"), any())).thenAnswer(ignored -> Map.of(
+        models(resources, Map.of(
             id("addon:models/item/flat.json"), resource("{}")));
         assertFalse(PortalGunSkinCatalog.load(resources).get(PortalGunSkin.DEFAULT).layered());
+    }
+
+    private static void models(ResourceManager resources, Map<?, Resource> models) {
+        when(resources.getResource(any())).thenAnswer(call -> java.util.Optional.ofNullable(models.get(call.getArgument(0))));
     }
 
     private static String description(String model) {

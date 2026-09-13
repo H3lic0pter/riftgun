@@ -13,6 +13,8 @@ before `1.0.0`.
 Release notes: [1.21.1](docs/release-notes/1.21.1-v0.2.1-r1.md) and
 [26.1.2](docs/release-notes/26.1.2-v0.2.1-r1.md).
 
+Changes after those releases: [Unreleased](docs/release-notes/UNRELEASED.md).
+
 ## Requirements
 
 | Component | 1.21.1 build | 26.1.2 build |
@@ -32,7 +34,7 @@ optional; it adds portal light to nearby blocks on both supported builds.
 
 1. Install the matching Minecraft version with a compatible NeoForge release.
 2. Put the Rift Gun JAR for that Minecraft version in the instance's `mods` directory.
-3. Install the same Rift Gun version on both the server and every connecting client. The current network protocol is `2`; older protocol-`1` builds are intentionally rejected.
+3. Install the same Rift Gun build on both the server and every connecting client. The current development network protocol is `3`; protocol-`2` and older builds are rejected. Published `0.2.1-r1` artifacts use protocol `2`; see the release notes for those builds.
 4. Optionally install JEI and/or LambDynamicLights on the client.
 
 Back up the world before changing mod versions. Rift Gun stores destinations and privacy preferences as server-side player data, while visual preferences remain client-local.

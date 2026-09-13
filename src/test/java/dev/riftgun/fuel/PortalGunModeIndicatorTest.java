@@ -18,6 +18,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.MockedConstruction;
+import net.neoforged.neoforge.fluids.SimpleFluidContent;
 
 /** Actual settings, module-save and visual derivation paths with inventory/loader boundaries. */
 final class PortalGunModeIndicatorTest {
@@ -27,6 +29,8 @@ final class PortalGunModeIndicatorTest {
     private PortalGunVisualState visual;
     private PortalGunModules.ActiveCounts active;
     private boolean pairingInstalled;
+    private MockedStatic<PortalGunModules> modules;
+    private MockedConstruction<PortalGunTank> tanks;
 
     private <T> MockedStatic<T> boundary(Class<T> type) {
         var result = mockStatic(type);
@@ -61,15 +65,16 @@ final class PortalGunModeIndicatorTest {
         boundary(PortalModuleRules.class).when(PortalModuleRules::current).thenReturn(rules);
         active = mock(PortalGunModules.ActiveCounts.class);
         when(active.count(PortalModuleKind.PORTAL_PAIRING)).thenAnswer(ignored -> pairingInstalled ? 1 : 0);
-        var modules = boundary(PortalGunModules.class);
+        modules = boundary(PortalGunModules.class);
         modules.when(() -> PortalGunModules.activeCounts(eq(gun), any())).thenReturn(active);
         modules.when(() -> PortalGunModules.save(eq(gun), any())).thenCallRealMethod();
         boundary(PortalFuelManager.class).when(() -> PortalFuelManager.hasInfiniteFuel(gun)).thenReturn(false);
         boundary(PortalFuelProfiles.class);
-        boundaries.add(mockConstruction(PortalGunTank.class, (tank, context) -> {
+        tanks = mockConstruction(PortalGunTank.class, (tank, context) -> {
             when(tank.getFluid()).thenReturn(FluidStack.EMPTY);
             when(tank.nominalCapacity()).thenReturn(8000);
-        }));
+        });
+        boundaries.add(tanks);
     }
 
     @AfterEach
@@ -98,6 +103,27 @@ final class PortalGunModeIndicatorTest {
         pairingInstalled = true;
         PortalGunModules.save(gun, NonNullList.withSize(PortalGunModules.SLOT_COUNT, ItemStack.EMPTY));
         assertTrue(visual.pairingMode());
+    }
+
+    @Test
+    void visualRefreshResolvesModulesOnceForBothFuelLevelAndMode() {
+        tanks.close();
+        boundaries.remove(tanks);
+        var content = mock(SimpleFluidContent.class);
+        var fluid = mock(FluidStack.class);
+        when(content.copy()).thenReturn(fluid);
+        when(fluid.getAmount()).thenReturn(4000);
+        when(fluid.getFluid()).thenReturn(net.minecraft.world.level.material.Fluids.WATER);
+        when(gun.getOrDefault(eq(PortalGunComponents.FLUID), any(SimpleFluidContent.class))).thenReturn(content);
+        settings = settings.withPortalPairing(settings.portalPairing().withFunctionMode(PortalFunctionMode.PORTAL_PAIRING));
+        modules.clearInvocations();
+
+        PortalGunVisualState.refresh(gun);
+
+        modules.verify(() -> PortalGunModules.activeCounts(eq(gun), any()), times(1));
+        assertTrue(visual.pairingMode());
+        assertEquals(PortalGunVisualState.liquidTintIndex(4000, PortalModuleRules.current().capacityFor(0)),
+            visual.liquidTint());
     }
 
     @Test

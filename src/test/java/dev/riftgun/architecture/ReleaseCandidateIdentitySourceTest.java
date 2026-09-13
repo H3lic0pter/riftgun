@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 final class ReleaseCandidateIdentitySourceTest {
     @Test
-    void bothNodesPublishTheSameReleaseAndRequireProtocolThree() throws IOException {
+    void bothNodesShareTheDevelopmentVersionAndProtocol() throws IOException {
         assertContains("gradle.properties", "mod_version=0.2.1-r1");
         assertContains("versions/1.21.1/gradle.properties", "mod_version=0.2.1-r1");
         assertContains("versions/26.1.2/gradle.properties", "mod_version=0.2.1-r1");
@@ -19,8 +19,14 @@ final class ReleaseCandidateIdentitySourceTest {
             "event.registrar(\"3\")");
         assertContains("versions/26.1.2/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java",
             "event.registrar(\"3\")");
-        assertContains("docs/release-notes/1.21.1-v0.2.1-r1.md", "Network protocol: `3`");
-        assertContains("docs/release-notes/26.1.2-v0.2.1-r1.md", "Network protocol: `3`");
+        assertContains("README.md", "current development network protocol is `3`");
+        assertContains("docs/release-notes/UNRELEASED.md", "Network protocol: `3`");
+    }
+
+    @Test
+    void publishedReleaseNotesKeepTheirOriginalProtocol() throws IOException {
+        assertContains("docs/release-notes/1.21.1-v0.2.1-r1.md", "Network protocol: `2`");
+        assertContains("docs/release-notes/26.1.2-v0.2.1-r1.md", "Network protocol: `2`");
     }
 
     @Test

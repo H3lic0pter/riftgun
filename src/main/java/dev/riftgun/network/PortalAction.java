@@ -59,10 +59,15 @@ public enum PortalAction {
         };
     }
 
-    public boolean isExclusiveKeyboardShortcut() {
+    /** Dispatched shortcut actions that play first-person shot feedback. */
+    public boolean isShotShortcut() {
         return this == OPEN_SELECTED || this == OPEN_SELECTED_SURFACE_FACE
             || this == OPEN_SELECTED_PRECISION
-            || this == RELOCATE_ENTITY || this == PLACE_PAIRING_ENDPOINT
+            || this == RELOCATE_ENTITY || this == PLACE_PAIRING_ENDPOINT;
+    }
+
+    public boolean isExclusiveKeyboardShortcut() {
+        return isShotShortcut()
             || this == TOGGLE_FUNCTION_MODE || this == CYCLE_PLACEMENT_MODE
             || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE
             || this == ADJUST_SURFACE_RANGE;

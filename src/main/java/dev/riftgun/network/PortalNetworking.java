@@ -5,6 +5,7 @@ import dev.riftgun.api.RiftGunDimensionLabels;
 import dev.riftgun.api.RiftResourceId;
 import dev.riftgun.core.network.RiftNetwork;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalClientSync;
 import dev.riftgun.service.RandomRiftManager;
@@ -31,7 +32,7 @@ import dev.riftgun.core.config.RiftConfigs;
 
 public final class PortalNetworking {
     private static Consumer<CompoundTag> clientContextWriter = ignored -> {};
-    private static Consumer<CompoundTag> clientRequestListener = ignored -> {};
+    private static BiConsumer<PortalAction, CompoundTag> clientRequestListener = (action, request) -> {};
 
     public static void installClientSyncAdapter() {
         PortalClientSync.install(new PortalClientSync.Adapter() {
@@ -59,7 +60,7 @@ public final class PortalNetworking {
         writer.accept(tag);
         clientContextWriter.accept(tag);
         RiftNetwork.sendToServer(new PortalRequestPayload(tag));
-        clientRequestListener.accept(tag);
+        clientRequestListener.accept(action, tag);
     }
 
     public static void sendShortcutRequest(PortalAction action) {
@@ -78,7 +79,7 @@ public final class PortalNetworking {
     }
 
     /** Client-local feedback after dispatch; never waits for a server acknowledgement. */
-    public static void setClientRequestListener(Consumer<CompoundTag> listener) {
+    public static void setClientRequestListener(BiConsumer<PortalAction, CompoundTag> listener) {
         clientRequestListener = listener;
     }
 

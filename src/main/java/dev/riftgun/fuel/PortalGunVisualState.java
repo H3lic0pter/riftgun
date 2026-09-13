@@ -98,13 +98,13 @@ public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuel
     }
 
     private static PortalGunVisualState derive(ItemStack gun) {
-        PortalGunTank tank = new PortalGunTank(gun);
+        var capabilities = PortalGunCapabilities.resolve(gun, PortalGunModuleSettings.DEFAULT_SMART_DISTANCE);
+        PortalGunTank tank = new PortalGunTank(gun, capabilities.nominalCapacity());
         var fluid = tank.getFluid();
         int tint = fluid.isEmpty() ? 0 : liquidTintIndex(fluid.getAmount(), tank.nominalCapacity());
         int rgb = PortalFuelProfiles.resolve(fluid.getFluid())
             .map(PortalFuelProfile::rgb).orElse(PortalFuelProfiles.DIMENSIONAL_RGB);
-        boolean pairingMode = PortalGunCapabilities.resolve(gun,
-            PortalGunModuleSettings.DEFAULT_SMART_DISTANCE).functionMode() == PortalFunctionMode.PORTAL_PAIRING;
+        boolean pairingMode = capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING;
         return new PortalGunVisualState(tint, PortalFuelManager.hasInfiniteFuel(gun), rgb, pairingMode);
     }
 }

@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import dev.riftgun.core.config.GunRecoilConfig;
 import dev.riftgun.core.config.GunShotAnimation;
 import dev.riftgun.fuel.PortalGunMode;
+import dev.riftgun.network.PortalAction;
 import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.service.PortalGunIdentity;
 import net.minecraft.world.item.ItemStack;
@@ -85,7 +86,7 @@ final class PortalGunHandAnimationTest {
              var identities = mockStatic(PortalGunIdentity.class)) {
             for (HumanoidArm arm : HumanoidArm.values()) {
                 var animation = new PortalGunHandAnimation.HandAnimation();
-                animation.fire(gun, 0L, true, 0);
+                animation.fire(gun, 0L, true, 0, GunShotAnimation.RECOIL, GunRecoilConfig.defaults());
                 assertTrue(animation.matches(gun));
                 PoseStack recoilPose = new PoseStack();
                 assertTrue(animation.apply(recoilPose, arm, 0.8F, 35_000_000L, GunShotAnimation.RECOIL));
@@ -113,12 +114,55 @@ final class PortalGunHandAnimationTest {
     }
 
     @Test
+    void handStateUsesExplicitModeAndRecoilParameters() {
+        var parameters = new GunRecoilConfig(50, 300, 1.0, 0.2, 0.0, 200);
+        ItemStack gun = mock(ItemStack.class);
+        when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+        try (var modes = mockStatic(PortalGunMode.class);
+             var identities = mockStatic(PortalGunIdentity.class)) {
+            var animation = new PortalGunHandAnimation.HandAnimation();
+            animation.fire(gun, 0L, true, 0, GunShotAnimation.RECOIL, parameters);
+            PoseStack poses = new PoseStack();
+            assertTrue(animation.apply(poses, HumanoidArm.RIGHT, 0.0F, 50_000_000L, GunShotAnimation.RECOIL));
+            assertEquals(-0.52F, poses.last().pose().m32(), 0.00001F);
+            animation.fire(gun, 60_000_000L, true, 1, GunShotAnimation.OFF, parameters);
+            PoseStack stopped = new PoseStack();
+            assertTrue(animation.apply(stopped, HumanoidArm.RIGHT, 0.0F, 110_000_000L, GunShotAnimation.RECOIL));
+            assertEquals(-0.72F, stopped.last().pose().m32(), 0.00001F);
+        }
+    }
+
+    @Test
+    void onlyDispatchedShotShortcutsSwing() throws ReflectiveOperationException {
+        try (var scene = new ShotScene();
+             var network = mockStatic(dev.riftgun.core.network.RiftNetwork.class)) {
+            scene.holdGun(net.minecraft.world.InteractionHand.MAIN_HAND);
+            when(scene.config.gunAnimation()).thenReturn(GunShotAnimation.OFF);
+            var shots = java.util.EnumSet.of(PortalAction.OPEN_SELECTED, PortalAction.OPEN_SELECTED_SURFACE_FACE,
+                PortalAction.OPEN_SELECTED_PRECISION, PortalAction.RELOCATE_ENTITY, PortalAction.PLACE_PAIRING_ENDPOINT);
+            dev.riftgun.network.PortalNetworking.setClientRequestListener(PortalGunHandAnimation::onRequest);
+            try {
+                int expected = 0;
+                for (var action : PortalAction.values()) {
+                    dev.riftgun.network.PortalNetworking.sendRequest(action);
+                    verify(scene.player, org.mockito.Mockito.times(expected)).swing(scene.hand);
+                    dev.riftgun.network.PortalNetworking.sendShortcutRequest(action);
+                    if (shots.contains(action)) expected++;
+                    verify(scene.player, org.mockito.Mockito.times(expected)).swing(scene.hand);
+                }
+            } finally {
+                dev.riftgun.network.PortalNetworking.setClientRequestListener((action, request) -> {});
+            }
+        }
+    }
+
+    @Test
     void swingDelegatesToVanillaWithoutResidualRecoilOrEquipCompensation() {
         ItemStack gun = mock(ItemStack.class);
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             var animation = new PortalGunHandAnimation.HandAnimation();
-            animation.fire(gun, 0L, true, 0);
+            animation.fire(gun, 0L, true, 0, GunShotAnimation.RECOIL, GunRecoilConfig.defaults());
             PoseStack poses = new PoseStack();
             var original = new org.joml.Matrix4f(poses.last().pose());
             assertFalse(animation.apply(poses, HumanoidArm.RIGHT, 0.8F, 35_000_000L, GunShotAnimation.SWING));
@@ -158,7 +202,7 @@ final class PortalGunHandAnimationTest {
             for (var mode : GunShotAnimation.values()) {
                 when(config.gunAnimation()).thenReturn(mode);
                 when(minecraft.options.getCameraType()).thenReturn(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
-                PortalGunHandAnimation.onRequest(request);
+                PortalGunHandAnimation.onRequest(PortalAction.OPEN_SELECTED, request);
             }
             verify(player, org.mockito.Mockito.times(GunShotAnimation.values().length))
                 .swing(net.minecraft.world.InteractionHand.MAIN_HAND);
@@ -239,11 +283,11 @@ final class PortalGunHandAnimationTest {
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             var animation = new PortalGunHandAnimation.HandAnimation();
-            animation.fire(gun, 0L, true, 0);
+            animation.fire(gun, 0L, true, 0, GunShotAnimation.RECOIL, GunRecoilConfig.defaults());
             var before = new PoseStack();
             animation.apply(before, HumanoidArm.RIGHT, 0.0F, 80_000_000L, GunShotAnimation.RECOIL);
             animation.release();
-            animation.fire(gun, 80_000_000L, true, 1);
+            animation.fire(gun, 80_000_000L, true, 1, GunShotAnimation.RECOIL, GunRecoilConfig.defaults());
             var after = new PoseStack();
             assertTrue(animation.apply(after, HumanoidArm.RIGHT, 0.0F, 80_000_000L, GunShotAnimation.RECOIL));
             assertTrue(before.last().pose().equals(after.last().pose(), 0.00001F),
@@ -251,7 +295,7 @@ final class PortalGunHandAnimationTest {
             animation.release();
             assertFalse(animation.apply(new PoseStack(), HumanoidArm.RIGHT, 0.0F, 90_000_000L, GunShotAnimation.RECOIL));
             assertFalse(animation.matches(gun), "An actual ordinary interaction discards the old envelope");
-            animation.fire(gun, 100_000_000L, true, 2);
+            animation.fire(gun, 100_000_000L, true, 2, GunShotAnimation.RECOIL, GunRecoilConfig.defaults());
             var fresh = new PoseStack();
             animation.apply(fresh, HumanoidArm.RIGHT, 0.0F, 100_000_000L, GunShotAnimation.RECOIL);
             assertEquals(-0.72F, fresh.last().pose().m32(), 0.00001F);
@@ -265,7 +309,7 @@ final class PortalGunHandAnimationTest {
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             var animation = new PortalGunHandAnimation.HandAnimation();
-            animation.fire(gun, 0L, true, 10);
+            animation.fire(gun, 0L, true, 10, GunShotAnimation.RECOIL, GunRecoilConfig.defaults());
             animation.finishIfSettled(10, false, 0.0F, 0L);
             assertTrue(animation.matches(gun), "The input frame can precede vanilla's swing initialization");
             animation.finishIfSettled(11, false, 0.0F, 35_000_000L);
@@ -287,7 +331,7 @@ final class PortalGunHandAnimationTest {
              var identities = mockStatic(PortalGunIdentity.class)) {
             for (var arm : HumanoidArm.values()) {
                 var animation = new PortalGunHandAnimation.HandAnimation();
-                animation.fire(gun, 0L, true, 0);
+                animation.fire(gun, 0L, true, 0, GunShotAnimation.RECOIL, GunRecoilConfig.defaults());
                 long now = 0L;
                 for (float nativeHeight : new float[] {0.0F, 0.5F, 1.0F, 0.5F, 0.0F}) {
                     var poses = new PoseStack();
@@ -371,7 +415,7 @@ final class PortalGunHandAnimationTest {
             var request = new net.minecraft.nbt.CompoundTag();
             request.putBoolean("KeyboardShortcut", true);
             request.putString("Action", "OPEN_SELECTED");
-            PortalGunHandAnimation.onRequest(request);
+            PortalGunHandAnimation.onRequest(PortalAction.OPEN_SELECTED, request);
         }
 
         boolean render(float swing) {

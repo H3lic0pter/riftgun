@@ -86,8 +86,8 @@ public final class ClientModEvents {
         EntityRenderers.register(RiftContent.PORTAL.get(), PortalRenderer::new);
         EntityRenderers.register(RiftContent.ENTITY_RELOCATION_PORTAL.get(), EntityRelocationPortalRenderer::new);
         PortalNetworking.setClientContextWriter(PortalClientState::writeGunReference);
-        PortalNetworking.setClientRequestListener(request -> {
-            PortalGunHandAnimation.onRequest(request);
+        PortalNetworking.setClientRequestListener((action, request) -> {
+            PortalGunHandAnimation.onRequest(action, request);
             dev.riftgun.client.appearance.SkinRecommendations.onRequest(request);
         });
     }

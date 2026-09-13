@@ -10,7 +10,6 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.client.renderer.block.model.BlockModel;
@@ -207,12 +206,9 @@ final class PortalGunSkinModelValidationTest {
             ResourceLocation.parse("addon:portal_gun_skins/skin.json"), resource(
                 "{\"name\":\"skin.addon.skin\",\"model\":\"" + model
                     + "\",\"renderer\":\"standard\",\"display\":\"flat\"}")));
-        when(resources.listResources(eq("models"), any())).thenAnswer(ignored -> {
-            Map<ResourceLocation, Resource> result = new LinkedHashMap<>();
-            for (var entry : models.entrySet()) {
-                result.put(ResourceLocation.parse(entry.getKey()), resource(entry.getValue()));
-            }
-            return result;
+        when(resources.getResource(any())).thenAnswer(call -> {
+            String json = models.get(call.getArgument(0).toString());
+            return json == null ? java.util.Optional.empty() : java.util.Optional.of(resource(json));
         });
         return resources;
     }

@@ -9,6 +9,7 @@ import dev.riftgun.core.config.GunShotAnimation;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.core.visual.PortalGunRecoil;
 import dev.riftgun.fuel.PortalGunMode;
+import dev.riftgun.network.PortalAction;
 import dev.riftgun.portal.PortalGunItem;
 import dev.riftgun.service.PortalGunIdentity;
 import java.util.UUID;
@@ -51,14 +52,8 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
     }
 
     /** Called only for dispatched open commands, including a committed precision placement. */
-    public static void onRequest(CompoundTag request) {
-        if (!Nbt.getBoolean(request, "KeyboardShortcut")) return;
-        boolean shot = switch (Nbt.getString(request, "Action")) {
-            case "OPEN_SELECTED", "OPEN_SELECTED_SURFACE_FACE", "OPEN_SELECTED_PRECISION",
-                 "RELOCATE_ENTITY", "PLACE_PAIRING_ENDPOINT" -> true;
-            default -> false;
-        };
-        if (!shot) return;
+    public static void onRequest(PortalAction action, CompoundTag request) {
+        if (!Nbt.getBoolean(request, "KeyboardShortcut") || !action.isShotShortcut()) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) return;
         // Match the server's main-hand-first selection; a bucket-mode main gun must not
@@ -103,10 +98,12 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
         if (!validate(minecraft) || minecraft.isPaused()) return;
         ItemStack stack = minecraft.player.getItemInHand(hand);
         if (!isPortalGun(stack)) return;
+        var config = RiftConfigs.client();
         boolean lowerShortcut = !itemUse
             && minecraft.options.getCameraType().isFirstPerson()
-            && RiftConfigs.client().gunAnimation() == GunShotAnimation.LOWER;
-        animation(hand).fire(stack, System.nanoTime(), itemUse || lowerShortcut, minecraft.player.tickCount);
+            && config.gunAnimation() == GunShotAnimation.LOWER;
+        animation(hand).fire(stack, System.nanoTime(), itemUse || lowerShortcut, minecraft.player.tickCount,
+            config.gunAnimation(), config.gunRecoil());
         if (!minecraft.options.getCameraType().isFirstPerson()) animation(hand).recoil.reset();
         // Right-click SUCCESS already swings in Minecraft. Shortcuts need the same
         // native swing and packet explicitly, including in third person.
@@ -194,15 +191,15 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
         private boolean controlsHand;
         private int startedTick;
 
-        void fire(ItemStack current, long now, boolean itemUse, int gameTick) {
+        void fire(ItemStack current, long now, boolean itemUse, int gameTick,
+                  GunShotAnimation mode, GunRecoilConfig parameters) {
             validate(current);
             stack = current;
             id = PortalGunIdentity.existing(current);
             controlsHand = true;
             startedTick = gameTick;
-            var config = RiftConfigs.client();
-            parameters = config.gunRecoil();
-            if (config.gunAnimation() == GunShotAnimation.RECOIL) recoil.fire(now, parameters);
+            this.parameters = parameters;
+            if (mode == GunShotAnimation.RECOIL) recoil.fire(now, parameters);
             else recoil.reset();
             if (itemUse) {
                 itemUsed = true;

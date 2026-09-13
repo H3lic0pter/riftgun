@@ -14,8 +14,13 @@ public final class PortalGunTank extends FluidHandlerItemStack implements Portal
     public static final int WORLD_SOURCE_AMOUNT = 1000;
 
     public PortalGunTank(ItemStack container) {
-        super(PortalGunComponents.FLUID, container,
-            PortalGunCapabilities.resolve(container, PortalGunModuleSettings.DEFAULT_SMART_DISTANCE).nominalCapacity());
+        this(container, PortalGunCapabilities.resolve(container,
+            PortalGunModuleSettings.DEFAULT_SMART_DISTANCE).nominalCapacity());
+    }
+
+    /** Reuses capacity when the caller already resolved this gun's capabilities. */
+    PortalGunTank(ItemStack container, int nominalCapacity) {
+        super(PortalGunComponents.FLUID, container, nominalCapacity);
     }
 
     @Override

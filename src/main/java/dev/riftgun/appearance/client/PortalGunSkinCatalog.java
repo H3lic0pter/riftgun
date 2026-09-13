@@ -7,12 +7,16 @@ import dev.riftgun.appearance.PortalGunSkin;
 import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 import java.io.Reader;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier;
+*///?} else {
+import net.minecraft.resources.ResourceLocation;
+//?}
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.slf4j.Logger;
@@ -43,12 +47,9 @@ public final class PortalGunSkinCatalog {
                     LOGGER.warn("Ignoring invalid portal gun skin {}", id, exception);
                 }
             });
-        Map<String, Resource> models = new HashMap<>();
-        resources.listResources("models", path -> path.getPath().endsWith(".json"))
-            .forEach((location, resource) -> models.put(location.toString(), resource));
         definitions.entrySet().removeIf(entry -> {
             try {
-                validateModel(entry.getValue().model(), models, new HashSet<>(), modelValidator);
+                validateModel(entry.getValue().model(), resources, new HashSet<>(), modelValidator);
                 return false;
             } catch (Exception exception) {
                 failed(entry.getKey(), exception);
@@ -59,7 +60,7 @@ public final class PortalGunSkinCatalog {
         return Map.copyOf(definitions);
     }
 
-    private static void validateModel(String model, Map<String, Resource> models, Set<String> chain,
+    private static void validateModel(String model, ResourceManager resources, Set<String> chain,
                                       Consumer<JsonObject> validator)
             throws java.io.IOException {
         if (!model.contains(":")) model = "minecraft:" + model;
@@ -67,13 +68,18 @@ public final class PortalGunSkinCatalog {
         if (!chain.add(model)) throw new IllegalArgumentException("Cyclic model parent: " + model);
         int colon = model.indexOf(':');
         String file = model.substring(0, colon) + ":models/" + model.substring(colon + 1) + ".json";
-        Resource resource = models.get(file);
-        if (resource == null) throw new IllegalArgumentException("Missing model: " + model);
+//? if >=1.21.11 {
+        /*var location = Identifier.parse(file);
+*///?} else {
+        var location = ResourceLocation.parse(file);
+//?}
+        Resource resource = resources.getResource(location)
+            .orElseThrow(() -> new IllegalArgumentException("Missing model: " + file));
         try (Reader reader = resource.openAsReader()) {
             var json = JsonParser.parseReader(reader).getAsJsonObject();
             validateModelTints(json);
             validator.accept(json);
-            if (json.has("parent")) validateModel(json.get("parent").getAsString(), models, chain, validator);
+            if (json.has("parent")) validateModel(json.get("parent").getAsString(), resources, chain, validator);
         }
     }
 
