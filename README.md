@@ -52,6 +52,36 @@ Destinations support shared groups, pinning, remembered sorting, coordinate entr
 
 ### Portal placement and behavior
 
+First-person firing offers **Off**, **Light recoil**, and **Vanilla swing** in one cycling
+button under **Visual Settings**. Light recoil is the default. Right-click
+and held-gun opening shortcuts respond immediately, without waiting for server confirmation.
+The gun moves back and tilts, returning within 435 ms by default without moving the camera.
+Rapid shots continue from the current pose with a fixed limit. **Off** suppresses both recoil
+and the native shot swing/lowering. Third-person always shows the native swing, including
+to other players, regardless of the first-person selection. Bucket interactions keep their normal feedback.
+
+Tune recoil in the client instance's `config/riftgun-client.toml`. Existing files receive
+the missing defaults automatically. Saving the file uses NeoForge's config reload support;
+the next shot takes the new settings while a shot already playing keeps its captured values.
+The GUI button controls `animation` (`OFF`, `RECOIL`, or `SWING`), replacing the old
+`recoilEnabled` boolean. Older files without `animation` default to `RECOIL`.
+Changing animation mode stops any incompatible recoil immediately.
+
+```toml
+[visuals.gun]
+animation = "RECOIL"
+kickMillis = 35                # Time to reach the peak; 1–1000 ms
+recoveryMillis = 400           # Peak to rest; 1–5000 ms (total = kick + recovery)
+shotStrength = 0.72            # Added strength per shot; 0–1, accumulated strength capped at 1
+maxBackwardOffset = 0.15       # Backward limit in hand-render units; 0–1, not pixels
+maxPitchDegrees = 10.0         # Upward pitch limit; 0–45 degrees
+useEquipRecoveryMillis = 200   # RECOIL lowering suppression; 0–2000 ms, 0 disables it
+```
+
+Single-shot displacement and pitch equal their limits multiplied by `shotStrength`.
+`OFF` suppresses the full use recovery regardless of `useEquipRecoveryMillis`;
+`SWING` keeps vanilla hand motion.
+
 - `SMART` uses surface placement within the configured smart distance and front placement beyond it.
 - `FRONT` creates a floating vertical portal. Looking steeply down or up creates a horizontal top or bottom portal.
 - `REMOTE` projects a fixed floating portal along the view ray and requires the independent Remote Module.

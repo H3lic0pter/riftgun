@@ -1,6 +1,8 @@
 package dev.riftgun.config;
 
 import dev.riftgun.core.config.ClientVisualConfig;
+import dev.riftgun.core.config.GunRecoilConfig;
+import dev.riftgun.core.config.GunShotAnimation;
 import dev.riftgun.core.config.RiftConfigs;
 import java.util.List;
 import java.util.Locale;
@@ -26,7 +28,11 @@ public final class ClientConfig {
             VALUES.endframeRotationReverse.get(),
             VALUES.portalDynamicLightLevel.get(),
             List.copyOf(VALUES.surfaceFaceRadialOrder.get()),
-            VALUES.surfaceFaceRadialOffsetX.get(), VALUES.surfaceFaceRadialOffsetY.get()));
+            VALUES.surfaceFaceRadialOffsetX.get(), VALUES.surfaceFaceRadialOffsetY.get(),
+            VALUES.gunAnimation.get(),
+            new GunRecoilConfig(VALUES.gunKickMillis.get(), VALUES.gunRecoveryMillis.get(),
+                VALUES.gunShotStrength.get(), VALUES.gunMaxBackwardOffset.get(),
+                VALUES.gunMaxPitchDegrees.get(), VALUES.gunUseEquipRecoveryMillis.get())));
     }
 
     public static final class Values {
@@ -41,6 +47,13 @@ public final class ClientConfig {
         public final ModConfigSpec.BooleanValue endframeRotationReverse;
         public final ModConfigSpec.IntValue portalDynamicLightLevel;
         public final ModConfigSpec.BooleanValue rememberGuiScrollPosition;
+        public final ModConfigSpec.EnumValue<GunShotAnimation> gunAnimation;
+        public final ModConfigSpec.IntValue gunKickMillis;
+        public final ModConfigSpec.IntValue gunRecoveryMillis;
+        public final ModConfigSpec.DoubleValue gunShotStrength;
+        public final ModConfigSpec.DoubleValue gunMaxBackwardOffset;
+        public final ModConfigSpec.DoubleValue gunMaxPitchDegrees;
+        public final ModConfigSpec.IntValue gunUseEquipRecoveryMillis;
         public final ModConfigSpec.ConfigValue<List<? extends String>> surfaceFaceRadialOrder;
         public final ModConfigSpec.IntValue surfaceFaceRadialOffsetX;
         public final ModConfigSpec.IntValue surfaceFaceRadialOffsetY;
@@ -49,6 +62,29 @@ public final class ClientConfig {
         public final ModConfigSpec.IntValue maximumMapWaypoints;
 
         private Values(ModConfigSpec.Builder builder) {
+            builder.push("visuals").push("gun");
+            gunAnimation = builder.comment(
+                    "First-person shot animation: OFF, RECOIL, or SWING. Third-person always uses the vanilla swing")
+                .defineEnum("animation", GunShotAnimation.RECOIL);
+            var recoil = GunRecoilConfig.defaults();
+            gunKickMillis = builder.comment("Time to reach the recoil peak, in milliseconds")
+                .defineInRange("kickMillis", recoil.kickMillis(), 1, 1000);
+            gunRecoveryMillis = builder.comment(
+                    "Time to return from the recoil peak to rest, in milliseconds. Total duration = kickMillis + recoveryMillis")
+                .defineInRange("recoveryMillis", recoil.recoveryMillis(), 1, 5000);
+            gunShotStrength = builder.comment(
+                    "Strength added by each shot; accumulated strength is capped at 1.0. A single shot scales both displacement and pitch by this value")
+                .defineInRange("shotStrength", recoil.shotStrength(), 0.0, 1.0);
+            gunMaxBackwardOffset = builder.comment(
+                    "Maximum backward displacement at strength 1.0, in hand-render units (not pixels)")
+                .defineInRange("maxBackwardOffset", recoil.maxBackwardOffset(), 0.0, 1.0);
+            gunMaxPitchDegrees = builder.comment("Maximum upward muzzle tilt at strength 1.0, in degrees")
+                .defineInRange("maxPitchDegrees", recoil.maxPitchDegrees(), 0.0, 45.0);
+            gunUseEquipRecoveryMillis = builder.comment(
+                    "RECOIL mode only: milliseconds to suppress vanilla post-use lowering; 0 disables suppression. OFF always suppresses the full use recovery; SWING uses vanilla motion")
+                .defineInRange("useEquipRecoveryMillis", recoil.useEquipRecoveryMillis(), 0, 2000);
+            builder.pop(2);
+
             portalVisualType = builder.comment("Client-local portal visual type ID")
                 .define("portalVisualType", "riftgun:swirl");
 

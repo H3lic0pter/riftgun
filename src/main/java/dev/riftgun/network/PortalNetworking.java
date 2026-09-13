@@ -31,6 +31,7 @@ import dev.riftgun.core.config.RiftConfigs;
 
 public final class PortalNetworking {
     private static Consumer<CompoundTag> clientContextWriter = ignored -> {};
+    private static Consumer<CompoundTag> clientRequestListener = ignored -> {};
 
     public static void installClientSyncAdapter() {
         PortalClientSync.install(new PortalClientSync.Adapter() {
@@ -58,6 +59,7 @@ public final class PortalNetworking {
         writer.accept(tag);
         clientContextWriter.accept(tag);
         RiftNetwork.sendToServer(new PortalRequestPayload(tag));
+        clientRequestListener.accept(tag);
     }
 
     public static void sendShortcutRequest(PortalAction action) {
@@ -73,6 +75,11 @@ public final class PortalNetworking {
 
     public static void setClientContextWriter(Consumer<CompoundTag> writer) {
         clientContextWriter = writer;
+    }
+
+    /** Client-local feedback after dispatch; never waits for a server acknowledgement. */
+    public static void setClientRequestListener(Consumer<CompoundTag> listener) {
+        clientRequestListener = listener;
     }
 
     public static void sendSnapshot(ServerPlayer player, boolean openScreen) {

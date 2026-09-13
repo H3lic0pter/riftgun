@@ -16,7 +16,9 @@ public record ClientVisualConfig(
     int portalDynamicLightLevel,
     List<String> surfaceFaceRadialOrder,
     int surfaceFaceRadialOffsetX,
-    int surfaceFaceRadialOffsetY
+    int surfaceFaceRadialOffsetY,
+    GunShotAnimation gunAnimation,
+    GunRecoilConfig gunRecoil
 ) {
     public ClientVisualConfig {
         surfaceFaceRadialOrder = List.copyOf(surfaceFaceRadialOrder);
@@ -25,6 +27,7 @@ public record ClientVisualConfig(
     public static ClientVisualConfig defaults() {
         return new ClientVisualConfig("riftgun:swirl", true,
             20.0, 20.0, 2.5, true, true, 20.0, false, 9,
-            List.of("top", "front", "right", "bottom", "back", "left"), 110, 0);
+            List.of("top", "front", "right", "bottom", "back", "left"), 110, 0, GunShotAnimation.RECOIL,
+            GunRecoilConfig.defaults());
     }
 }

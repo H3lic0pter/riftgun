@@ -87,6 +87,13 @@ public final class ClientModEvents {
         EntityRenderers.register(RiftContent.PORTAL.get(), PortalRenderer::new);
         EntityRenderers.register(RiftContent.ENTITY_RELOCATION_PORTAL.get(), EntityRelocationPortalRenderer::new);
         PortalNetworking.setClientContextWriter(PortalClientState::writeGunReference);
+        PortalNetworking.setClientRequestListener(PortalGunHandAnimation::onRequest);
+    }
+
+    @SubscribeEvent
+    public static void registerGunExtension(
+            net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent event) {
+        event.registerItem(new PortalGunHandAnimation(), RiftContent.PORTAL_GUN.get());
     }
 
     @SubscribeEvent

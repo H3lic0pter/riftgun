@@ -628,6 +628,12 @@ public final class PortalConfigScreen extends Screen {
                 false, ignored -> toggleGunBoolean(BooleanSetting.REMOTE_PLACEMENT_PREVIEW));
         } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
+            button(x + 18, y + 100, fieldWidth, 18, gunAnimationLabel(), false, widget -> {
+                ClientConfig.VALUES.gunAnimation.set(ClientConfig.VALUES.gunAnimation.get().next());
+                ClientConfig.publishSnapshot();
+                ClientConfig.SPEC.save();
+                widget.setMessage(gunAnimationLabel());
+            });
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
                 visualAnimationSettingsButton = button(x + fieldWidth - 2, y + 76, 20, 18,
                     Component.empty(), false, ignored -> openSwirlAnimationSettings());
@@ -811,6 +817,15 @@ public final class PortalConfigScreen extends Screen {
         for (VisualWidgetBinding binding : visualOptionWidgets) {
             if (binding.widget() instanceof VisualPeriodSlider slider) slider.refreshFromOption();
         }
+    }
+
+    private static Component gunAnimationLabel() {
+        return Component.translatable("screen.riftgun.gun_animation", Component.translatable(
+            switch (ClientConfig.VALUES.gunAnimation.get()) {
+                case OFF -> "screen.riftgun.gun_animation.off";
+                case RECOIL -> "screen.riftgun.gun_animation.recoil";
+                case SWING -> "screen.riftgun.gun_animation.swing";
+            }));
     }
 
     private Component visualToggleLabel(PortalVisualOption.Toggle option) {
@@ -1294,6 +1309,9 @@ public final class PortalConfigScreen extends Screen {
             }
         } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             label(graphics, "screen.riftgun.portal_visual", x, y + 34);
+            if (!PortalVisualPreferences.selected().options().isEmpty()) {
+                label(graphics, "screen.riftgun.visual.swirl_animation", x, y + 80);
+            }
         } else if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             renderVisualOptionsChrome(graphics, box);
         } else if (session.page().isConfirmation()) {

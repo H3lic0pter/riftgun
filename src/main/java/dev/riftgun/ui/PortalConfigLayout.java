@@ -22,7 +22,7 @@ public final class PortalConfigLayout {
                  ENTITY_RELOCATION_SETTINGS, PORTAL_PAIRING_SETTINGS -> 132;
             case REMOTE_SETTINGS -> 180;
             case ENTITY_TRANSIT_SETTINGS -> 163;
-            case VISUAL_SETTINGS -> 132;
+            case VISUAL_SETTINGS -> 156;
             case SWIRL_ANIMATION_SETTINGS -> 210;
             case SOUND_SETTINGS -> 178;
             case CREATE_GROUP, RENAME_GROUP, CONFIRM_DELETE_DESTINATION, CONFIRM_DELETE_GROUP,

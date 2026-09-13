@@ -1,6 +1,7 @@
 package dev.riftgun.portal;
 
 import dev.riftgun.network.PortalRequestHandler;
+import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.fuel.PortalGunMode;
 import dev.riftgun.fuel.PortalGunCapabilityPolicy;
 import dev.riftgun.fuel.PortalGunFluidInteractions;
@@ -67,6 +68,20 @@ public final class PortalGunItem extends Item {
     }
 
     @Override
+    public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
+        // A fuel/visual snapshot can replace the stack after firing. Keep the same gun steady,
+        // while real slot, gun, bucket-mode and skin changes still use the native equip motion.
+        var identity = PortalGunIdentity.existing(oldStack);
+        if (!slotChanged && newStack.is(this) && identity != null
+            && identity.equals(PortalGunIdentity.existing(newStack))
+            && PortalGunMode.bucketMode(oldStack) == PortalGunMode.bucketMode(newStack)
+            && java.util.Objects.equals(
+                oldStack.get(dev.riftgun.fuel.PortalGunComponents.SKIN),
+                newStack.get(dev.riftgun.fuel.PortalGunComponents.SKIN))) return false;
+        return super.shouldCauseReequipAnimation(oldStack, newStack, slotChanged);
+    }
+
+    @Override
     //? if >=1.21.11 {
     /*public InteractionResult use(Level level, Player player, InteractionHand hand) {
     *///?} else {
@@ -80,6 +95,8 @@ public final class PortalGunItem extends Item {
         //? if >=1.21.11 {
         /*return InteractionResult.SUCCESS;
         *///?} else {
+        // Always synchronize the native swing for third-person observers. The client
+        // hand extension selects the first-person presentation without changing that swing.
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
         //?}
     }
