@@ -18,6 +18,9 @@ public record PortalGunVisualSnapshot(
     public static final int FUEL_ACCENT_TINT = 11;
     /** Untinted model detail shown only while zero-point fuel is active. */
     public static final int ZERO_POINT_MARKER_TINT = 12;
+    /** Skin-defined, always-visible mode color slots occupy 40 through 100, inclusive. */
+    public static final int MODE_FIRST_TINT = 40;
+    public static final int MAX_TINT_INDEX = 100;
     public static final int VARIANT_COUNT = 16;
     public static final int HIDDEN = 0x00000000;
 

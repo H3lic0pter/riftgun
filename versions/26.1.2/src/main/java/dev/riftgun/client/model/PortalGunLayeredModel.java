@@ -6,6 +6,7 @@ import com.mojang.math.Transformation;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.riftgun.fuel.PortalGunVisualState;
+import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,8 @@ import org.jspecify.annotations.Nullable;
  * <p>The canonical model is baked once, then split by tint index into the same variants the
  * 1.21.x line computed in {@code BakedModelWrapper} subclasses. {@link #update} fills the
  * layer's tint slots (tint index 1 is the untinted glass, 2-8 the liquid columns, 9/10 the
- * zero-point core, 11 fuel-colored fixed details, 12 untinted zero-point markers) with the
+ * zero-point core, 11 fuel-colored fixed details, 12 untinted zero-point markers,
+ * 40 through 100 skin-defined mode indicators) with the
  * per-slot ARGB the synchronized state derives; the renderer looks
  * each quad's tint index up in that slot list, where {@code -1} leaves the quad untinted,
  * {@code 0} makes it fully transparent and any other value tints it.
@@ -48,8 +50,24 @@ public record PortalGunLayeredModel(
     List<Supplier<Vector3fc[]>> extents,
     ModelRenderProperties properties,
     Matrix4fc transformation,
-    PortalGunSkinDefinition skin
+    PortalGunSkinDefinition skin,
+    int maxTintIndex
 ) implements ItemModel {
+
+    public PortalGunLayeredModel {
+        if (maxTintIndex < -1 || maxTintIndex > PortalGunVisualSnapshot.MAX_TINT_INDEX) {
+            throw new IllegalArgumentException("Model tint index outside -1.."
+                + PortalGunVisualSnapshot.MAX_TINT_INDEX + ": " + maxTintIndex);
+        }
+    }
+
+    public PortalGunLayeredModel(List<QuadCollection> variants, List<Supplier<Vector3fc[]>> extents,
+                                 ModelRenderProperties properties, Matrix4fc transformation,
+                                 PortalGunSkinDefinition skin) {
+        this(variants, extents, properties, transformation, skin,
+            variants.stream().flatMap(variant -> variant.getAll().stream())
+                .mapToInt(quad -> quad.materialInfo().tintIndex()).max().orElse(-1));
+    }
 
     public PortalGunLayeredModel(List<QuadCollection> variants, List<Supplier<Vector3fc[]>> extents,
                                  ModelRenderProperties properties, Matrix4fc transformation) {
@@ -70,6 +88,9 @@ public record PortalGunLayeredModel(
         output.appendModelIdentityElement(this);
         PortalGunVisualState visual = PortalGunVisualState.current(item);
         int geometryKey = skin.geometryKey(visual.liquidTint(), visual.coreVisible());
+        // GuiItemAtlas reuses icons by model identity, independently of the submitted quads.
+        // Include dynamic geometry and colors so an earlier fuel/mode state cannot freeze the icon.
+        output.appendModelIdentityElement(geometryKey);
         QuadCollection quads = this.variants.get(geometryKey);
         ItemStackRenderState.LayerRenderState layer = output.newLayer();
         if (item.hasFoil()) {
@@ -78,9 +99,11 @@ public record PortalGunLayeredModel(
         }
 
         IntList tintLayers = layer.tintLayers();
-        var snapshot = visual.snapshot();
-        for (int tint = 0; tint <= PortalGunModelLayers.MAX_TINT_INDEX; tint++) {
-            tintLayers.add(snapshot.color(tint));
+        for (int tint = 0; tint <= maxTintIndex; tint++) {
+            int color = skin.color(visual.liquidTint(), visual.coreVisible(), visual.fuelRgb(),
+                visual.pairingMode(), tint);
+            tintLayers.add(color);
+            output.appendModelIdentityElement(color);
         }
 
         layer.setExtents(this.extents.get(geometryKey));

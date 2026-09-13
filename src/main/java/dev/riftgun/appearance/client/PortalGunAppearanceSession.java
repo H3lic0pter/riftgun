@@ -61,7 +61,7 @@ public final class PortalGunAppearanceSession {
         preview.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, Nbt.getBoolean(response, "Foil"));
         preview.set(PortalGunComponents.VISUAL_STATE, new PortalGunVisualState(
             Nbt.getInt(response, "LiquidTint"), Nbt.getBoolean(response, "CoreVisible"),
-            Nbt.getInt(response, "FuelRgb")));
+            Nbt.getInt(response, "FuelRgb"), Nbt.getBoolean(response, "PairingMode")));
         PortalGunSkin.set(preview, PortalGunSkin.validId(selection.selected())
             ? selection.selected() : PortalGunSkin.DEFAULT);
         return true;

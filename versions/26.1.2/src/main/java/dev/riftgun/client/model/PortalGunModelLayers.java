@@ -6,7 +6,6 @@ import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 public final class PortalGunModelLayers {
     public static final int VARIANT_COUNT = PortalGunVisualSnapshot.VARIANT_COUNT;
     public static final int INNER_CORE_TINT = PortalGunVisualSnapshot.INNER_CORE_TINT;
-    public static final int MAX_TINT_INDEX = PortalGunVisualSnapshot.ZERO_POINT_MARKER_TINT;
 
     public static boolean includesTint(int geometryKey, int tintIndex) {
         return PortalGunVisualSnapshot.includesTint(geometryKey, tintIndex);

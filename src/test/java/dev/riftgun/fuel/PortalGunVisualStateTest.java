@@ -5,8 +5,41 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
+import io.netty.buffer.Unpooled;
 
 final class PortalGunVisualStateTest {
+    @Test
+    void oldSavedVisualsAreRecomputedToPickUpActualMode() {
+        var legacy = JsonParser.parseString("""
+            {"liquid_tint":4,"core_visible":true,"fuel_rgb":5233522}
+            """);
+        var decoded = PortalGunVisualState.CODEC.parse(JsonOps.INSTANCE, legacy).getOrThrow();
+        assertFalse(decoded.initialized());
+        assertTrue(decoded.coreVisible());
+        assertEquals(5233522, decoded.fuelRgb());
+    }
+
+    @Test
+    void modeRoundTripsThroughPersistenceAndItemSynchronizationWithoutChangingGeometry() {
+        for (boolean pairing : new boolean[] {false, true}) {
+            var state = new PortalGunVisualState(4, true, 0x4FCB72, pairing);
+            var encoded = PortalGunVisualState.CODEC.encodeStart(JsonOps.INSTANCE, state).getOrThrow();
+            assertEquals(state, PortalGunVisualState.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow());
+            var buffer = Unpooled.buffer();
+            try {
+                PortalGunVisualState.STREAM_CODEC.encode(buffer, state);
+                assertEquals(state, PortalGunVisualState.STREAM_CODEC.decode(buffer));
+                assertEquals(0, buffer.readableBytes());
+            } finally {
+                buffer.release();
+            }
+            assertEquals(11, state.geometryKey());
+            assertEquals(11, state.snapshot().geometryKey());
+        }
+    }
+
     @Test
     void encodesEightLiquidStatesAndTwoCoreStates() {
         assertEquals(0, new PortalGunVisualState(0, false, 0).geometryKey());

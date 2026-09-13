@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
 import dev.riftgun.appearance.PortalGunSkin;
+import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 import java.io.Reader;
 import java.util.Collection;
 import java.util.HashMap;
@@ -70,8 +71,26 @@ public final class PortalGunSkinCatalog {
         if (resource == null) throw new IllegalArgumentException("Missing model: " + model);
         try (Reader reader = resource.openAsReader()) {
             var json = JsonParser.parseReader(reader).getAsJsonObject();
+            validateModelTints(json);
             validator.accept(json);
             if (json.has("parent")) validateModel(json.get("parent").getAsString(), models, chain, validator);
+        }
+    }
+
+    private static void validateModelTints(JsonObject model) {
+        if (!model.has("elements")) return;
+        for (var element : model.getAsJsonArray("elements")) {
+            var faces = element.getAsJsonObject().getAsJsonObject("faces");
+            if (faces == null) continue;
+            for (var face : faces.entrySet()) {
+                var value = face.getValue().getAsJsonObject().get("tintindex");
+                if (value == null) continue;
+                int tint = value.getAsBigDecimal().intValueExact();
+                if (tint < -1 || tint > PortalGunVisualSnapshot.MAX_TINT_INDEX) {
+                    throw new IllegalArgumentException("Model tint index outside -1.."
+                        + PortalGunVisualSnapshot.MAX_TINT_INDEX + ": " + tint);
+                }
+            }
         }
     }
 

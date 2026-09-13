@@ -79,9 +79,9 @@ final class PortalGunModelLayersTest {
                 }
             }));
 
-        assertEquals(226, counts[0], "empty gun should contain only fixed model faces");
-        assertEquals(232, counts[1], "one liquid level adds one six-face cuboid");
-        assertEquals(238, counts[8], "the two core cuboids add twelve faces");
-        assertEquals(244, counts[15], "liquid and core must not restore hidden levels");
+        assertEquals(212, counts[0], "empty gun should contain only fixed model faces");
+        assertEquals(218, counts[1], "one liquid level adds one six-face cuboid");
+        assertEquals(224, counts[8], "the two core cuboids add twelve faces");
+        assertEquals(230, counts[15], "liquid and core must not restore hidden levels");
     }
 }

@@ -8,6 +8,23 @@ import org.junit.jupiter.api.Test;
 
 final class PortalGunVisualSnapshotTest {
     @Test
+    void modeSlotsStayVisibleAndLeavePaletteSelectionToTheSkin() {
+        for (int liquid : new int[] {0, 2, 3, 4, 5, 6, 7, 8}) {
+            for (boolean core : new boolean[] {false, true}) {
+                for (int fuel : new int[] {0, 0xFFFFFF, 0x4FCB72}) {
+                    var snapshot = PortalGunVisualSnapshot.create(liquid, core, fuel);
+                    assertEquals(-1, snapshot.color(40));
+                    assertEquals(-1, snapshot.color(41));
+                    assertTrue(snapshot.includesTint(40));
+                    assertTrue(snapshot.includesTint(41));
+                    assertTrue(PortalGunVisualSnapshot.includesTint(snapshot.geometryKey(), 40));
+                    assertTrue(PortalGunVisualSnapshot.includesTint(snapshot.geometryKey(), 41));
+                }
+            }
+        }
+    }
+
+    @Test
     void encodesLayersColorsAndGeometryWithoutRendererTypes() {
         PortalGunVisualSnapshot snapshot = PortalGunVisualSnapshot.create(4, true, 0x4FCB72);
 

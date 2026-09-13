@@ -2,6 +2,7 @@ package dev.riftgun.module;
 
 import com.mojang.serialization.Codec;
 import dev.riftgun.fuel.PortalGunComponents;
+import dev.riftgun.fuel.PortalGunVisualState;
 import dev.riftgun.portal.PortalOpenDuration;
 import dev.riftgun.pairing.PortalPairingSettings;
 import dev.riftgun.relocation.EntityRelocationSettings;
@@ -64,7 +65,11 @@ public record PortalGunModuleSettings(
     }
 
     public void save(ItemStack gun) {
+        PortalGunModuleSettings previous = gun.get(PortalGunComponents.MODULE_SETTINGS);
         gun.set(PortalGunComponents.MODULE_SETTINGS, this);
+        if (previous == null || previous.portalPairing().functionMode() != portalPairing.functionMode()) {
+            PortalGunVisualState.refresh(gun);
+        }
     }
 
     public int smartDistance() {

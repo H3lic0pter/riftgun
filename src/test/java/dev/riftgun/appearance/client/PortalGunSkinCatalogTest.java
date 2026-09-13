@@ -24,6 +24,23 @@ final class PortalGunSkinCatalogTest {
     }
 
     @Test
+    void modelTintLimitAlsoAppliesToParentsWithoutAPalette() throws Exception {
+        for (String tint : new String[] {"-1", "40", "41", "100", "101", "1000000", "2147483647", "2147483648", "100.5"}) {
+            ResourceManager resources = mock(ResourceManager.class);
+            when(resources.listResources(eq("portal_gun_skins"), any())).thenAnswer(ignored -> Map.of(
+                id("addon:portal_gun_skins/flat.json"), resource(description("addon:item/flat"))));
+            when(resources.listResources(eq("models"), any())).thenAnswer(ignored -> Map.of(
+                id("addon:models/item/flat.json"), resource("{\"parent\":\"addon:item/base\"}"),
+                id("addon:models/item/base.json"), resource("{\"elements\":[{\"faces\":{\"north\":{\"tintindex\":"
+                    + tint + "}}}]}")));
+            var loaded = PortalGunSkinCatalog.load(resources);
+            boolean valid = java.util.Set.of("-1", "40", "41", "100").contains(tint);
+            assertEquals(valid, loaded.containsKey("addon:flat"), tint);
+            assertTrue(loaded.containsKey(PortalGunSkin.DEFAULT));
+        }
+    }
+
+    @Test
     void unknownIdentityFallsBackWithoutBeingAddedAndRecoversAfterReload() {
         reset();
         assertEquals(PortalGunSkinDefinition.DEFAULT, PortalGunSkinCatalog.resolve("addon:flat"));

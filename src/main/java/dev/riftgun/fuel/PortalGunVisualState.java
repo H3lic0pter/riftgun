@@ -2,14 +2,18 @@ package dev.riftgun.fuel;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.riftgun.module.PortalGunCapabilities;
+import dev.riftgun.module.PortalGunModuleSettings;
+import dev.riftgun.pairing.PortalFunctionMode;
 import io.netty.buffer.ByteBuf;
+import java.util.Optional;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 import dev.riftgun.core.visual.PortalGunVisualSnapshot;
 
 /** Synchronized, derived state used by the Portal Gun item renderer. */
-public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuelRgb) {
+public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuelRgb, boolean pairingMode) {
     public static final int UNINITIALIZED_TINT = -1;
     public static final PortalGunVisualState UNINITIALIZED =
         new PortalGunVisualState(UNINITIALIZED_TINT, false, PortalFuelProfiles.DIMENSIONAL_RGB);
@@ -19,14 +23,24 @@ public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuel
         Codec.BOOL.optionalFieldOf("core_visible", false)
             .forGetter(PortalGunVisualState::coreVisible),
         Codec.INT.optionalFieldOf("fuel_rgb", PortalFuelProfiles.DIMENSIONAL_RGB)
-            .forGetter(PortalGunVisualState::fuelRgb)
-    ).apply(instance, PortalGunVisualState::new));
+            .forGetter(PortalGunVisualState::fuelRgb),
+        Codec.BOOL.optionalFieldOf("pairing_mode")
+            .forGetter(state -> Optional.of(state.pairingMode()))
+    ).apply(instance, (liquidTint, coreVisible, fuelRgb, pairingMode) ->
+        // Older saved snapshots lack mode; derive once from the actual gun on first use.
+        new PortalGunVisualState(pairingMode.isPresent() ? liquidTint : UNINITIALIZED_TINT,
+            coreVisible, fuelRgb, pairingMode.orElse(false))));
     public static final StreamCodec<ByteBuf, PortalGunVisualState> STREAM_CODEC = StreamCodec.composite(
         ByteBufCodecs.VAR_INT, PortalGunVisualState::liquidTint,
         ByteBufCodecs.BOOL, PortalGunVisualState::coreVisible,
         ByteBufCodecs.VAR_INT, PortalGunVisualState::fuelRgb,
+        ByteBufCodecs.BOOL, PortalGunVisualState::pairingMode,
         PortalGunVisualState::new
     );
+
+    public PortalGunVisualState(int liquidTint, boolean coreVisible, int fuelRgb) {
+        this(liquidTint, coreVisible, fuelRgb, false);
+    }
 
     public PortalGunVisualState {
         if (liquidTint != UNINITIALIZED_TINT && liquidTint != 0
@@ -89,6 +103,8 @@ public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuel
         int tint = fluid.isEmpty() ? 0 : liquidTintIndex(fluid.getAmount(), tank.nominalCapacity());
         int rgb = PortalFuelProfiles.resolve(fluid.getFluid())
             .map(PortalFuelProfile::rgb).orElse(PortalFuelProfiles.DIMENSIONAL_RGB);
-        return new PortalGunVisualState(tint, PortalFuelManager.hasInfiniteFuel(gun), rgb);
+        boolean pairingMode = PortalGunCapabilities.resolve(gun,
+            PortalGunModuleSettings.DEFAULT_SMART_DISTANCE).functionMode() == PortalFunctionMode.PORTAL_PAIRING;
+        return new PortalGunVisualState(tint, PortalFuelManager.hasInfiniteFuel(gun), rgb, pairingMode);
     }
 }

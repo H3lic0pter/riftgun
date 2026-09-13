@@ -5,6 +5,10 @@
   "display": "3d",
   "dynamic": {
     "fluid": true,
-    "zero_point": true
+    "zero_point": true,
+    "mode_colors": {
+      "40": { "coordinate": "#680A1C", "pairing": "#806515" },
+      "41": { "coordinate": "#F85B5B", "pairing": "#FFD45A" }
+    }
   }
 }

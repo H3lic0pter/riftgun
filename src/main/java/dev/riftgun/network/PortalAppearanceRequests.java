@@ -38,6 +38,7 @@ public final class PortalAppearanceRequests {
             response.putInt("LiquidTint", visual.liquidTint());
             response.putBoolean("CoreVisible", visual.coreVisible());
             response.putInt("FuelRgb", visual.fuelRgb());
+            response.putBoolean("PairingMode", visual.pairingMode());
         }
         response.putString("Error", error);
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(response));

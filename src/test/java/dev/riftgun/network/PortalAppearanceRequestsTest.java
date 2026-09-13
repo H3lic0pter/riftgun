@@ -76,7 +76,7 @@ final class PortalAppearanceRequestsTest {
             storedSkin = call.getArgument(1);
             return null;
         });
-        var visual = new PortalGunVisualState(4, true, 0x123456);
+        var visual = new PortalGunVisualState(4, true, 0x123456, true);
         boundary(PortalGunVisualState.class).when(() -> PortalGunVisualState.current(target))
             .thenReturn(visual);
         boundary(RiftNetwork.class).when(() -> RiftNetwork.sendToPlayer(eq(player), any(PortalResponsePayload.class)))
@@ -177,6 +177,7 @@ final class PortalAppearanceRequestsTest {
         assertEquals(4, Nbt.getInt(response, "LiquidTint"));
         assertTrue(Nbt.getBoolean(response, "CoreVisible"));
         assertEquals(0x123456, Nbt.getInt(response, "FuelRgb"));
+        assertTrue(Nbt.getBoolean(response, "PairingMode"));
         assertEquals(foil, Nbt.getBoolean(response, "Foil"));
         skins.verify(() -> PortalGunSkin.set(any(), anyString()), never());
         verify(target).hasFoil();
