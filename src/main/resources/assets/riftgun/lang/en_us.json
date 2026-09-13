@@ -1,8 +1,9 @@
 {
   "screen.riftgun.gun_animation": "First-person shot: %s",
-  "screen.riftgun.gun_animation.swing": "Vanilla swing",
+  "screen.riftgun.gun_animation.swing": "Classic swing",
   "screen.riftgun.gun_animation.recoil": "Light recoil",
   "screen.riftgun.gun_animation.off": "Off",
+  "screen.riftgun.gun_animation.lower": "Dip",
   "skin.riftgun.default": "Original",
   "screen.riftgun.appearance": "Appearance",
   "screen.riftgun.appearance.current": "(Applied)",

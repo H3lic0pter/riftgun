@@ -103,11 +103,17 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
         if (!validate(minecraft) || minecraft.isPaused()) return;
         ItemStack stack = minecraft.player.getItemInHand(hand);
         if (!isPortalGun(stack)) return;
-        animation(hand).fire(stack, System.nanoTime(), itemUse, minecraft.player.tickCount);
+        boolean lowerShortcut = !itemUse
+            && minecraft.options.getCameraType().isFirstPerson()
+            && RiftConfigs.client().gunAnimation() == GunShotAnimation.LOWER;
+        animation(hand).fire(stack, System.nanoTime(), itemUse || lowerShortcut, minecraft.player.tickCount);
         if (!minecraft.options.getCameraType().isFirstPerson()) animation(hand).recoil.reset();
         // Right-click SUCCESS already swings in Minecraft. Shortcuts need the same
         // native swing and packet explicitly, including in third person.
         if (!itemUse) minecraft.player.swing(hand);
+        // Mouse use already calls itemUsed in Minecraft. Reuse that native
+        // lowering/recovery for shortcuts instead of adding another animation curve.
+        if (lowerShortcut) minecraft.gameRenderer.itemInHandRenderer.itemUsed(hand);
     }
 
     private static boolean validate(Minecraft minecraft) {
@@ -234,7 +240,8 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
             // OFF must remain still through the entire vanilla recovery, even at low
             // tick rates. A fixed timeout can expire while the hand is still lowered.
             boolean suppressUseEquip = itemUsed && (mode == GunShotAnimation.OFF
-                || now - itemUsedAt < parameters.useEquipRecoveryMillis() * 1_000_000L);
+                || (mode == GunShotAnimation.RECOIL
+                    && now - itemUsedAt < parameters.useEquipRecoveryMillis() * 1_000_000L));
             applyPose(poses, arm, equipProcess, strength, suppressUseEquip, parameters);
             float x = arm == HumanoidArm.RIGHT ? HAND_X : -HAND_X;
             poses.translate(x, HAND_Y - equipProcess * EQUIP_DROP, HAND_Z);

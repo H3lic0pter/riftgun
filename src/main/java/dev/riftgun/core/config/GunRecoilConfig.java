@@ -10,6 +10,6 @@ public record GunRecoilConfig(
     int useEquipRecoveryMillis
 ) {
     public static GunRecoilConfig defaults() {
-        return new GunRecoilConfig(35, 400, 0.72, 0.15, 10.0, 200);
+        return new GunRecoilConfig(35, 400, 0.72, 0.15, 15.0, 200);
     }
 }

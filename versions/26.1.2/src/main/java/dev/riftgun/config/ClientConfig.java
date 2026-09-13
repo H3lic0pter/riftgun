@@ -64,7 +64,7 @@ public final class ClientConfig {
         private Values(ModConfigSpec.Builder builder) {
             builder.push("visuals").push("gun");
             gunAnimation = builder.comment(
-                    "First-person shot animation: OFF, RECOIL, or SWING. Third-person always uses the vanilla swing")
+                    "First-person shot animation: OFF, RECOIL, SWING, or LOWER (vanilla lowering and recovery without swinging). Third-person always uses the vanilla swing")
                 .defineEnum("animation", GunShotAnimation.RECOIL);
             var recoil = GunRecoilConfig.defaults();
             gunKickMillis = builder.comment("Time to reach the recoil peak, in milliseconds")

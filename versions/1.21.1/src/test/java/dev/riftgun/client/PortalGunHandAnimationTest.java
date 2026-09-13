@@ -158,7 +158,8 @@ final class PortalGunHandAnimationTest {
                 when(minecraft.options.getCameraType()).thenReturn(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
                 PortalGunHandAnimation.onRequest(request);
             }
-            verify(player, org.mockito.Mockito.times(3)).swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+            verify(player, org.mockito.Mockito.times(GunShotAnimation.values().length))
+                .swing(net.minecraft.world.InteractionHand.MAIN_HAND);
             when(config.gunAnimation()).thenReturn(GunShotAnimation.OFF);
             when(minecraft.options.getCameraType()).thenReturn(net.minecraft.client.CameraType.FIRST_PERSON);
             PoseStack poses = new PoseStack();
@@ -187,7 +188,8 @@ final class PortalGunHandAnimationTest {
                 when(scene.player.isUsingItem()).thenReturn(true);
                 when(scene.player.getUsedItemHand()).thenReturn(hand == net.minecraft.world.InteractionHand.MAIN_HAND
                     ? net.minecraft.world.InteractionHand.OFF_HAND : net.minecraft.world.InteractionHand.MAIN_HAND);
-                for (var mode : new GunShotAnimation[] {GunShotAnimation.OFF, GunShotAnimation.RECOIL}) {
+                for (var mode : new GunShotAnimation[] {
+                        GunShotAnimation.OFF, GunShotAnimation.RECOIL, GunShotAnimation.LOWER}) {
                     scene.fire(mode);
                     assertTrue(scene.render(0.7F), "Using the other hand must not release the gun");
                 }
@@ -275,11 +277,57 @@ final class PortalGunHandAnimationTest {
         }
     }
 
+    @Test
+    void lowerFollowsNativeDownAndUpHeightWithoutRecoilOrSwing() {
+        ItemStack gun = mock(ItemStack.class);
+        when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+        try (var modes = mockStatic(PortalGunMode.class);
+             var identities = mockStatic(PortalGunIdentity.class)) {
+            for (var arm : HumanoidArm.values()) {
+                var animation = new PortalGunHandAnimation.HandAnimation();
+                animation.fire(gun, 0L, true, 0);
+                long now = 0L;
+                for (float nativeHeight : new float[] {0.0F, 0.5F, 1.0F, 0.5F, 0.0F}) {
+                    var poses = new PoseStack();
+                    assertTrue(animation.apply(poses, arm, nativeHeight, now, GunShotAnimation.LOWER));
+                    var origin = poses.last().pose().transformPosition(new Vector3f());
+                    assertEquals(arm == HumanoidArm.RIGHT ? 0.56F : -0.56F, origin.x, 0.00001F);
+                    assertEquals(-0.52F - nativeHeight * 0.6F, origin.y, 0.00001F);
+                    assertEquals(-0.72F, origin.z, 0.00001F);
+                    var forward = poses.last().pose().transformDirection(new Vector3f(0.0F, 0.0F, -1.0F));
+                    assertEquals(new Vector3f(0.0F, 0.0F, -1.0F), forward);
+                    now += 50_000_000L;
+                }
+            }
+        }
+    }
+
+    @Test
+    void lowerShortcutsTriggerNativeRecoveryOnceAndMouseUseDoesNotDoubleTrigger()
+            throws ReflectiveOperationException {
+        try (var scene = new ShotScene()) {
+            for (var hand : net.minecraft.world.InteractionHand.values()) {
+                scene.holdGun(hand);
+                for (var mode : GunShotAnimation.values()) scene.fire(mode);
+                verify(scene.itemRenderer).itemUsed(hand);
+                var rightClick = mock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem.class);
+                when(rightClick.getEntity()).thenReturn(scene.player);
+                when(rightClick.getHand()).thenReturn(hand);
+                PortalGunHandAnimation.rightClickItem(rightClick);
+                verify(scene.itemRenderer).itemUsed(hand);
+                assertTrue(scene.render(0.7F), "LOWER replaces the swing while keeping the native height");
+            }
+            org.mockito.Mockito.verifyNoMoreInteractions(scene.itemRenderer);
+        }
+    }
+
     private static final class ShotScene implements AutoCloseable {
         final net.minecraft.client.Minecraft minecraft = mock(net.minecraft.client.Minecraft.class);
         final net.minecraft.client.player.LocalPlayer player = mock(net.minecraft.client.player.LocalPlayer.class);
         final dev.riftgun.core.config.ClientVisualConfig config = mock(dev.riftgun.core.config.ClientVisualConfig.class);
         final ItemStack gun = mock(ItemStack.class);
+        final net.minecraft.client.renderer.ItemInHandRenderer itemRenderer =
+            mock(net.minecraft.client.renderer.ItemInHandRenderer.class);
         final org.mockito.MockedStatic<net.minecraft.client.Minecraft> singletons = mockStatic(net.minecraft.client.Minecraft.class);
         final org.mockito.MockedStatic<dev.riftgun.core.config.RiftConfigs> configs = mockStatic(dev.riftgun.core.config.RiftConfigs.class);
         final org.mockito.MockedStatic<PortalGunMode> modes = mockStatic(PortalGunMode.class);
@@ -292,6 +340,13 @@ final class PortalGunHandAnimationTest {
             var options = net.minecraft.client.Minecraft.class.getField("options");
             options.setAccessible(true);
             options.set(minecraft, mock(net.minecraft.client.Options.class));
+            var gameRenderer = mock(net.minecraft.client.renderer.GameRenderer.class);
+            var itemRendererField = net.minecraft.client.renderer.GameRenderer.class.getField("itemInHandRenderer");
+            itemRendererField.setAccessible(true);
+            itemRendererField.set(gameRenderer, itemRenderer);
+            var gameRendererField = net.minecraft.client.Minecraft.class.getField("gameRenderer");
+            gameRendererField.setAccessible(true);
+            gameRendererField.set(minecraft, gameRenderer);
             when(minecraft.options.getCameraType()).thenReturn(net.minecraft.client.CameraType.FIRST_PERSON);
             when(player.isAlive()).thenReturn(true);
             when(player.getInventory()).thenReturn(mock(net.minecraft.world.entity.player.Inventory.class));

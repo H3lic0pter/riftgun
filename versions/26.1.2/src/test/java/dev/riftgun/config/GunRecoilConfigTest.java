@@ -44,7 +44,7 @@ final class GunRecoilConfigTest {
         assertEquals(GunRecoilConfig.defaults(), RiftConfigs.client().gunRecoil());
         assertEquals(400, RiftConfigs.client().gunRecoil().recoveryMillis());
         assertEquals(0.15, RiftConfigs.client().gunRecoil().maxBackwardOffset());
-        assertEquals(10.0, RiftConfigs.client().gunRecoil().maxPitchDegrees());
+        assertEquals(15.0, RiftConfigs.client().gunRecoil().maxPitchDegrees());
     }
 
     @Test
@@ -76,12 +76,12 @@ final class GunRecoilConfigTest {
     }
 
     @Test
-    void guiCyclesAllThreeStatesAndSavesTheCanonicalSelection() throws ReflectiveOperationException {
+    void guiCyclesAllFourStatesAndSavesTheCanonicalSelection() throws ReflectiveOperationException {
         var config = new TomlParser().parse("");
         load(config);
         assertEquals(GunShotAnimation.RECOIL, RiftConfigs.client().gunAnimation());
         for (var expected : new GunShotAnimation[] {
-                GunShotAnimation.SWING, GunShotAnimation.OFF, GunShotAnimation.RECOIL}) {
+                GunShotAnimation.SWING, GunShotAnimation.LOWER, GunShotAnimation.OFF, GunShotAnimation.RECOIL}) {
             ClientConfig.VALUES.gunAnimation.set(ClientConfig.VALUES.gunAnimation.get().next());
             ClientConfig.publishSnapshot();
             assertEquals(expected, RiftConfigs.client().gunAnimation());
@@ -91,6 +91,10 @@ final class GunRecoilConfigTest {
         ClientConfig.SPEC.afterReload();
         ClientConfig.publishSnapshot();
         assertEquals(GunShotAnimation.OFF, RiftConfigs.client().gunAnimation());
+        config.set("visuals.gun.animation", "LOWER");
+        ClientConfig.SPEC.afterReload();
+        ClientConfig.publishSnapshot();
+        assertEquals(GunShotAnimation.LOWER, RiftConfigs.client().gunAnimation());
     }
 
     @Test

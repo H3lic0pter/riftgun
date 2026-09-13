@@ -1,8 +1,9 @@
 {
   "screen.riftgun.gun_animation": "第一人称开枪动画：%s",
-  "screen.riftgun.gun_animation.swing": "原版甩手",
+  "screen.riftgun.gun_animation.swing": "经典挥动",
   "screen.riftgun.gun_animation.recoil": "轻后坐",
   "screen.riftgun.gun_animation.off": "关闭",
+  "screen.riftgun.gun_animation.lower": "下沉",
   "skin.riftgun.default": "原生",
   "screen.riftgun.appearance": "外观",
   "screen.riftgun.appearance.current": "（已应用）",

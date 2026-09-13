@@ -52,7 +52,7 @@ Destinations support shared groups, pinning, remembered sorting, coordinate entr
 
 ### Portal placement and behavior
 
-First-person firing offers **Off**, **Light recoil**, and **Vanilla swing** in one cycling
+First-person firing offers **Off**, **Light recoil**, **Classic swing**, and **Lower and return** in one cycling
 button under **Visual Settings**. Light recoil is the default. Right-click
 and held-gun opening shortcuts respond immediately, without waiting for server confirmation.
 The gun moves back and tilts, returning within 435 ms by default without moving the camera.
@@ -63,7 +63,7 @@ to other players, regardless of the first-person selection. Bucket interactions 
 Tune recoil in the client instance's `config/riftgun-client.toml`. Existing files receive
 the missing defaults automatically. Saving the file uses NeoForge's config reload support;
 the next shot takes the new settings while a shot already playing keeps its captured values.
-The GUI button controls `animation` (`OFF`, `RECOIL`, or `SWING`), replacing the old
+The GUI button controls `animation` (`OFF`, `RECOIL`, `SWING`, or `LOWER`), replacing the old
 `recoilEnabled` boolean. Older files without `animation` default to `RECOIL`.
 Changing animation mode stops any incompatible recoil immediately.
 
@@ -80,7 +80,9 @@ useEquipRecoveryMillis = 200   # RECOIL lowering suppression; 0–2000 ms, 0 dis
 
 Single-shot displacement and pitch equal their limits multiplied by `shotStrength`.
 `OFF` suppresses the full use recovery regardless of `useEquipRecoveryMillis`;
-`SWING` keeps vanilla hand motion.
+`SWING` keeps vanilla hand motion. `LOWER` uses vanilla's post-use lowering and recovery
+without the swing, for both right-click and opening shortcuts. Its timing follows the
+vanilla hand renderer; recoil tuning does not affect it.
 
 - `SMART` uses surface placement within the configured smart distance and front placement beyond it.
 - `FRONT` creates a floating vertical portal. Looking steeply down or up creates a horizontal top or bottom portal.

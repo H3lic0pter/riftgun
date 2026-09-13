@@ -830,6 +830,7 @@ public final class PortalConfigScreen extends Screen {
                 case OFF -> "screen.riftgun.gun_animation.off";
                 case RECOIL -> "screen.riftgun.gun_animation.recoil";
                 case SWING -> "screen.riftgun.gun_animation.swing";
+                case LOWER -> "screen.riftgun.gun_animation.lower";
             }));
     }
 
