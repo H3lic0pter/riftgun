@@ -1,0 +1,10 @@
+{
+  "name": "skin.riftgun.aperture_ish",
+  "model": "riftgun:item/portal_gun/aperture_ish",
+  "renderer": "layered",
+  "display": "3d",
+  "dynamic": {
+    "fluid": true,
+    "zero_point": true
+  }
+}

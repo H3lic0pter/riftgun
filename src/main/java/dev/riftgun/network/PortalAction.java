@@ -3,6 +3,8 @@ package dev.riftgun.network;
 public enum PortalAction {
     OPEN_GUI,
     OPEN_MODULES,
+    OPEN_APPEARANCE,
+    SET_APPEARANCE,
     CREATE_CURRENT,
     CREATE_COORDINATE,
     CREATE_DIMENSIONAL_COORDINATE,

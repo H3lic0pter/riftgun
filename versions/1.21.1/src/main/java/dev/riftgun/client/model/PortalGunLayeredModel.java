@@ -1,6 +1,7 @@
 package dev.riftgun.client.model;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.riftgun.appearance.client.PortalGunSkinDefinition;
 import dev.riftgun.client.render.PortalRenderFrameState;
 import dev.riftgun.fuel.PortalGunVisualState;
 import java.util.Comparator;
@@ -31,9 +32,16 @@ public final class PortalGunLayeredModel extends BakedModelWrapper<BakedModel> {
     private final BakedModel[] shaderVariants =
         new BakedModel[PortalGunModelLayers.VARIANT_COUNT];
     private final ItemOverrides overrides = new VisualOverrides();
+    private final PortalGunSkinDefinition skin;
 
     public PortalGunLayeredModel(BakedModel originalModel) {
+        this(originalModel, PortalGunSkinDefinition.DEFAULT);
+    }
+
+    public PortalGunLayeredModel(BakedModel originalModel,
+            PortalGunSkinDefinition skin) {
         super(originalModel);
+        this.skin = skin;
         for (int key = 0; key < legacyVariants.length; key++) {
             CachedGeometry geometry = new CachedGeometry(originalModel, key);
             legacyVariants[key] = new LegacyVariant(originalModel, geometry);
@@ -53,7 +61,8 @@ public final class PortalGunLayeredModel extends BakedModelWrapper<BakedModel> {
             BakedModel resolved = originalModel.getOverrides()
                 .resolve(originalModel, stack, level, entity, seed);
             if (resolved != originalModel) return resolved;
-            int geometryKey = PortalGunVisualState.current(stack).geometryKey();
+            var visual = PortalGunVisualState.current(stack);
+            int geometryKey = skin.geometryKey(visual.liquidTint(), visual.coreVisible());
             return PortalRenderFrameState.current().shaderPackActive()
                 ? shaderVariants[geometryKey]
                 : legacyVariants[geometryKey];

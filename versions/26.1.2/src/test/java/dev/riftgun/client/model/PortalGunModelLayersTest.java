@@ -23,6 +23,11 @@ final class PortalGunModelLayersTest {
         assertTrue(PortalGunModelLayers.includesTint(8, 10));
         assertFalse(PortalGunModelLayers.includesTint(8, 2));
         assertTrue(PortalGunModelLayers.includesTint(15, 8));
+        assertTrue(PortalGunModelLayers.includesTint(0, 11));
+        assertTrue(PortalGunModelLayers.includesTint(15, 11));
+        assertFalse(PortalGunModelLayers.includesTint(0, 12));
+        assertTrue(PortalGunModelLayers.includesTint(8, 12));
+        assertTrue(PortalGunModelLayers.includesTint(15, 12));
     }
 
     @Test

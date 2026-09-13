@@ -15,7 +15,16 @@ final class PortalGunVisualSnapshotTest {
         assertTrue(snapshot.includesTint(4));
         assertFalse(snapshot.includesTint(3));
         assertTrue(snapshot.includesTint(9));
+        assertTrue(snapshot.includesTint(PortalGunVisualSnapshot.FUEL_ACCENT_TINT));
+        assertTrue(snapshot.includesTint(PortalGunVisualSnapshot.ZERO_POINT_MARKER_TINT));
         assertEquals(0xFF4FCB72, snapshot.color(4));
+        assertEquals(0xFF4FCB72, snapshot.color(PortalGunVisualSnapshot.FUEL_ACCENT_TINT));
+        assertEquals(-1, snapshot.color(PortalGunVisualSnapshot.ZERO_POINT_MARKER_TINT));
         assertEquals(PortalGunVisualSnapshot.HIDDEN, snapshot.color(3));
+
+        PortalGunVisualSnapshot finite = PortalGunVisualSnapshot.create(4, false, 0x4FCB72);
+        assertFalse(finite.includesTint(PortalGunVisualSnapshot.ZERO_POINT_MARKER_TINT));
+        assertEquals(PortalGunVisualSnapshot.HIDDEN,
+            finite.color(PortalGunVisualSnapshot.ZERO_POINT_MARKER_TINT));
     }
 }

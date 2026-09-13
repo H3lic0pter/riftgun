@@ -1,6 +1,7 @@
 package dev.riftgun.client.model;
 
 import com.google.common.base.Suppliers;
+import dev.riftgun.appearance.client.PortalGunSkinDefinition;
 import com.mojang.math.Transformation;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -37,7 +38,8 @@ import org.jspecify.annotations.Nullable;
  * <p>The canonical model is baked once, then split by tint index into the same variants the
  * 1.21.x line computed in {@code BakedModelWrapper} subclasses. {@link #update} fills the
  * layer's tint slots (tint index 1 is the untinted glass, 2-8 the liquid columns, 9/10 the
- * zero-point core) with the per-slot ARGB the synchronized state derives; the renderer looks
+ * zero-point core, 11 fuel-colored fixed details, 12 untinted zero-point markers) with the
+ * per-slot ARGB the synchronized state derives; the renderer looks
  * each quad's tint index up in that slot list, where {@code -1} leaves the quad untinted,
  * {@code 0} makes it fully transparent and any other value tints it.
  */
@@ -45,8 +47,15 @@ public record PortalGunLayeredModel(
     List<QuadCollection> variants,
     List<Supplier<Vector3fc[]>> extents,
     ModelRenderProperties properties,
-    Matrix4fc transformation
+    Matrix4fc transformation,
+    PortalGunSkinDefinition skin
 ) implements ItemModel {
+
+    public PortalGunLayeredModel(List<QuadCollection> variants, List<Supplier<Vector3fc[]>> extents,
+                                 ModelRenderProperties properties, Matrix4fc transformation) {
+        this(variants, extents, properties, transformation,
+            PortalGunSkinDefinition.DEFAULT);
+    }
 
     @Override
     public void update(
@@ -60,7 +69,7 @@ public record PortalGunLayeredModel(
     ) {
         output.appendModelIdentityElement(this);
         PortalGunVisualState visual = PortalGunVisualState.current(item);
-        int geometryKey = visual.geometryKey();
+        int geometryKey = skin.geometryKey(visual.liquidTint(), visual.coreVisible());
         QuadCollection quads = this.variants.get(geometryKey);
         ItemStackRenderState.LayerRenderState layer = output.newLayer();
         if (item.hasFoil()) {
@@ -70,7 +79,7 @@ public record PortalGunLayeredModel(
 
         IntList tintLayers = layer.tintLayers();
         var snapshot = visual.snapshot();
-        for (int tint = 0; tint <= PortalGunModelLayers.INNER_CORE_TINT; tint++) {
+        for (int tint = 0; tint <= PortalGunModelLayers.MAX_TINT_INDEX; tint++) {
             tintLayers.add(snapshot.color(tint));
         }
 

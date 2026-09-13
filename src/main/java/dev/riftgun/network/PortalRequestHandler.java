@@ -33,6 +33,10 @@ public final class PortalRequestHandler {
     public static void handle(ServerPlayer player, CompoundTag request) {
         PortalAction action = parseAction(request);
         if (action == null) return;
+        if (action == PortalAction.OPEN_APPEARANCE || action == PortalAction.SET_APPEARANCE) {
+            PortalAppearanceRequests.handle(player, request, action == PortalAction.SET_APPEARANCE);
+            return;
+        }
         // Chat sharing is intentionally available to spectators and does not require a Portal Gun.
         if (action == PortalAction.SHARE_DESTINATION_CHAT) {
             if (Nbt.hasUUID(request, "Destination")) {
@@ -292,7 +296,8 @@ public final class PortalRequestHandler {
                 closePortals(player);
                 yield false;
             }
-            case OPEN_GUI, OPEN_MODE_RADIAL, OPEN_MODULES, SET_PRIVACY, SET_PRIVACY_OVERRIDE,
+            case OPEN_GUI, OPEN_MODE_RADIAL, OPEN_MODULES, OPEN_APPEARANCE, SET_APPEARANCE,
+                 SET_PRIVACY, SET_PRIVACY_OVERRIDE,
                  REQUEST_PRIVACY_PLAYERS -> false;
         };
     }

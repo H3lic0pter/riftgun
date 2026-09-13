@@ -666,6 +666,8 @@ public final class PortalConfigScreen extends Screen {
         } else if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             gunSettingsBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> closeModalNow());
+            button(x + 48, actionY, fieldWidth - 30, 19, "screen.riftgun.appearance", false,
+                ignored -> minecraft.setScreen(new PortalGunAppearanceScreen(this)));
         } else if (session.page().isGunSettingPage()) {
             moduleSettingBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToGunSettings());

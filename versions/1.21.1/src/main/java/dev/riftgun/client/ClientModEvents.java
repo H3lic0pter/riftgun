@@ -4,7 +4,6 @@ import dev.riftgun.core.registry.RiftContent;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.riftgun.RiftGun;
-import dev.riftgun.client.model.PortalGunLayeredModel;
 import dev.riftgun.client.render.EntityRelocationPortalRenderer;
 import dev.riftgun.client.render.PortalRenderTypes;
 import dev.riftgun.client.render.PortalRenderer;
@@ -163,9 +162,14 @@ public final class ClientModEvents {
     }
 
     @SubscribeEvent
+    public static void registerSkinModels(ModelEvent.RegisterAdditional event) {
+        dev.riftgun.client.appearance.PortalGunAppearanceModel.register(event);
+    }
+
+    @SubscribeEvent
     public static void modifyBakedModels(ModelEvent.ModifyBakingResult event) {
         event.getModels().computeIfPresent(PORTAL_GUN_MODEL,
-            (ignored, model) -> new PortalGunLayeredModel(model));
+            (ignored, model) -> dev.riftgun.client.appearance.PortalGunAppearanceModel.bake(model, event.getModels()));
     }
 
     @SubscribeEvent

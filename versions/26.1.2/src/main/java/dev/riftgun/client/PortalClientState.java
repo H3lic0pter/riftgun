@@ -24,6 +24,13 @@ public final class PortalClientState {
 
     public static void handle(CompoundTag envelope) {
         String kind = Nbt.getString(envelope, "Kind");
+        if (kind.equals("Appearance")) {
+            if (Minecraft.getInstance().screen
+                instanceof dev.riftgun.client.screen.PortalGunAppearanceScreen screen) {
+                screen.handleResponse(envelope);
+            }
+            return;
+        }
         if (kind.equals("Snapshot")) {
             DimensionLabelState.replace(envelope);
             data = PortalPlayerData.load(Nbt.getCompound(envelope, "Data"));

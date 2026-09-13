@@ -123,6 +123,8 @@ public final class ClientModEvents {
 
     @SubscribeEvent
     public static void registerItemModels(RegisterItemModelsEvent event) {
+        event.register(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "appearance"),
+            dev.riftgun.client.appearance.PortalGunAppearanceModel.Unbaked.MAP_CODEC);
         event.register(
             Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "layered"),
             PortalGunLayeredModel.Unbaked.MAP_CODEC

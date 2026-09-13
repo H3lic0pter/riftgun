@@ -18,6 +18,11 @@ public final class PortalGunComponents {
     public static final DeferredRegister.DataComponents COMPONENTS =
         DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, RiftConstants.MOD_ID);
 
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<String>> SKIN =
+        COMPONENTS.registerComponentType("portal_gun_skin", builder -> builder
+            .persistent(Codec.STRING)
+            .networkSynchronized(ByteBufCodecs.STRING_UTF8));
+
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<SimpleFluidContent>> FLUID =
         COMPONENTS.registerComponentType("portal_gun_fluid", builder -> builder
             .persistent(SimpleFluidContent.CODEC)
