@@ -746,14 +746,14 @@
 		{
 			"name": "status_lamp",
 			"from": [7.62, 10.9, 12.1],
-			"to": [8.38, 10.99, 12.92],
+			"to": [8.38, 11.12, 12.92],
 			"shade": false,
 			"faces": {
-				"north": {"uv": [0, 5.33333, 4.66667, 10.16667], "texture": "#4"},
-				"east": {"uv": [0, 5.33333, 4.66667, 10.16667], "texture": "#4"},
-				"south": {"uv": [0, 5.33333, 4.66667, 10.16667], "texture": "#4"},
-				"west": {"uv": [0, 5.33333, 4.66667, 10.16667], "texture": "#4"},
-				"up": {"uv": [0, 5.33333, 4.66667, 10.16667], "texture": "#4"}
+				"north": {"uv": [0.5, 0.5, 3.5, 3.5], "texture": "#palette", "tintindex": 40},
+				"east": {"uv": [0.5, 0.5, 3.5, 3.5], "texture": "#palette", "tintindex": 40},
+				"south": {"uv": [0.5, 0.5, 3.5, 3.5], "texture": "#palette", "tintindex": 40},
+				"west": {"uv": [0.5, 0.5, 3.5, 3.5], "texture": "#palette", "tintindex": 40},
+				"up": {"uv": [0.5, 0.5, 3.5, 3.5], "texture": "#palette", "tintindex": 40}
 			}
 		},
 		{

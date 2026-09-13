@@ -61,6 +61,23 @@ final class PortalGunSkinModelValidationTest {
     }
 
     @Test
+    void bundledApertureIshStatusLampUsesModeTintSlot() throws Exception {
+        String path = "/assets/riftgun/models/item/portal_gun/aperture_ish.json";
+        try (var stream = PortalGunSkinModelValidationTest.class.getResourceAsStream(path)) {
+            assertNotNull(stream, path);
+            JsonObject model = JsonParser.parseReader(
+                new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+            JsonObject lamp = model.getAsJsonArray("elements").asList().stream()
+                .map(element -> element.getAsJsonObject())
+                .filter(element -> element.has("name")
+                    && element.get("name").getAsString().equals("status_lamp"))
+                .findFirst().orElseThrow();
+            lamp.getAsJsonObject("faces").entrySet().forEach(face ->
+                assertEquals(40, face.getValue().getAsJsonObject().get("tintindex").getAsInt()));
+        }
+    }
+
+    @Test
     void excludesSyntacticallyValidJsonWithInvalidModelElements() {
         ResourceManager resources = resources("addon:item/broken", Map.of(
             "addon:models/item/broken.json", "{\"elements\":\"bad\"}"));

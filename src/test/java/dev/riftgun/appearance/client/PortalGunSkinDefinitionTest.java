@@ -85,6 +85,18 @@ final class PortalGunSkinDefinitionTest {
     }
 
     @Test
+    void bundledApertureIshStatusLampUsesBrightModeColors() throws Exception {
+        try (var stream = getClass().getResourceAsStream(
+                "/assets/riftgun/portal_gun_skins/aperture_ish.json")) {
+            var json = JsonParser.parseReader(
+                new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+            var skin = PortalGunSkinDefinition.parse("riftgun:aperture_ish", json);
+            assertEquals(0xFF8CEBFF, skin.color(0, false, 0, false, 40));
+            assertEquals(0xFFFFB35A, skin.color(0, false, 0, true, 40));
+        }
+    }
+
+    @Test
     void omittedPaletteLeavesTexturesUntintedInBothModes() {
         var skin = PortalGunSkinDefinition.parse("example:icon", description("layered", "3d"));
         for (boolean pairing : new boolean[] {false, true}) {

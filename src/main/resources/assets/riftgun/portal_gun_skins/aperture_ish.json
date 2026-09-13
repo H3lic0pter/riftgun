@@ -5,6 +5,9 @@
   "display": "3d",
   "dynamic": {
     "fluid": true,
-    "zero_point": true
+    "zero_point": true,
+    "mode_colors": {
+      "40": { "coordinate": "#8CEBFF", "pairing": "#FFB35A" }
+    }
   }
 }
