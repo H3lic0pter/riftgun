@@ -696,9 +696,10 @@
 		},
 		{
 			"name": "rift_sigil",
-			"from": [5.775, 21.175, 9.4525],
-			"to": [10.225, 25.625, 9.4675],
+			"from": [5.475, 20.875, 9.4525],
+			"to": [10.475, 25.875, 9.4675],
 			"shade": false,
+			"rotation": {"angle": 0, "axis": "y", "origin": [-0.3, -0.3, 0]},
 			"faces": {
 				"north": {"uv": [0, 0, 16, 16], "texture": "#sigil", "tintindex": 11},
 				"south": {"uv": [0, 0, 16, 16], "texture": "#sigil", "tintindex": 11}
@@ -1101,7 +1102,7 @@
 	"display": {
 		"thirdperson_righthand": {
 			"rotation": [0, -180, 0],
-			"translation": [0, 0.5, 0],
+			"translation": [0, -2.5, 0],
 			"scale": [0.78, 0.78, 0.78]
 		},
 		"thirdperson_lefthand": {
