@@ -35,6 +35,16 @@ public final class PortalSounds {
         fixed("rift_transit", 24.0F);
     private static final DeferredHolder<SoundEvent, SoundEvent> ENDER_TRANSIT =
         fixed("ender_transit", 24.0F);
+    private static final DeferredHolder<SoundEvent, SoundEvent> ARCANE_SHOT =
+        fixed("arcane_shot", 24.0F);
+    private static final DeferredHolder<SoundEvent, SoundEvent> STAR_SHOT =
+        fixed("star_shot", 24.0F);
+    private static final DeferredHolder<SoundEvent, SoundEvent> ARCANE_PORTAL_OPEN =
+        fixed("arcane_portal_open", 32.0F);
+    private static final DeferredHolder<SoundEvent, SoundEvent> ARCANE_PORTAL_CLOSE =
+        fixed("arcane_portal_close", 32.0F);
+    private static final DeferredHolder<SoundEvent, SoundEvent> ARCANE_TRANSIT =
+        fixed("arcane_transit", 24.0F);
     private static boolean suppressClosingSounds;
 
     public static void register(IEventBus modBus) {
@@ -63,6 +73,26 @@ public final class PortalSounds {
 
     static SoundEvent enderTransit() {
         return ENDER_TRANSIT.get();
+    }
+
+    static SoundEvent arcaneShot() {
+        return ARCANE_SHOT.get();
+    }
+
+    static SoundEvent starShot() {
+        return STAR_SHOT.get();
+    }
+
+    static SoundEvent arcanePortalOpen() {
+        return ARCANE_PORTAL_OPEN.get();
+    }
+
+    static SoundEvent arcanePortalClose() {
+        return ARCANE_PORTAL_CLOSE.get();
+    }
+
+    static SoundEvent arcaneTransit() {
+        return ARCANE_TRANSIT.get();
     }
 
     public static void playShot(ServerPlayer player, PortalSoundSnapshot sounds) {

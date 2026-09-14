@@ -30,6 +30,26 @@
       "riftgun:portal/through"
     ]
   },
+  "arcane_shot": {
+    "subtitle": "subtitles.riftgun.arcane_shot",
+    "sounds": ["riftgun:arcane/staff_cast"]
+  },
+  "star_shot": {
+    "subtitle": "subtitles.riftgun.arcane_shot",
+    "sounds": ["riftgun:arcane/star_cast"]
+  },
+  "arcane_portal_open": {
+    "subtitle": "subtitles.riftgun.portal_open",
+    "sounds": ["riftgun:arcane/open"]
+  },
+  "arcane_portal_close": {
+    "subtitle": "subtitles.riftgun.portal_close",
+    "sounds": ["riftgun:arcane/close"]
+  },
+  "arcane_transit": {
+    "subtitle": "subtitles.riftgun.portal_transit",
+    "sounds": ["riftgun:arcane/transit"]
+  },
   "ender_transit": {
     "subtitle": "subtitles.riftgun.portal_transit",
     "sounds": [

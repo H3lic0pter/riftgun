@@ -36,7 +36,7 @@ public final class SkinRecommendationConfig {
         presets = Map.of(
             "riftgun:default", new Preset(builder, "default", "riftgun:rift", "riftgun:rift", "riftgun:rift", "riftgun:swirl", "RECOIL"),
             "riftgun:aperture_ish", new Preset(builder, "aperture_ish", "riftgun:aperture_ish", "riftgun:rift", "riftgun:rift", "riftgun:endframe", "RECOIL"),
-            "riftgun:arcane_rift_staff", new Preset(builder, "arcane_rift_staff", CUSTOM, CUSTOM, CUSTOM, CUSTOM, "SWING"));
+            "riftgun:arcane_rift_staff", new Preset(builder, "arcane_rift_staff", "riftgun:arcane", "riftgun:arcane", "riftgun:arcane", "riftgun:endframe", "SWING"));
         builder.pop(2);
     }
 

@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 final class PortalSoundSettingsTest {
     @Test
     void builtInChoicesAreIndependentPerChannel() {
-        assertEquals(3, PortalSoundRegistry.values(PortalSoundChannel.SHOT).size());
-        assertEquals(2, PortalSoundRegistry.values(PortalSoundChannel.PORTAL).size());
-        assertEquals(3, PortalSoundRegistry.values(PortalSoundChannel.TRANSIT).size());
+        assertEquals(5, PortalSoundRegistry.values(PortalSoundChannel.SHOT).size());
+        assertEquals(3, PortalSoundRegistry.values(PortalSoundChannel.PORTAL).size());
+        assertEquals(4, PortalSoundRegistry.values(PortalSoundChannel.TRANSIT).size());
         assertTrue(PortalSoundRegistry.values(PortalSoundChannel.TRANSIT).stream()
             .anyMatch(choice -> choice.id().equals(PortalSoundRegistry.ENDER_ID)));
         assertFalse(PortalSoundRegistry.values(PortalSoundChannel.SHOT).stream()
@@ -39,7 +39,7 @@ final class PortalSoundSettingsTest {
             PortalSoundRegistry.normalize(PortalSoundChannel.SHOT, missing));
         assertEquals(PortalSoundRegistry.APERTURE_ISH_ID,
             PortalSoundRegistry.cycle(PortalSoundChannel.SHOT, PortalSoundRegistry.RIFT_ID, 1));
-        assertEquals(PortalSoundRegistry.APERTURE_ISH_ID,
+        assertEquals(PortalSoundRegistry.STAR_ID,
             PortalSoundRegistry.cycle(PortalSoundChannel.SHOT, PortalSoundRegistry.NONE_ID, -1));
     }
 
@@ -57,6 +57,22 @@ final class PortalSoundSettingsTest {
     }
 
     @Test
+    void arcaneCanBeSavedIndependentlyInEveryChannel() {
+        PortalSoundSettings settings = PortalSoundSettings.defaults();
+        for (PortalSoundChannel channel : PortalSoundChannel.values()) {
+            settings = settings.withSelection(channel, PortalSoundRegistry.ARCANE_ID);
+            assertEquals(PortalSoundRegistry.ARCANE_ID, settings.selected(channel));
+            org.junit.jupiter.api.Assertions.assertNotNull(
+                PortalSoundRegistry.primaryCue(channel, settings.selected(channel)));
+        }
+        org.junit.jupiter.api.Assertions.assertNotNull(
+            PortalSoundRegistry.closingCue(PortalSoundRegistry.ARCANE_ID));
+        assertEquals(settings, PortalSoundSettings.load(settings.save()));
+        var snapshot = PortalSoundSnapshot.from(settings);
+        assertEquals(snapshot, PortalSoundSnapshot.load(snapshot.save()));
+    }
+
+    @Test
     void legacyTagsUseRiftThemesWithSplashDisabled() {
         PortalSoundSettings defaults = PortalSoundSettings.defaults();
         assertEquals(PortalSoundRegistry.RIFT_ID, defaults.shot());
@@ -65,5 +81,23 @@ final class PortalSoundSettingsTest {
         assertFalse(defaults.splashEnabled());
         assertEquals(defaults, PortalSoundSettings.load(new CompoundTag()));
         assertEquals(PortalSoundSnapshot.defaults(), PortalSoundSnapshot.load(new CompoundTag()));
+    }
+
+    @Test
+    void starsAreAnIndependentShotChoiceWithoutReplacingArcane() {
+        var arcane = new PortalSoundSettings(PortalSoundRegistry.ARCANE_ID,
+            PortalSoundRegistry.ARCANE_ID, PortalSoundRegistry.ARCANE_ID, false);
+        var stars = arcane.withSelection(PortalSoundChannel.SHOT, PortalSoundRegistry.STAR_ID);
+        assertEquals(PortalSoundRegistry.ARCANE_ID, arcane.shot());
+        assertEquals(PortalSoundRegistry.STAR_ID, stars.shot());
+        assertEquals(arcane.portal(), stars.portal());
+        assertEquals(arcane.transit(), stars.transit());
+        assertEquals(stars, PortalSoundSettings.load(stars.save()));
+        assertEquals(PortalSoundRegistry.STAR_ID,
+            PortalSoundSnapshot.load(PortalSoundSnapshot.from(stars).save()).shot());
+        for (var channel : new PortalSoundChannel[] {PortalSoundChannel.PORTAL, PortalSoundChannel.TRANSIT}) {
+            assertFalse(PortalSoundRegistry.values(channel).stream()
+                .anyMatch(choice -> choice.id().equals(PortalSoundRegistry.STAR_ID)));
+        }
     }
 }

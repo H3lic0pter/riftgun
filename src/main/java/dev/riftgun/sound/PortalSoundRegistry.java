@@ -41,6 +41,18 @@ public final class PortalSoundRegistry {
 //?}
 
 //? if >=1.21.11 {
+    /*public static final Identifier ARCANE_ID = id("arcane");
+*///?} else {
+    public static final ResourceLocation ARCANE_ID = id("arcane");
+//?}
+
+//? if >=1.21.11 {
+    /*public static final Identifier STAR_ID = id("star");
+*///?} else {
+    public static final ResourceLocation STAR_ID = id("star");
+//?}
+
+//? if >=1.21.11 {
     /*private static final Map<PortalSoundChannel, LinkedHashMap<Identifier, Definition>> DEFINITIONS =
 *///?} else {
     private static final Map<PortalSoundChannel, LinkedHashMap<ResourceLocation, Definition>> DEFINITIONS =
@@ -70,6 +82,16 @@ public final class PortalSoundRegistry {
         registerTransit(new PortalSoundChoice(ENDER_ID, "screen.riftgun.sound.ender"),
             new PortalSoundCue(PortalSounds::enderTransit,
                 SoundSource.PLAYERS, 0.6F, 1.4F));
+        PortalSoundChoice arcane = new PortalSoundChoice(ARCANE_ID, "screen.riftgun.sound.arcane");
+        registerShot(arcane, new PortalSoundCue(
+            PortalSounds::arcaneShot, SoundSource.PLAYERS, 0.75F, 1.0F));
+        registerPortal(arcane,
+            new PortalSoundCue(PortalSounds::arcanePortalOpen, SoundSource.BLOCKS, 0.70F, 1.0F),
+            new PortalSoundCue(PortalSounds::arcanePortalClose, SoundSource.BLOCKS, 0.65F, 1.0F));
+        registerTransit(arcane, new PortalSoundCue(
+            PortalSounds::arcaneTransit, SoundSource.PLAYERS, 0.65F, 1.0F));
+        registerShot(new PortalSoundChoice(STAR_ID, "screen.riftgun.sound.star"),
+            new PortalSoundCue(PortalSounds::starShot, SoundSource.PLAYERS, 0.75F, 1.0F));
         registerShot(none, null);
         registerPortal(none, null, null);
         registerTransit(none, null);

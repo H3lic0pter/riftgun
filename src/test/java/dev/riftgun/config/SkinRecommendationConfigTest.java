@@ -44,7 +44,7 @@ final class SkinRecommendationConfigTest {
     }
 
     @Test
-    void applyingSkinCopiesEnabledCategoriesAndCustomPreservesGunChoices() throws Exception {
+    void applyingSkinCopiesEnabledCategoriesAndDisabledPreservesGunChoices() throws Exception {
         load(CommentedConfig.inMemory());
         var current = dev.riftgun.appearance.GunPresentation.DEFAULT
             .withVisual("riftgun:classic").withAnimation(GunShotAnimation.LOWER);
@@ -74,7 +74,12 @@ final class SkinRecommendationConfigTest {
         assertTrue(request.contains("Presentation"), "Background search must not detach the appearance session");
         var copied = dev.riftgun.appearance.GunPresentation.load(
             dev.riftgun.core.nbt.Nbt.getCompound(request, "Presentation"));
-        assertEquals(current.withAnimation(GunShotAnimation.SWING), copied);
+        var arcane = new dev.riftgun.sound.PortalSoundSettings(
+            dev.riftgun.sound.PortalSoundRegistry.ARCANE_ID,
+            dev.riftgun.sound.PortalSoundRegistry.ARCANE_ID,
+            dev.riftgun.sound.PortalSoundRegistry.ARCANE_ID, false);
+        assertEquals(current.withAnimation(GunShotAnimation.SWING).withSounds(arcane)
+            .withVisual("riftgun:endframe"), copied);
         for (Category category : Category.values())
             ClientConfig.VALUES.skinRecommendations.enabled(category).set(false);
         dev.riftgun.client.appearance.SkinRecommendations.writeRequest(request);
@@ -114,17 +119,33 @@ final class SkinRecommendationConfigTest {
     }
 
     @Test
-    void staffKeepsCustomVisualAndSoundFields() throws Exception {
+    void staffRecommendsArcaneSoundsAndEndframeVisual() throws Exception {
         load(CommentedConfig.inMemory());
         var recommendations = ClientConfig.VALUES.skinRecommendations;
         recommendations.appliedSkins.get(Category.PORTAL_VISUAL).set("riftgun:arcane_rift_staff");
-        assertEquals("riftgun:classic", recommendations.visual("riftgun:classic"));
+        assertEquals("riftgun:endframe", recommendations.visual("riftgun:classic"));
         var staff = recommendations.presets.get("riftgun:arcane_rift_staff");
-        assertEquals("CUSTOM", staff.shotSound.get());
-        assertEquals("CUSTOM", staff.portalSound.get());
-        assertEquals("CUSTOM", staff.transitSound.get());
+        assertEquals("riftgun:arcane", staff.shotSound.get());
+        assertEquals("riftgun:arcane", staff.portalSound.get());
+        assertEquals("riftgun:arcane", staff.transitSound.get());
         assertEquals("riftgun:aperture_ish", recommendations.presets.get("riftgun:aperture_ish").shotSound.get());
         assertEquals("riftgun:rift", recommendations.presets.get("riftgun:default").transitSound.get());
+    }
+
+    @Test
+    void existingLocalStaffRecommendationsAreNotReplacedByNewDefaults() throws Exception {
+        load(new TomlParser().parse("""
+            [appearance.presets.arcane_rift_staff]
+            shotSound = "CUSTOM"
+            portalSound = "riftgun:none"
+            transitSound = "riftgun:ender"
+            portalVisual = "CUSTOM"
+            """));
+        var staff = ClientConfig.VALUES.skinRecommendations.presets.get("riftgun:arcane_rift_staff");
+        assertEquals("CUSTOM", staff.shotSound.get());
+        assertEquals("riftgun:none", staff.portalSound.get());
+        assertEquals("riftgun:ender", staff.transitSound.get());
+        assertEquals("CUSTOM", staff.portalVisual.get());
     }
 
     @Test
