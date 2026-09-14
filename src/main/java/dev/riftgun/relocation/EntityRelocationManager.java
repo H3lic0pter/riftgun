@@ -37,7 +37,6 @@ import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalPrivacyService;
 import dev.riftgun.service.PortalRequestPurpose;
 import dev.riftgun.service.PortalStoredPlacementValidator;
-import dev.riftgun.network.PortalNetworking;
 import dev.riftgun.sound.PortalSoundSnapshot;
 import dev.riftgun.sound.PortalSounds;
 import java.util.ArrayList;
@@ -82,9 +81,25 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
     public static boolean tryStart(ServerPlayer owner, PortalPlayerData data,
                                    PortalGunLocator.LocatedGun locatedGun, boolean explicit) {
+        return tryStart(owner, data, locatedGun, explicit, false);
+    }
+
+    /** Uses the pairing target for this shot without changing the gun's saved function mode. */
+    public static boolean tryStartFromPairingShortcut(ServerPlayer owner, PortalPlayerData data,
+                                                     PortalGunLocator.LocatedGun locatedGun) {
+        return tryStart(owner, data, locatedGun, true, true);
+    }
+
+    private static boolean tryStart(ServerPlayer owner, PortalPlayerData data,
+                                    PortalGunLocator.LocatedGun locatedGun, boolean explicit,
+                                    boolean pairingShortcut) {
         if (!dev.riftgun.appearance.GunPresentationDefaults.initialize(owner, locatedGun.stack())) return false;
         ItemStack gun = locatedGun.stack();
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, data.settings().smartDistance());
+        if (pairingShortcut && !capabilities.portalPairing()) {
+            message(owner, "message.riftgun.portal_pairing_module_required");
+            return true;
+        }
         if (!capabilities.entityRelocation()) {
             if (explicit) message(owner, "message.riftgun.entity_relocation_module_required");
             return explicit;
@@ -95,7 +110,9 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             if (explicit) message(owner, "message.riftgun.entity_relocation_target_required");
             return explicit;
         }
-        return start(owner, data, locatedGun, capabilities, target, specialEntities);
+        PortalFunctionMode functionMode = pairingShortcut
+            ? PortalFunctionMode.PORTAL_PAIRING : capabilities.functionMode();
+        return start(owner, data, locatedGun, capabilities, functionMode, target, specialEntities);
     }
 
     public static boolean hasEligibleTarget(ServerPlayer owner, PortalPlayerData data, ItemStack gun) {
@@ -106,7 +123,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
     private static boolean start(ServerPlayer owner, PortalPlayerData data,
                                  PortalGunLocator.LocatedGun locatedGun,
-                                 PortalGunCapabilities capabilities, Entity target,
+                                 PortalGunCapabilities capabilities, PortalFunctionMode functionMode, Entity target,
                                  SpecialEntityTransitPolicy<EntityType<?>> specialEntities) {
 //? if >=1.21.11 {
         /*MinecraftServer server = owner.level().getServer();
@@ -121,9 +138,9 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         ItemStack gun = locatedGun.stack();
         UUID gunId = PortalGunIdentity.ensure(gun);
         ResolvedDestination destination = resolveDestination(
-            server, data, capabilities.functionMode(), owner, locatedGun);
+            server, data, functionMode, owner, locatedGun);
         if (destination == null) {
-            message(owner, capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING
+            message(owner, functionMode == PortalFunctionMode.PORTAL_PAIRING
                 ? "message.riftgun.pairing_target_required"
                 : "message.riftgun.no_destination_selected");
             return true;
@@ -781,7 +798,6 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             PortalSounds.playTransit(targetLevel, moved.position(), tx.sounds());
         }
         registry().complete(tx.reservation(), now);
-        resetFixedTarget(server, tx.destination());
         if (partial) {
             ServerPlayer owner = server.getPlayerList().getPlayer(tx.ownerId());
             if (owner != null) message(owner, "message.riftgun.entity_relocation_tree_incomplete");
@@ -1070,21 +1086,6 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         UUID destinationId = data.selectedDestinationId();
         Destination destination = destinationId == null ? null : data.destination(destinationId).orElse(null);
         return destination == null ? null : ResolvedDestination.saved(destination);
-    }
-
-    private static void resetFixedTarget(MinecraftServer server, ResolvedDestination destination) {
-        if (destination.fixedGunReference() == null || destination.fixedOwnerId() == null) return;
-        ServerPlayer owner = server.getPlayerList().getPlayer(destination.fixedOwnerId());
-        PortalGunLocator.LocatedGun gun = owner == null ? null
-            : PortalGunLocator.resolveReference(owner, destination.fixedGunReference()).orElse(null);
-        if (gun == null) return;
-        UUID gunId = PortalGunIdentity.ensure(gun.stack());
-        PortalPairingPendingEndpoint target = PortalPairingPendingEndpoints.getValid(
-            gun.stack(), owner.getUUID(), gunId, server.overworld().getGameTime());
-        if (target != null && target.entityTarget()) {
-            PortalPairingPendingEndpoints.save(gun.stack(), target.restart(server.overworld().getGameTime()));
-            PortalNetworking.sendGunSnapshot(owner, PortalDataStore.load(owner), gun);
-        }
     }
 
     private static Vec3 feetCenter(Entity target) {

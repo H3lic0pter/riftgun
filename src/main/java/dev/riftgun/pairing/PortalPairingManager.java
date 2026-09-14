@@ -22,7 +22,6 @@ import dev.riftgun.service.PortalPlacementCapture;
 import dev.riftgun.service.PortalPlacementConstraints;
 import dev.riftgun.service.PortalStoredPlacementValidator;
 import dev.riftgun.sound.PortalSoundSnapshot;
-import dev.riftgun.sound.PortalSounds;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
@@ -247,15 +246,9 @@ public final class PortalPairingManager {
         if (!fuelPlan.successful()) return fail(player, fuelPlan.errorKey());
         MinecraftServer server = server(player);
         if (server == null) return fail(player, "message.riftgun.portal_open_failed");
-        UUID gunId = PortalGunIdentity.ensure(locatedGun.stack());
-        PortalRuntimeOptions options = runtimeOptions(data, capabilities, locatedGun);
         long now = server.overworld().getGameTime();
         savePending(player, data, server, locatedGun, placement.placement(),
-            PortalPairingEndpoint.ENTITY_TARGET, now, options.openDurationTicks());
-        PortalSounds.playShot(player, options.sounds());
-        PortalSounds.playOpening((ServerLevel) player.level(), placement.placement().center(), options.sounds());
-        Msg.displayClientMessage(player,
-            Component.translatable("message.riftgun.pairing_relocation_target_set"), true);
+            PortalPairingEndpoint.ENTITY_TARGET, now, capabilities.openDurationTicks());
         return true;
     }
 

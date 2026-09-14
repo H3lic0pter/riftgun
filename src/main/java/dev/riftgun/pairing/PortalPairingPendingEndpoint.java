@@ -65,18 +65,9 @@ public record PortalPairingPendingEndpoint(
     }
 
     public boolean expired(long now) {
-        // A/B are incomplete portal-pair state, not opened portals. Keep them until the owner
-        // replaces, connects, or explicitly clears them. The duration remains serialized so old
-        // guns load without migration and ENTITY_TARGET can retain its timed lifecycle.
-        return !pairEndpoint()
-            && durationTicks != Integer.MAX_VALUE
-            && now >= startedAt
-            && now - startedAt >= durationTicks;
-    }
-
-    public PortalPairingPendingEndpoint restart(long now) {
-        return new PortalPairingPendingEndpoint(ownerId, gunId, dimension, placement,
-            endpoint, now, durationTicks);
+        // All markers, including entity targets, persist until replaced or cleared.
+        // Keep the serialized timing fields so existing guns load without migration.
+        return false;
     }
 
     public CompoundTag save() {

@@ -265,7 +265,7 @@ public final class PortalRequestHandler {
                     if (Nbt.getBoolean(request, "EndpointA")) {
                         yield PortalPairingManager.setRelocationTargetFromShortcut(player, data, gun);
                     } else {
-                        EntityRelocationManager.tryStart(player, data, gun, true);
+                        EntityRelocationManager.tryStartFromPairingShortcut(player, data, gun);
                         yield false;
                     }
                 }

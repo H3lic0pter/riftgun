@@ -48,7 +48,7 @@ final class PortalPairingPendingEndpointTest {
     }
 
     @Test
-    void fixedEntityTargetStillExpiresAfterItsPortalDuration() {
+    void legacyFixedEntityTargetRemainsValidBeyondItsSavedPortalDuration() {
         UUID owner = UUID.randomUUID();
         UUID gun = UUID.randomUUID();
         CompoundTag tag = new CompoundTag();
@@ -68,7 +68,13 @@ final class PortalPairingPendingEndpointTest {
         assertNotNull(target);
 
         assertTrue(target.validFor(owner, gun, 179L));
-        assertFalse(target.validFor(owner, gun, 180L));
+        assertTrue(target.validFor(owner, gun, 180L));
+        assertTrue(target.validFor(owner, gun, Long.MAX_VALUE));
+        assertFalse(target.validFor(UUID.randomUUID(), gun, Long.MAX_VALUE));
+        assertFalse(target.validFor(owner, UUID.randomUUID(), Long.MAX_VALUE));
+        var reloaded = PortalPairingPendingEndpoint.load(target.save());
+        assertEquals(target, reloaded);
+        assertTrue(reloaded.validFor(owner, gun, Long.MAX_VALUE));
     }
 
     @Test
