@@ -682,9 +682,15 @@
 			"translation": [-1, 2.75, 0],
 			"scale": [1.2, 1.2, 1.2]
 		},
+		"head": {
+			"translation": [0, 9.5, 3.75]
+		},
 		"fixed": {
 			"rotation": [0, 90, 0],
 			"translation": [0, 2, 0]
+		},
+		"on_shelf": {
+			"rotation": [0, -90, 0]
 		}
 	},
 	"groups": [
