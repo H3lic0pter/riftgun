@@ -44,66 +44,62 @@ final class SkinRecommendationConfigTest {
     }
 
     @Test
-    void switchingPresetsAndDisablingRestoresCustomValuesIndependently() throws Exception {
+    void applyingSkinCopiesEnabledCategoriesAndCustomPreservesGunChoices() throws Exception {
+        load(CommentedConfig.inMemory());
+        var current = dev.riftgun.appearance.GunPresentation.DEFAULT
+            .withVisual("riftgun:classic").withAnimation(GunShotAnimation.LOWER);
+        var reference = new net.minecraft.nbt.CompoundTag();
+        reference.putString("Instance", java.util.UUID.randomUUID().toString());
+        var snapshot = new net.minecraft.nbt.CompoundTag();
+        snapshot.putString("Kind", "Appearance");
+        snapshot.put("GunReference", reference);
+        snapshot.put("Presentation", current.save());
+        dev.riftgun.client.appearance.SkinRecommendations.receive(snapshot);
+        var request = new net.minecraft.nbt.CompoundTag();
+        request.putString("Action", "SET_APPEARANCE");
+        request.putString("RequestId", "apply-staff");
+        request.putString("Skin", "riftgun:arcane_rift_staff");
+        request.put("GunReference", reference);
+
+        var background = new net.minecraft.nbt.CompoundTag();
+        background.putString("Kind", "Snapshot");
+        var otherReference = new net.minecraft.nbt.CompoundTag();
+        otherReference.putString("Instance", java.util.UUID.randomUUID().toString());
+        background.put("GunReference", otherReference);
+        background.put("Presentation", dev.riftgun.appearance.GunPresentation.DEFAULT.save());
+        dev.riftgun.client.appearance.SkinRecommendations.receive(background);
+
+        dev.riftgun.client.appearance.SkinRecommendations.writeRequest(request);
+
+        assertTrue(request.contains("Presentation"), "Background search must not detach the appearance session");
+        var copied = dev.riftgun.appearance.GunPresentation.load(
+            dev.riftgun.core.nbt.Nbt.getCompound(request, "Presentation"));
+        assertEquals(current.withAnimation(GunShotAnimation.SWING), copied);
+        for (Category category : Category.values())
+            ClientConfig.VALUES.skinRecommendations.enabled(category).set(false);
+        dev.riftgun.client.appearance.SkinRecommendations.writeRequest(request);
+        assertEquals(current, dev.riftgun.appearance.GunPresentation.load(
+            dev.riftgun.core.nbt.Nbt.getCompound(request, "Presentation")));
+        assertEquals(current, dev.riftgun.client.appearance.SkinRecommendations.current());
+    }
+
+    @Test
+    void legacyOverlaysRemainReadableWithoutChangingRuntimeCustomSettings() throws Exception {
         load(CommentedConfig.inMemory());
         ClientConfig.VALUES.gunAnimation.set(GunShotAnimation.LOWER);
         ClientConfig.VALUES.portalVisualType.set("riftgun:classic");
         var recommendations = ClientConfig.VALUES.skinRecommendations;
         for (var value : recommendations.appliedSkins.values()) value.set("riftgun:aperture_ish");
         ClientConfig.publishSnapshot();
-        assertEquals("riftgun:endframe", RiftConfigs.client().portalVisualType());
-        assertEquals(GunShotAnimation.RECOIL, RiftConfigs.client().gunAnimation());
+        assertEquals("riftgun:classic", RiftConfigs.client().portalVisualType());
+        assertEquals(GunShotAnimation.LOWER, RiftConfigs.client().gunAnimation());
+        assertEquals("riftgun:endframe", recommendations.visual("riftgun:classic"));
+        assertEquals(GunShotAnimation.RECOIL, recommendations.animation(GunShotAnimation.LOWER));
         recommendations.appliedSkins.get(Category.SHOT_ANIMATION).set("riftgun:arcane_rift_staff");
         ClientConfig.publishSnapshot();
-        assertEquals(GunShotAnimation.SWING, RiftConfigs.client().gunAnimation());
-        assertEquals("riftgun:endframe", RiftConfigs.client().portalVisualType());
-        recommendations.shotAnimation.set(false);
-        ClientConfig.publishSnapshot();
         assertEquals(GunShotAnimation.LOWER, RiftConfigs.client().gunAnimation());
-        assertEquals("riftgun:endframe", RiftConfigs.client().portalVisualType());
-        recommendations.portalVisual.set(false);
-        ClientConfig.publishSnapshot();
-        assertEquals("riftgun:classic", RiftConfigs.client().portalVisualType());
-        assertEquals(GunShotAnimation.LOWER, ClientConfig.VALUES.gunAnimation.get());
+        assertEquals(GunShotAnimation.SWING, recommendations.animation(GunShotAnimation.LOWER));
     }
-
-    @Test
-    void manualChoicesReplaceOverlaysButKeepSwitchesAcrossReloadAndTheNextApply() throws Exception {
-        var config = CommentedConfig.inMemory();
-        load(config);
-        var recommendations = ClientConfig.VALUES.skinRecommendations;
-        for (var value : recommendations.appliedSkins.values()) value.set("riftgun:aperture_ish");
-        ClientConfig.publishSnapshot();
-        assertEquals("riftgun:endframe", RiftConfigs.client().portalVisualType());
-        assertEquals(GunShotAnimation.RECOIL, RiftConfigs.client().gunAnimation());
-
-        ClientConfig.VALUES.portalVisualType.set("riftgun:classic");
-        ClientConfig.VALUES.gunAnimation.set(GunShotAnimation.LOWER);
-        for (Category category : Category.values()) recommendations.useCustom(category);
-        ClientConfig.SPEC.afterReload();
-        ClientConfig.publishSnapshot();
-        for (Category category : Category.values()) {
-            assertTrue(recommendations.enabled(category).get());
-            assertNull(recommendations.activePreset(category));
-        }
-        assertEquals("riftgun:classic", RiftConfigs.client().portalVisualType());
-        assertEquals(GunShotAnimation.LOWER, RiftConfigs.client().gunAnimation());
-
-        for (Category category : Category.values()) {
-            if (recommendations.enabled(category).get()) {
-                recommendations.appliedSkins.get(category).set("riftgun:aperture_ish");
-            }
-        }
-        ClientConfig.publishSnapshot();
-        assertEquals("riftgun:endframe", RiftConfigs.client().portalVisualType());
-        assertEquals(GunShotAnimation.RECOIL, RiftConfigs.client().gunAnimation());
-        recommendations.portalVisual.set(false);
-        recommendations.shotAnimation.set(false);
-        ClientConfig.publishSnapshot();
-        assertEquals("riftgun:classic", RiftConfigs.client().portalVisualType());
-        assertEquals(GunShotAnimation.LOWER, RiftConfigs.client().gunAnimation());
-    }
-
     @Test
     void manualChoicesDoNotEnableDisabledRecommendationSwitches() throws Exception {
         load(CommentedConfig.inMemory());
@@ -146,12 +142,14 @@ final class SkinRecommendationConfigTest {
             """);
         load(config);
         assertEquals("riftgun:classic", RiftConfigs.client().portalVisualType());
-        assertEquals(GunShotAnimation.LOWER, RiftConfigs.client().gunAnimation());
+        assertEquals(GunShotAnimation.OFF, RiftConfigs.client().gunAnimation());
+        assertEquals(GunShotAnimation.LOWER, ClientConfig.VALUES.skinRecommendations.animation(GunShotAnimation.OFF));
         config.set("appearance.presets.aperture_ish.shotAnimation", "SWING");
         ClientConfig.SPEC.afterReload();
         ClientConfig.publishSnapshot();
-        assertEquals(GunShotAnimation.SWING, RiftConfigs.client().gunAnimation());
+        assertEquals(GunShotAnimation.OFF, RiftConfigs.client().gunAnimation());
         assertEquals(GunShotAnimation.OFF, ClientConfig.VALUES.gunAnimation.get());
+        assertEquals(GunShotAnimation.SWING, ClientConfig.VALUES.skinRecommendations.animation(GunShotAnimation.OFF));
     }
 
     @Test

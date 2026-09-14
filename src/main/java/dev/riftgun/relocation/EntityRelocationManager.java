@@ -82,6 +82,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
     public static boolean tryStart(ServerPlayer owner, PortalPlayerData data,
                                    PortalGunLocator.LocatedGun locatedGun, boolean explicit) {
+        if (!dev.riftgun.appearance.GunPresentationDefaults.initialize(owner, locatedGun.stack())) return false;
         ItemStack gun = locatedGun.stack();
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, data.settings().smartDistance());
         if (!capabilities.entityRelocation()) {
@@ -184,7 +185,9 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         float side = EntityRelocationGeometry.sideLength(
             (float) treeMetrics.width(), (float) treeMetrics.depth());
         Vec3 center = feetCenter(target);
-        PortalSoundSnapshot sounds = PortalSoundSnapshot.from(data.settings().portalSounds());
+        var presentation = dev.riftgun.appearance.GunPresentation.current(locatedGun.stack());
+        PortalSoundSnapshot sounds = PortalSoundSnapshot.from(presentation.sounds());
+        String visualType = presentation.visual();
         PortalCrisisConfigurationSnapshot crises =
             PortalCrisisConfigurationSnapshot.capture(storedFuel.fluid());
         ServerLevel destinationLevel = server.getLevel(destination.dimension());
@@ -203,7 +206,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         if (deferred) {
             beginPreparation(destinationLevel, begin.reservation(), owner, target, tree,
                 locatedGun.saveReference(),
-                destination, profile, sounds, capabilities, crises, privacyReservations,
+                destination, profile, sounds, visualType, capabilities, crises, privacyReservations,
                 snapshotPermissions(permissions),
                 openingTicks, fuelQuote, virtualFuel, specialEntities,
                 relocationConfig, config.fuel(), now);
@@ -211,7 +214,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         PreparedRoute preparedRoute = prepareRoute(target, tree, destination, destinationLevel, crises);
         EntityRelocationExitService.Handle exitSetup = prepareExit(server, destinationLevel, destination, preparedRoute,
-            side, profile.rgb(), sounds, openingTicks, relocationConfig.exitDurationSeconds());
+            side, profile.rgb(), sounds, visualType, openingTicks, relocationConfig.exitDurationSeconds());
         if (exitSetup == null) {
             state.fail(begin.reservation());
             releasePrivacyGrants(server, privacyReservations);
@@ -220,6 +223,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         EntityRelocationPortalEntity visual = EntityRelocationPortalEntity.createEntrance(
             owner.level(), center, side, profile.rgb(), target.getUUID(), sounds, openingTicks);
+        visual.visualType(visualType);
 //? if >=1.21.11 {
         /*if (!((ServerLevel) owner.level()).addFreshEntity(visual)) {
 *///?} else {
@@ -238,7 +242,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         PortalSounds.playOpening(owner.serverLevel(), center, sounds);
 //?}
         EntityRelocationSession.Context context = sessionContext(
-            begin.reservation(), owner.getUUID(), target, profile, sounds, capabilities,
+            begin.reservation(), owner.getUUID(), target, profile, sounds, visualType, capabilities,
             crises, privacyReservations, openingTicks, fuelQuote, virtualFuel, tree,
             specialEntities, relocationConfig, config.fuel());
         SESSIONS.add(EntityRelocationSession.opening(context, gun, destination,
@@ -250,7 +254,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             ServerLevel destinationLevel, EntityRelocationRegistry.Reservation reservation,
             ServerPlayer owner, Entity target, EntityRelocationTree tree,
             net.minecraft.nbt.CompoundTag gunReference, ResolvedDestination destination,
-            PortalFuelProfile profile, PortalSoundSnapshot sounds,
+            PortalFuelProfile profile, PortalSoundSnapshot sounds, String visualType,
             PortalGunCapabilities capabilities, PortalCrisisConfigurationSnapshot crises,
             List<PortalPrivacyService.GrantReservation> privacyReservations,
             List<PermissionSnapshot> permissions,
@@ -308,7 +312,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 //?}
             });
         EntityRelocationSession.Context context = sessionContext(
-            reservation, owner.getUUID(), target, profile, sounds, capabilities,
+            reservation, owner.getUUID(), target, profile, sounds, visualType, capabilities,
             crises, privacyReservations, openingTicks, fuelQuote, virtualFuel, tree,
             specialEntities, relocationConfig, fuelConfig);
         SESSIONS.add(EntityRelocationSession.preparing(
@@ -317,7 +321,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
     private static EntityRelocationSession.Context sessionContext(
             EntityRelocationRegistry.Reservation reservation, UUID ownerId, Entity target,
-            PortalFuelProfile profile, PortalSoundSnapshot sounds,
+            PortalFuelProfile profile, PortalSoundSnapshot sounds, String visualType,
             PortalGunCapabilities capabilities, PortalCrisisConfigurationSnapshot crises,
             List<PortalPrivacyService.GrantReservation> privacyReservations,
             int openingTicks, EntityRelocationFuelPolicy.Quote fuelQuote,
@@ -325,7 +329,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             SpecialEntityTransitPolicy<EntityType<?>> specialEntities,
             RiftConfig.RelocationConfig relocationConfig, RiftConfig.FuelConfig fuelConfig) {
         return new EntityRelocationSession.Context(
-            reservation, ownerId, target.getUUID(), target.level().dimension(), profile, sounds,
+            reservation, ownerId, target.getUUID(), target.level().dimension(), profile, sounds, visualType,
             capabilities.fallGuard(), capabilities.entityFallGuard(), crises,
             privacyReservations, openingTicks, fuelQuote, virtualFuel, tree, specialEntities,
             relocationConfig, fuelConfig);
@@ -521,7 +525,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             route = normalRoute(target, pending.tree(), destination, null);
         }
         EntityRelocationExitService.Handle exit = prepareExit(server, targetLevel, destination, route, side,
-            pending.profile().rgb(), pending.sounds(), pending.openingTicks(),
+            pending.profile().rgb(), pending.sounds(), pending.visualType(), pending.openingTicks(),
             pending.relocationConfig().exitDurationSeconds());
         if (exit == null) {
             TransitDiagnostics.warning("relocation prepared exit creation failed reservation={} destination={} exitCenter={}",
@@ -537,6 +541,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         EntityRelocationPortalEntity visual = EntityRelocationPortalEntity.createEntrance(
             sourceLevel, center, side, pending.profile().rgb(), target.getUUID(),
             pending.sounds(), pending.openingTicks());
+        visual.visualType(pending.visualType());
         if (!sourceLevel.addFreshEntity(visual)) {
             TransitDiagnostics.warning("relocation entrance creation failed reservation={} source={} center={}",
 //? if >=1.21.11 {
@@ -821,7 +826,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
     private static @Nullable EntityRelocationExitService.Handle prepareExit(
             MinecraftServer server, ServerLevel targetLevel, ResolvedDestination destination,
-            PreparedRoute route, float side, int rgb, PortalSoundSnapshot sounds,
+            PreparedRoute route, float side, int rgb, PortalSoundSnapshot sounds, String visualType,
             int openingTicks, int exitDurationSeconds) {
         int durationTicks = PortalOpenDuration.ticks(
             exitDurationSeconds);
@@ -839,7 +844,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             ? destination.sharedKey() : null;
         return EntityRelocationExitService.open(server, new EntityRelocationExitService.OpenRequest(
             targetLevel, followPlayer, route.exitCenter(), side, rgb, durationTicks, sounds,
-            route.exitOrientation(), route.exitYaw(), openingTicks, key));
+            route.exitOrientation(), route.exitYaw(), openingTicks, key, visualType));
     }
 
     private static PreparedRoute prepareRoute(Entity target, EntityRelocationTree tree,

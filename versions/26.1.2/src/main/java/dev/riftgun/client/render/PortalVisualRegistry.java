@@ -13,6 +13,7 @@ public final class PortalVisualRegistry {
     public static final Identifier ENDFRAME_ID = id("endframe");
     public static final Identifier DEFAULT_ID = SWIRL_ID;
     private static final Map<Identifier, PortalVisualType> TYPES = new LinkedHashMap<>();
+    private static final Map<String, Identifier> STORED_IDS = new LinkedHashMap<>();
 
     static {
         register(new PortalVisualType(CLASSIC_ID, "screen.riftgun.visual.classic",
@@ -30,7 +31,13 @@ public final class PortalVisualRegistry {
         if (TYPES.putIfAbsent(type.id(), type) != null) {
             throw new IllegalArgumentException("Duplicate portal visual type: " + type.id());
         }
+        STORED_IDS.put(type.id().toString(), type.id());
         return type;
+    }
+
+    /** Stored IDs need no parsing or allocation on the render path. Unknown values keep a local fallback. */
+    public static PortalVisualType resolveStored(String id) {
+        return resolve(STORED_IDS.getOrDefault(id, DEFAULT_ID));
     }
 
     public static PortalVisualType resolve(Identifier id) {

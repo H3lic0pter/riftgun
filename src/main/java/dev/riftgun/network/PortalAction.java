@@ -39,7 +39,8 @@ public enum PortalAction {
     MOVE_DESTINATION_GROUP,
     SET_GROUP_EXPANDED,
     SET_SETTINGS,
-    SET_PORTAL_SOUNDS,
+    SET_GUN_PRESENTATION,
+    SYNC_PRESENTATION_DEFAULTS,
     SET_GUN_MODULE_SETTINGS,
     TOGGLE_BUCKET_MODE,
     CLEAR_GUN_FLUID,
@@ -53,7 +54,7 @@ public enum PortalAction {
 
     public boolean requiresPortalGun() {
         return switch (this) {
-            case SHARE_DESTINATION_CHAT, CLOSE_PORTALS, SET_PRIVACY, SET_PRIVACY_OVERRIDE,
+            case SYNC_PRESENTATION_DEFAULTS, SHARE_DESTINATION_CHAT, CLOSE_PORTALS, SET_PRIVACY, SET_PRIVACY_OVERRIDE,
                  REQUEST_PRIVACY_PLAYERS -> false;
             default -> true;
         };

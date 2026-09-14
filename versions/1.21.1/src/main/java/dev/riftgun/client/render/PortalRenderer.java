@@ -26,7 +26,7 @@ public final class PortalRenderer extends EntityRenderer<PortalEntity> {
     public void render(PortalEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource buffers, int packedLight) {
         if (entity.pairingDormant()) return;
-        PortalVisualType type = PortalVisualPreferences.selected();
+        PortalVisualType type = PortalVisualRegistry.resolveStored(entity.visualType());
         PortalVisualStyle style = PortalVisualStyles.resolve(entity);
         PortalRenderFrameState frameState = PortalRenderFrameState.current();
         type.renderer().render(new PortalVisualRenderContext(entity, partialTick, poseStack, buffers,

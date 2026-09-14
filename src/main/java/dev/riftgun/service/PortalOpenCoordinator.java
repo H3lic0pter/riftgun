@@ -348,15 +348,19 @@ public final class PortalOpenCoordinator {
         boolean crossDimension = !player.level().dimension().equals(destination.dimension());
         BlockPos targetPosition = BlockPos.containing(destination.position());
         boolean targetTicksEntities = targetLevel.isPositionEntityTicking(targetPosition);
+        if (!dev.riftgun.appearance.GunPresentationDefaults.initialize(player, locatedGun.stack())) {
+            return reject(PortalOpenStatus.API_NOT_READY, "message.riftgun.invalid_request");
+        }
+        var presentation = dev.riftgun.appearance.GunPresentation.current(locatedGun.stack());
         PortalRuntimeOptions runtimeOptions = new PortalRuntimeOptions(
             gunCapabilities.entityAccess(), gunCapabilities.openDurationTicks(),
             gunCapabilities.aperture(), gunCapabilities.transitCooldownTicks(),
             gunCapabilities.fallGuard(), gunCapabilities.entityFallGuard(),
             RiftConfigs.server().portal().horizontalTriggerExtend(),
-            PortalSoundSnapshot.from(data.settings().portalSounds()),
+            PortalSoundSnapshot.from(presentation.sounds()),
             PortalCrisisConfigurationSnapshot.capture(
                 RiftFuelStores.open(locatedGun.stack()).content().fluid()),
-            transitAuthorization);
+            transitAuthorization, presentation.visual());
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;

@@ -130,6 +130,7 @@ public final class PortalNetworking {
         if (locatedGun != null) {
             var gun = gunSnapshotState(player, data, locatedGun);
             envelope.put("GunReference", locatedGun.saveReference());
+            envelope.put("Presentation", dev.riftgun.appearance.GunPresentation.current(locatedGun.stack()).save());
             envelope.put("Gun", PortalGunViewStateCodec.encode(gun));
             if (openScreen && gun.dimensionalTraversalInstalled()
                 && gun.dimensionalTraversalEnabled()) {
@@ -158,6 +159,7 @@ public final class PortalNetworking {
         envelope.putString("Kind", "GunSnapshot");
         envelope.putBoolean("Rollback", rollback);
         envelope.put("GunReference", locatedGun.saveReference());
+        envelope.put("Presentation", dev.riftgun.appearance.GunPresentation.current(locatedGun.stack()).save());
         envelope.put("Gun", PortalGunViewStateCodec.encode(
             gunSnapshotState(player, data, locatedGun)));
         RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));

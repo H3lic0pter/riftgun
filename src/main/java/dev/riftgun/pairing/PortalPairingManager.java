@@ -262,13 +262,14 @@ public final class PortalPairingManager {
     private static PortalRuntimeOptions runtimeOptions(PortalPlayerData data,
                                                         PortalGunCapabilities capabilities,
                                                         PortalGunLocator.LocatedGun gun) {
+        var presentation = dev.riftgun.appearance.GunPresentation.current(gun.stack());
         return new PortalRuntimeOptions(
             capabilities.entityAccess(), capabilities.openDurationTicks(), capabilities.aperture(),
             capabilities.transitCooldownTicks(), capabilities.fallGuard(),
             capabilities.entityFallGuard(), RiftConfigs.server().portal().horizontalTriggerExtend(),
-            PortalSoundSnapshot.from(data.settings().portalSounds()),
+            PortalSoundSnapshot.from(presentation.sounds()),
             PortalCrisisConfigurationSnapshot.capture(RiftFuelStores.open(gun.stack()).content().fluid()),
-            Optional.empty());
+            Optional.empty(), presentation.visual());
     }
 
     private static boolean validFrontPreview(ServerPlayer player,

@@ -1,7 +1,6 @@
 package dev.riftgun.client.render;
 
 import dev.riftgun.config.ClientConfig;
-import dev.riftgun.core.config.RiftConfigs;
 import net.minecraft.resources.Identifier;
 
 public final class PortalVisualPreferences {
@@ -10,19 +9,15 @@ public final class PortalVisualPreferences {
     }
 
     public static Identifier selectedId() {
-        Identifier parsed = Identifier.tryParse(RiftConfigs.client().portalVisualType());
+        Identifier parsed = Identifier.tryParse(dev.riftgun.client.appearance.SkinRecommendations.current().visual());
         if (parsed != null && PortalVisualRegistry.values().stream().anyMatch(type -> type.id().equals(parsed))) return parsed;
-        Identifier custom = Identifier.tryParse(ClientConfig.VALUES.portalVisualType.get());
-        return custom == null ? PortalVisualRegistry.DEFAULT_ID
-            : PortalVisualSelection.resolve(PortalVisualRegistry.values(), custom, PortalVisualRegistry.DEFAULT_ID);
+        return PortalVisualRegistry.DEFAULT_ID;
     }
 
     public static void select(Identifier id) {
         Identifier resolved = PortalVisualSelection.resolve(
             PortalVisualRegistry.values(), id, PortalVisualRegistry.DEFAULT_ID);
-        ClientConfig.VALUES.skinRecommendations.useCustom(
-            dev.riftgun.config.SkinRecommendationConfig.Category.PORTAL_VISUAL);
-        save(resolved);
+        dev.riftgun.client.appearance.SkinRecommendations.selectVisual(resolved.toString());
     }
 
     public static void cycle(int direction) {
@@ -34,15 +29,5 @@ public final class PortalVisualPreferences {
         ClientConfig.SPEC.save();
     }
 
-    private static void save(Identifier id) {
-        String value = id.toString();
-        ClientConfig.VALUES.portalVisualType.set(value);
-        ClientConfig.publishSnapshot();
-        ClientConfig.SPEC.save();
-    }
-
     private PortalVisualPreferences() {}
-    public static void notifySelectionChanged() {
-        // This version has no server-assisted portal visual integration.
-    }
 }

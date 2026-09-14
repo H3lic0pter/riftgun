@@ -82,6 +82,8 @@ final class PortalGunHandAnimationTest {
     void offStopsAnActiveRecoilAndSuppressesLateVanillaRecoveryInBothHands() {
         ItemStack gun = mock(ItemStack.class);
         when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+            when(gun.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION)).thenAnswer(call ->
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withAnimation(dev.riftgun.core.config.RiftConfigs.client().gunAnimation()));
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             for (HumanoidArm arm : HumanoidArm.values()) {
@@ -118,6 +120,8 @@ final class PortalGunHandAnimationTest {
         var parameters = new GunRecoilConfig(50, 300, 1.0, 0.2, 0.0, 200);
         ItemStack gun = mock(ItemStack.class);
         when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+            when(gun.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION)).thenAnswer(call ->
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withAnimation(dev.riftgun.core.config.RiftConfigs.client().gunAnimation()));
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             var animation = new PortalGunHandAnimation.HandAnimation();
@@ -185,6 +189,8 @@ final class PortalGunHandAnimationTest {
         when(player.getMainArm()).thenReturn(HumanoidArm.RIGHT);
         ItemStack gun = mock(ItemStack.class);
         when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+            when(gun.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION)).thenAnswer(call ->
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withAnimation(dev.riftgun.core.config.RiftConfigs.client().gunAnimation()));
         when(player.getMainHandItem()).thenReturn(gun);
         when(player.getOffhandItem()).thenReturn(ItemStack.EMPTY);
         when(player.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND)).thenReturn(gun);
@@ -280,6 +286,8 @@ final class PortalGunHandAnimationTest {
     void releasingAnInputAndFiringAgainPreservesContinuousRecoil() {
         ItemStack gun = mock(ItemStack.class);
         when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+            when(gun.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION)).thenAnswer(call ->
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withAnimation(dev.riftgun.core.config.RiftConfigs.client().gunAnimation()));
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             var animation = new PortalGunHandAnimation.HandAnimation();
@@ -306,6 +314,8 @@ final class PortalGunHandAnimationTest {
     void completionWaitsForNativeSwingEquipRecoveryAndConfiguredRecoil() {
         ItemStack gun = mock(ItemStack.class);
         when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+            when(gun.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION)).thenAnswer(call ->
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withAnimation(dev.riftgun.core.config.RiftConfigs.client().gunAnimation()));
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             var animation = new PortalGunHandAnimation.HandAnimation();
@@ -327,6 +337,8 @@ final class PortalGunHandAnimationTest {
     void lowerFollowsNativeDownAndUpHeightWithoutRecoilOrSwing() {
         ItemStack gun = mock(ItemStack.class);
         when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+            when(gun.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION)).thenAnswer(call ->
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withAnimation(dev.riftgun.core.config.RiftConfigs.client().gunAnimation()));
         try (var modes = mockStatic(PortalGunMode.class);
              var identities = mockStatic(PortalGunIdentity.class)) {
             for (var arm : HumanoidArm.values()) {
@@ -398,6 +410,8 @@ final class PortalGunHandAnimationTest {
             when(player.getInventory()).thenReturn(mock(net.minecraft.world.entity.player.Inventory.class));
             when(player.getMainArm()).thenReturn(HumanoidArm.RIGHT);
             when(gun.getItem()).thenReturn(mock(PortalGunItem.class));
+            when(gun.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION)).thenAnswer(call ->
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withAnimation(dev.riftgun.core.config.RiftConfigs.client().gunAnimation()));
             when(config.gunRecoil()).thenReturn(GunRecoilConfig.defaults());
             singletons.when(net.minecraft.client.Minecraft::getInstance).thenReturn(minecraft);
             configs.when(dev.riftgun.core.config.RiftConfigs::client).thenReturn(config);

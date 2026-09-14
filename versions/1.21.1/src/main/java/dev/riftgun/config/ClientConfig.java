@@ -11,6 +11,8 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public final class ClientConfig {
     public static final ModConfigSpec SPEC;
     public static final Values VALUES;
+    private static volatile long revision;
+    public static long revision() { return revision; }
 
     static {
         var configured = new ModConfigSpec.Builder().configure(Values::new);
@@ -20,8 +22,9 @@ public final class ClientConfig {
 
     /** Rebuilds and atomically publishes a complete loader-neutral snapshot. */
     public static void publishSnapshot() {
+        revision++;
         RiftConfigs.publishClient(new ClientVisualConfig(
-            VALUES.skinRecommendations.visual(VALUES.portalVisualType.get()), VALUES.swirlAnimationEnabled.get(),
+            VALUES.portalVisualType.get(), VALUES.swirlAnimationEnabled.get(),
             VALUES.swirlOuterPeriod.get(), VALUES.swirlInnerPeriod.get(),
             VALUES.swirlInwardPeriod.get(), VALUES.swirlInwardDirection.get(),
             VALUES.endframeRotationEnabled.get(), VALUES.endframeRotationPeriod.get(),
@@ -29,7 +32,7 @@ public final class ClientConfig {
             VALUES.portalDynamicLightLevel.get(),
             List.copyOf(VALUES.surfaceFaceRadialOrder.get()),
             VALUES.surfaceFaceRadialOffsetX.get(), VALUES.surfaceFaceRadialOffsetY.get(),
-            VALUES.skinRecommendations.animation(VALUES.gunAnimation.get()),
+            VALUES.gunAnimation.get(),
             new GunRecoilConfig(VALUES.gunKickMillis.get(), VALUES.gunRecoveryMillis.get(),
                 VALUES.gunShotStrength.get(), VALUES.gunMaxBackwardOffset.get(),
                 VALUES.gunMaxPitchDegrees.get(), VALUES.gunUseEquipRecoveryMillis.get())));

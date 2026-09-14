@@ -31,8 +31,8 @@ public final class PortalClientState {
             }
             return;
         }
-        if (kind.equals("PortalSounds")) {
-            dev.riftgun.client.appearance.SkinRecommendations.receiveSounds(envelope);
+        if (kind.equals("GunPresentation")) {
+            if (!dev.riftgun.client.appearance.SkinRecommendations.receive(envelope)) return;
             if (Minecraft.getInstance().screen instanceof dev.riftgun.client.screen.PortalConfigScreen screen) {
                 screen.refreshFromServer(Set.of());
             }
@@ -41,12 +41,14 @@ public final class PortalClientState {
         if (kind.equals("Snapshot")) {
             DimensionLabelState.replace(envelope);
             data = PortalPlayerData.load(envelope.getCompound("Data"));
-            dev.riftgun.client.appearance.SkinRecommendations.preservePendingSounds();
-            gunReference = envelope.contains("GunReference")
-                ? envelope.getCompound("GunReference").copy() : new CompoundTag();
-            gun = envelope.contains("Gun")
-                ? PortalGunViewStateCodec.decode(envelope.getCompound("Gun"))
-                : PortalGunViewState.empty();
+            boolean currentGun = dev.riftgun.client.appearance.SkinRecommendations.receive(envelope);
+            if (currentGun || !gunEditorOpen()) {
+                gunReference = envelope.contains("GunReference")
+                    ? envelope.getCompound("GunReference").copy() : new CompoundTag();
+                gun = envelope.contains("Gun")
+                    ? PortalGunViewStateCodec.decode(envelope.getCompound("Gun"))
+                    : PortalGunViewState.empty();
+            }
             moduleRules = envelope.contains("ModuleRules")
                 ? PortalModuleRules.load(envelope.getCompound("ModuleRules")) : PortalModuleRules.defaults();
             randomRift = envelope.contains("RandomRift")
@@ -63,6 +65,8 @@ public final class PortalClientState {
                 screen.onServerSnapshot();
             }
         } else if (kind.equals("GunSnapshot")) {
+            boolean currentGun = dev.riftgun.client.appearance.SkinRecommendations.receive(envelope);
+            if (!currentGun && gunEditorOpen()) return;
             gunReference = envelope.getCompound("GunReference").copy();
             gun = PortalGunViewStateCodec.decode(envelope.getCompound("Gun"));
             if (envelope.getBoolean("Rollback")) refreshGunScreen();
@@ -98,6 +102,16 @@ public final class PortalClientState {
                 Minecraft.getInstance().setScreen(new dev.riftgun.client.screen.PrivacyTerminalScreen());
             }
         }
+    }
+
+    /** Keep an open editor pinned while preserving ordinary background state updates outside editors. */
+    private static boolean gunEditorOpen() {
+        var screen = Minecraft.getInstance().screen;
+        return screen instanceof dev.riftgun.client.screen.PortalConfigScreen
+            || screen instanceof dev.riftgun.client.screen.PortalGunAppearanceScreen
+            || screen instanceof dev.riftgun.client.screen.ModeRadialScreen
+            || screen instanceof dev.riftgun.client.screen.DimensionalNavigationScreen
+            || screen instanceof dev.riftgun.client.screen.DimensionSelectionScreen;
     }
 
     public static void writeGunReference(CompoundTag request) {

@@ -1,222 +1,193 @@
 package dev.riftgun.client.appearance;
 
+import dev.riftgun.appearance.GunPresentation;
 import dev.riftgun.appearance.client.SkinSoundMemory;
-import dev.riftgun.appearance.client.PendingSkinSounds;
-
-import dev.riftgun.RiftGun;
-import dev.riftgun.client.PortalClientState;
-import dev.riftgun.client.render.PortalVisualPreferences;
 import dev.riftgun.config.ClientConfig;
 import dev.riftgun.config.SkinRecommendationConfig;
 import dev.riftgun.config.SkinRecommendationConfig.Category;
 import dev.riftgun.core.config.GunShotAnimation;
 import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.client.PortalClientState;
 import dev.riftgun.network.PortalAction;
 import dev.riftgun.network.PortalNetworking;
-import dev.riftgun.sound.PortalSoundChannel;
-import dev.riftgun.sound.PortalSoundRegistry;
 import dev.riftgun.sound.PortalSoundSettings;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.LevelResource;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 
-/** Applies client-authored preferences through the existing settings protocol after a matching skin ACK. */
-@EventBusSubscriber(modid = RiftGun.MOD_ID, value = Dist.CLIENT)
+/** Copies recommendations on demand; edits and acknowledgements belong to one exact gun. */
 public final class SkinRecommendations {
-    private static final Map<String, String> PENDING = new LinkedHashMap<>();
-    private static final PendingSkinSounds SOUND_EDITS = new PendingSkinSounds();
-    private static String soundScope;
+    private static Object connection;
+    private static boolean defaultsDirty = true;
+    private static long configRevision = -1;
+    private static Object owner;
+    private static PortalSoundSettings legacySounds;
+    private static CompoundTag reference = new CompoundTag();
+    private static GunPresentation current = GunPresentation.DEFAULT;
+    private static String pendingRequest = "";
 
-    public static void onRequest(CompoundTag request) {
-        if (!"SET_APPEARANCE".equals(Nbt.getString(request, "Action"))) return;
-        String requestId = Nbt.getString(request, "RequestId");
-        if (requestId.isEmpty()) return;
-        if (PENDING.size() >= 16) PENDING.remove(PENDING.keySet().iterator().next());
-        PENDING.put(requestId, Nbt.getString(request, "Skin"));
-    }
-
-    public static void receive(CompoundTag response) {
-        String expected = PENDING.remove(Nbt.getString(response, "RequestId"));
-        if (expected == null || !Nbt.getBoolean(response, "Applied")
-            || !Nbt.getString(response, "Error").isEmpty()
-            || !expected.equals(Nbt.getString(response, "Skin"))) return;
-        apply(expected, Nbt.getCompound(response, "GunReference"));
-    }
-
-    @SubscribeEvent
-    public static void logout(ClientPlayerNetworkEvent.LoggingOut event) {
-        PENDING.clear();
-        SOUND_EDITS.clear();
-        soundScope = null;
-    }
-
-    public static void receiveSounds(CompoundTag response) {
-        if (soundScope == null || !soundScope.equals(scope())) return;
-        String error = Nbt.getString(response, "Error");
-        var server = PortalSoundSettings.load(Nbt.getCompound(response, "PortalSounds"));
-        SOUND_EDITS.acknowledge(Nbt.getString(response, "RequestId"), error.isEmpty(), choices(server))
-            .ifPresent(confirmation -> {
-                if (confirmation.accepted()) {
-                    config().soundMemory.set(confirmation.memory());
-                    ClientConfig.SPEC.save();
-                }
-                setVisibleSounds(soundSettings(confirmation.visible()));
-                if (!error.isEmpty() && Minecraft.getInstance().player != null) {
-                    dev.riftgun.core.msg.Msg.displayClientMessage(Minecraft.getInstance().player,
-                        net.minecraft.network.chat.Component.translatable(error), true);
-                }
-            });
-    }
-
-    /** Full snapshots may predate a pending edit; keep the newest optimistic sound selection. */
-    public static void preservePendingSounds() {
-        if (!SOUND_EDITS.isPending() || soundScope == null || !soundScope.equals(scope())) return;
-        setVisibleSounds(soundSettings(SOUND_EDITS.visible(choices(PortalClientState.data().settings().portalSounds()))));
-    }
-
-    private static void setVisibleSounds(PortalSoundSettings sounds) {
-        var current = PortalClientState.data().settings();
-        PortalClientState.data().settings(current.withPortalSounds(sounds));
-    }
-
-    public static void apply(String skin, CompoundTag reference) {
-        var config = config();
-        for (Category category : Category.values()) {
-            if (config.enabled(category).get()) config.appliedSkins.get(category).set(skin);
+    public static void tick() {
+        var minecraft = Minecraft.getInstance();
+        var latestSounds = PortalClientState.data().settings().portalSounds();
+        if (owner != minecraft.player || configRevision != ClientConfig.revision()
+                || !latestSounds.equals(legacySounds)) {
+            owner = minecraft.player;
+            configRevision = ClientConfig.revision();
+            legacySounds = latestSounds;
+            defaultsDirty = true;
         }
-        if (config.sounds.get()) applySounds(reference);
-        publish();
+        if (connection != minecraft.getConnection()) {
+            connection = minecraft.getConnection();
+            reference = new CompoundTag();
+            current = GunPresentation.DEFAULT;
+            pendingRequest = "";
+            defaultsDirty = true;
+        }
+        if (connection != null && minecraft.player != null && defaultsDirty) {
+            defaultsDirty = false;
+            PortalNetworking.sendRequest(PortalAction.SYNC_PRESENTATION_DEFAULTS, tag -> {
+                var custom = localCustom();
+                var config = ClientConfig.VALUES.skinRecommendations;
+                tag.put("Custom", custom.save());
+                tag.put("Legacy", custom.withVisual(config.visual(custom.visual()))
+                    .withAnimation(config.animation(custom.animation())).save());
+                config.presets.forEach((skin, preset) -> tag.put(skin, recommended(skin, custom, false).save()));
+            });
+        }
     }
 
-    public static void toggle(Category category, String currentSkin, CompoundTag reference) {
-        var config = config();
-        boolean enabled = !config.enabled(category).get();
-        config.enabled(category).set(enabled);
-        if (enabled) config.appliedSkins.get(category).set(currentSkin);
-        if (category == Category.SOUNDS) applySounds(reference);
-        publish();
-    }
-
-    /** Explicit edits replace the current overlay; the recommendation switch keeps its value. */
-    public static void selectAnimation(GunShotAnimation animation) {
-        config().useCustom(Category.SHOT_ANIMATION);
-        ClientConfig.VALUES.gunAnimation.set(animation);
-        publish();
-    }
-
-    public static void selectCustomSounds(PortalSoundSettings sounds) {
-        var config = config();
-        config.useCustom(Category.SOUNDS);
+    private static GunPresentation localCustom() {
+        var settings = PortalClientState.data().settings().portalSounds();
         String scope = scope();
         if (scope != null) {
-            bindSoundScope(scope);
-            var memory = SkinSoundMemory.rememberCustom(SOUND_EDITS.memory(config.soundMemory.get()), scope, choices(sounds));
-            CompoundTag context = new CompoundTag();
-            PortalClientState.writeGunReference(context);
-            sendSounds(new SkinSoundMemory.Change(memory, choices(sounds)), Nbt.getCompound(context, "GunReference"));
+            var saved = SkinSoundMemory.custom(ClientConfig.VALUES.skinRecommendations.soundMemory.get(), scope,
+                new SkinSoundMemory.Sounds(settings.shot().toString(), settings.portal().toString(),
+                    settings.transit().toString(), settings.splashEnabled()));
+            settings = new PortalSoundSettings(ResourceLocation.parse(saved.shot()),
+                ResourceLocation.parse(saved.portal()), ResourceLocation.parse(saved.transit()), saved.splash());
         }
+        return new GunPresentation(ClientConfig.VALUES.portalVisualType.get(),
+            ClientConfig.VALUES.gunAnimation.get(), settings, true);
+    }
+
+    public static GunPresentation current() { return current; }
+
+    public static GunShotAnimation animation(ItemStack stack) {
+        var saved = stack.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION);
+        if (saved != null && saved.initialized()) return saved.animation();
+        var config = ClientConfig.VALUES.skinRecommendations;
+        if (saved != null) {
+            var preset = config.presets.get(dev.riftgun.appearance.PortalGunSkin.current(stack));
+            if (preset != null) return GunShotAnimation.valueOf(SkinRecommendationConfig.resolve(
+                preset.shotAnimation.get(), ClientConfig.VALUES.gunAnimation.get().name()));
+            return ClientConfig.VALUES.gunAnimation.get();
+        }
+        return config.animation(ClientConfig.VALUES.gunAnimation.get());
+    }
+
+    /** Returns whether the response belongs to the current gun context, even if an edit is pending. */
+    public static boolean receive(CompoundTag response) {
+        if (!response.contains("GunReference")) return false;
+        CompoundTag incoming = Nbt.getCompound(response, "GunReference");
+        String requestId = Nbt.getString(response, "RequestId");
+        String kind = Nbt.getString(response, "Kind");
+        boolean opensGun = "Snapshot".equals(kind)
+                && (Nbt.getBoolean(response, "OpenScreen") || Nbt.getBoolean(response, "OpenRadial"))
+            || "Appearance".equals(kind) && !Nbt.getBoolean(response, "Applied");
+        // Search completions and slider replies may refer to a gun whose editor is already closed.
+        if (!opensGun && !incoming.equals(reference)) return false;
+        boolean acknowledgement = "GunPresentation".equals(kind)
+            || Nbt.getBoolean(response, "Applied");
+        if (acknowledgement && (pendingRequest.isEmpty() || !pendingRequest.equals(requestId)
+                || !incoming.equals(reference))) return false;
+        if (!pendingRequest.isEmpty()) {
+            // Other state for this gun can refresh without rolling back its optimistic presentation.
+            if (!opensGun && !pendingRequest.equals(requestId)) return true;
+            pendingRequest = "";
+        }
+        if (!response.contains("Presentation")) return false;
+        reference = incoming.copy();
+        current = GunPresentation.load(Nbt.getCompound(response, "Presentation"));
+        return true;
+    }
+
+    public static void writeRequest(CompoundTag request) {
+        if (!"SET_APPEARANCE".equals(Nbt.getString(request, "Action"))) return;
+        if (!Nbt.getCompound(request, "GunReference").equals(reference)) return;
+        request.put("Presentation", recommended(Nbt.getString(request, "Skin"), current, true).save());
+        pendingRequest = Nbt.getString(request, "RequestId");
+    }
+
+    public static void toggle(Category category, String skin, CompoundTag gunReference) {
+        var enabled = ClientConfig.VALUES.skinRecommendations.enabled(category);
+        enabled.set(!enabled.get());
         ClientConfig.SPEC.save();
     }
 
-    public static PortalSoundSettings customSounds() {
-        var current = PortalClientState.data().settings().portalSounds();
-        String scope = scope();
-        if (scope == null) return current;
-        bindSoundScope(scope);
-        return soundSettings(SkinSoundMemory.custom(
-            SOUND_EDITS.memory(config().soundMemory.get()), scope, SOUND_EDITS.visible(choices(current))));
+    public static void selectAnimation(GunShotAnimation animation) {
+        edit(Category.SHOT_ANIMATION, current.withAnimation(animation));
     }
 
-    private static void applySounds(CompoundTag reference) {
-        String scope = scope();
-        if (scope == null || reference.isEmpty()) return;
-        bindSoundScope(scope);
-        var config = config();
-        var current = PortalClientState.data().settings();
-        var preset = config.sounds.get() ? config.activePreset(Category.SOUNDS) : null;
-        var change = SkinSoundMemory.apply(SOUND_EDITS.memory(config.soundMemory.get()), scope,
-            SOUND_EDITS.visible(choices(current.portalSounds())), custom -> {
-            if (preset == null) return custom;
-            return new SkinSoundMemory.Sounds(
-                resolveSound(PortalSoundChannel.SHOT, preset.shotSound.get(), custom.shot()),
-                resolveSound(PortalSoundChannel.PORTAL, preset.portalSound.get(), custom.portal()),
-                resolveSound(PortalSoundChannel.TRANSIT, preset.transitSound.get(), custom.transit()), custom.splash());
-        });
-        sendSounds(change, reference);
+    public static void selectVisual(String visual) {
+        edit(Category.PORTAL_VISUAL, current.withVisual(visual));
     }
 
-    private static void sendSounds(SkinSoundMemory.Change change, CompoundTag reference) {
-        String requestId = UUID.randomUUID().toString();
-        SOUND_EDITS.submit(requestId, change);
-        var selected = soundSettings(change.sounds());
-        setVisibleSounds(selected);
-        PortalNetworking.sendRequest(PortalAction.SET_PORTAL_SOUNDS, tag -> {
-            tag.putString("RequestId", requestId);
-            tag.put("PortalSounds", selected.save());
+    public static PortalSoundSettings customSounds() { return current.sounds(); }
+
+    public static void selectCustomSounds(PortalSoundSettings sounds) {
+        edit(Category.SOUNDS, current.withSounds(sounds));
+    }
+
+    private static void edit(Category category, GunPresentation value) {
+        if (reference.isEmpty()) return;
+        current = value;
+        pendingRequest = UUID.randomUUID().toString();
+        PortalNetworking.sendRequest(PortalAction.SET_GUN_PRESENTATION, tag -> {
             tag.put("GunReference", reference.copy());
+            tag.putString("RequestId", pendingRequest);
+            tag.putString("Category", category.name());
+            tag.put("Presentation", value.save());
         });
     }
 
-    private static void bindSoundScope(String scope) {
-        if (!scope.equals(soundScope)) {
-            SOUND_EDITS.clear();
-            soundScope = scope;
+    private static GunPresentation recommended(String skin, GunPresentation base, boolean honorSwitches) {
+        var config = ClientConfig.VALUES.skinRecommendations;
+        var preset = config.presets.get(skin);
+        if (preset == null) return base;
+        String visual = base.visual();
+        GunShotAnimation animation = base.animation();
+        PortalSoundSettings sounds = base.sounds();
+        if (!honorSwitches || config.portalVisual.get()) {
+            visual = SkinRecommendationConfig.resolve(preset.portalVisual.get(), visual);
         }
-        var config = config();
-        var captured = SkinSoundMemory.captureCustom(config.soundMemory.get(), scope,
-            choices(PortalClientState.data().settings().portalSounds()));
-        if (!captured.equals(config.soundMemory.get())) {
-            config.soundMemory.set(captured);
-            ClientConfig.SPEC.save();
+        if (!honorSwitches || config.shotAnimation.get()) {
+            animation = GunShotAnimation.valueOf(SkinRecommendationConfig.resolve(
+                preset.shotAnimation.get(), animation.name()));
         }
-    }
-
-    private static String resolveSound(PortalSoundChannel channel, String recommended, String custom) {
-        String id = SkinRecommendationConfig.resolve(recommended, custom);
-        // Missing or channel-incompatible preset choices retain custom sounds.
-        return PortalSoundRegistry.values(channel).stream().anyMatch(choice -> choice.id().toString().equals(id))
-            ? id : custom;
-    }
-
-    private static SkinSoundMemory.Sounds choices(PortalSoundSettings settings) {
-        return new SkinSoundMemory.Sounds(settings.shot().toString(), settings.portal().toString(),
-            settings.transit().toString(), settings.splashEnabled());
-    }
-
-    private static PortalSoundSettings soundSettings(SkinSoundMemory.Sounds sounds) {
-        return new PortalSoundSettings(ResourceLocation.parse(sounds.shot()), ResourceLocation.parse(sounds.portal()),
-            ResourceLocation.parse(sounds.transit()), sounds.splash());
-
+        if (!honorSwitches || config.sounds.get()) {
+            sounds = new PortalSoundSettings(
+                ResourceLocation.parse(SkinRecommendationConfig.resolve(preset.shotSound.get(), sounds.shot().toString())),
+                ResourceLocation.parse(SkinRecommendationConfig.resolve(preset.portalSound.get(), sounds.portal().toString())),
+                ResourceLocation.parse(SkinRecommendationConfig.resolve(preset.transitSound.get(), sounds.transit().toString())),
+                sounds.splashEnabled());
+        }
+        return new GunPresentation(visual, animation, sounds, true);
     }
 
     private static String scope() {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null) return null;
-        var server = minecraft.getSingleplayerServer();
-        String location;
-        if (server != null) location = "save:" + server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
-        else if (minecraft.getCurrentServer() != null) {
-            location = "server:" + minecraft.getCurrentServer().ip.toLowerCase(Locale.ROOT);
+        if (minecraft.player == null || minecraft.getConnection() == null) return null;
+        String place;
+        if (minecraft.getSingleplayerServer() != null) {
+            place = "save:" + minecraft.getSingleplayerServer().getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
+        } else if (minecraft.getCurrentServer() != null) {
+            place = "server:" + minecraft.getCurrentServer().ip.toLowerCase(java.util.Locale.ROOT);
         } else return null;
-        return location + "|" + minecraft.player.getUUID();
+        return place + "|" + minecraft.player.getUUID();
     }
 
-    private static void publish() {
-        ClientConfig.publishSnapshot();
-        ClientConfig.SPEC.save();
-        PortalVisualPreferences.notifySelectionChanged();
-    }
-
-    private static SkinRecommendationConfig config() { return ClientConfig.VALUES.skinRecommendations; }
     private SkinRecommendations() {}
 }

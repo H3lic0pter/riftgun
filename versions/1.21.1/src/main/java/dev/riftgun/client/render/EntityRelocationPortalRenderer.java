@@ -21,7 +21,7 @@ public final class EntityRelocationPortalRenderer extends EntityRenderer<EntityR
     @Override
     public void render(EntityRelocationPortalEntity entity, float yaw, float partialTick,
                        PoseStack poses, MultiBufferSource buffers, int packedLight) {
-        PortalVisualType type = PortalVisualPreferences.selected();
+        PortalVisualType type = PortalVisualRegistry.resolveStored(entity.visualType());
         PortalRenderFrameState frameState = PortalRenderFrameState.current();
         type.renderer().render(new PortalVisualRenderContext(entity, partialTick, poses, buffers,
             packedLight, frameState.surfaceRenderPath(), frameState.shaderPackProfile(),

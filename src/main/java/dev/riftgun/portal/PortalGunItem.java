@@ -37,6 +37,19 @@ public final class PortalGunItem extends Item {
     }
 
     @Override
+    //? if >=1.21.11 {
+    /*public void onCraftedBy(ItemStack stack, Player player) {
+        super.onCraftedBy(stack, player);
+    *///?} else {
+    public void onCraftedBy(ItemStack stack, Level level, Player player) {
+        super.onCraftedBy(stack, level, player);
+    //?}
+        if (player instanceof ServerPlayer serverPlayer) {
+            dev.riftgun.appearance.GunPresentationDefaults.initialize(serverPlayer, stack);
+        }
+    }
+
+    @Override
     public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
         if (!entity.level().isClientSide()) PortalGunVisualState.ensureInitialized(stack);
         if (hasMatterAnchor(stack) && PortalModuleRules.current().matterAnchorPreventsDespawn()

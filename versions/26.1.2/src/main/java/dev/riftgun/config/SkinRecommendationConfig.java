@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
-/** Recommendations are overlays; the existing visual and animation fields remain custom choices. */
+/** Local copy templates. Legacy overlay fields remain readable solely for old-gun migration. */
 public final class SkinRecommendationConfig {
     public static final String CUSTOM = "CUSTOM";
     public enum Category { SOUNDS, PORTAL_VISUAL, SHOT_ANIMATION }
@@ -20,7 +20,7 @@ public final class SkinRecommendationConfig {
 
     public SkinRecommendationConfig(ModConfigSpec.Builder builder) {
         builder.push("appearance").push("recommendations");
-        sounds = builder.comment("Apply recommended sounds when applying a skin; disabling restores custom sounds")
+        sounds = builder.comment("Copy recommended sounds into this gun when applying a skin; disabling preserves its sounds")
             .define("sounds", true);
         portalVisual = builder.comment("Apply the recommended portal visual when applying a skin")
             .define("portalVisual", true);

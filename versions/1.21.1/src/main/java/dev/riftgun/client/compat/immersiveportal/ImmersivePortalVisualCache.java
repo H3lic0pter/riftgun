@@ -1,6 +1,5 @@
 package dev.riftgun.client.compat.immersiveportal;
 
-import dev.riftgun.client.render.PortalVisualPreferences;
 import dev.riftgun.client.render.PortalVisualRegistry;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalVisualTarget;
@@ -36,8 +35,7 @@ final class ImmersivePortalVisualCache {
     private static final Set<UUID> FADING_COVERS = new HashSet<>();
 
     static void tick(Minecraft minecraft) {
-        if (minecraft.level == null
-            || !PortalVisualPreferences.selectedId().equals(PortalVisualRegistry.IMMERSIVE_PORTAL_ID)) {
+        if (minecraft.level == null) {
             suspendProxies();
             return;
         }
@@ -51,7 +49,8 @@ final class ImmersivePortalVisualCache {
         while (iterator.hasNext()) {
             UUID portalId = iterator.next();
             PortalEntity source = SOURCES.get(portalId);
-            if (source == null || source.isRemoved() || source.level() != minecraft.level) {
+            if (source == null || source.isRemoved() || source.level() != minecraft.level
+                || !source.visualType().equals(PortalVisualRegistry.IMMERSIVE_PORTAL_ID.toString())) {
                 if (source != null) SOURCES.remove(portalId, source);
                 remove(portalId);
                 iterator.remove();

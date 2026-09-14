@@ -17,7 +17,8 @@ public record PortalRuntimeOptions(
     double horizontalTriggerExtend,
     PortalSoundSnapshot sounds,
     PortalCrisisConfigurationSnapshot crises,
-    Optional<PortalTransitAuthorization> transitAuthorization
+    Optional<PortalTransitAuthorization> transitAuthorization,
+    String visualType
 ) {
     public PortalRuntimeOptions {
         if (entityAccess == null) entityAccess = PortalEntityAccessSnapshot.NONE;
@@ -28,5 +29,17 @@ public record PortalRuntimeOptions(
         if (sounds == null) sounds = PortalSoundSnapshot.defaults();
         if (crises == null) crises = PortalCrisisConfigurationSnapshot.stable();
         if (transitAuthorization == null) transitAuthorization = Optional.empty();
+        if (!dev.riftgun.appearance.PortalGunSkin.validId(visualType)) {
+            visualType = dev.riftgun.appearance.GunPresentation.DEFAULT_VISUAL;
+        }
+    }
+
+    public PortalRuntimeOptions(PortalEntityAccessSnapshot entityAccess, int openDurationTicks,
+            PortalAperture aperture, int transitCooldownTicks, boolean fallGuard, boolean entityFallGuard,
+            double horizontalTriggerExtend, PortalSoundSnapshot sounds,
+            PortalCrisisConfigurationSnapshot crises, Optional<PortalTransitAuthorization> transitAuthorization) {
+        this(entityAccess, openDurationTicks, aperture, transitCooldownTicks, fallGuard, entityFallGuard,
+            horizontalTriggerExtend, sounds, crises, transitAuthorization,
+            dev.riftgun.appearance.GunPresentation.DEFAULT_VISUAL);
     }
 }

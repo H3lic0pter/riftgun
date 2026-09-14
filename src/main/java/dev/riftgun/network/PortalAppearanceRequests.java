@@ -15,6 +15,7 @@ public final class PortalAppearanceRequests {
         response.putString("Kind", "Appearance");
         response.putString("RequestId", Nbt.getString(request, "RequestId"));
         response.putBoolean("Applied", apply);
+        response.put("GunReference", Nbt.getCompound(request, "GunReference").copy());
         String error = "";
         var gun = request.contains("GunReference")
             ? PortalGunLocator.resolveReference(player, Nbt.getCompound(request, "GunReference")).orElse(null)
@@ -25,13 +26,22 @@ public final class PortalAppearanceRequests {
             error = "screen.riftgun.appearance.invalid_gun";
         } else if (apply && !PortalGunSkin.validId(Nbt.getString(request, "Skin"))) {
             error = "screen.riftgun.appearance.invalid_skin";
+        } else if (!dev.riftgun.appearance.GunPresentationDefaults.initialize(player, gun.stack())) {
+            error = "message.riftgun.invalid_request";
         } else {
             if (apply) {
+                if (request.contains("Presentation")) {
+                    var selected = dev.riftgun.appearance.GunPresentation.load(Nbt.getCompound(request, "Presentation"));
+                    gun.stack().set(dev.riftgun.fuel.PortalGunComponents.PRESENTATION,
+                        new dev.riftgun.appearance.GunPresentation(
+                            selected.visual(), selected.animation(), selected.sounds(), true));
+                }
                 PortalGunSkin.set(gun.stack(), Nbt.getString(request, "Skin"));
                 player.getInventory().setChanged();
                 player.containerMenu.broadcastChanges();
             }
             response.putString("Skin", PortalGunSkin.current(gun.stack()));
+            response.put("Presentation", dev.riftgun.appearance.GunPresentation.current(gun.stack()).save());
             response.putBoolean("Foil", gun.stack().hasFoil());
             response.put("GunReference", gun.saveReference());
             PortalGunVisualState visual = PortalGunVisualState.current(gun.stack());

@@ -73,6 +73,7 @@ public final class RiftLifecycle {
     }
 
     public static void playerCloned(ServerPlayer original, ServerPlayer replacement) {
+        dev.riftgun.appearance.GunPresentationDefaults.copyConnection(original, replacement);
         PortalDataStore.copy(original, replacement);
         RiftRuntime.current().motionHistory().remove(original.getUUID());
         updatePrediction(replacement);

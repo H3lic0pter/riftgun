@@ -655,7 +655,7 @@ public final class PortalConfigScreen extends Screen {
         } else if (session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {
             button(x + 18, y + 38, fieldWidth, 18, gunAnimationLabel(), false, widget -> {
                 dev.riftgun.client.appearance.SkinRecommendations.selectAnimation(
-                    dev.riftgun.core.config.RiftConfigs.client().gunAnimation().next());
+                    dev.riftgun.client.appearance.SkinRecommendations.current().animation().next());
                 widget.setMessage(gunAnimationLabel());
             });
         } else if (session.page() == PortalConfigPage.SOUND_SETTINGS) {
@@ -666,7 +666,7 @@ public final class PortalConfigScreen extends Screen {
             }
             splashSoundButton = button(x + 18, selectorY, fieldWidth, 18,
                 toggleLabel("screen.riftgun.sound.splash",
-                    PortalClientState.data().settings().portalSounds().splashEnabled()), false,
+                    dev.riftgun.client.appearance.SkinRecommendations.customSounds().splashEnabled()), false,
                 ignored -> toggleSplashSound());
         }
 
@@ -840,7 +840,7 @@ public final class PortalConfigScreen extends Screen {
 
     private static Component gunAnimationLabel() {
         return Component.translatable("screen.riftgun.gun_animation", Component.translatable(
-            switch (dev.riftgun.core.config.RiftConfigs.client().gunAnimation()) {
+            switch (dev.riftgun.client.appearance.SkinRecommendations.current().animation()) {
                 case OFF -> "screen.riftgun.gun_animation.off";
                 case RECOIL -> "screen.riftgun.gun_animation.recoil";
                 case SWING -> "screen.riftgun.gun_animation.swing";
@@ -1923,7 +1923,7 @@ public final class PortalConfigScreen extends Screen {
         if (channel == null || selector == null) return;
         List<PortalSoundChoice> choices = PortalSoundRegistry.values(channel);
         Box box = selectorDropdownBox(selector, choices.size());
-        Identifier selected = PortalClientState.data().settings().portalSounds().selected(channel);
+        Identifier selected = dev.riftgun.client.appearance.SkinRecommendations.customSounds().selected(channel);
         graphics.nextStratum();
         graphics.fill(box.x() + 3, box.y() + 3, box.x() + box.width() + 3,
             box.y() + box.height() + 3, 0xCC000000);
@@ -3008,7 +3008,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private Identifier selectedSound(PortalSoundChannel channel) {
-        return PortalClientState.data().settings().portalSounds().selected(channel);
+        return dev.riftgun.client.appearance.SkinRecommendations.customSounds().selected(channel);
     }
 
     private boolean clickSoundDropdown(double mouseX, double mouseY) {
@@ -3409,7 +3409,7 @@ public final class PortalConfigScreen extends Screen {
 
     private static Component soundName(PortalSoundChannel channel) {
         PortalSoundChoice choice = PortalSoundRegistry.resolve(
-            channel, PortalClientState.data().settings().portalSounds().selected(channel));
+            channel, dev.riftgun.client.appearance.SkinRecommendations.customSounds().selected(channel));
         return Component.translatable(channel.labelKey()).append(": ")
             .append(Component.translatable(choice.nameKey()));
     }

@@ -86,10 +86,12 @@ public final class ClientModEvents {
     public static void onClientSetup(FMLClientSetupEvent event) {
         EntityRenderers.register(RiftContent.PORTAL.get(), PortalRenderer::new);
         EntityRenderers.register(RiftContent.ENTITY_RELOCATION_PORTAL.get(), EntityRelocationPortalRenderer::new);
-        PortalNetworking.setClientContextWriter(PortalClientState::writeGunReference);
+        PortalNetworking.setClientContextWriter(request -> {
+            PortalClientState.writeGunReference(request);
+            dev.riftgun.client.appearance.SkinRecommendations.writeRequest(request);
+        });
         PortalNetworking.setClientRequestListener((action, request) -> {
             PortalGunHandAnimation.onRequest(action, request);
-            dev.riftgun.client.appearance.SkinRecommendations.onRequest(request);
         });
     }
 

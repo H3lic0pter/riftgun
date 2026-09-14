@@ -31,7 +31,7 @@ final class EntityRelocationExitService {
             return null;
         }
         EntityRelocationExitIndex.Lease shared = request.sharedKey() == null ? null
-            : reserveShared(server, request.sharedKey(), request.side());
+            : reserveShared(server, request.sharedKey(), request.side(), request.visualType(), request.sounds());
         if (shared != null) {
             EntityRelocationPortalEntity portal = resolve(server, shared);
             if (portal == null) {
@@ -49,6 +49,7 @@ final class EntityRelocationExitService {
             : EntityRelocationPortalEntity.createPlayerDestinationExit(request.level(),
                 request.followPlayer(), request.side(), request.rgb(), request.durationTicks(),
                 request.sounds(), request.openingTicks());
+        exit.visualType(request.visualType());
         if (!request.level().addFreshEntity(exit)) return null;
         exit.acquireChunkTicket();
         PortalSounds.playOpening(request.level(), exit.position(), request.sounds());
@@ -93,7 +94,8 @@ final class EntityRelocationExitService {
     }
 
     private static @Nullable EntityRelocationExitIndex.Lease reserveShared(
-            MinecraftServer server, EntityRelocationExitIndex.DestinationKey key, float side) {
+            MinecraftServer server, EntityRelocationExitIndex.DestinationKey key, float side,
+            String visualType, PortalSoundSnapshot sounds) {
         return INDEX.reserveStable(key, side, new EntityRelocationExitIndex.CandidateAccess() {
             @Override
             public EntityRelocationExitIndex.Candidate inspect(EntityRelocationExitIndex.ExitReference exit) {
@@ -109,7 +111,13 @@ final class EntityRelocationExitService {
             @Override
             public boolean tryReserve(EntityRelocationExitIndex.ExitReference exit, float requiredSide) {
                 EntityRelocationPortalEntity portal = resolve(server, exit);
-                return portal != null && portal.tryReserve(requiredSide);
+                if (portal == null || !portal.visualType().equals(visualType)) return false;
+                PortalSoundSnapshot existing = portal.soundSnapshot();
+                // Shot audio belongs to each firing session, not the shared exit.
+                return existing.portal().equals(sounds.portal())
+                    && existing.transit().equals(sounds.transit())
+                    && existing.splashEnabled() == sounds.splashEnabled()
+                    && portal.tryReserve(requiredSide);
             }
         }).orElse(null);
     }
@@ -136,7 +144,7 @@ final class EntityRelocationExitService {
     record OpenRequest(ServerLevel level, @Nullable ServerPlayer followPlayer, Vec3 center,
                        float side, int rgb, int durationTicks, PortalSoundSnapshot sounds,
                        PortalOrientation orientation, float yaw, int openingTicks,
-                       @Nullable EntityRelocationExitIndex.DestinationKey sharedKey) {}
+                       @Nullable EntityRelocationExitIndex.DestinationKey sharedKey, String visualType) {}
 
     record Handle(@Nullable EntityRelocationExitIndex.Lease sharedExit, @Nullable UUID portalId,
                   ResourceKey<Level> dimension) {}

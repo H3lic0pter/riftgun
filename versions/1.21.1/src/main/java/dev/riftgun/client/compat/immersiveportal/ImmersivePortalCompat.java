@@ -1,8 +1,6 @@
 package dev.riftgun.client.compat.immersiveportal;
 
 import dev.riftgun.client.render.PortalVisualRenderContext;
-import dev.riftgun.client.render.PortalVisualPreferences;
-import dev.riftgun.client.render.PortalVisualRegistry;
 import dev.riftgun.core.network.RiftNetwork;
 import dev.riftgun.network.ImmersivePortalHelloPayload;
 import net.minecraft.client.Minecraft;
@@ -57,8 +55,7 @@ public final class ImmersivePortalCompat {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.getConnection() == null) return;
         RiftNetwork.sendToServer(new ImmersivePortalHelloPayload(
-            isLoaded() && PortalVisualPreferences.configuredId()
-                .equals(PortalVisualRegistry.IMMERSIVE_PORTAL_ID)));
+            isLoaded()));
     }
 
     public static void handleCapability(boolean supported) {

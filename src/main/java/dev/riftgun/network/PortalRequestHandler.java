@@ -33,8 +33,12 @@ public final class PortalRequestHandler {
     public static void handle(ServerPlayer player, CompoundTag request) {
         PortalAction action = parseAction(request);
         if (action == null) return;
-        if (action == PortalAction.SET_PORTAL_SOUNDS) {
-            PortalSoundRequests.handle(player, request);
+        if (action == PortalAction.SYNC_PRESENTATION_DEFAULTS) {
+            dev.riftgun.appearance.GunPresentationDefaults.receive(player, request);
+            return;
+        }
+        if (action == PortalAction.SET_GUN_PRESENTATION) {
+            GunPresentationRequests.handle(player, request);
             return;
         }
         if (action == PortalAction.OPEN_APPEARANCE || action == PortalAction.SET_APPEARANCE) {
@@ -91,6 +95,7 @@ public final class PortalRequestHandler {
             }
             return;
         }
+        if (!dev.riftgun.appearance.GunPresentationDefaults.initialize(player, gun.stack())) return;
         if (action == PortalAction.OPEN_GUI) {
             PortalNetworking.sendSnapshot(player, true, gun);
             return;
@@ -140,6 +145,7 @@ public final class PortalRequestHandler {
         if (player.isSpectator()) return;
         PortalGunLocator.LocatedGun gun = PortalGunLocator.first(player).orElse(null);
         if (gun == null || gun.stack() != player.getItemInHand(hand)) return;
+        if (!dev.riftgun.appearance.GunPresentationDefaults.initialize(player, gun.stack())) return;
         PortalPlayerData data = PortalDataStore.load(player);
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(
             gun.stack(), data.settings().smartDistance());
@@ -300,7 +306,8 @@ public final class PortalRequestHandler {
                 closePortals(player);
                 yield false;
             }
-            case OPEN_GUI, OPEN_MODE_RADIAL, OPEN_MODULES, OPEN_APPEARANCE, SET_APPEARANCE, SET_PORTAL_SOUNDS,
+            case SYNC_PRESENTATION_DEFAULTS, SET_GUN_PRESENTATION,
+                 OPEN_GUI, OPEN_MODE_RADIAL, OPEN_MODULES, OPEN_APPEARANCE, SET_APPEARANCE,
                  SET_PRIVACY, SET_PRIVACY_OVERRIDE,
                  REQUEST_PRIVACY_PLAYERS -> false;
         };

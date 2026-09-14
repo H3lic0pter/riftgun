@@ -74,6 +74,17 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
     private int openDurationTicks = 60;
     private int reservations;
     private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
+    private static final EntityDataAccessor<String> VISUAL_TYPE =
+        SynchedEntityData.defineId(EntityRelocationPortalEntity.class, EntityDataSerializers.STRING);
+
+    @Override
+    public String visualType() { return entityData.get(VISUAL_TYPE); }
+    PortalSoundSnapshot soundSnapshot() { return sounds; }
+
+    public void visualType(String value) {
+        entityData.set(VISUAL_TYPE, dev.riftgun.appearance.PortalGunSkin.validId(value)
+            ? value : dev.riftgun.appearance.GunPresentation.DEFAULT_VISUAL);
+    }
     private long lastProjectileEffectAt = Long.MIN_VALUE;
     private ChunkPos ticketChunk;
     private int ticketReservations;
@@ -151,6 +162,7 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(VISUAL_TYPE, dev.riftgun.appearance.GunPresentation.DEFAULT_VISUAL);
         builder.define(SIDE, 1.0F);
         builder.define(TARGET_SIDE, 1.0F);
         builder.define(FUEL_RGB, PortalFuelProfiles.DIMENSIONAL_RGB);
@@ -383,6 +395,7 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         entityData.set(OPENING_TICKS, tag.contains("OpeningTicks")
             ? Math.max(1, Nbt.getInt(tag, "OpeningTicks"))
             : EntityRelocationLifecycle.OPENING_TICKS);
+        visualType(Nbt.getString(tag, "VisualType"));
         sounds = tag.contains("Sounds")
             ? PortalSoundSnapshot.load(Nbt.getCompound(tag, "Sounds")) : PortalSoundSnapshot.defaults();
         PortalLifecycle.Phase saved = PortalLifecycle.Phase.byOrdinal(Nbt.getInt(tag, "Phase"));
@@ -416,6 +429,7 @@ private static final TicketType<UUID> EXIT_TICKET = TicketType.create("riftgun_e
         tag.putInt("Phase", phase().ordinal());
         tag.putInt("PhaseTicks", phaseTicks());
         tag.put("Sounds", sounds.save());
+        tag.putString("VisualType", visualType());
     }
 
     @Override public UUID visualId() { return getUUID(); }

@@ -18,6 +18,12 @@ public final class PortalGunComponents {
     public static final DeferredRegister.DataComponents COMPONENTS =
         DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, RiftConstants.MOD_ID);
 
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<dev.riftgun.appearance.GunPresentation>> PRESENTATION =
+        COMPONENTS.registerComponentType("gun_presentation", builder -> builder
+            .persistent(dev.riftgun.appearance.GunPresentation.CODEC)
+            .networkSynchronized(ByteBufCodecs.COMPOUND_TAG.map(
+                dev.riftgun.appearance.GunPresentation::load, dev.riftgun.appearance.GunPresentation::save)));
+
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<String>> SKIN =
         COMPONENTS.registerComponentType("portal_gun_skin", builder -> builder
             .persistent(Codec.STRING)

@@ -57,6 +57,10 @@ final class PortalAppearanceRequestsTest {
         when(player.getInventory()).thenReturn(inventory);
         player.containerMenu = menu;
         target = mock(ItemStack.class);
+        when(target.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION))
+            .thenReturn(dev.riftgun.appearance.GunPresentation.DEFAULT);
+        when(target.getOrDefault(eq(dev.riftgun.fuel.PortalGunComponents.PRESENTATION), any()))
+            .thenReturn(dev.riftgun.appearance.GunPresentation.DEFAULT);
         other = mock(ItemStack.class);
         when(player.getMainHandItem()).thenReturn(other);
         reference = new CompoundTag();
@@ -164,6 +168,34 @@ final class PortalAppearanceRequestsTest {
     }
 
     @Test
+    void skinAndCopiedPresentationAreAppliedBeforeInventorySynchronization() {
+        var selected = dev.riftgun.appearance.GunPresentation.DEFAULT
+            .withVisual("riftgun:endframe")
+            .withAnimation(dev.riftgun.core.config.GunShotAnimation.SWING);
+        var saved = new java.util.concurrent.atomic.AtomicReference<>(
+            dev.riftgun.appearance.GunPresentation.DEFAULT);
+        doAnswer(call -> { saved.set(call.getArgument(1)); return null; })
+            .when(target).set(eq(dev.riftgun.fuel.PortalGunComponents.PRESENTATION), any());
+        when(target.getOrDefault(eq(dev.riftgun.fuel.PortalGunComponents.PRESENTATION), any()))
+            .thenAnswer(call -> saved.get());
+        doAnswer(call -> {
+            assertEquals("riftgun:arcane_rift_staff", storedSkin);
+            assertEquals(selected, saved.get());
+            return null;
+        }).when(menu).broadcastChanges();
+        CompoundTag request = request("riftgun:arcane_rift_staff");
+        request.put("Presentation", selected.save());
+
+        PortalAppearanceRequests.handle(player, request, true);
+
+        assertEquals("", Nbt.getString(response, "Error"));
+        assertEquals(selected, dev.riftgun.appearance.GunPresentation.load(
+            Nbt.getCompound(response, "Presentation")));
+        verify(menu).broadcastChanges();
+        verifyNoInteractions(other);
+    }
+
+    @Test
     void openingPreservesTargetGlintInPreviewVisuals() {
         assertOpeningVisuals(true);
     }
@@ -181,7 +213,7 @@ final class PortalAppearanceRequestsTest {
         assertEquals(foil, Nbt.getBoolean(response, "Foil"));
         skins.verify(() -> PortalGunSkin.set(any(), anyString()), never());
         verify(target).hasFoil();
-        verifyNoMoreInteractions(target);
+        verify(target, never()).set(eq(dev.riftgun.fuel.PortalGunComponents.PRESENTATION), any());
         verifyNoInteractions(other, inventory, menu);
     }
 }

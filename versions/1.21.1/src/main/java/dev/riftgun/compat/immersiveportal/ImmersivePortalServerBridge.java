@@ -40,6 +40,7 @@ final class ImmersivePortalServerBridge {
             if (player == null) continue;
             for (PortalEntity source : SOURCES.values()) {
                 if (!source.level().dimension().equals(player.level().dimension())
+                    || !source.visualType().equals("riftgun:immersive_portal")
                     || source.distanceToSqr(player) > TRACKING_RANGE_SQUARED
                     || source.visualTarget().isEmpty()) continue;
                 Key key = new Key(playerId, source.getUUID());

@@ -10,5 +10,8 @@
     "L": { "tag": "c:storage_blocks/lapis" },
     "R": { "tag": "c:storage_blocks/redstone" }
   },
-  "result": { "id": "riftgun:portal_gun", "count": 1 }
+  "result": {
+    "id": "riftgun:portal_gun", "count": 1,
+    "components": {"riftgun:gun_presentation": {"Initialized": false}}
+  }
 }

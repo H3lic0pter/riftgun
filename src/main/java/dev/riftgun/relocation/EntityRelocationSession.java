@@ -67,6 +67,7 @@ final class EntityRelocationSession {
     ResourceKey<Level> sourceDimension() { return context.sourceDimension(); }
     PortalFuelProfile profile() { return context.profile(); }
     PortalSoundSnapshot sounds() { return context.sounds(); }
+    String visualType() { return context.visualType(); }
     boolean fallGuard() { return context.fallGuard(); }
     boolean entityFallGuard() { return context.entityFallGuard(); }
     PortalCrisisConfigurationSnapshot crises() { return context.crises(); }
@@ -119,6 +120,7 @@ final class EntityRelocationSession {
         ResourceKey<Level> sourceDimension,
         PortalFuelProfile profile,
         PortalSoundSnapshot sounds,
+        String visualType,
         boolean fallGuard,
         boolean entityFallGuard,
         PortalCrisisConfigurationSnapshot crises,

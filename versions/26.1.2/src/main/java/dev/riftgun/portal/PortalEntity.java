@@ -103,6 +103,11 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     private double horizontalTriggerExtend;
     private PortalAperture aperture = PortalAperture.STANDARD;
     private PortalSoundSnapshot sounds = PortalSoundSnapshot.defaults();
+    private static final EntityDataAccessor<String> VISUAL_TYPE =
+        SynchedEntityData.defineId(PortalEntity.class, EntityDataSerializers.STRING);
+
+    @Override
+    public String visualType() { return entityData.get(VISUAL_TYPE); }
     private final PortalCrisisController crisis = new PortalCrisisController(this);
     private long lifecycleStartedAt;
     private long closeStartedAt = -1L;
@@ -265,6 +270,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         portal.horizontalTriggerExtend = options.horizontalTriggerExtend();
         portal.aperture = options.aperture();
         portal.sounds = options.sounds();
+        portal.entityData.set(VISUAL_TYPE, options.visualType());
         portal.crisis.configure(options.crises());
         portal.lifecycleStartedAt = startedAt;
         return portal;
@@ -280,6 +286,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(VISUAL_TYPE, dev.riftgun.appearance.GunPresentation.DEFAULT_VISUAL);
         builder.define(PHASE, PortalLifecycle.Phase.CHARGING.ordinal());
         builder.define(PHASE_TICKS, 0);
         builder.define(ORIENTATION, PortalOrientation.VERTICAL.ordinal());
@@ -549,7 +556,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     PortalRuntimeOptions runtimeOptions() {
         return new PortalRuntimeOptions(entityAccess, openDurationTicks, aperture,
             transitCooldownTicks, fallGuard, entityFallGuard, horizontalTriggerExtend,
-            sounds, crisis.configuration(), transitAuthorization);
+            sounds, crisis.configuration(), transitAuthorization, visualType());
     }
 
     void warnDeferredExitFailure(MinecraftServer server, List<Entity> movedEntities) {
@@ -857,6 +864,9 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         entityFallGuard = Nbt.getBoolean(tag, "EntityFallGuard");
         aperture = tag.contains("Aperture")
             ? PortalAperture.byOrdinal(Nbt.getInt(tag, "Aperture")) : PortalAperture.STANDARD;
+        String storedVisual = dev.riftgun.core.nbt.Nbt.getString(tag, "VisualType");
+        entityData.set(VISUAL_TYPE, dev.riftgun.appearance.PortalGunSkin.validId(storedVisual)
+            ? storedVisual : dev.riftgun.appearance.GunPresentation.DEFAULT_VISUAL);
         sounds = tag.contains("PortalSounds")
             ? PortalSoundSnapshot.load(Nbt.getCompound(tag, "PortalSounds"))
             : PortalSoundSnapshot.defaults();
@@ -895,6 +905,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
         tag.putBoolean("EntityFallGuard", entityFallGuard);
         tag.putInt("Aperture", aperture.ordinal());
         tag.put("PortalSounds", sounds.save());
+        tag.putString("VisualType", visualType());
         crisis.save(tag);
     }
 

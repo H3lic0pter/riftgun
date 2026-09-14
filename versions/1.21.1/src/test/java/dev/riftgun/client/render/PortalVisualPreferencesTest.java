@@ -23,7 +23,7 @@ final class PortalVisualPreferencesTest {
     }
 
     @Test
-    void missingRecommendationUsesTheSameIpFallbackForHandshakeAndRendering() throws Exception {
+    void gunIpChoiceWaitsForCapabilityWithoutRewritingTheStoredChoice() throws Exception {
         load(new TomlParser().parse("""
             portalVisualType = "riftgun:immersive_portal"
             [appearance.recommendations]
@@ -34,17 +34,18 @@ final class PortalVisualPreferencesTest {
         var ip = PortalVisualRegistry.IMMERSIVE_PORTAL_ID;
         var fallback = PortalVisualRegistry.DEFAULT_ID;
         var available = new AtomicBoolean(false);
-        try (var registry = mockStatic(PortalVisualRegistry.class)) {
+        try (var registry = mockStatic(PortalVisualRegistry.class);
+             var gun = mockStatic(dev.riftgun.client.appearance.SkinRecommendations.class)) {
+            gun.when(dev.riftgun.client.appearance.SkinRecommendations::current).thenReturn(
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withVisual(ip.toString()));
             registry.when(() -> PortalVisualRegistry.registered(any()))
                 .thenAnswer(call -> ip.equals(call.getArgument(0)) || fallback.equals(call.getArgument(0)));
             registry.when(() -> PortalVisualRegistry.contains(any()))
                 .thenAnswer(call -> fallback.equals(call.getArgument(0))
                     || ip.equals(call.getArgument(0)) && available.get());
-            assertEquals(ip, PortalVisualPreferences.configuredId()); // The initial hello must request IP.
             assertEquals(fallback, PortalVisualPreferences.selectedId()); // Wait for server capability.
             available.set(true);
             assertEquals(ip, PortalVisualPreferences.selectedId());
-            assertEquals(PortalVisualPreferences.selectedId(), PortalVisualPreferences.configuredId());
             assertEquals("riftgun:immersive_portal", ClientConfig.VALUES.portalVisualType.get());
         }
     }
@@ -58,8 +59,11 @@ final class PortalVisualPreferencesTest {
             [appearance.presets.default]
             portalVisual = "pack:missing_preset"
             """));
-        assertEquals(PortalVisualRegistry.DEFAULT_ID, PortalVisualPreferences.configuredId());
-        assertEquals(PortalVisualRegistry.DEFAULT_ID, PortalVisualPreferences.selectedId());
+        try (var gun = mockStatic(dev.riftgun.client.appearance.SkinRecommendations.class)) {
+            gun.when(dev.riftgun.client.appearance.SkinRecommendations::current).thenReturn(
+                dev.riftgun.appearance.GunPresentation.DEFAULT.withVisual("pack:missing_preset"));
+            assertEquals(PortalVisualRegistry.DEFAULT_ID, PortalVisualPreferences.selectedId());
+        }
     }
 
     private static void load(CommentedConfig config) throws Exception {

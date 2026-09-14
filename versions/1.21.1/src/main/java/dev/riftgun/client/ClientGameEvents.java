@@ -42,6 +42,7 @@ public final class ClientGameEvents {
     @SubscribeEvent
     public static void clientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
+        dev.riftgun.client.appearance.SkinRecommendations.tick();
         boolean nowConnected = minecraft.getConnection() != null;
         if (connected && !nowConnected) ClientMapWaypointIntegration.clear();
         connected = nowConnected;

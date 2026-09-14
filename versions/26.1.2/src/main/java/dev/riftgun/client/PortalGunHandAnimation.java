@@ -99,11 +99,12 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
         ItemStack stack = minecraft.player.getItemInHand(hand);
         if (!isPortalGun(stack)) return;
         var config = RiftConfigs.client();
+        var mode = dev.riftgun.client.appearance.SkinRecommendations.animation(stack);
         boolean lowerShortcut = !itemUse
             && minecraft.options.getCameraType().isFirstPerson()
-            && config.gunAnimation() == GunShotAnimation.LOWER;
+            && mode == GunShotAnimation.LOWER;
         animation(hand).fire(stack, System.nanoTime(), itemUse || lowerShortcut, minecraft.player.tickCount,
-            config.gunAnimation(), config.gunRecoil());
+            mode, config.gunRecoil());
         if (!minecraft.options.getCameraType().isFirstPerson()) animation(hand).recoil.reset();
         // Right-click SUCCESS already swings in Minecraft. Shortcuts need the same
         // native swing and packet explicitly, including in third person.
@@ -132,7 +133,7 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
         }
         MAIN.validate(owner.getMainHandItem());
         OFF.validate(owner.getOffhandItem());
-        if (minecraft.isPaused() || RiftConfigs.client().gunAnimation() != GunShotAnimation.RECOIL
+        if (minecraft.isPaused()
             || !minecraft.options.getCameraType().isFirstPerson()) {
             MAIN.recoil.reset();
             OFF.recoil.reset();
@@ -164,7 +165,7 @@ public final class PortalGunHandAnimation implements IClientItemExtensions {
         long now = System.nanoTime();
         boolean swinging = (player.swinging && player.swingingArm == hand) || swingProcess > 0.0F;
         animation.finishIfSettled(player.tickCount, swinging, equipProcess, now);
-        return animation.apply(poses, arm, equipProcess, now, RiftConfigs.client().gunAnimation());
+        return animation.apply(poses, arm, equipProcess, now, dev.riftgun.client.appearance.SkinRecommendations.animation(stack));
     }
 
     static void applyPose(PoseStack poses, HumanoidArm arm, float equipProcess,

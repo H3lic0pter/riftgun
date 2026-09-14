@@ -8,7 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 //?}
 
-/** Player-owned selection of the three sound roles plus the independent splash layer. */
+/** Sound choices stored per gun, and retained in player data as a legacy migration source. */
 public record PortalSoundSettings(
 //? if >=1.21.11 {
     /*Identifier shot,

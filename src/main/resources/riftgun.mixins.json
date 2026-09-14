@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.riftgun.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["NewGunPresentationMixin"],
+  "injectors": {"defaultRequire": 1}
+}
