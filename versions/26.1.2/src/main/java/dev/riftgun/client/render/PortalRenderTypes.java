@@ -249,6 +249,9 @@ public final class PortalRenderTypes {
         RenderSetup.builder(RenderPipelines.ENTITY_CUTOUT_Z_OFFSET)
             .withTexture("Sampler0", ENDFRAME_FRAME_TEXTURE,
                 () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+            // Shader packs may retain both vanilla entity samplers, even at full brightness.
+            .useOverlay()
+            .useLightmap()
             .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
             .bufferSize(256)
             .createRenderSetup()

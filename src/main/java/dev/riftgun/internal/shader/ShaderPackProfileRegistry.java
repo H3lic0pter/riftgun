@@ -8,9 +8,13 @@ import java.util.function.Predicate;
 public final class ShaderPackProfileRegistry {
     private static final ShaderPackProfile COMPLEMENTARY_R5 = new ShaderPackProfile(
         ShaderPackProfile.EndframeCenter.irisBlockEntity(5025));
+    // BSL 10.1 block.properties maps end_portal/end_gateway to block.25200.
+    private static final ShaderPackProfile BSL_10_1 = new ShaderPackProfile(
+        ShaderPackProfile.EndframeCenter.irisBlockEntity(25200));
     private static final List<Registration> REGISTRATIONS = List.of(
         prefix("complementaryreimagined_r5.", COMPLEMENTARY_R5),
-        prefix("complementaryunbound_r5.", COMPLEMENTARY_R5)
+        prefix("complementaryunbound_r5.", COMPLEMENTARY_R5),
+        prefix("bsl_v10.1.", BSL_10_1)
     );
 
     private ShaderPackProfileRegistry() {
