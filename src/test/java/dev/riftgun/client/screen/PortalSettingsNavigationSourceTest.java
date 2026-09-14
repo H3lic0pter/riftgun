@@ -34,7 +34,8 @@ final class PortalSettingsNavigationSourceTest {
             String shotAnimation = section(source,
                 "} else if (session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {",
                 "} else if (session.page() == PortalConfigPage.SOUND_SETTINGS) {");
-            assertTrue(shotAnimation.contains("SkinRecommendations.selectAnimation("));
+            assertTrue(shotAnimation.contains("addChoiceSelector("));
+            assertTrue(shotAnimation.contains("this::openShotAnimationDropdown"));
             assertFalse(visuals.contains("toggleLabel(\"screen.riftgun.animations\""));
             assertFalse(sounds.contains("toggleLabel(\"screen.riftgun.sounds\""));
         }
