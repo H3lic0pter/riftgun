@@ -152,6 +152,26 @@ public final class PortalRenderTypes {
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
             .build();
 
+        public static final RenderPipeline MAGIC_CIRCLE = magicCircle(false);
+        public static final RenderPipeline MAGIC_CIRCLE_GLOW = magicCircle(true);
+
+        private static RenderPipeline magicCircle(boolean glow) {
+            return RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+                .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID,
+                    glow ? "pipeline/magic_circle_glow" : "pipeline/magic_circle"))
+                .withVertexShader("core/entity")
+                .withFragmentShader("core/entity")
+                .withShaderDefine("EMISSIVE")
+                .withShaderDefine("NO_OVERLAY")
+                .withShaderDefine("NO_CARDINAL_LIGHTING")
+                .withSampler("Sampler0")
+                .withColorTargetState(new ColorTargetState(glow ? BlendFunction.LIGHTNING : BlendFunction.TRANSLUCENT))
+                .withCull(true)
+                .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
+                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                .build();
+        }
+
         private Pipelines() {}
     }
 
@@ -291,6 +311,23 @@ public final class PortalRenderTypes {
 
     public static RenderType swirlFallback() {
         return SWIRL_FALLBACK;
+    }
+
+    /** Use the exact vanilla pipeline identity: Iris maps it to its translucent eyes shader. */
+    public static RenderType magicCircleShaderLayer(Identifier texture) {
+        return RenderType.create("riftgun_magic_shader_" + texture.getPath(),
+            RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE)
+                .withTexture("Sampler0", texture,
+                    () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+                .useOverlay().sortOnUpload().bufferSize(256).createRenderSetup());
+    }
+
+    public static RenderType magicCircleLayer(Identifier texture, boolean glow) {
+        return RenderType.create("riftgun_magic_" + texture.getPath() + (glow ? "_glow" : ""),
+            RenderSetup.builder(glow ? Pipelines.MAGIC_CIRCLE_GLOW : Pipelines.MAGIC_CIRCLE)
+                .withTexture("Sampler0", texture,
+                    () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
+                .sortOnUpload().bufferSize(2048).createRenderSetup());
     }
 
     public static RenderType endframeFrame() {

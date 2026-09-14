@@ -216,6 +216,24 @@ public final class PortalRenderTypes extends RenderType {
         return RenderType.entityCutoutNoCull(SWIRL_TEXTURE);
     }
 
+    /** Iris recognizes the vanilla translucent emissive shader. */
+    public static RenderType magicCircleShaderLayer(ResourceLocation texture) {
+        return RenderType.entityTranslucentEmissive(texture, false);
+    }
+
+    /** Cached by the magic renderer; alpha holes never write depth over the other rings. */
+    public static RenderType magicCircleLayer(ResourceLocation texture, boolean glow) {
+        return create("riftgun_magic_" + texture.getPath() + (glow ? "_glow" : ""),
+            DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 2048, false, true,
+            CompositeState.builder()
+                .setShaderState(glow ? RENDERTYPE_EYES_SHADER : RENDERTYPE_ENTITY_TRANSLUCENT_EMISSIVE_SHADER)
+                .setTextureState(new TextureStateShard(texture, true, false))
+                .setTransparencyState(glow ? LIGHTNING_TRANSPARENCY : TRANSLUCENT_TRANSPARENCY)
+                .setCullState(CULL)
+                .setWriteMaskState(COLOR_WRITE)
+                .createCompositeState(false));
+    }
+
     public static RenderType endframeFrame() {
         return RenderType.entityCutoutNoCullZOffset(ENDFRAME_FRAME_TEXTURE);
     }

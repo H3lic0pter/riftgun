@@ -26,9 +26,17 @@ final class PortalVisualSelectionTest {
     @Test
     void registryExposesBuiltinsInUiOrder() {
         assertEquals(List.of(PortalVisualRegistry.CLASSIC_ID, PortalVisualRegistry.SWIRL_ID,
-                PortalVisualRegistry.ENDFRAME_ID),
+                PortalVisualRegistry.ENDFRAME_ID, PortalVisualRegistry.MAGIC_CIRCLE_ID),
             PortalVisualRegistry.values().stream().map(PortalVisualType::id).toList());
         assertEquals(PortalVisualRegistry.SWIRL_ID, PortalVisualRegistry.DEFAULT_ID);
+    }
+
+    @Test
+    void magicCircleSkipsWaterSplashesWhileExistingVisualsKeepThem() {
+        for (var type : PortalVisualRegistry.values()) {
+            assertEquals(!type.id().equals(PortalVisualRegistry.MAGIC_CIRCLE_ID),
+                type.renderer().usesSplashParticles());
+        }
     }
 
     private static PortalVisualType type(ResourceLocation id) {

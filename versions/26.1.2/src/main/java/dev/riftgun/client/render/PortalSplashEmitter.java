@@ -34,6 +34,7 @@ public final class PortalSplashEmitter {
         Set<UUID> seen = new HashSet<>();
         for (Entity entity : level.entitiesForRendering()) {
             if (!(entity instanceof PortalVisualSource portal)) continue;
+            if (!PortalVisualRegistry.resolveStored(portal.visualType()).renderer().usesSplashParticles()) continue;
             UUID portalId = portal.visualId();
             seen.add(portalId);
             emitTick(minecraft, level, portal);

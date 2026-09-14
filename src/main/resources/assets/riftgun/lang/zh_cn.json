@@ -559,5 +559,14 @@
   "message.riftgun.infinity_generation_failed": "维度生成失败，已保留坐标；详情见服务器日志",
   "message.riftgun.random_group_fixed": "自动搜索坐标只能保存在随机分组",
   "message.riftgun.random_private": "自动搜索坐标仅限个人使用，无法分享",
-  "message.riftgun.random_read_only": "随机坐标不允许编辑"
+  "message.riftgun.random_read_only": "随机坐标不允许编辑",
+  "screen.riftgun.visual.magic_circle": "魔法阵",
+  "screen.riftgun.visual.magic_circle_description": "由符文外环、三角阵与双层内环组成的发光法阵",
+  "screen.riftgun.visual.magic_circle_settings": "魔法阵旋转设置",
+  "screen.riftgun.visual.magic_circle_reset": "恢复魔法阵默认旋转设置",
+  "screen.riftgun.visual.magic_outer_period": "外圈旋转周期：%s 秒",
+  "screen.riftgun.visual.magic_inner_period": "内圈旋转周期：%s 秒",
+  "screen.riftgun.visual.magic_outer_counterclockwise": "外圈逆时针",
+  "screen.riftgun.visual.magic_inner_counterclockwise": "内圈逆时针",
+  "screen.riftgun.visual.animation_settings": "视觉动画设置"
 }

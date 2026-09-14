@@ -11,6 +11,7 @@ public final class PortalVisualRegistry {
     public static final Identifier CLASSIC_ID = id("classic");
     public static final Identifier SWIRL_ID = id("swirl");
     public static final Identifier ENDFRAME_ID = id("endframe");
+    public static final Identifier MAGIC_CIRCLE_ID = id("magic_circle");
     public static final Identifier DEFAULT_ID = SWIRL_ID;
     private static final Map<Identifier, PortalVisualType> TYPES = new LinkedHashMap<>();
     private static final Map<String, Identifier> STORED_IDS = new LinkedHashMap<>();
@@ -24,6 +25,9 @@ public final class PortalVisualRegistry {
         register(new PortalVisualType(ENDFRAME_ID, "screen.riftgun.visual.endframe",
             "screen.riftgun.visual.endframe_description", new EndframePortalVisualRenderer(),
             EndframeVisualOptions.DESCRIPTOR));
+        register(new PortalVisualType(MAGIC_CIRCLE_ID, "screen.riftgun.visual.magic_circle",
+            "screen.riftgun.visual.magic_circle_description", new MagicCirclePortalVisualRenderer(),
+            MagicCircleVisualOptions.DESCRIPTOR));
     }
 
     public static PortalVisualType register(PortalVisualType type) {

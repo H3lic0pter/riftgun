@@ -559,5 +559,14 @@
   "message.riftgun.infinity_generation_failed": "Dimension generation failed. Saved destination kept; check the server log.",
   "message.riftgun.random_group_fixed": "Automatic search destinations must stay in Random",
   "message.riftgun.random_private": "Automatic search destinations cannot be shared",
-  "message.riftgun.random_read_only": "Random destinations cannot be edited"
+  "message.riftgun.random_read_only": "Random destinations cannot be edited",
+  "screen.riftgun.visual.magic_circle": "Magic Circle",
+  "screen.riftgun.visual.magic_circle_description": "A glowing circle of runes, triangles and two inner rings",
+  "screen.riftgun.visual.magic_circle_settings": "Magic Circle Rotation",
+  "screen.riftgun.visual.magic_circle_reset": "Restore default magic circle rotation",
+  "screen.riftgun.visual.magic_outer_period": "Outer period: %s s",
+  "screen.riftgun.visual.magic_inner_period": "Inner period: %s s",
+  "screen.riftgun.visual.magic_outer_counterclockwise": "Outer counterclockwise",
+  "screen.riftgun.visual.magic_inner_counterclockwise": "Inner counterclockwise",
+  "screen.riftgun.visual.animation_settings": "Visual animation settings"
 }

@@ -110,6 +110,8 @@ public final class ClientModEvents {
         event.registerPipeline(PortalRenderTypes.Pipelines.PREVIEW_LINES);
         event.registerPipeline(PortalRenderTypes.Pipelines.ENDFRAME_STAR);
         event.registerPipeline(PortalRenderTypes.Pipelines.ENDFRAME_FRAME);
+        event.registerPipeline(PortalRenderTypes.Pipelines.MAGIC_CIRCLE);
+        event.registerPipeline(PortalRenderTypes.Pipelines.MAGIC_CIRCLE_GLOW);
     }
 
     @SubscribeEvent

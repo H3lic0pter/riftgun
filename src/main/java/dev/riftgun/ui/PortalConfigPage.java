@@ -23,7 +23,7 @@ public enum PortalConfigPage {
     PORTAL_PAIRING_SETTINGS("screen.riftgun.pairing.settings", "", false, false),
     PLAYER_TARGET_SETTINGS("screen.riftgun.player_target", "", false, false),
     VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
-    SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
+    SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.animation_settings", "", false, false),
     SOUND_SETTINGS("screen.riftgun.sound_settings", "", false, false),
     SHOT_ANIMATION_SETTINGS("screen.riftgun.shot_animation_settings", "", false, false),
     CONFIRM_DELETE_DESTINATION(

@@ -29,6 +29,8 @@ public final class ClientConfig {
             VALUES.swirlInwardPeriod.get(), VALUES.swirlInwardDirection.get(),
             VALUES.endframeRotationEnabled.get(), VALUES.endframeRotationPeriod.get(),
             VALUES.endframeRotationReverse.get(),
+            VALUES.magicOuterPeriod.get(), VALUES.magicInnerPeriod.get(),
+            VALUES.magicOuterCounterclockwise.get(), VALUES.magicInnerCounterclockwise.get(),
             VALUES.portalDynamicLightLevel.get(),
             List.copyOf(VALUES.surfaceFaceRadialOrder.get()),
             VALUES.surfaceFaceRadialOffsetX.get(), VALUES.surfaceFaceRadialOffsetY.get(),
@@ -49,6 +51,10 @@ public final class ClientConfig {
         public final ModConfigSpec.BooleanValue endframeRotationEnabled;
         public final ModConfigSpec.DoubleValue endframeRotationPeriod;
         public final ModConfigSpec.BooleanValue endframeRotationReverse;
+        public final ModConfigSpec.DoubleValue magicOuterPeriod;
+        public final ModConfigSpec.DoubleValue magicInnerPeriod;
+        public final ModConfigSpec.BooleanValue magicOuterCounterclockwise;
+        public final ModConfigSpec.BooleanValue magicInnerCounterclockwise;
         public final ModConfigSpec.IntValue portalDynamicLightLevel;
         public final ModConfigSpec.BooleanValue rememberGuiScrollPosition;
         public final ModConfigSpec.EnumValue<GunShotAnimation> gunAnimation;
@@ -113,6 +119,17 @@ public final class ClientConfig {
                 .defineInRange("rotationPeriod", 20.0, 2.0, 60.0);
             endframeRotationReverse = builder.comment("Reverse the endframe frame rotation direction")
                 .define("rotationReverse", false);
+            builder.pop(2);
+
+            builder.push("visuals").push("magicCircle");
+            magicOuterPeriod = builder.comment("Outer and triangle rotation period in seconds per turn")
+                .defineInRange("outerPeriod", 20.0, 2.0, 60.0);
+            magicInnerPeriod = builder.comment("Both inner circles' rotation period in seconds per turn")
+                .defineInRange("innerPeriod", 15.0, 2.0, 60.0);
+            magicOuterCounterclockwise = builder.comment("Rotate the outer circle counterclockwise")
+                .define("outerCounterclockwise", false);
+            magicInnerCounterclockwise = builder.comment("Rotate the inner circles counterclockwise")
+                .define("innerCounterclockwise", true);
             builder.pop(2);
 
             builder.push("visuals").push("dynamicLighting");

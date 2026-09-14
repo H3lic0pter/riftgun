@@ -79,7 +79,7 @@ final class SkinRecommendationConfigTest {
             dev.riftgun.sound.PortalSoundRegistry.ARCANE_ID,
             dev.riftgun.sound.PortalSoundRegistry.ARCANE_ID, false);
         assertEquals(current.withAnimation(GunShotAnimation.SWING).withSounds(arcane)
-            .withVisual("riftgun:endframe"), copied);
+            .withVisual("riftgun:magic_circle"), copied);
         for (Category category : Category.values())
             ClientConfig.VALUES.skinRecommendations.enabled(category).set(false);
         dev.riftgun.client.appearance.SkinRecommendations.writeRequest(request);
@@ -119,11 +119,11 @@ final class SkinRecommendationConfigTest {
     }
 
     @Test
-    void staffRecommendsArcaneSoundsAndEndframeVisual() throws Exception {
+    void staffRecommendsArcaneSoundsAndMagicCircleVisual() throws Exception {
         load(CommentedConfig.inMemory());
         var recommendations = ClientConfig.VALUES.skinRecommendations;
         recommendations.appliedSkins.get(Category.PORTAL_VISUAL).set("riftgun:arcane_rift_staff");
-        assertEquals("riftgun:endframe", recommendations.visual("riftgun:classic"));
+        assertEquals("riftgun:magic_circle", recommendations.visual("riftgun:classic"));
         var staff = recommendations.presets.get("riftgun:arcane_rift_staff");
         assertEquals("riftgun:arcane", staff.shotSound.get());
         assertEquals("riftgun:arcane", staff.portalSound.get());
