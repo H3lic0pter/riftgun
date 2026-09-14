@@ -259,9 +259,11 @@ public final class RemotePortalPlacementResolver {
         return Math.max(MINIMUM_DISTANCE, maximumRange);
     }
 
-    private static PortalPlacement placement(Vec3 center, PortalOrientation orientation,
-                                             PortalGeometry geometry, float yaw) {
-        return new PortalPlacement(center, orientation, geometry, yaw, null, null);
+    static PortalPlacement placement(Vec3 center, PortalOrientation orientation,
+                                     PortalGeometry geometry, float yaw) {
+        // Like FRONT, the vertical entrance must face the shooter, not the shot direction.
+        float portalYaw = orientation == PortalOrientation.VERTICAL ? yaw + 180.0F : yaw;
+        return new PortalPlacement(center, orientation, geometry, portalYaw, null, null);
     }
 
     private static boolean available(Level level, PortalPlacement placement, double minimumExposure) {

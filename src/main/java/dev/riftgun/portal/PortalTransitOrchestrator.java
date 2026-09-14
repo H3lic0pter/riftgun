@@ -117,8 +117,14 @@ final class PortalTransitOrchestrator {
             (entity, mounted) -> {
                 Vec3 momentum = entity instanceof Projectile
                     ? entity.getDeltaMovement() : Vec3.ZERO;
+                // A vertical coordinate exit uses the saved target yaw even before it exists.
+                // Map the incoming view as normal transit does, retaining oblique entry angles.
+                PortalViewTransform.Rotation rotation = entity instanceof Player player
+                        && portal.orientation() == PortalOrientation.VERTICAL
+                    ? playerRotation(player, PortalOrientation.VERTICAL, target.yaw())
+                    : new PortalViewTransform.Rotation(target.yaw(), entity.getXRot());
                 PortalTransitService.TransitPlan plan = new PortalTransitService.TransitPlan(
-                    target.position(), momentum, target.yaw(), entity.getXRot());
+                    target.position(), momentum, rotation.yaw(), rotation.pitch());
                 if (mounted) {
                     plan = PortalTransitService.mountedPlan(
                         rootPlan[0], plan.yaw(), plan.pitch());
@@ -325,18 +331,24 @@ final class PortalTransitOrchestrator {
         }
 
         PortalViewTransform.Rotation viewRotation;
-        if (entity instanceof Player) {
-            float dot = (float) entity.getLookAngle().normalize().dot(portal.normal());
-            viewRotation = PortalViewTransform.playerRotation(
-                entity.getLookAngle(), entity.getYRot(), entity.getXRot(),
-                portal.orientation(), portal.getYRot(), target.orientation(), target.getYRot(),
-                dot, FACING_THRESHOLD);
+        if (entity instanceof Player player) {
+            viewRotation = playerRotation(player, target.orientation(), target.getYRot());
         } else {
             viewRotation = PortalViewTransform.rotationFor(
                 portal.transformVector(entity.getLookAngle(), target), entity.getYRot());
         }
         return new PortalTransitService.TransitPlan(
             target.outputPosition(entity), momentum, viewRotation.yaw(), viewRotation.pitch());
+    }
+
+    private PortalViewTransform.Rotation playerRotation(Player player,
+                                                        PortalOrientation targetOrientation,
+                                                        float targetYaw) {
+        Vec3 look = player.getLookAngle();
+        float dot = (float) look.normalize().dot(portal.normal());
+        return PortalViewTransform.playerRotation(look, player.getYRot(), player.getXRot(),
+            portal.orientation(), portal.getYRot(), targetOrientation, targetYaw,
+            dot, FACING_THRESHOLD);
     }
 
     private @Nullable Entity transitSingle(Entity entity, ServerLevel targetLevel,
