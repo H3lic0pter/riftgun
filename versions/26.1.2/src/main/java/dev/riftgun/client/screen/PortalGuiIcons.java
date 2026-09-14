@@ -183,14 +183,6 @@ final class PortalGuiIcons {
             x - 2, y - 2);
     }
 
-    static void drawEyeIcon(GuiGraphicsExtractor graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.VISUALS, x - 3, y - 4);
-    }
-
-    static void drawSoundIcon(GuiGraphicsExtractor graphics, int x, int y) {
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.SOUNDS, x - 3, y - 4);
-    }
-
     static void drawDownIcon(GuiGraphicsExtractor graphics, int x, int y) {
         PortalGuiSprites.draw(graphics, PortalGuiSprites.DROPDOWN, x - 4, y - 6);
     }

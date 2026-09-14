@@ -28,6 +28,8 @@ import net.minecraft.world.item.ItemDisplayContext;
 /** A per-item preview editor with independent, immediately applied recommendation preferences. */
 public final class PortalGunAppearanceScreen extends Screen {
     private static final int ROW_HEIGHT = 26;
+    private static final int FOOTER_BUTTON_HEIGHT = 20;
+    private static final int RECOMMENDATION_GAP = 6;
     private final Screen parent;
     private final PortalGunAppearanceSession session;
     private List<PortalGunSkinDefinition> skins = List.of();
@@ -78,29 +80,29 @@ public final class PortalGunAppearanceScreen extends Screen {
         var next = addRenderableWidget(new ThemedButton(panelX + listWidth - 30, listFooter, 28, 18,
             Component.literal(">"), false, ignored -> { offset += rows; rebuildWidgets(); }));
         next.active = offset + rows < skins.size();
-        int recommendationGap = 6;
-        int recommendationWidth = (panelWidth - 20 - recommendationGap * 2) / 3;
-        Category[] categories = Category.values();
+        int applyX = panelX + panelWidth - 100;
+        int footerY = panelY + panelHeight - 28;
+        Category[] categories = {Category.PORTAL_VISUAL, Category.SOUNDS, Category.SHOT_ANIMATION};
         for (int index = 0; index < categories.length; index++) {
             Category category = categories[index];
+            boolean enabled = ClientConfig.VALUES.skinRecommendations.enabled(category).get();
             String key = "screen.riftgun.appearance.recommend." + category.name().toLowerCase(java.util.Locale.ROOT);
             Component label = Component.translatable(key, Component.translatable(
-                ClientConfig.VALUES.skinRecommendations.enabled(category).get()
+                enabled
                     ? "screen.riftgun.on" : "screen.riftgun.off"));
             var recommendation = new ThemedButton(
-                panelX + 10 + index * (recommendationWidth + recommendationGap),
-                panelY + panelHeight - 56, recommendationWidth, 20, label, false, ignored -> {
+                applyX - (categories.length - index) * (FOOTER_BUTTON_HEIGHT + RECOMMENDATION_GAP),
+                footerY, FOOTER_BUTTON_HEIGHT, FOOTER_BUTTON_HEIGHT, label, false, ignored -> {
                     SkinRecommendations.toggle(category, session.selection().current(), session.reference());
                     rebuildWidgets();
-                }).horizontalMarquee();
+                }).sprite(PortalGuiSprites.recommendation(category, enabled));
             recommendation.active = session.selection().ready() && !session.loading() && session.error().isEmpty();
-            recommendation.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(
-                "screen.riftgun.appearance.recommend.tooltip")));
+            recommendation.setTooltip(net.minecraft.client.gui.components.Tooltip.create(label));
             addRenderableWidget(recommendation);
         }
-        addRenderableWidget(new ThemedButton(panelX + 10, panelY + panelHeight - 28, 90, 20,
+        addRenderableWidget(new ThemedButton(panelX + 10, footerY, 90, FOOTER_BUTTON_HEIGHT,
             Component.translatable("screen.riftgun.appearance.back"), false, ignored -> onClose()));
-        apply = addRenderableWidget(new ThemedButton(panelX + panelWidth - 100, panelY + panelHeight - 28, 90, 20,
+        apply = addRenderableWidget(new ThemedButton(applyX, footerY, 90, FOOTER_BUTTON_HEIGHT,
             Component.translatable("screen.riftgun.appearance.apply"), false, ignored -> { session.apply(); rebuildWidgets(); }));
         apply.active = session.canApply();
         session.open();

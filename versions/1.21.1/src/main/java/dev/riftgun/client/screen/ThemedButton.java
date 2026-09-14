@@ -2,6 +2,7 @@ package dev.riftgun.client.screen;
 
 import dev.riftgun.client.PortalClientState;
 import java.util.function.Consumer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -20,12 +21,18 @@ final class ThemedButton extends AbstractButton {
     private int accentHover;
     private int accentText;
     private boolean accented;
+    private ResourceLocation sprite;
 
     ThemedButton(int x, int y, int width, int height, Component message,
                  boolean portalAction, Consumer<ThemedButton> press) {
         super(x, y, width, height, message);
         this.press = press;
         this.portalAction = portalAction;
+    }
+
+    ThemedButton sprite(ResourceLocation sprite) {
+        this.sprite = sprite;
+        return this;
     }
 
     ThemedButton horizontalMarquee() {
@@ -57,7 +64,8 @@ final class ThemedButton extends AbstractButton {
         graphics.fill(getX(), getY(), getX() + width, getY() + height, color);
         graphics.renderOutline(getX(), getY(), width, height, PortalTheme.BORDER);
         int textColor = active ? accented ? accentText : PortalTheme.TEXT : 0xFF777777;
-        if (horizontalMarquee) renderMarquee(graphics, textColor);
+        if (sprite != null) PortalGuiSprites.drawCentered(graphics, sprite, getX(), getY(), width, height);
+        else if (horizontalMarquee) renderMarquee(graphics, textColor);
         else renderString(graphics, Minecraft.getInstance().font, textColor);
     }
 

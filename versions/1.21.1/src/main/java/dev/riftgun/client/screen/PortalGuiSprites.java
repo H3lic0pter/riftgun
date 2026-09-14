@@ -59,6 +59,7 @@ final class PortalGuiSprites {
     static final ResourceLocation ENTITY_RELOCATION_SMART_OFF = icon("entity_relocation_smart_off");
     static final ResourceLocation VISUALS = icon("visuals");
     static final ResourceLocation SOUNDS = icon("sounds");
+    static final ResourceLocation SHOT_ANIMATION = icon("shot_animation");
     static final ResourceLocation DROPDOWN = icon("dropdown");
     static final ResourceLocation BACK = icon("back");
     static final ResourceLocation MODULE_BACK = icon("module_back");
@@ -76,6 +77,16 @@ final class PortalGuiSprites {
     static final ResourceLocation EDIT = icon("edit");
 
     private static final int SIZE = 16;
+
+    static ResourceLocation recommendation(dev.riftgun.config.SkinRecommendationConfig.Category category, boolean enabled) {
+        return icon("recommend_" + category.name().toLowerCase(java.util.Locale.ROOT) + (enabled ? "_on" : "_off"));
+    }
+
+    /** Accepts button bounds; 16 px sprites have 2 px insets in 20 px buttons, 5 px in 26 px buttons. */
+    static void drawCentered(GuiGraphics graphics, ResourceLocation sprite,
+                             int buttonX, int buttonY, int buttonWidth, int buttonHeight) {
+        draw(graphics, sprite, buttonX + (buttonWidth - SIZE) / 2, buttonY + (buttonHeight - SIZE) / 2);
+    }
 
     private PortalGuiSprites() {}
 

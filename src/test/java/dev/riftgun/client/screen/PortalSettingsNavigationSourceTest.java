@@ -29,6 +29,12 @@ final class PortalSettingsNavigationSourceTest {
             assertTrue(settings.contains("toggleLabel(\"screen.riftgun.sounds\""));
             assertTrue(settings.contains("visualSettingsButton = button"));
             assertTrue(settings.contains("soundSettingsButton = button"));
+            assertTrue(settings.contains("shotAnimationSettingsButton = button"));
+            assertFalse(visuals.contains("gunAnimationLabel()"));
+            String shotAnimation = section(source,
+                "} else if (session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {",
+                "} else if (session.page() == PortalConfigPage.SOUND_SETTINGS) {");
+            assertTrue(shotAnimation.contains("SkinRecommendations.selectAnimation("));
             assertFalse(visuals.contains("toggleLabel(\"screen.riftgun.animations\""));
             assertFalse(sounds.contains("toggleLabel(\"screen.riftgun.sounds\""));
         }

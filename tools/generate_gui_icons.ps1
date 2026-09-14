@@ -1,3 +1,5 @@
+param([string[]] $Only = @())
+
 Add-Type -AssemblyName System.Drawing
 
 $outputDirectory = Join-Path $PSScriptRoot '..\src\main\resources\assets\riftgun\textures\gui\sprites\icons'
@@ -20,6 +22,7 @@ $colors = @{
 }
 
 function New-Icon([string] $Name, [scriptblock] $Draw) {
+    if ($Only.Count -gt 0 -and $Name -notin $Only) { return }
     $bitmap = [System.Drawing.Bitmap]::new(16, 16, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $bitmap.MakeTransparent()
     & $Draw $bitmap
@@ -279,6 +282,48 @@ New-Icon 'edit' {
     }
     Fill-Rect $b 4 10 2 2 $colors.Warning
 }
+
+function Draw-RecommendedSound($Bitmap, $Color) {
+    Fill-Rect $Bitmap 2 6 3 4 $Color
+    Fill-Rect $Bitmap 5 4 2 8 $Color
+    Fill-Rect $Bitmap 7 2 2 12 $Color
+    Fill-Rect $Bitmap 10 5 1 6 $Color
+    Fill-Rect $Bitmap 12 4 1 2 $Color
+    Fill-Rect $Bitmap 13 6 1 4 $Color
+    Fill-Rect $Bitmap 12 10 1 2 $Color
+}
+
+function Draw-RecommendedPortal($Bitmap, $Color) {
+    Fill-Rect $Bitmap 5 2 6 2 $Color
+    Fill-Rect $Bitmap 3 4 2 2 $Color
+    Fill-Rect $Bitmap 11 4 2 2 $Color
+    Fill-Rect $Bitmap 2 6 2 4 $Color
+    Fill-Rect $Bitmap 12 6 2 4 $Color
+    Fill-Rect $Bitmap 3 10 2 2 $Color
+    Fill-Rect $Bitmap 11 10 2 2 $Color
+    Fill-Rect $Bitmap 5 12 6 2 $Color
+    Fill-Rect $Bitmap 7 5 2 6 $Color
+}
+
+function Draw-RecommendedShot($Bitmap, $Color) {
+    Fill-Rect $Bitmap 2 6 8 3 $Color
+    Fill-Rect $Bitmap 3 9 3 5 $Color
+    Fill-Rect $Bitmap 6 9 2 2 $Color
+    # A small up/down arrow separates animation from the gun settings icon.
+    Fill-Rect $Bitmap 12 2 1 9 $Color
+    Fill-Rect $Bitmap 11 3 3 1 $Color
+    Fill-Rect $Bitmap 11 9 3 1 $Color
+    Fill-Rect $Bitmap 12 11 1 1 $Color
+}
+
+foreach ($state in @('on', 'off')) {
+    $recommendationColor = if ($state -eq 'on') { $colors.Ice } else { [System.Drawing.Color]::FromArgb(255, 119, 126, 133) }
+    New-Icon "recommend_sounds_$state" { param($b) Draw-RecommendedSound $b $recommendationColor }
+    New-Icon "recommend_portal_visual_$state" { param($b) Draw-RecommendedPortal $b $recommendationColor }
+    New-Icon "recommend_shot_animation_$state" { param($b) Draw-RecommendedShot $b $recommendationColor }
+}
+
+if ($Only.Count -gt 0) { return }
 
 $referencePath = Join-Path $PSScriptRoot '..\docs\art\gui-icons-reference.png'
 $referenceFiles = Get-ChildItem -LiteralPath $outputDirectory -File -Filter '*.png' | Sort-Object Name

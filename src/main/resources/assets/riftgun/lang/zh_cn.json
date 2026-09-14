@@ -2,7 +2,7 @@
   "screen.riftgun.appearance.recommend.sounds": "使用推荐的音效：%s",
   "screen.riftgun.appearance.recommend.portal_visual": "使用推荐的传送门视觉：%s",
   "screen.riftgun.appearance.recommend.shot_animation": "使用推荐的射击动画：%s",
-  "screen.riftgun.appearance.recommend.tooltip": "开启：应用当前皮肤的推荐，并在换肤时更新。\n关闭：恢复自定义设定。",
+  "screen.riftgun.shot_animation_settings": "开枪动画",
   "screen.riftgun.gun_animation": "第一人称开枪动画：%s",
   "screen.riftgun.gun_animation.swing": "经典挥动",
   "screen.riftgun.gun_animation.recoil": "轻后坐",

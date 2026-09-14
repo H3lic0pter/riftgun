@@ -175,6 +175,9 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton remotePlacementPreviewButton;
     private @Nullable ThemedButton visualSettingsButton;
     private @Nullable ThemedButton soundSettingsButton;
+    private @Nullable ThemedButton shotAnimationSettingsButton;
+    private static final int SETTINGS_ICON_SIZE = 20;
+    private static final int SETTINGS_ICON_GAP = 4;
     private @Nullable ThemedButton soundBackButton;
     private @Nullable ThemedButton splashSoundButton;
     private final Map<PortalSoundChannel, ThemedButton> soundSelectors =
@@ -279,6 +282,7 @@ public final class PortalConfigScreen extends Screen {
         motionPredictionButton = null;
         visualSettingsButton = null;
         soundSettingsButton = null;
+        shotAnimationSettingsButton = null;
         soundBackButton = null;
         splashSoundButton = null;
         soundSelectors.clear();
@@ -479,10 +483,19 @@ public final class PortalConfigScreen extends Screen {
                     "screen.riftgun.map_integration_settings", false,
                     ignored -> openSettingsPage(PortalConfigPage.MAP_INTEGRATION_SETTINGS));
             }
-            visualSettingsButton = button(x + box.width() - 64, y + 8, 20, 18,
-                Component.empty(), false, ignored -> openVisualSettings());
-            soundSettingsButton = button(x + box.width() - 40, y + 8, 20, 18,
-                Component.empty(), false, ignored -> openSoundSettings());
+            int iconRight = x + box.width() - 18;
+            int iconStride = SETTINGS_ICON_SIZE + SETTINGS_ICON_GAP;
+            int iconY = y + 6;
+            visualSettingsButton = button(iconRight - SETTINGS_ICON_SIZE - 2 * iconStride, iconY,
+                SETTINGS_ICON_SIZE, SETTINGS_ICON_SIZE, "screen.riftgun.visual_settings", false,
+                ignored -> openVisualSettings()).sprite(PortalGuiSprites.VISUALS);
+            soundSettingsButton = button(iconRight - SETTINGS_ICON_SIZE - iconStride, iconY,
+                SETTINGS_ICON_SIZE, SETTINGS_ICON_SIZE, "screen.riftgun.sound_settings", false,
+                ignored -> openSoundSettings()).sprite(PortalGuiSprites.SOUNDS);
+            shotAnimationSettingsButton = button(iconRight - SETTINGS_ICON_SIZE, iconY,
+                SETTINGS_ICON_SIZE, SETTINGS_ICON_SIZE, "screen.riftgun.shot_animation_settings", false,
+                ignored -> openSettingsPage(PortalConfigPage.SHOT_ANIMATION_SETTINGS))
+                .sprite(PortalGuiSprites.SHOT_ANIMATION);
         } else if (session.page() == PortalConfigPage.CONFIRM_SETTINGS) {
             PortalPlayerSettings settings = PortalClientState.data().settings();
             button(x + 18, y + 35, fieldWidth, 18,
@@ -628,17 +641,18 @@ public final class PortalConfigScreen extends Screen {
                 false, ignored -> toggleGunBoolean(BooleanSetting.REMOTE_PLACEMENT_PREVIEW));
         } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
             addVisualSelector(x + 18, y + 51, fieldWidth);
-            button(x + 18, y + 100, fieldWidth, 18, gunAnimationLabel(), false, widget -> {
-                dev.riftgun.client.appearance.SkinRecommendations.selectAnimation(
-                    dev.riftgun.core.config.RiftConfigs.client().gunAnimation().next());
-                widget.setMessage(gunAnimationLabel());
-            });
             if (!PortalVisualPreferences.selected().options().isEmpty()) {
                 visualAnimationSettingsButton = button(x + fieldWidth - 2, y + 76, 20, 18,
                     Component.empty(), false, ignored -> openSwirlAnimationSettings());
             }
         } else if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             addVisualOptionWidgets(box, fieldWidth);
+        } else if (session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {
+            button(x + 18, y + 38, fieldWidth, 18, gunAnimationLabel(), false, widget -> {
+                dev.riftgun.client.appearance.SkinRecommendations.selectAnimation(
+                    dev.riftgun.core.config.RiftConfigs.client().gunAnimation().next());
+                widget.setMessage(gunAnimationLabel());
+            });
         } else if (session.page() == PortalConfigPage.SOUND_SETTINGS) {
             int selectorY = y + 34;
             for (PortalSoundChannel channel : PortalSoundChannel.values()) {
@@ -674,7 +688,8 @@ public final class PortalConfigScreen extends Screen {
         } else if (session.page() == PortalConfigPage.CONFIRM_SETTINGS || session.page() == PortalConfigPage.MAP_INTEGRATION_SETTINGS) {
             button(x + 18, actionY, 24, 19, Component.literal("←"), false,
                 ignored -> backToSettings());
-        } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
+        } else if (session.page() == PortalConfigPage.VISUAL_SETTINGS
+            || session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {
             visualBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToSettings());
         } else if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
@@ -1380,14 +1395,6 @@ public final class PortalConfigScreen extends Screen {
                 placementModeButton.getY(), PortalClientState.data().settings().placementMode());
             renderGunControls(graphics, mouseX, mouseY);
         }
-        if (session.page() == PortalConfigPage.SETTINGS) {
-            if (visualSettingsButton != null) {
-                drawEyeIcon(graphics, visualSettingsButton.getX() + 5, visualSettingsButton.getY() + 5);
-            }
-            if (soundSettingsButton != null) {
-                drawSoundIcon(graphics, soundSettingsButton.getX() + 5, soundSettingsButton.getY() + 5);
-            }
-        }
         if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             renderGunSettingEntries(graphics);
             renderBackButton(graphics, gunSettingsBackButton);
@@ -1426,7 +1433,8 @@ public final class PortalConfigScreen extends Screen {
                 }
             }
         }
-        if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS
+            || session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {
             if (visualBackButton != null) {
                 drawCompactBackButtonIcon(graphics, visualBackButton.getX(), visualBackButton.getY());
             }
@@ -1525,6 +1533,10 @@ public final class PortalConfigScreen extends Screen {
                 graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.sound_settings"), mouseX, mouseY);
             }
+            if (shotAnimationSettingsButton != null && shotAnimationSettingsButton.isHovered()) {
+                graphics.renderTooltip(font,
+                    Component.translatable("screen.riftgun.shot_animation_settings"), mouseX, mouseY);
+            }
         }
         if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             renderGunSettingTooltips(graphics, mouseX, mouseY);
@@ -1570,7 +1582,8 @@ public final class PortalConfigScreen extends Screen {
                     Component.translatable("message.riftgun.remote_module_required"), mouseX, mouseY);
             }
         }
-        if (session.page() == PortalConfigPage.VISUAL_SETTINGS) {
+        if (session.page() == PortalConfigPage.VISUAL_SETTINGS
+            || session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {
             if (visualBackButton != null && visualBackButton.isHovered()) {
                 graphics.renderTooltip(font,
                     Component.translatable("screen.riftgun.back_to_settings"), mouseX, mouseY);
@@ -2277,7 +2290,8 @@ public final class PortalConfigScreen extends Screen {
             backToSettings();
             return true;
         }
-        if (keyCode == 256 && (session.page() == PortalConfigPage.CONFIRM_SETTINGS
+        if (keyCode == 256 && (session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS
+            || session.page() == PortalConfigPage.CONFIRM_SETTINGS
             || session.page() == PortalConfigPage.MAP_INTEGRATION_SETTINGS)) {
             backToSettings();
             return true;

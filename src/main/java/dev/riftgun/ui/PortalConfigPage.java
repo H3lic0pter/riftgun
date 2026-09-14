@@ -25,6 +25,7 @@ public enum PortalConfigPage {
     VISUAL_SETTINGS("screen.riftgun.visual_settings", "", false, false),
     SWIRL_ANIMATION_SETTINGS("screen.riftgun.visual.swirl_animation_settings", "", false, false),
     SOUND_SETTINGS("screen.riftgun.sound_settings", "", false, false),
+    SHOT_ANIMATION_SETTINGS("screen.riftgun.shot_animation_settings", "", false, false),
     CONFIRM_DELETE_DESTINATION(
         "screen.riftgun.delete", "screen.riftgun.delete_destination_body", false, false),
     CONFIRM_DELETE_GROUP(
