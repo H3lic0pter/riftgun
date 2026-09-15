@@ -2,7 +2,8 @@
 
 **Arcane / 奥术** casting uses the user-supplied `游戏魔法音效_耳聆网_[声音ID：12609].wav`,
 converted to `staff_cast.ogg` (mono 48 kHz Vorbis quality 5) at its original pitch,
-duration and gain.
+duration, with `+13.62 dB` gain and a 10 ms tail fade. Its in-game loudness matches
+the Aperture-ish shot without clipping.
 Source WAV SHA-256: `53F35FC51D811D330EB4D2D93371FA437CD16AFB3004BCB44A3FEDD0192DD2F1`.
 
 The independent **Stars / 星星** shot choice uses `闪光发光魔法音_耳聆网_[声音ID：44404].mp3`,
