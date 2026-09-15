@@ -60,6 +60,7 @@ final class PortalGuiSprites {
     static final ResourceLocation VISUALS = icon("visuals");
     static final ResourceLocation SOUNDS = icon("sounds");
     static final ResourceLocation SHOT_ANIMATION = icon("shot_animation");
+    static final ResourceLocation RECOMMEND_APPLY = icon("recommend_apply");
     static final ResourceLocation DROPDOWN = icon("dropdown");
     static final ResourceLocation BACK = icon("back");
     static final ResourceLocation MODULE_BACK = icon("module_back");

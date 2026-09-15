@@ -81,6 +81,17 @@ public final class PortalGunAppearanceScreen extends Screen {
         int applyX = panelX + panelWidth - 100;
         int footerY = panelY + panelHeight - 28;
         Category[] categories = {Category.PORTAL_VISUAL, Category.SOUNDS, Category.SHOT_ANIMATION};
+        String currentSkin = session.selection().current();
+        Component applyPresetLabel = Component.translatable("screen.riftgun.appearance.recommend.apply");
+        var applyPreset = new ThemedButton(
+            applyX - (categories.length + 1) * (FOOTER_BUTTON_HEIGHT + RECOMMENDATION_GAP),
+            footerY, FOOTER_BUTTON_HEIGHT, FOOTER_BUTTON_HEIGHT, applyPresetLabel, false,
+            ignored -> SkinRecommendations.applyPreset(currentSkin, session.reference()))
+            .sprite(PortalGuiSprites.RECOMMEND_APPLY);
+        applyPreset.active = session.selection().ready() && !session.loading() && session.error().isEmpty()
+            && SkinRecommendations.hasPreset(currentSkin);
+        applyPreset.setTooltip(net.minecraft.client.gui.components.Tooltip.create(applyPresetLabel));
+        addRenderableWidget(applyPreset);
         for (int index = 0; index < categories.length; index++) {
             Category category = categories[index];
             boolean enabled = ClientConfig.VALUES.skinRecommendations.enabled(category).get();
@@ -91,7 +102,7 @@ public final class PortalGunAppearanceScreen extends Screen {
             var recommendation = new ThemedButton(
                 applyX - (categories.length - index) * (FOOTER_BUTTON_HEIGHT + RECOMMENDATION_GAP),
                 footerY, FOOTER_BUTTON_HEIGHT, FOOTER_BUTTON_HEIGHT, label, false, ignored -> {
-                    SkinRecommendations.toggle(category, session.selection().current(), session.reference());
+                    SkinRecommendations.toggle(category, currentSkin, session.reference());
                     rebuildWidgets();
                 }).sprite(PortalGuiSprites.recommendation(category, enabled));
             recommendation.active = session.selection().ready() && !session.loading() && session.error().isEmpty();

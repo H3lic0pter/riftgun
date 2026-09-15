@@ -51,6 +51,33 @@ final class GunPresentationRequestsTest {
     }
 
     @Test
+    void presetEditReplacesAllAppearanceCategories() {
+        var player = GunPresentationDefaultsTest.player();
+        var original = GunPresentation.DEFAULT.withVisual("riftgun:endframe").withAnimation(GunShotAnimation.LOWER);
+        var saved = new AtomicReference<>(original);
+        var stack = GunPresentationDefaultsTest.stack(saved);
+        var sounds = new PortalSoundSettings(PortalSoundRegistry.APERTURE_ISH_ID,
+            PortalSoundRegistry.ENDER_ID, PortalSoundRegistry.RIFT_ID, true);
+        var preset = GunPresentation.DEFAULT.withVisual("riftgun:magic_circle")
+            .withAnimation(GunShotAnimation.SWING).withSounds(sounds);
+        CompoundTag request = new CompoundTag();
+        request.putString("Action", "SET_GUN_PRESENTATION");
+        request.putString("Category", "PRESET");
+        request.putString("RequestId", "apply-preset");
+        request.put("GunReference", new CompoundTag());
+        request.put("Presentation", preset.save());
+        try (var locator = mockStatic(PortalGunLocator.class);
+             var store = mockStatic(PortalDataStore.class);
+             var network = mockStatic(RiftNetwork.class)) {
+            locator.when(() -> PortalGunLocator.resolveReference(eq(player), any())).thenReturn(
+                Optional.of(new PortalGunLocator.LocatedGun("inventory", new CompoundTag(), stack)));
+            PortalRequestHandler.handle(player, request);
+            assertEquals(preset, saved.get());
+            store.verifyNoInteractions();
+        }
+    }
+
+    @Test
     void staleReferenceIsRejectedWithoutFallingBackToAnotherGun() {
         var player = GunPresentationDefaultsTest.player();
         CompoundTag request = new CompoundTag();

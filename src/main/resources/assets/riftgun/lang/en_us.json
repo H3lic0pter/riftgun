@@ -2,6 +2,7 @@
   "screen.riftgun.appearance.recommend.sounds": "Use recommended sounds: %s",
   "screen.riftgun.appearance.recommend.portal_visual": "Use recommended portal visual: %s",
   "screen.riftgun.appearance.recommend.shot_animation": "Use recommended shot animation: %s",
+  "screen.riftgun.appearance.recommend.apply": "Apply current skin's recommended preset",
   "screen.riftgun.shot_animation_settings": "Shot animation",
   "screen.riftgun.gun_animation": "First-person shot: %s",
   "screen.riftgun.gun_animation.swing": "Classic swing",

@@ -9,14 +9,14 @@ import dev.riftgun.service.PortalGunLocator;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 
-/** Validates the exact gun reference and applies one category, preserving the other choices. */
+/** Validates the exact gun reference and applies one category or one complete recommended preset. */
 public final class GunPresentationRequests {
     public static void handle(ServerPlayer player, CompoundTag request) {
         var gun = PortalGunLocator.resolveReference(player, Nbt.getCompound(request, "GunReference")).orElse(null);
         String error = player.isSpectator() ? "message.riftgun.spectator_denied"
             : gun == null ? "screen.riftgun.appearance.invalid_gun" : "";
         if (error.isEmpty() && (!Nbt.contains(request, "Presentation", net.minecraft.nbt.Tag.TAG_COMPOUND)
-                || !java.util.Set.of("PORTAL_VISUAL", "SHOT_ANIMATION", "SOUNDS")
+                || !java.util.Set.of("PORTAL_VISUAL", "SHOT_ANIMATION", "SOUNDS", "PRESET")
                     .contains(Nbt.getString(request, "Category")))) {
             error = "message.riftgun.invalid_request";
         }
@@ -30,6 +30,7 @@ public final class GunPresentationRequests {
                 case "PORTAL_VISUAL" -> current.withVisual(requested.visual());
                 case "SHOT_ANIMATION" -> current.withAnimation(requested.animation());
                 case "SOUNDS" -> current.withSounds(requested.sounds());
+                case "PRESET" -> requested;
                 default -> current;
             };
             gun.stack().set(PortalGunComponents.PRESENTATION, changed);

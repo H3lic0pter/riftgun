@@ -61,6 +61,7 @@ final class PortalGuiSprites {
     static final Identifier VISUALS = icon("visuals");
     static final Identifier SOUNDS = icon("sounds");
     static final Identifier SHOT_ANIMATION = icon("shot_animation");
+    static final Identifier RECOMMEND_APPLY = icon("recommend_apply");
     static final Identifier DROPDOWN = icon("dropdown");
     static final Identifier BACK = icon("back");
     static final Identifier MODULE_BACK = icon("module_back");

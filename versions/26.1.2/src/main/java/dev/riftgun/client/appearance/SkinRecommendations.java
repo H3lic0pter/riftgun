@@ -122,9 +122,24 @@ public final class SkinRecommendations {
     }
 
     public static void toggle(Category category, String skin, CompoundTag gunReference) {
-        var enabled = ClientConfig.VALUES.skinRecommendations.enabled(category);
+        var config = ClientConfig.VALUES.skinRecommendations;
+        var enabled = config.enabled(category);
         enabled.set(!enabled.get());
         ClientConfig.SPEC.save();
+        var preset = config.presets.get(skin);
+        if (!enabled.get() || preset == null || !gunReference.equals(reference)) return;
+        GunPresentation value = recommended(category, preset, current);
+        if (!value.equals(current)) edit(category, value);
+    }
+
+    public static boolean hasPreset(String skin) {
+        return ClientConfig.VALUES.skinRecommendations.presets.containsKey(skin);
+    }
+
+    public static void applyPreset(String skin, CompoundTag gunReference) {
+        if (!hasPreset(skin) || !gunReference.equals(reference)) return;
+        GunPresentation value = recommended(skin, current, false);
+        if (!value.equals(current)) edit("PRESET", value);
     }
 
     public static void selectAnimation(GunShotAnimation animation) {
@@ -142,13 +157,17 @@ public final class SkinRecommendations {
     }
 
     private static void edit(Category category, GunPresentation value) {
+        edit(category.name(), value);
+    }
+
+    private static void edit(String category, GunPresentation value) {
         if (reference.isEmpty()) return;
         current = value;
         pendingRequest = UUID.randomUUID().toString();
         PortalNetworking.sendRequest(PortalAction.SET_GUN_PRESENTATION, tag -> {
             tag.put("GunReference", reference.copy());
             tag.putString("RequestId", pendingRequest);
-            tag.putString("Category", category.name());
+            tag.putString("Category", category);
             tag.put("Presentation", value.save());
         });
     }
@@ -157,24 +176,32 @@ public final class SkinRecommendations {
         var config = ClientConfig.VALUES.skinRecommendations;
         var preset = config.presets.get(skin);
         if (preset == null) return base;
-        String visual = base.visual();
-        GunShotAnimation animation = base.animation();
-        PortalSoundSettings sounds = base.sounds();
-        if (!honorSwitches || config.portalVisual.get()) {
-            visual = SkinRecommendationConfig.resolve(preset.portalVisual.get(), visual);
+        GunPresentation value = base;
+        for (Category category : Category.values()) {
+            if (!honorSwitches || config.enabled(category).get()) value = recommended(category, preset, value);
         }
-        if (!honorSwitches || config.shotAnimation.get()) {
-            animation = GunShotAnimation.valueOf(SkinRecommendationConfig.resolve(
-                preset.shotAnimation.get(), animation.name()));
-        }
-        if (!honorSwitches || config.sounds.get()) {
-            sounds = new PortalSoundSettings(
-                Identifier.parse(SkinRecommendationConfig.resolve(preset.shotSound.get(), sounds.shot().toString())),
-                Identifier.parse(SkinRecommendationConfig.resolve(preset.portalSound.get(), sounds.portal().toString())),
-                Identifier.parse(SkinRecommendationConfig.resolve(preset.transitSound.get(), sounds.transit().toString())),
-                sounds.splashEnabled());
-        }
-        return new GunPresentation(visual, animation, sounds, true);
+        return value;
+    }
+
+    private static GunPresentation recommended(Category category, SkinRecommendationConfig.Preset preset,
+                                                GunPresentation base) {
+        return switch (category) {
+            case PORTAL_VISUAL -> base.withVisual(
+                SkinRecommendationConfig.resolve(preset.portalVisual.get(), base.visual()));
+            case SHOT_ANIMATION -> base.withAnimation(GunShotAnimation.valueOf(
+                SkinRecommendationConfig.resolve(preset.shotAnimation.get(), base.animation().name())));
+            case SOUNDS -> {
+                PortalSoundSettings sounds = base.sounds();
+                yield base.withSounds(new PortalSoundSettings(
+                    Identifier.parse(SkinRecommendationConfig.resolve(
+                        preset.shotSound.get(), sounds.shot().toString())),
+                    Identifier.parse(SkinRecommendationConfig.resolve(
+                        preset.portalSound.get(), sounds.portal().toString())),
+                    Identifier.parse(SkinRecommendationConfig.resolve(
+                        preset.transitSound.get(), sounds.transit().toString())),
+                    sounds.splashEnabled()));
+            }
+        };
     }
 
     private static String scope() {
