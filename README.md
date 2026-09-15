@@ -367,9 +367,14 @@ not part of the `1.2.0` public artifact.
 
 ## License and attribution
 
-Rift Gun's original code and assets are distributed under the
-[MIT License](LICENSE). Third-party material remains covered by its respective
-copyright and license: the portal surface vertex and fragment shaders are
+Rift Gun's original code, documentation, models, textures, icon, and audio are
+distributed under the [Apache License 2.0](LICENSE), which requires
+redistributed copies to preserve the applicable license and attribution
+notices. This applies strictly after commit `cdf00ac`. The `0.2.1-r1` release
+itself, identified by tags `mc1.21.1-v0.2.1-r1` and
+`mc26.1.2-v0.2.1-r1` at that commit, is excluded and remains under MIT.
+Third-party material remains covered by its respective copyright and license:
+the portal surface vertex and fragment shaders are
 adapted from Tempad's MIT-licensed `rendertype_timedoor` shaders in the
 [Terrarium Earth Tempad repository](https://github.com/terrarium-earth/Tempad),
 and the Immersive portal frame texture is cropped from Portal Gun Mod's
