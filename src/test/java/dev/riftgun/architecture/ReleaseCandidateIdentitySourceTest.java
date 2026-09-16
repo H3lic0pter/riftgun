@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 final class ReleaseCandidateIdentitySourceTest {
     @Test
     void bothNodesShareTheDevelopmentVersionAndProtocol() throws IOException {
-        assertContains("gradle.properties", "mod_version=0.2.1-r1");
-        assertContains("versions/1.21.1/gradle.properties", "mod_version=0.2.1-r1");
-        assertContains("versions/26.1.2/gradle.properties", "mod_version=0.2.1-r1");
+        assertContains("gradle.properties", "mod_version=0.2.2-r1");
+        assertContains("versions/1.21.1/gradle.properties", "mod_version=0.2.2-r1");
+        assertContains("versions/26.1.2/gradle.properties", "mod_version=0.2.2-r1");
         assertContains("build.gradle.kts", "inputs.properties(metadata)");
         assertContains("versions/1.21.1/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java",
             "event.registrar(\"3\")");
