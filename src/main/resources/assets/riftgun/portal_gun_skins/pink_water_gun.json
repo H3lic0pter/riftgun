@@ -1,0 +1,10 @@
+{
+  "name": "skin.riftgun.pink_water_gun",
+  "model": "riftgun:item/portal_gun/pink_water_gun",
+  "renderer": "layered",
+  "display": "3d",
+  "dynamic": {
+    "fluid": true,
+    "zero_point": true
+  }
+}

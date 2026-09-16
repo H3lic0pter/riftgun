@@ -133,6 +133,22 @@ final class SkinRecommendationConfigTest {
     }
 
     @Test
+    void customOnlySkinsRecommendOnlyCustomChoices() throws Exception {
+        load(CommentedConfig.inMemory());
+        var presets = ClientConfig.VALUES.skinRecommendations.presets;
+        for (String id : new String[] {
+                "riftgun:pink_water_gun"}) {
+            var preset = presets.get(id);
+            assertNotNull(preset, id);
+            assertEquals(SkinRecommendationConfig.CUSTOM, preset.shotSound.get(), id);
+            assertEquals(SkinRecommendationConfig.CUSTOM, preset.portalSound.get(), id);
+            assertEquals(SkinRecommendationConfig.CUSTOM, preset.transitSound.get(), id);
+            assertEquals(SkinRecommendationConfig.CUSTOM, preset.portalVisual.get(), id);
+            assertEquals(SkinRecommendationConfig.CUSTOM, preset.shotAnimation.get(), id);
+        }
+    }
+
+    @Test
     void existingLocalStaffRecommendationsAreNotReplacedByNewDefaults() throws Exception {
         load(new TomlParser().parse("""
             [appearance.presets.arcane_rift_staff]

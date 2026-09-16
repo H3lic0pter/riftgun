@@ -19,6 +19,8 @@ public record PortalGunVisualSnapshot(
     public static final int EMPTY_FUEL_ACCENT_ARGB = 0xFF680A1C;
     /** Untinted model detail shown only while zero-point fuel is active. */
     public static final int ZERO_POINT_MARKER_TINT = 12;
+    /** Always-visible model detail tinted opaque fuel color while zero-point fuel is active, otherwise white. */
+    public static final int ZERO_POINT_FUEL_ACCENT_TINT = 13;
     /** Skin-defined, always-visible mode color slots occupy 40 through 100, inclusive. */
     public static final int MODE_FIRST_TINT = 40;
     public static final int MAX_TINT_INDEX = 100;
@@ -69,6 +71,7 @@ public record PortalGunVisualSnapshot(
                 : EMPTY_FUEL_ACCENT_ARGB;
         }
         if (tintIndex == ZERO_POINT_MARKER_TINT) return coreVisible ? -1 : HIDDEN;
+        if (tintIndex == ZERO_POINT_FUEL_ACCENT_TINT) return coreVisible ? 0xFF000000 | rgb : 0xFFFFFFFF;
         if (isLiquidTint(tintIndex)) return tintIndex == liquidTint ? 0xFF000000 | rgb : HIDDEN;
         return -1;
     }

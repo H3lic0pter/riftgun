@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -108,6 +109,26 @@ final class PortalGunSkinDefinitionTest {
             assertTrue(skin.fluid());
             assertTrue(skin.zeroPoint());
             assertTrue(skin.modeColors().isEmpty());
+        }
+    }
+
+    @Test
+    void bundledCustomSkinsUseTheLayeredDynamicContract() throws Exception {
+        for (String name : new String[] {
+                "pink_water_gun"}) {
+            String path = "/assets/riftgun/portal_gun_skins/" + name + ".json";
+            try (var stream = getClass().getResourceAsStream(path)) {
+                assertNotNull(stream, path);
+                var json = JsonParser.parseReader(
+                    new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+                var skin = PortalGunSkinDefinition.parse("riftgun:" + name, json);
+                assertEquals("riftgun:item/portal_gun/" + name, skin.model());
+                assertTrue(skin.layered());
+                assertFalse(skin.flat());
+                assertTrue(skin.fluid());
+                assertTrue(skin.zeroPoint());
+                assertTrue(skin.modeColors().isEmpty());
+            }
         }
     }
 

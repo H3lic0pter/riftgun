@@ -90,6 +90,14 @@ portalSound = "CUSTOM"
 transitSound = "CUSTOM"
 portalVisual = "CUSTOM"
 shotAnimation = "SWING"
+
+[appearance.presets.pink_water_gun]
+shotSound = "CUSTOM"
+portalSound = "CUSTOM"
+transitSound = "CUSTOM"
+portalVisual = "CUSTOM"
+shotAnimation = "CUSTOM"
+
 ```
 
 `CUSTOM` restores the saved custom choice for that field. Animation values also accept `OFF`, `RECOIL`,
