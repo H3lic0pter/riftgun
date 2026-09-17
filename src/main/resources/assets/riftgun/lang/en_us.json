@@ -563,6 +563,8 @@
   "message.riftgun.random_private": "Automatic search destinations cannot be shared",
   "message.riftgun.random_read_only": "Random destinations cannot be edited",
   "screen.riftgun.visual.magic_circle": "Magic Circle",
+  "screen.riftgun.visual.water_splash": "Water Splash",
+  "screen.riftgun.visual.water_splash_description": "Fuel-tinted animated water expands into a fixed random splash, then its water texture rotates",
   "screen.riftgun.visual.magic_circle_description": "A glowing circle of runes, triangles and two inner rings",
   "screen.riftgun.visual.magic_circle_settings": "Magic Circle Rotation",
   "screen.riftgun.visual.magic_circle_reset": "Restore default magic circle rotation",

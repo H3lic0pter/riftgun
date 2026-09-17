@@ -563,6 +563,8 @@
   "message.riftgun.random_private": "自动搜索坐标仅限个人使用，无法分享",
   "message.riftgun.random_read_only": "随机坐标不允许编辑",
   "screen.riftgun.visual.magic_circle": "魔法阵",
+  "screen.riftgun.visual.water_splash": "水花",
+  "screen.riftgun.visual.water_splash_description": "燃料色动态水面铺展成随机水花，展开后内部水纹旋转",
   "screen.riftgun.visual.magic_circle_description": "由符文外环、三角阵与双层内环组成的发光法阵",
   "screen.riftgun.visual.magic_circle_settings": "魔法阵旋转设置",
   "screen.riftgun.visual.magic_circle_reset": "恢复魔法阵默认旋转设置",

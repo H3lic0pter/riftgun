@@ -14,6 +14,7 @@ public final class PortalVisualRegistry {
     public static final ResourceLocation ENDFRAME_ID = id("endframe");
     public static final ResourceLocation IMMERSIVE_PORTAL_ID = id("immersive_portal");
     public static final ResourceLocation MAGIC_CIRCLE_ID = id("magic_circle");
+    public static final ResourceLocation WATER_SPLASH_ID = id("water_splash");
     public static final ResourceLocation DEFAULT_ID = SWIRL_ID;
     private static final Map<ResourceLocation, PortalVisualType> TYPES = new LinkedHashMap<>();
     private static final Map<String, ResourceLocation> STORED_IDS = new LinkedHashMap<>();
@@ -30,6 +31,8 @@ public final class PortalVisualRegistry {
         register(new PortalVisualType(MAGIC_CIRCLE_ID, "screen.riftgun.visual.magic_circle",
             "screen.riftgun.visual.magic_circle_description", new MagicCirclePortalVisualRenderer(),
             MagicCircleVisualOptions.DESCRIPTOR));
+        register(new PortalVisualType(WATER_SPLASH_ID, "screen.riftgun.visual.water_splash",
+            "screen.riftgun.visual.water_splash_description", new WaterSplashPortalVisualRenderer()));
         if (ImmersivePortalCompat.isLoaded()) {
             register(new PortalVisualType(IMMERSIVE_PORTAL_ID,
                 "screen.riftgun.visual.immersive_portal",
