@@ -2,7 +2,7 @@ package dev.riftgun.client;
 
 import dev.riftgun.core.registry.RiftContent;
 import dev.riftgun.RiftGun;
-import dev.riftgun.client.render.PortalSplashEmitter;
+import dev.riftgun.client.particle.ParticleEffectManager;
 import dev.riftgun.client.render.PortalPlacementPreview;
 import dev.riftgun.client.external.ClientMapWaypointIntegration;
 import dev.riftgun.external.ExternalDestinationSelection;
@@ -48,7 +48,7 @@ public final class ClientGameEvents {
         connected = nowConnected;
         if (nowConnected) refreshJourneyMapSelection(minecraft);
         GuiCaptureHarness.tick(minecraft);
-        PortalSplashEmitter.tick(minecraft);
+        ParticleEffectManager.tick(minecraft);
         PortalPlacementPreview.tick(minecraft);
         ImmersivePortalCompat.tick(minecraft);
         ModeRadialInput.tick();

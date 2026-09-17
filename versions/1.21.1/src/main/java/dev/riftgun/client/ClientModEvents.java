@@ -155,6 +155,15 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(RiftContent.PORTAL_SPLASH.get(), TintableSplashParticle.Provider::new);
+        event.registerSpriteSet(dev.riftgun.particle.RiftParticles.DYNAMIC.get(),
+            dev.riftgun.client.particle.DynamicParticle.Provider::new);
+    }
+
+    @SubscribeEvent
+    public static void registerParticleReloadListener(
+            net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener)
+            resources -> dev.riftgun.client.particle.ParticleEffectManager.clear());
     }
 
     @SubscribeEvent

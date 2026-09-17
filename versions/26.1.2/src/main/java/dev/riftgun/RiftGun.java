@@ -136,6 +136,7 @@ public final class RiftGun {
         CREATIVE_TABS.register(modBus);
         ENTITY_TYPES.register(modBus);
         PARTICLE_TYPES.register(modBus);
+        dev.riftgun.particle.RiftParticles.register(modBus);
         PortalGunComponents.COMPONENTS.register(modBus);
         PortalModules.register(modBus);
         PortalModuleMenus.register(modBus);
