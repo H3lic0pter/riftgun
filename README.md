@@ -102,7 +102,7 @@ shotAnimation = "CUSTOM"
 
 `CUSTOM` restores the saved custom choice for that field. Animation values also accept `OFF`, `RECOIL`,
 `SWING`, and `LOWER`. Sounds use the existing choices for each channel; unavailable choices retain the
-custom sound. Splash sound and recoil tuning remain custom. Presets apply to the existing player/client
+custom sound. Particle sound and recoil tuning remain custom. Presets apply to the existing player/client
 preferences, so portal visuals change globally for this client; existing portals retain their saved
 lifecycle sound snapshots. Sound selection uses a dedicated acknowledged request that changes only
 sound preferences, independently of placement mode and installed gun modules. The original custom value
@@ -277,8 +277,8 @@ The system first checks whether the traveler can reasonably survive an event, th
 
 - `Swirl` is the default portal visual; `Classic` is also available.
 - Visual selection and swirl animation settings are client-local, so different players may see the same portal differently.
-- Shot, open/close, and transit sounds can be selected independently. The Rift theme is the default; Ender is also available for transit. Splash sound is off by default.
-- Portal colors and splash particles follow the active fuel.
+- Shot, open/close, and transit sounds can be selected independently. The Rift theme is the default; Ender is also available for transit. Particle sound is off by default.
+- Portal colors and particle effects follow the active fuel.
 - Pending Pairing endpoints use client-rendered, world-oriented white wireframes with colored `I`/`II` strokes. They keep the original portal orientation, use world depth so blocks occlude them, and render as opaque geometry rather than allowing the background to show through.
 - Pairing markers are batched without marker entities or per-marker buffer flushes. Their frame/number geometry stays in world space while the shader expands strokes to a fixed screen-space width, so camera movement cannot rescale the stored marker shape.
 - When a supported shader environment is detected, Rift Gun uses a visible fallback surface and skips the portal surface during shadow passes. Complementary Reimagined and Complementary Unbound r5.x also receive the registered Endframe central-surface path; unregistered packs keep the conservative fallback.
