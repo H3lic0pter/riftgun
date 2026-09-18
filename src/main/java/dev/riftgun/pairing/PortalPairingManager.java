@@ -182,7 +182,8 @@ public final class PortalPairingManager {
             PortalPairPlacement pair = new PortalPairPlacement(
                 opposite != null ? opposite.level().dimension() : pendingOpposite.dimension(),
                 placement.placement(), opposite != null ? opposite.placement() : pendingOpposite.placement());
-            opened = PortalEntity.openPairing(player, pair, fuelPlan.use().profile(), options,
+            opened = PortalEntity.openPairing(player, pair, fuelPlan.use().profile(), options.withDisplayRgb(
+                dev.riftgun.appearance.PortalDisplayColor.resolve(locatedGun.stack(), fuelPlan.use().profile().rgb())),
                 () -> PortalFuelManager.consume(locatedGun.stack(), fuelPlan.use()), gunId, endpoint);
             if (opened) {
                 PortalPairingPendingEndpoints.clearAll(player);

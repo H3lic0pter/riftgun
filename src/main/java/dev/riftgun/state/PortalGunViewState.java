@@ -61,6 +61,10 @@ public record PortalGunViewState(
     public boolean unstableFuel() { return fuel.unstable(); }
     public String fluidId() { return fuel.fluidId(); }
     public int fluidRgb() { return fuel.rgb(); }
+    public int displayRgb() {
+        return dev.riftgun.appearance.PortalDisplayColor.resolve(
+            moduleCount(PortalModuleKind.COLOR) > 0, modules.customRgb(), fuel.rgb());
+    }
     public boolean crossDimensionFuel() { return fuel.crossDimension(); }
     public boolean coordinateOverride() { return navigation.coordinateOverride(); }
     public boolean dimensionalTraversalInstalled() { return navigation.dimensionalTraversalInstalled(); }
@@ -295,7 +299,10 @@ public record PortalGunViewState(
         }
     }
 
-    public record Modules(Map<PortalModuleKind, Integer> counts, PortalModuleRules rules) {
+    public record Modules(Map<PortalModuleKind, Integer> counts, PortalModuleRules rules, int customRgb) {
+        public Modules(Map<PortalModuleKind, Integer> counts, PortalModuleRules rules) {
+            this(counts, rules, -1);
+        }
         public Modules {
             counts = counts == null ? Map.of() : Map.copyOf(counts);
             rules = rules == null ? PortalModuleRules.defaults() : rules;

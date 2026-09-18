@@ -360,7 +360,8 @@ public final class PortalOpenCoordinator {
             PortalSoundSnapshot.from(presentation.sounds()),
             PortalCrisisConfigurationSnapshot.capture(
                 RiftFuelStores.open(locatedGun.stack()).content().fluid()),
-            transitAuthorization, presentation.visual());
+            transitAuthorization, presentation.visual()).withDisplayRgb(
+                dev.riftgun.appearance.PortalDisplayColor.resolve(locatedGun.stack(), fuelPlan.use().profile().rgb()));
         PortalExclusions exclusions = new PortalExclusions(entryExclude, exitExclude);
         SafetyReport safetyReport = null;
         boolean opened;

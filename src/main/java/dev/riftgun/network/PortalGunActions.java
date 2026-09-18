@@ -182,6 +182,22 @@ final class PortalGunActions {
         PortalModuleRules rules = PortalModuleRules.current();
         String setting = Nbt.getString(request, "Setting");
         switch (setting) {
+            case "DisplayColor" -> {
+                requireModule(gun, PortalModuleKind.COLOR, rules, "message.riftgun.color_module_required");
+                if (Nbt.getBoolean(request, "Reset")) {
+                    gun.remove(dev.riftgun.fuel.PortalGunComponents.DISPLAY_COLOR);
+                } else {
+                    if (!Nbt.contains(request, "Value", Tag.TAG_INT)) {
+                        throw PortalRequestFields.error("message.riftgun.invalid_request");
+                    }
+                    int rgb = Nbt.getInt(request, "Value");
+                    if (rgb < 0 || rgb > 0xFFFFFF) {
+                        throw PortalRequestFields.error("message.riftgun.invalid_request");
+                    }
+                    gun.set(dev.riftgun.fuel.PortalGunComponents.DISPLAY_COLOR, rgb);
+                }
+                dev.riftgun.fuel.PortalGunVisualState.refresh(gun);
+            }
             case "SmartDistance" -> {
                 int maximum = PortalGunCapabilities.resolve(
                     gun, data.settings().smartDistance()).maximumSurfaceRange();

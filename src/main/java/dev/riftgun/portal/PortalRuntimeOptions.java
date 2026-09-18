@@ -18,8 +18,24 @@ public record PortalRuntimeOptions(
     PortalSoundSnapshot sounds,
     PortalCrisisConfigurationSnapshot crises,
     Optional<PortalTransitAuthorization> transitAuthorization,
-    String visualType
+    String visualType,
+    int displayRgb
 ) {
+    public PortalRuntimeOptions(PortalEntityAccessSnapshot entityAccess, int openDurationTicks,
+            PortalAperture aperture, int transitCooldownTicks, boolean fallGuard, boolean entityFallGuard,
+            double horizontalTriggerExtend, PortalSoundSnapshot sounds,
+            PortalCrisisConfigurationSnapshot crises, Optional<PortalTransitAuthorization> transitAuthorization,
+            String visualType) {
+        this(entityAccess, openDurationTicks, aperture, transitCooldownTicks, fallGuard, entityFallGuard,
+            horizontalTriggerExtend, sounds, crises, transitAuthorization, visualType, -1);
+    }
+
+    public PortalRuntimeOptions withDisplayRgb(int rgb) {
+        return new PortalRuntimeOptions(entityAccess, openDurationTicks, aperture, transitCooldownTicks,
+            fallGuard, entityFallGuard, horizontalTriggerExtend, sounds, crises, transitAuthorization,
+            visualType, rgb & 0xFFFFFF);
+    }
+
     public PortalRuntimeOptions {
         if (entityAccess == null) entityAccess = PortalEntityAccessSnapshot.NONE;
         openDurationTicks = Math.max(1, openDurationTicks);

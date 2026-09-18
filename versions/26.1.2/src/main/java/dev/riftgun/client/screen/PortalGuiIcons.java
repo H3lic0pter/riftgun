@@ -7,6 +7,12 @@ import net.minecraft.resources.Identifier;
 /** Sprite-backed icon primitives shared by the configuration screen's panes. */
 final class PortalGuiIcons {
     private static final int ICON_SIZE = 16;
+
+    /** Accepts button bounds; centers the 16 px sprite with no optical correction. */
+    static void drawColorIcon(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
+        PortalGuiSprites.draw(graphics, PortalGuiSprites.COLOR,
+            x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2);
+    }
     // The die's dark face reads left-heavy at mathematical center.
     private static final int RANDOM_RIFT_OPTICAL_X = 1;
     // The diagonal pencil stroke reads low-right unless its padded sprite is lifted and shifted left.

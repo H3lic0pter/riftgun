@@ -12,6 +12,7 @@ public enum PortalConfigPage {
     SETTINGS("screen.riftgun.settings", "", false, false),
     CONFIRM_SETTINGS("screen.riftgun.confirm_settings", "", false, false),
     MAP_INTEGRATION_SETTINGS("screen.riftgun.map_integration_settings", "", false, false),
+    COLOR_SETTINGS("screen.riftgun.color", "", false, false),
     GUN_SETTINGS("screen.riftgun.configure_gun", "", false, false),
     PORTAL_DURATION_SETTINGS("screen.riftgun.portal_duration", "", false, false),
     SMART_DISTANCE_SETTINGS("screen.riftgun.smart_range", "", false, false),
@@ -63,7 +64,7 @@ public enum PortalConfigPage {
             || this == REMOTE_SETTINGS || this == ENTITY_TRANSIT_SETTINGS
             || this == APERTURE_SETTINGS || this == PLAYER_TARGET_SETTINGS
             || this == FALL_GUARD_SETTINGS || this == ENTITY_RELOCATION_SETTINGS
-            || this == PORTAL_PAIRING_SETTINGS;
+            || this == PORTAL_PAIRING_SETTINGS || this == COLOR_SETTINGS;
     }
 
     public boolean hasInputs() {

@@ -21,5 +21,6 @@ public enum PortalModuleKind {
     MATTER_ANCHOR,
     PROJECTILE_TRANSIT,
     ZERO_POINT_FUEL,
-    CREATIVE
+    CREATIVE,
+    COLOR
 }

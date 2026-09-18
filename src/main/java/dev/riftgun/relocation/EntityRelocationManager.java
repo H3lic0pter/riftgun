@@ -158,6 +158,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         EntityRelocationRegistry state = registry();
         PortalFuelProfile profile = profileResult.orElseGet(PortalFuelProfiles::dimensional);
+        int displayRgb = dev.riftgun.appearance.PortalDisplayColor.resolve(locatedGun.stack(), profile.rgb());
         if (!owner.level().dimension().equals(destination.dimension()) && !profile.crossDimension()) {
             message(owner, "message.riftgun.fuel_dimension_denied");
             return true;
@@ -223,7 +224,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         if (deferred) {
             beginPreparation(destinationLevel, begin.reservation(), owner, target, tree,
                 locatedGun.saveReference(),
-                destination, profile, sounds, visualType, capabilities, crises, privacyReservations,
+                destination, profile, displayRgb, sounds, visualType, capabilities, crises, privacyReservations,
                 snapshotPermissions(permissions),
                 openingTicks, fuelQuote, virtualFuel, specialEntities,
                 relocationConfig, config.fuel(), now);
@@ -231,7 +232,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         PreparedRoute preparedRoute = prepareRoute(target, tree, destination, destinationLevel, crises);
         EntityRelocationExitService.Handle exitSetup = prepareExit(server, destinationLevel, destination, preparedRoute,
-            side, profile.rgb(), sounds, visualType, openingTicks, relocationConfig.exitDurationSeconds());
+            side, displayRgb, sounds, visualType, openingTicks, relocationConfig.exitDurationSeconds());
         if (exitSetup == null) {
             state.fail(begin.reservation());
             releasePrivacyGrants(server, privacyReservations);
@@ -239,7 +240,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             return true;
         }
         EntityRelocationPortalEntity visual = EntityRelocationPortalEntity.createEntrance(
-            owner.level(), center, side, profile.rgb(), target.getUUID(), sounds, openingTicks);
+            owner.level(), center, side, displayRgb, target.getUUID(), sounds, openingTicks);
         visual.visualType(visualType);
 //? if >=1.21.11 {
         /*if (!((ServerLevel) owner.level()).addFreshEntity(visual)) {
@@ -259,7 +260,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         PortalSounds.playOpening(owner.serverLevel(), center, sounds);
 //?}
         EntityRelocationSession.Context context = sessionContext(
-            begin.reservation(), owner.getUUID(), target, profile, sounds, visualType, capabilities,
+            begin.reservation(), owner.getUUID(), target, profile, displayRgb, sounds, visualType, capabilities,
             crises, privacyReservations, openingTicks, fuelQuote, virtualFuel, tree,
             specialEntities, relocationConfig, config.fuel());
         SESSIONS.add(EntityRelocationSession.opening(context, gun, destination,
@@ -271,7 +272,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             ServerLevel destinationLevel, EntityRelocationRegistry.Reservation reservation,
             ServerPlayer owner, Entity target, EntityRelocationTree tree,
             net.minecraft.nbt.CompoundTag gunReference, ResolvedDestination destination,
-            PortalFuelProfile profile, PortalSoundSnapshot sounds, String visualType,
+            PortalFuelProfile profile, int displayRgb, PortalSoundSnapshot sounds, String visualType,
             PortalGunCapabilities capabilities, PortalCrisisConfigurationSnapshot crises,
             List<PortalPrivacyService.GrantReservation> privacyReservations,
             List<PermissionSnapshot> permissions,
@@ -329,7 +330,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 //?}
             });
         EntityRelocationSession.Context context = sessionContext(
-            reservation, owner.getUUID(), target, profile, sounds, visualType, capabilities,
+            reservation, owner.getUUID(), target, profile, displayRgb, sounds, visualType, capabilities,
             crises, privacyReservations, openingTicks, fuelQuote, virtualFuel, tree,
             specialEntities, relocationConfig, fuelConfig);
         SESSIONS.add(EntityRelocationSession.preparing(
@@ -338,7 +339,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
 
     private static EntityRelocationSession.Context sessionContext(
             EntityRelocationRegistry.Reservation reservation, UUID ownerId, Entity target,
-            PortalFuelProfile profile, PortalSoundSnapshot sounds, String visualType,
+            PortalFuelProfile profile, int displayRgb, PortalSoundSnapshot sounds, String visualType,
             PortalGunCapabilities capabilities, PortalCrisisConfigurationSnapshot crises,
             List<PortalPrivacyService.GrantReservation> privacyReservations,
             int openingTicks, EntityRelocationFuelPolicy.Quote fuelQuote,
@@ -346,7 +347,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             SpecialEntityTransitPolicy<EntityType<?>> specialEntities,
             RiftConfig.RelocationConfig relocationConfig, RiftConfig.FuelConfig fuelConfig) {
         return new EntityRelocationSession.Context(
-            reservation, ownerId, target.getUUID(), target.level().dimension(), profile, sounds, visualType,
+            reservation, ownerId, target.getUUID(), target.level().dimension(), profile, displayRgb, sounds, visualType,
             capabilities.fallGuard(), capabilities.entityFallGuard(), crises,
             privacyReservations, openingTicks, fuelQuote, virtualFuel, tree, specialEntities,
             relocationConfig, fuelConfig);
@@ -542,7 +543,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
             route = normalRoute(target, pending.tree(), destination, null);
         }
         EntityRelocationExitService.Handle exit = prepareExit(server, targetLevel, destination, route, side,
-            pending.profile().rgb(), pending.sounds(), pending.visualType(), pending.openingTicks(),
+            pending.displayRgb(), pending.sounds(), pending.visualType(), pending.openingTicks(),
             pending.relocationConfig().exitDurationSeconds());
         if (exit == null) {
             TransitDiagnostics.warning("relocation prepared exit creation failed reservation={} destination={} exitCenter={}",
@@ -556,7 +557,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
         Vec3 center = feetCenter(target);
         EntityRelocationPortalEntity visual = EntityRelocationPortalEntity.createEntrance(
-            sourceLevel, center, side, pending.profile().rgb(), target.getUUID(),
+            sourceLevel, center, side, pending.displayRgb(), target.getUUID(),
             pending.sounds(), pending.openingTicks());
         visual.visualType(pending.visualType());
         if (!sourceLevel.addFreshEntity(visual)) {

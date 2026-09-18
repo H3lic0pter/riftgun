@@ -150,10 +150,10 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
 
         long startedAt = server.overworld().getGameTime();
         PortalEntity entry = create(entryLevel, player.getUUID(), pair.entry(),
-            fuel.rgb(), fuel.id().toString(), options, startedAt,
+            options.displayRgb() >= 0 ? options.displayRgb() : fuel.rgb(), fuel.id().toString(), options, startedAt,
             exclusions.entryPlayerId(), false);
         PortalEntity exit = create(exitLevel, player.getUUID(), pair.exit(),
-            fuel.rgb(), fuel.id().toString(), options, startedAt,
+            options.displayRgb() >= 0 ? options.displayRgb() : fuel.rgb(), fuel.id().toString(), options, startedAt,
             exclusions.exitPlayerId(), true);
         if (pairingGunId != null) {
             entry.setPairing(pairingGunId, entryEndpoint, false);
@@ -193,7 +193,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
             return false;
         }
         PortalEntity entry = create(entryLevel, player.getUUID(), placement,
-            fuel.rgb(), fuel.id().toString(), options, server.overworld().getGameTime(),
+            options.displayRgb() >= 0 ? options.displayRgb() : fuel.rgb(), fuel.id().toString(), options, server.overworld().getGameTime(),
             exclusions.entryPlayerId(), false);
         entry.deferredExit.configure(target, exclusions.exitPlayerId());
         entry.acquireChunkTicket();

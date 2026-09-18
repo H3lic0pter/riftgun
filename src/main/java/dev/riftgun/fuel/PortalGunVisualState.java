@@ -105,6 +105,7 @@ public record PortalGunVisualState(int liquidTint, boolean coreVisible, int fuel
         int rgb = PortalFuelProfiles.resolve(fluid.getFluid())
             .map(PortalFuelProfile::rgb).orElse(PortalFuelProfiles.DIMENSIONAL_RGB);
         boolean pairingMode = capabilities.functionMode() == PortalFunctionMode.PORTAL_PAIRING;
-        return new PortalGunVisualState(tint, PortalFuelManager.hasInfiniteFuel(gun), rgb, pairingMode);
+        return new PortalGunVisualState(tint, PortalFuelManager.hasInfiniteFuel(gun),
+            dev.riftgun.appearance.PortalDisplayColor.resolve(gun, rgb), pairingMode);
     }
 }

@@ -146,6 +146,9 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton remoteSettingsButton;
     private @Nullable ThemedButton entityTransitSettingsButton;
     private @Nullable ThemedButton apertureSettingsButton;
+    private @Nullable ThemedButton colorSettingsButton;
+    private @Nullable EditBox colorField;
+    private @Nullable ThemedButton colorSaveButton;
     private @Nullable ThemedButton fallGuardSettingsButton;
     private @Nullable ThemedButton entityRelocationSettingsButton;
     private @Nullable ThemedButton moduleSettingBackButton;
@@ -253,6 +256,9 @@ public final class PortalConfigScreen extends Screen {
         remoteSettingsButton = null;
         entityTransitSettingsButton = null;
         apertureSettingsButton = null;
+        colorSettingsButton = null;
+        colorField = null;
+        colorSaveButton = null;
         fallGuardSettingsButton = null;
         entityRelocationSettingsButton = null;
         portalPairingSettingsButton = null;
@@ -563,6 +569,34 @@ public final class PortalConfigScreen extends Screen {
                 portalPairingSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.PORTAL_PAIRING_SETTINGS));
             }
+            if (moduleCount("COLOR") > 0) {
+                colorSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                    ignored -> openGunSetting(PortalConfigPage.COLOR_SETTINGS));
+            }
+            // Wrap the module entries instead of overflowing the panel when every module is active.
+            int columns = Math.max(1, (fieldWidth + 5) / 31);
+            int index = 0;
+            for (ThemedButton entry : java.util.Arrays.asList(portalDurationSettingsButton,
+                    smartRangeSettingsButton, remoteSettingsButton, entityTransitSettingsButton,
+                    playerTargetSettingsButton, apertureSettingsButton, fallGuardSettingsButton,
+                    entityRelocationSettingsButton, portalPairingSettingsButton, colorSettingsButton)) {
+                if (entry == null) continue;
+                entry.setPosition(x + 18 + index % columns * 31, y + 45 + index / columns * 31);
+                index++;
+            }
+        } else if (session.page() == PortalConfigPage.COLOR_SETTINGS) {
+            int selected = PortalClientState.gun().modules().customRgb();
+            if (selected < 0) selected = PortalClientState.gun().displayRgb();
+            colorField = new EditBox(font, x + 18, gunSettingControlY, fieldWidth - 28, 18,
+                Component.translatable("screen.riftgun.color"));
+            colorField.setMaxLength(7);
+            colorField.setValue(String.format(java.util.Locale.ROOT, "#%06X", selected));
+            addRenderableWidget(colorField);
+            colorSaveButton = button(x + 18, gunSettingControlY + 25, (fieldWidth - 5) / 2, 19,
+                "screen.riftgun.save", false, ignored -> saveDisplayColor(false));
+            button(x + 23 + (fieldWidth - 5) / 2, gunSettingControlY + 25, (fieldWidth - 5) / 2, 19,
+                "screen.riftgun.color_reset", false, ignored -> saveDisplayColor(true));
+            colorField.setResponder(value -> colorSaveButton.active = parseDisplayColor(value) >= 0);
         } else if (session.page() == PortalConfigPage.PORTAL_DURATION_SETTINGS) {
             boolean eternal = PortalClientState.gun().eternalDurationInstalled();
             int maximum = eternal ? 301 : Math.max(1, PortalClientState.gun().maximumPortalDurationSeconds());
@@ -1396,6 +1430,14 @@ public final class PortalConfigScreen extends Screen {
         }
         if (session.page().isGunSettingPage()) {
             renderBackButton(graphics, moduleSettingBackButton);
+            if (colorField != null) {
+                int preview = parseDisplayColor(colorField.getValue());
+                int swatchX = colorField.getX() + colorField.getWidth() + 6;
+                int swatchY = colorField.getY();
+                graphics.fill(swatchX, swatchY, swatchX + 18, swatchY + 18, PortalTheme.TEXT_MUTED);
+                graphics.fill(swatchX + 1, swatchY + 1, swatchX + 17, swatchY + 17,
+                    0xFF000000 | Math.max(0, preview));
+            }
             if (session.page() == PortalConfigPage.ENTITY_TRANSIT_SETTINGS) {
                 renderEntityTransitButtons(graphics);
             } else if (session.page() == PortalConfigPage.PLAYER_TARGET_SETTINGS) {
@@ -1640,7 +1682,28 @@ public final class PortalConfigScreen extends Screen {
         }
     }
 
+    private static int parseDisplayColor(String value) {
+        if (!value.matches("#?[0-9a-fA-F]{6}")) return -1;
+        return Integer.parseInt(value.startsWith("#") ? value.substring(1) : value, 16);
+    }
+
+    private void saveDisplayColor(boolean reset) {
+        if (colorField == null) return;
+        int rgb = parseDisplayColor(colorField.getValue());
+        if (!reset && rgb < 0) return;
+        PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS, tag -> {
+            tag.putString("Setting", "DisplayColor");
+            tag.putBoolean("Reset", reset);
+            if (!reset) tag.putInt("Value", rgb);
+        });
+        backToGunSettings();
+    }
+
     private void renderGunSettingEntries(GuiGraphics graphics) {
+        if (colorSettingsButton != null) {
+            PortalGuiIcons.drawColorIcon(graphics, colorSettingsButton.getX(), colorSettingsButton.getY(),
+                colorSettingsButton.getWidth(), colorSettingsButton.getHeight());
+        }
         if (portalDurationSettingsButton != null) {
             drawPortalDurationIcon(graphics, portalDurationSettingsButton.getX() + 7,
                 portalDurationSettingsButton.getY() + 7);
@@ -1686,6 +1749,7 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private void renderGunSettingTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
+        settingTooltip(graphics, colorSettingsButton, "screen.riftgun.color", mouseX, mouseY);
         settingTooltip(graphics, portalDurationSettingsButton,
             "screen.riftgun.portal_duration", mouseX, mouseY);
         settingTooltip(graphics, smartRangeSettingsButton,
@@ -1839,7 +1903,7 @@ public final class PortalConfigScreen extends Screen {
         int capacity = Math.max(1, PortalClientState.gun().capacity());
         boolean infinite = PortalClientState.gun().infiniteFuel();
         boolean overfilled = amount > capacity;
-        int rgb = PortalClientState.gun().fluidRgb();
+        int rgb = PortalClientState.gun().displayRgb();
         int fluidColor = 0xFF000000 | (rgb == 0 ? 0x34363D : rgb);
         graphics.fill(fuelGaugeX, fuelGaugeY, fuelGaugeX + FUEL_GAUGE_WIDTH, fuelGaugeY + 19,
             PortalTheme.FIELD);
@@ -2278,6 +2342,7 @@ public final class PortalConfigScreen extends Screen {
         }
         if ((keyCode == 257 || keyCode == 335) && session.page() != PortalConfigPage.NONE) {
             if (session.page().isConfirmation()) acceptConfirmation();
+            else if (session.page() == PortalConfigPage.COLOR_SETTINGS) saveDisplayColor(false);
             else submitModal();
             return true;
         }

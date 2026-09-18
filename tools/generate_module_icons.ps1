@@ -43,6 +43,17 @@ function Set-Pixel([System.Drawing.Bitmap] $Bitmap, [int] $X, [int] $Y, [System.
     $Bitmap.SetPixel($X, $Y, $Color)
 }
 
+New-ModuleIcon 'color_module' ([System.Drawing.Color]::FromArgb(255, 221, 131, 223)) {
+    param($b, $c)
+    $colors = @('#F47878', '#83D990', '#75ABEF', '#DFC66B', '#C48DE8', '#78DADA')
+    for ($i = 0; $i -lt 6; $i++) {
+        $color = [System.Drawing.ColorTranslator]::FromHtml($colors[$i])
+        $x = 4 + ($i % 3) * 3
+        $y = 5 + [int][Math]::Floor($i / 3) * 4
+        foreach ($dx in 0, 1) { foreach ($dy in 0, 1) { Set-Pixel $b ($x + $dx) ($y + $dy) $color } }
+    }
+}
+
 New-ModuleIcon 'coordinate_override_module' ([System.Drawing.Color]::FromArgb(255, 116, 217, 232)) {
     param($b, $c)
     foreach ($p in @(@(7,4),@(8,4),@(7,5),@(8,5),@(7,10),@(8,10),@(7,11),@(8,11),

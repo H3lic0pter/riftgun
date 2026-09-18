@@ -3,6 +3,11 @@
 Changes after the published Minecraft 1.21.1 and 26.1.2 `0.2.1-r1` releases.
 
 - Network protocol: `3`
+- Color Module unlocks a per-gun display color from the module settings page.
+  Enter an RGB hex color or restore the real fuel color. Removing the module keeps
+  the preference but disables its effect. Gun tint and newly opened portals use
+  the selected color; fuel identity, consumption, dimensional access and instability
+  remain unchanged.
 - Skin identity is stored per gun. Resource packs can supply models and dynamic
   fuel and mode colors, including the new arcane staff appearance.
 - First-person shot animation supports Off, Recoil, Classic swing, and Lower and

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "RGB",
+    "AMA"
+  ],
+  "key": {
+    "R": "minecraft:red_dye",
+    "G": "minecraft:green_dye",
+    "B": "minecraft:blue_dye",
+    "M": "riftgun:basic_module",
+    "A": "minecraft:amethyst_shard"
+  },
+  "result": {
+    "id": "riftgun:color_module",
+    "count": 1
+  }
+}

@@ -66,6 +66,7 @@ final class EntityRelocationSession {
     UUID targetId() { return context.targetId(); }
     ResourceKey<Level> sourceDimension() { return context.sourceDimension(); }
     PortalFuelProfile profile() { return context.profile(); }
+    int displayRgb() { return context.displayRgb(); }
     PortalSoundSnapshot sounds() { return context.sounds(); }
     String visualType() { return context.visualType(); }
     boolean fallGuard() { return context.fallGuard(); }
@@ -119,6 +120,7 @@ final class EntityRelocationSession {
         UUID targetId,
         ResourceKey<Level> sourceDimension,
         PortalFuelProfile profile,
+        int displayRgb,
         PortalSoundSnapshot sounds,
         String visualType,
         boolean fallGuard,

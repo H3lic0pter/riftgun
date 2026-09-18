@@ -79,6 +79,7 @@ public final class PortalGunViewStateCodec {
         CompoundTag modules = new CompoundTag();
         state.modules().counts().forEach((kind, count) -> modules.putInt(kind.name(), count));
         tag.put("Modules", modules);
+        tag.putInt("CustomRgb", state.modules().customRgb());
         tag.put("ModuleRules", state.modules().rules().save());
         return tag;
     }
@@ -142,7 +143,7 @@ public final class PortalGunViewStateCodec {
             ? PortalModuleRules.load(Nbt.getCompound(tag, "ModuleRules"))
             : PortalModuleRules.defaults();
         return new PortalGunViewState(id, pending, fuel, navigation, placement, transit,
-            new PortalGunViewState.Modules(counts, rules));
+            new PortalGunViewState.Modules(counts, rules, tag.contains("CustomRgb") ? Nbt.getInt(tag, "CustomRgb") : -1));
     }
 
     private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {

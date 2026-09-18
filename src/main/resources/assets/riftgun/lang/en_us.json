@@ -1,4 +1,11 @@
 {
+  "item.riftgun.color_module": "Color Module",
+  "tooltip.riftgun.module.color_module.description": "Unlocks a custom display color saved on this gun. Fuel properties and consumption stay unchanged.",
+  "message.riftgun.color_module_required": "An active Color Module is required.",
+  "screen.riftgun.color": "Display Color",
+  "screen.riftgun.color_hint": "Enter #RRGGBB. Removing the module restores fuel color and keeps your preference. Applies to newly opened portals.",
+  "screen.riftgun.color_reset": "Use Fuel Color",
+
   "screen.riftgun.appearance.recommend.sounds": "Use recommended sounds: %s",
   "screen.riftgun.appearance.recommend.portal_visual": "Use recommended portal visual: %s",
   "screen.riftgun.appearance.recommend.shot_animation": "Use recommended shot animation: %s",

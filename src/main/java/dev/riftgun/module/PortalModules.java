@@ -77,6 +77,8 @@ public final class PortalModules {
         "zero_point_fuel_module", PortalModuleKind.ZERO_POINT_FUEL, ignored -> 1, 0x4FCB72);
     public static final ModuleEntry CREATIVE = register(
         "creative_module", PortalModuleKind.CREATIVE, ignored -> 1, 0xE6C85C);
+    public static final ModuleEntry COLOR = register(
+        "color_module", PortalModuleKind.COLOR, ignored -> 1, 0xDD83DF);
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {

@@ -18,6 +18,12 @@ public final class PortalGunComponents {
     public static final DeferredRegister.DataComponents COMPONENTS =
         DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, RiftConstants.MOD_ID);
 
+    /** Optional cosmetic preference retained when the color module is removed. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> DISPLAY_COLOR =
+        COMPONENTS.registerComponentType("display_color", builder -> builder
+            .persistent(Codec.intRange(0, 0xFFFFFF))
+            .networkSynchronized(ByteBufCodecs.VAR_INT));
+
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<dev.riftgun.appearance.GunPresentation>> PRESENTATION =
         COMPONENTS.registerComponentType("gun_presentation", builder -> builder
             .persistent(dev.riftgun.appearance.GunPresentation.CODEC)

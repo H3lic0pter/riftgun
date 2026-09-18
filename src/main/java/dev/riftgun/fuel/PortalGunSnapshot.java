@@ -76,7 +76,7 @@ public final class PortalGunSnapshot {
             entityRelocationInstalled, capabilities.entityRelocation(),
             settings.entityRelocation().smartRouting());
         return new PortalGunViewState(instanceId, pending, fuel, navigation, placement, transit,
-            new PortalGunViewState.Modules(modules, rules));
+            new PortalGunViewState.Modules(modules, rules, dev.riftgun.appearance.PortalDisplayColor.configured(gun)));
     }
 
     private PortalGunSnapshot() {}

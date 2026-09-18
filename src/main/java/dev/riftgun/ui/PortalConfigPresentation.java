@@ -13,6 +13,7 @@ public final class PortalConfigPresentation {
             case ENTITY_TRANSIT_SETTINGS -> "screen.riftgun.entity_transit_hint";
             case PLAYER_TARGET_SETTINGS -> "screen.riftgun.player_target_hint";
             case APERTURE_SETTINGS -> "screen.riftgun.aperture_hint";
+            case COLOR_SETTINGS -> "screen.riftgun.color_hint";
             case FALL_GUARD_SETTINGS -> "screen.riftgun.fall_guard_hint";
             case ENTITY_RELOCATION_SETTINGS -> "screen.riftgun.entity_relocation_hint";
             case PORTAL_PAIRING_SETTINGS -> "screen.riftgun.pairing.settings_hint";

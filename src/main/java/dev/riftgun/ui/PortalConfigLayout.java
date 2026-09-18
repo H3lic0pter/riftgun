@@ -17,7 +17,9 @@ public final class PortalConfigLayout {
             case SETTINGS -> 201;
             case CONFIRM_SETTINGS -> 140;
             case MAP_INTEGRATION_SETTINGS -> 170;
-            case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
+            case GUN_SETTINGS -> 163;
+            case COLOR_SETTINGS -> 156;
+            case PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
                  APERTURE_SETTINGS, PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS,
                  ENTITY_RELOCATION_SETTINGS, PORTAL_PAIRING_SETTINGS -> 132;
             case REMOTE_SETTINGS -> 180;
