@@ -21,8 +21,7 @@ public final class GunPresentationDefaults {
     public static void receive(ServerPlayer player, CompoundTag request) {
         CompoundTag values = new CompoundTag();
         for (String key : new String[] {"Legacy", "Custom", "riftgun:default",
-                "riftgun:aperture_ish", "riftgun:arcane_rift_staff",
-                "riftgun:pink_water_gun"}) {
+                "riftgun:aperture_ish", "riftgun:arcane_rift_staff"}) {
             values.put(key, GunPresentation.load(Nbt.getCompound(request, key)).save());
         }
         DEFAULTS.put(player, values);

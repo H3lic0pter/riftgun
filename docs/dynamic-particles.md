@@ -43,10 +43,6 @@ The built-in portal particle effect uses the existing perimeter pattern and fuel
 with shrinking, fading and spinning droplets. Its phase counts remain four
 while charging, six while opening, four while closing and zero while open.
 
-`riftgun:water_splash` emits two small fuel-colored droplets every 16 ticks while
-fully open, one on each side of the animated splash rim. Per-source timing offsets
-avoid synchronized bursts. It shares the same particle budgets and cleanup rules.
-
 ## Management
 
 - `ParticleEffectRegistry.entries()` returns a read-only snapshot for listing effects.

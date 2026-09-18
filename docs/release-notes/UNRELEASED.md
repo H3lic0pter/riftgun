@@ -25,14 +25,6 @@ Changes after the published Minecraft 1.21.1 and 26.1.2 `0.2.1-r1` releases.
   first supplied sample.
 - The staff's default recommendation uses Arcane sounds and the End Frame visual,
   retaining its Arcane shot sound and Classic swing animation.
-- Pink Water Gun joins the appearance catalog with a compact reservoir.
-  It preserves every current sound, portal visual, and shot animation choice.
-- Water Splash adds an opaque fuel-colored liquid body with a random splash outline,
-  detached droplets, subtle rim waves and small highlights. It grows for 0.3 seconds
-  and shrinks on close. Native animated water detail stays anchored without rotation;
-  sparse matching particles use the dynamic effect registry. The material references the
-  live vanilla water atlas, including resource-pack replacements; shader packs
-  currently use this vanilla-material fallback rather than native water effects.
 
 Protocol `3` adds pairing mode and per-gun presentation synchronization, replacing
 the player-wide sound-selection request. Protocol `2` and older peers are rejected. Both client

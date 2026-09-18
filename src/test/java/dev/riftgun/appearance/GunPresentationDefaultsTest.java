@@ -87,20 +87,6 @@ final class GunPresentationDefaultsTest {
         assertEquals(GunPresentation.NEW, saved.get());
     }
 
-    @Test
-    void customOnlySkinsUseTheirSynchronizedPresetsForNewGuns() {
-        ServerPlayer owner = player();
-        var compact = GunPresentation.DEFAULT.withVisual("riftgun:classic")
-            .withAnimation(GunShotAnimation.OFF);
-        CompoundTag values = defaults(GunPresentation.DEFAULT, GunPresentation.DEFAULT);
-        values.put("riftgun:pink_water_gun", compact.save());
-        GunPresentationDefaults.receive(owner, values);
-
-        var saved = new AtomicReference<>(GunPresentation.NEW);
-        assertTrue(GunPresentationDefaults.initialize(owner, stack(saved, "riftgun:pink_water_gun")));
-        assertEquals(compact, saved.get());
-    }
-
     private static CompoundTag defaults(GunPresentation fresh, GunPresentation legacy) {
         var tag = new CompoundTag();
         tag.put("Custom", fresh.save());

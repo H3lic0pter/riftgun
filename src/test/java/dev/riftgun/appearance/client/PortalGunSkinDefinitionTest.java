@@ -113,26 +113,6 @@ final class PortalGunSkinDefinitionTest {
     }
 
     @Test
-    void bundledCustomSkinsUseTheLayeredDynamicContract() throws Exception {
-        for (String name : new String[] {
-                "pink_water_gun"}) {
-            String path = "/assets/riftgun/portal_gun_skins/" + name + ".json";
-            try (var stream = getClass().getResourceAsStream(path)) {
-                assertNotNull(stream, path);
-                var json = JsonParser.parseReader(
-                    new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
-                var skin = PortalGunSkinDefinition.parse("riftgun:" + name, json);
-                assertEquals("riftgun:item/portal_gun/" + name, skin.model());
-                assertTrue(skin.layered());
-                assertFalse(skin.flat());
-                assertTrue(skin.fluid());
-                assertTrue(skin.zeroPoint());
-                assertTrue(skin.modeColors().isEmpty());
-            }
-        }
-    }
-
-    @Test
     void omittedPaletteLeavesTexturesUntintedInBothModes() {
         var skin = PortalGunSkinDefinition.parse("example:icon", description("layered", "3d"));
         for (boolean pairing : new boolean[] {false, true}) {

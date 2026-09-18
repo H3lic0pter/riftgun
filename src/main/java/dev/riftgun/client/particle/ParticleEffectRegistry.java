@@ -2,7 +2,6 @@ package dev.riftgun.client.particle;
 
 import dev.riftgun.appearance.PortalGunSkin;
 import dev.riftgun.client.render.PortalSplashEffect;
-import dev.riftgun.client.render.WaterSplashParticleEffect;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -13,13 +12,11 @@ import java.util.HashSet;
 public final class ParticleEffectRegistry {
     public static final String NONE = "riftgun:none";
     public static final String PORTAL_SPLASH = "riftgun:portal_splash";
-    public static final String WATER_SPLASH = "riftgun:water_splash";
     private static final Map<String, ParticleEffect> EFFECTS = new LinkedHashMap<>();
     private static final Set<String> DISABLED = new HashSet<>();
 
     static {
         register(PORTAL_SPLASH, new PortalSplashEffect());
-        register(WATER_SPLASH, new WaterSplashParticleEffect());
     }
 
     public static void register(String id, ParticleEffect effect) {
