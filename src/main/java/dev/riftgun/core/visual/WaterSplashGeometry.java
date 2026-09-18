@@ -8,7 +8,6 @@ import java.util.UUID;
 /** Stable geometric water masks. No pixels are copied out of the game's animated atlas. */
 public final class WaterSplashGeometry {
     public static final float OPENING_TICKS = 6.0F;
-    public static final float ROTATION_TICKS = 120.0F;
     private static final int RIM_SEGMENTS = 128;
     private static final int DROP_COUNT = 7;
     private static final int DROP_SEGMENTS = 12;
@@ -66,7 +65,7 @@ public final class WaterSplashGeometry {
             }
             offset = fan(vertices, offset, centerX, centerY, dropRim);
         }
-        return new Mesh(vertices);
+        return new Mesh(vertices, rim, phase);
     }
 
     /** Triangle fans encoded as quads, matching the vanilla entity material's vertex format. */
@@ -87,11 +86,38 @@ public final class WaterSplashGeometry {
 
     public static final class Mesh {
         private final float[] vertices;
+        private final float[] rim;
+        private final double phase;
 
-        private Mesh(float[] vertices) { this.vertices = vertices; }
+        private Mesh(float[] vertices, float[] rim, double phase) {
+            this.vertices = vertices;
+            this.rim = rim;
+            this.phase = phase;
+        }
         public int vertexCount() { return vertices.length / 2; }
         public float x(int vertex) { return vertices[vertex * 2]; }
         public float y(int vertex) { return vertices[vertex * 2 + 1]; }
+        public int rimCount() { return rim.length / 2; }
+        public float rimX(int index) { return rim[index * 2]; }
+        public float rimY(int index) { return rim[index * 2 + 1]; }
+
+        /** Small radial waves; the mask never rotates and detached droplets stay fixed. */
+        public float wave(float x, float y, float age) {
+            if (x * x + y * y < 0.01F) return 1;
+            double angle = Math.atan2(y, x);
+            return 1 + (float) (0.012 * Math.sin(angle * 3 + phase + age * 0.07)
+                + 0.008 * Math.sin(angle * 5 - phase - age * 0.045));
+        }
+
+        public float vertexWave(int vertex, float age) {
+            return vertex < RIM_SEGMENTS * 4 ? wave(x(vertex), y(vertex), age) : 1;
+        }
+
+        /** Broken highlight arcs, rather than a uniform luminous outline. */
+        public float highlight(int index, float age) {
+            double angle = TAU * index / rimCount();
+            return (float) Math.max(0, Math.sin(angle * 3 + phase + age * 0.025) - 0.35);
+        }
     }
 
     private WaterSplashGeometry() {}
