@@ -8,6 +8,9 @@ Changes after the published Minecraft 1.21.1 and 26.1.2 `0.2.1-r1` releases.
   the preference but disables its effect. Gun tint and newly opened portals use
   the selected color; fuel identity, consumption, dimensional access and instability
   remain unchanged.
+- The display-color swatch opens a hue wheel with a saturation/value square,
+  linked HEX input and current/new color previews. Confirm returns the selected
+  color to the settings draft; Save writes it to the gun, while Cancel keeps the draft.
 - Skin identity is stored per gun. Resource packs can supply models and dynamic
   fuel and mode colors, including the new arcane staff appearance.
 - First-person shot animation supports Off, Recoil, Classic swing, and Lower and

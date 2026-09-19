@@ -1,9 +1,14 @@
 {
+  "screen.riftgun.color_picker": "选择颜色",
+  "screen.riftgun.color_accept": "确定",
+  "screen.riftgun.color_new": "新颜色",
+  "screen.riftgun.color_old": "原颜色",
+  "screen.riftgun.color_hex": "HEX",
   "item.riftgun.color_module": "颜色模块",
   "tooltip.riftgun.module.color_module.description": "解锁保存在枪上的自定义显示颜色，不改变燃料属性和消耗。",
   "message.riftgun.color_module_required": "需要有效的颜色模块。",
   "screen.riftgun.color": "显示颜色",
-  "screen.riftgun.color_hint": "输入 #RRGGBB。拆下模块后显示燃料色，保留颜色记录。传送门在下次开启时使用新颜色。",
+  "screen.riftgun.color_hint": "输入 #RRGGBB，或点击右侧色块选色。拆下模块保留颜色记录。传送门在下次开启时使用新颜色。",
   "screen.riftgun.color_reset": "恢复燃料色",
 
   "screen.riftgun.appearance.recommend.sounds": "使用推荐的音效：%s",

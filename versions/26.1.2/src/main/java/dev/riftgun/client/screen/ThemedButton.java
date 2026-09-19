@@ -18,6 +18,7 @@ final class ThemedButton extends AbstractButton {
     private final boolean portalAction;
     private float hoverProgress;
     private boolean horizontalMarquee;
+    private boolean hideLabel;
     private int accentBase;
     private int accentHover;
     private int accentText;
@@ -33,6 +34,12 @@ final class ThemedButton extends AbstractButton {
 
     ThemedButton sprite(Identifier sprite) {
         this.sprite = sprite;
+        return this;
+    }
+
+    /** Keeps the message for narration while a custom swatch supplies the visible content. */
+    ThemedButton hideLabel() {
+        hideLabel = true;
         return this;
     }
 
@@ -67,9 +74,9 @@ final class ThemedButton extends AbstractButton {
         int textColor = active ? accented ? accentText : PortalTheme.TEXT : 0xFF777777;
         if (sprite != null) {
             PortalGuiSprites.drawCentered(graphics, sprite, getX(), getY(), width, height);
-        } else if (horizontalMarquee) {
+        } else if (!hideLabel && horizontalMarquee) {
             renderMarquee(graphics, textColor);
-        } else {
+        } else if (!hideLabel) {
             graphics.centeredText(Minecraft.getInstance().font, getMessage(),
                 getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, textColor);
         }

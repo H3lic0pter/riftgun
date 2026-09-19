@@ -149,6 +149,7 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton colorSettingsButton;
     private @Nullable EditBox colorField;
     private @Nullable ThemedButton colorSaveButton;
+    private @Nullable ThemedButton colorSwatchButton;
     private @Nullable ThemedButton fallGuardSettingsButton;
     private @Nullable ThemedButton entityRelocationSettingsButton;
     private @Nullable ThemedButton moduleSettingBackButton;
@@ -259,6 +260,7 @@ public final class PortalConfigScreen extends Screen {
         colorSettingsButton = null;
         colorField = null;
         colorSaveButton = null;
+        colorSwatchButton = null;
         fallGuardSettingsButton = null;
         entityRelocationSettingsButton = null;
         portalPairingSettingsButton = null;
@@ -592,6 +594,12 @@ public final class PortalConfigScreen extends Screen {
             colorField.setMaxLength(7);
             colorField.setValue(String.format(java.util.Locale.ROOT, "#%06X", selected));
             addRenderableWidget(colorField);
+            colorSwatchButton = button(colorField.getX() + colorField.getWidth() + 6,
+                colorField.getY(), 18, 18, Component.empty(), false, ignored -> openColorPicker());
+            colorSwatchButton.hideLabel();
+            colorSwatchButton.setMessage(Component.translatable("screen.riftgun.color_picker"));
+            colorSwatchButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                Component.translatable("screen.riftgun.color_picker")));
             colorSaveButton = button(x + 18, gunSettingControlY + 25, (fieldWidth - 5) / 2, 19,
                 "screen.riftgun.save", false, ignored -> saveDisplayColor(false));
             button(x + 23 + (fieldWidth - 5) / 2, gunSettingControlY + 25, (fieldWidth - 5) / 2, 19,
@@ -1434,7 +1442,8 @@ public final class PortalConfigScreen extends Screen {
                 int preview = parseDisplayColor(colorField.getValue());
                 int swatchX = colorField.getX() + colorField.getWidth() + 6;
                 int swatchY = colorField.getY();
-                graphics.fill(swatchX, swatchY, swatchX + 18, swatchY + 18, PortalTheme.TEXT_MUTED);
+                graphics.fill(swatchX, swatchY, swatchX + 18, swatchY + 18,
+                    colorSwatchButton != null && colorSwatchButton.isHoveredOrFocused() ? PortalTheme.TEXT : PortalTheme.TEXT_MUTED);
                 graphics.fill(swatchX + 1, swatchY + 1, swatchX + 17, swatchY + 17,
                     0xFF000000 | Math.max(0, preview));
             }
@@ -1683,8 +1692,19 @@ public final class PortalConfigScreen extends Screen {
     }
 
     private static int parseDisplayColor(String value) {
-        if (!value.matches("#?[0-9a-fA-F]{6}")) return -1;
-        return Integer.parseInt(value.startsWith("#") ? value.substring(1) : value, 16);
+        return dev.riftgun.ui.PortalColorPickerState.parseHex(value);
+    }
+
+    private void openColorPicker() {
+        if (colorField == null) return;
+        String originalText = colorField.getValue();
+        int initial = parseDisplayColor(originalText);
+        if (initial < 0) initial = PortalClientState.gun().displayRgb();
+        minecraft.setScreen(new PortalColorPickerScreen(this, initial, selected -> {
+            // Returning to this screen rebuilds its widgets; apply to the new field after init.
+            if (colorField != null) colorField.setValue(selected < 0 ? originalText
+                : String.format(java.util.Locale.ROOT, "#%06X", selected));
+        }));
     }
 
     private void saveDisplayColor(boolean reset) {
