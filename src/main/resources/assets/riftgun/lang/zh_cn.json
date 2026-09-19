@@ -1,4 +1,11 @@
 {
+  "screen.riftgun.surface_portal_size": "贴面门径",
+  "screen.riftgun.surface_portal_size.full_support": "完整贴合",
+  "screen.riftgun.surface_portal_size.adaptive": "支撑适配",
+  "screen.riftgun.surface_portal_size.prefer_large": "优先大门",
+  "screen.riftgun.surface_portal_size.full_support.description": "仅有完整支撑面时使用 2×2。有遮挡时仍按原规则退回较小门径。",
+  "screen.riftgun.surface_portal_size.adaptive.description": "竖向两个支撑方块使用 1×2，其余优先 2×2，允许部分悬空。遮挡回退规则不变。",
+  "screen.riftgun.surface_portal_size.prefer_large.description": "即使只有单个支撑方块，也优先使用 2×2。有遮挡时仍按原规则退回较小门径。",
   "screen.riftgun.color_picker": "选择颜色",
   "screen.riftgun.color_accept": "确定",
   "screen.riftgun.color_new": "新颜色",

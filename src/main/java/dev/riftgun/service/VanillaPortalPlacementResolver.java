@@ -10,14 +10,12 @@ import dev.riftgun.portal.PortalOrientation;
 import dev.riftgun.portal.PortalPairPlacement;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalLifecycle;
-import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -148,27 +146,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             && hit.getBlockPos().equals(selection.anchor());
         SurfaceFacePlacementPlanner.Result result = SurfaceFacePlacementPlanner.resolve(
             selection, constraints.aperture(), player.getYRot(), player.getBoundingBox(),
-            new SurfaceFacePlacementPlanner.Probe() {
-                @Override
-                public boolean anchorSolid(BlockPos position) {
-                    return !level.getBlockState(position).getCollisionShape(level, position).isEmpty();
-                }
-
-                @Override
-                public boolean blocked(PortalPlacement placement) {
-                    return VanillaPortalPlacementResolver.blocked(level, placement.bounds());
-                }
-
-                @Override
-                public int backingBlocks(BlockPos position) {
-                    return VanillaPortalPlacementResolver.backingBlock(level, position);
-                }
-
-                @Override
-                public boolean expandedSupport(PortalPlacement placement) {
-                    return PortalSupportArea.hasFullExpandedSupport(level, placement);
-                }
-            }, new SurfaceFacePlacementPlanner.Validation(eye.distanceTo(faceCenter),
+            surfaceProbe(level), new SurfaceFacePlacementPlanner.Validation(eye.distanceTo(faceCenter),
                 constraints.maximumSurfaceRange(), lineOfSight));
         return result.successful()
             ? PortalPlacementCapture.success(PortalPlacementIntent.surface(result.placement()))
@@ -291,7 +269,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         if (player.getEyePosition().distanceTo(placement.center()) > range) {
             return EntryResult.failure("message.riftgun.surface_out_of_range");
         }
-        if (placement.geometry().expanded()
+        if (placement.geometry().requiresFullSupport()
             && !PortalSupportArea.hasFullExpandedSupport(level, placement)) {
             return EntryResult.failure("message.riftgun.surface_invalid");
         }
@@ -302,133 +280,34 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
 
     private EntryResult attached(ServerLevel level, ServerPlayer player, BlockHitResult hit,
                                  PortalAperture aperture) {
-        BlockPos anchor = hit.getBlockPos();
-        Direction face = hit.getDirection();
-        BlockState state = level.getBlockState(anchor);
-        if (state.getCollisionShape(level, anchor).isEmpty()) {
-            return EntryResult.failure("message.riftgun.surface_invalid");
-        }
-
-        if (PortalAperturePolicy.expanded(aperture)) {
-            PortalPlacement expanded = face.getAxis().isVertical()
-                ? expandedHorizontalAttached(level, player, hit)
-                : expandedVerticalAttached(level, player, hit);
-            if (expanded != null) return EntryResult.success(expanded);
-        }
-
-        if (face.getAxis().isVertical()) {
-            PortalOrientation orientation = face == Direction.UP ? PortalOrientation.TOP : PortalOrientation.BOTTOM;
-//? if >=1.21.11 {
-            /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-*///?} else {
-            Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-//?}
-            Vec3 center = Vec3.atCenterOf(anchor).add(normal.scale(0.5 + SURFACE_OFFSET));
-            PortalPlacement placement = new PortalPlacement(center, orientation, PortalGeometry.HORIZONTAL,
-                player.getYRot(), anchor.immutable(), face);
-            return blocked(level, placement.bounds())
-                ? EntryResult.failure("message.riftgun.surface_obstructed") : EntryResult.success(placement);
-        }
-
-//? if >=1.21.11 {
-        /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-*///?} else {
-        Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-//?}
-        double x = anchor.getX() + 0.5 + normal.x * (0.5 + SURFACE_OFFSET);
-        double z = anchor.getZ() + 0.5 + normal.z * (0.5 + SURFACE_OFFSET);
-        float yaw = yawFromNormal(normal);
-        List<SidePortalCandidateSelector.Candidate> candidates = new ArrayList<>(2);
-        PortalPlacement hitAndAbove = new PortalPlacement(new Vec3(x, anchor.getY() + 1.0, z),
-            PortalOrientation.VERTICAL, PortalGeometry.SURFACE_VERTICAL, yaw, anchor.immutable(), face);
-        PortalPlacement belowAndHit = new PortalPlacement(new Vec3(x, anchor.getY(), z),
-            PortalOrientation.VERTICAL, PortalGeometry.SURFACE_VERTICAL, yaw, anchor.immutable(), face);
-        if (!blocked(level, hitAndAbove.bounds())) {
-            candidates.add(new SidePortalCandidateSelector.Candidate(hitAndAbove,
-                1 + backingBlock(level, anchor.above())));
-        }
-        if (!blocked(level, belowAndHit.bounds())) {
-            candidates.add(new SidePortalCandidateSelector.Candidate(belowAndHit,
-                1 + backingBlock(level, anchor.below())));
-        }
-        if (!candidates.isEmpty()) {
-            return EntryResult.success(SidePortalCandidateSelector.choose(candidates, player.getBoundingBox()));
-        }
-
-        PortalPlacement compact = new PortalPlacement(new Vec3(x, anchor.getY() + 0.5, z),
-            PortalOrientation.VERTICAL, PortalGeometry.SURFACE_COMPACT, yaw, anchor.immutable(), face);
-        return blocked(level, compact.bounds())
-            ? EntryResult.failure("message.riftgun.surface_obstructed") : EntryResult.success(compact);
+        SurfaceFacePlacementPlanner.Result result = SurfaceFacePlacementPlanner.resolveAttached(
+            new SurfaceFaceSelection(hit.getBlockPos(), hit.getDirection()), aperture,
+            player.getYRot(), player.getBoundingBox(), surfaceProbe(level), hit.getLocation());
+        return result.successful() ? EntryResult.success(result.placement()) : EntryResult.failure(result.errorKey());
     }
 
-    private PortalPlacement expandedVerticalAttached(ServerLevel level, ServerPlayer player,
-                                                      BlockHitResult hit) {
-        BlockPos hitBlock = hit.getBlockPos();
-        Direction face = hit.getDirection();
-        Direction lateral = face.getAxis() == Direction.Axis.Z ? Direction.EAST : Direction.SOUTH;
-//? if >=1.21.11 {
-        /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-*///?} else {
-        Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-//?}
-//? if >=1.21.11 {
-        /*Vec3 lateralVector = new Vec3(lateral.getStepX(), lateral.getStepY(), lateral.getStepZ());
-*///?} else {
-        Vec3 lateralVector = new Vec3(lateral.getStepX(), lateral.getStepY(), lateral.getStepZ());
-//?}
-        float yaw = yawFromNormal(normal);
-        List<PortalPlacement> candidates = new ArrayList<>(4);
-        for (int lateralOffset = -1; lateralOffset <= 0; lateralOffset++) {
-            for (int verticalOffset = -1; verticalOffset <= 0; verticalOffset++) {
-                BlockPos origin = hitBlock.relative(lateral, lateralOffset).offset(0, verticalOffset, 0);
-                Vec3 center = Vec3.atCenterOf(origin)
-                    .add(lateralVector.scale(0.5))
-                    .add(0.0, 0.5, 0.0)
-                    .add(normal.scale(0.5 + SURFACE_OFFSET));
-                PortalPlacement placement = new PortalPlacement(center, PortalOrientation.VERTICAL,
-                    PortalAperturePolicy.attachedVertical(), yaw, origin.immutable(), face);
-                if (PortalSupportArea.hasFullExpandedSupport(level, placement)
-                    && !blocked(level, placement.bounds())) {
-                    candidates.add(placement);
-                }
+    private static SurfaceFacePlacementPlanner.Probe surfaceProbe(ServerLevel level) {
+        return new SurfaceFacePlacementPlanner.Probe() {
+            @Override
+            public boolean anchorSolid(BlockPos position) {
+                return backingBlock(level, position) > 0;
             }
-        }
-        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.choose(
-            candidates, hit.getLocation(), player.getBoundingBox().getCenter());
-    }
 
-    private PortalPlacement expandedHorizontalAttached(ServerLevel level, ServerPlayer player,
-                                                        BlockHitResult hit) {
-        List<PortalPlacement> candidates = expandedHorizontalCandidates(level, hit.getBlockPos(),
-            hit.getDirection(), player.getYRot());
-        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.choose(
-            candidates, hit.getLocation(), player.getBoundingBox().getCenter());
-    }
-
-    private List<PortalPlacement> expandedHorizontalCandidates(ServerLevel level, BlockPos hitBlock,
-                                                               Direction face, float yaw) {
-        List<PortalPlacement> candidates = new ArrayList<>(4);
-        PortalOrientation orientation = face == Direction.UP ? PortalOrientation.TOP : PortalOrientation.BOTTOM;
-//? if >=1.21.11 {
-        /*Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-*///?} else {
-        Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
-//?}
-        for (int xOffset = -1; xOffset <= 0; xOffset++) {
-            for (int zOffset = -1; zOffset <= 0; zOffset++) {
-                BlockPos origin = hitBlock.offset(xOffset, 0, zOffset);
-                Vec3 center = Vec3.atCenterOf(origin)
-                    .add(0.5, 0.0, 0.5)
-                    .add(normal.scale(0.5 + SURFACE_OFFSET));
-                PortalPlacement placement = new PortalPlacement(center, orientation,
-                    PortalAperturePolicy.horizontal(), yaw, origin.immutable(), face);
-                if (PortalSupportArea.hasFullExpandedSupport(level, placement)
-                    && !blocked(level, placement.bounds())) {
-                    candidates.add(placement);
-                }
+            @Override
+            public boolean blocked(PortalPlacement placement) {
+                return VanillaPortalPlacementResolver.blocked(level, placement.bounds());
             }
-        }
-        return candidates;
+
+            @Override
+            public int backingBlocks(BlockPos position) {
+                return backingBlock(level, position);
+            }
+
+            @Override
+            public boolean expandedSupport(PortalPlacement placement) {
+                return PortalSupportArea.hasFullExpandedSupport(level, placement);
+            }
+        };
     }
 
     private PortalPlacement resolveExit(ServerLevel level, PortalExitTarget destination,

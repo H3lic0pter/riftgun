@@ -532,7 +532,7 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     private boolean anchorStillValid() {
         PortalAttachment attachment = attachment();
         if (!attachment.anchored() || !(level() instanceof ServerLevel serverLevel)) return true;
-        if (geometry().expanded() && !PortalSupportArea.hasFullExpandedSupport(serverLevel, placement())) {
+        if (geometry().requiresFullSupport() && !PortalSupportArea.hasFullExpandedSupport(serverLevel, placement())) {
             return false;
         }
         BlockPos anchor = attachment.anchor();

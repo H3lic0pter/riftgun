@@ -18,7 +18,7 @@ public final class PortalStoredPlacementValidator {
             BlockPos anchor = placement.anchor();
             if (!PortalChunkGuard.inWorldBounds(level, anchor)
                 || level.getBlockState(anchor).getCollisionShape(level, anchor).isEmpty()) return false;
-            if (placement.geometry().expanded()
+            if (placement.geometry().requiresFullSupport()
                 && !PortalSupportArea.hasFullExpandedSupport(level, placement)) return false;
             return !level.getBlockCollisions(null,
                 placement.bounds().deflate(0.002)).iterator().hasNext();

@@ -1,6 +1,7 @@
 package dev.riftgun.state;
 
 import dev.riftgun.module.PlayerExcludeMode;
+import dev.riftgun.portal.SurfacePortalSize;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.navigation.DimensionalTraversalMode;
@@ -71,6 +72,7 @@ public record PortalGunViewState(
     public boolean dimensionalTraversalEnabled() { return navigation.dimensionalTraversalEnabled(); }
     public int maximumSurfaceRange() { return placement.maximumSurfaceRange(); }
     public int remoteDistance() { return placement.remoteDistance(); }
+    public SurfacePortalSize surfacePortalSize() { return placement.surfacePortalSize(); }
     public int smartDistance() { return placement.smartDistance(); }
     public boolean remoteInstalled() { return placement.remoteInstalled(); }
     public boolean remoteScrollAdjustmentEnabled() { return placement.remoteScrollAdjustmentEnabled(); }
@@ -134,12 +136,32 @@ public record PortalGunViewState(
                             boolean precisionInstalled, boolean pairingInstalled,
                             PortalFunctionMode functionMode,
                             PortalFloatingFallback coordinateSmartFallback,
-                            PortalFloatingFallback pairingSmartFallback) {
+                            PortalFloatingFallback pairingSmartFallback,
+                            SurfacePortalSize surfacePortalSize) {
+        public Placement(int maximumSurfaceRange, int remoteDistance, int smartDistance,
+                boolean remoteInstalled, boolean remoteScrollAdjustmentEnabled,
+                boolean remoteRadialSliderEnabled, boolean remotePreviewEnabled,
+                boolean precisionInstalled, boolean pairingInstalled, PortalFunctionMode functionMode,
+                PortalFloatingFallback coordinateSmartFallback, PortalFloatingFallback pairingSmartFallback) {
+            this(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
+                remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
+                precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback,
+                pairingSmartFallback, SurfacePortalSize.ADAPTIVE);
+        }
+
+        public Placement withSurfacePortalSize(SurfacePortalSize mode) {
+            return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
+                remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
+                precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback,
+                pairingSmartFallback, mode);
+        }
+
         static final Placement EMPTY = new Placement(1, 1, 1, false, false, false, false,
             false, false, PortalFunctionMode.COORDINATE_TRAVEL,
             PortalFloatingFallback.FRONT, PortalFloatingFallback.FRONT);
 
         public Placement {
+            if (surfacePortalSize == null) surfacePortalSize = SurfacePortalSize.ADAPTIVE;
             maximumSurfaceRange = Math.max(1, maximumSurfaceRange);
             remoteDistance = Math.clamp(remoteDistance, 1, maximumSurfaceRange);
             smartDistance = Math.clamp(smartDistance, 1, maximumSurfaceRange);
@@ -155,44 +177,44 @@ public record PortalGunViewState(
             return new Placement(maximumSurfaceRange, distance, smartDistance, remoteInstalled,
                 remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
                 precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback,
-                pairingSmartFallback);
+                pairingSmartFallback, surfacePortalSize);
         }
 
         public Placement withSmartDistance(int distance) {
             return new Placement(maximumSurfaceRange, remoteDistance, distance, remoteInstalled,
                 remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
                 precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback,
-                pairingSmartFallback);
+                pairingSmartFallback, surfacePortalSize);
         }
 
         public Placement withRemoteScrollAdjustment(boolean enabled) {
             return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
                 enabled, remoteRadialSliderEnabled, remotePreviewEnabled, precisionInstalled,
-                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback);
+                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback, surfacePortalSize);
         }
 
         public Placement withRemoteRadialSlider(boolean enabled) {
             return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
                 remoteScrollAdjustmentEnabled, enabled, remotePreviewEnabled, precisionInstalled,
-                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback);
+                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback, surfacePortalSize);
         }
 
         public Placement withRemotePreview(boolean enabled) {
             return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
                 remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, enabled, precisionInstalled,
-                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback);
+                pairingInstalled, functionMode, coordinateSmartFallback, pairingSmartFallback, surfacePortalSize);
         }
 
         public Placement withCoordinateSmartFallback(PortalFloatingFallback fallback) {
             return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
                 remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
-                precisionInstalled, pairingInstalled, functionMode, fallback, pairingSmartFallback);
+                precisionInstalled, pairingInstalled, functionMode, fallback, pairingSmartFallback, surfacePortalSize);
         }
 
         public Placement withPairingSmartFallback(PortalFloatingFallback fallback) {
             return new Placement(maximumSurfaceRange, remoteDistance, smartDistance, remoteInstalled,
                 remoteScrollAdjustmentEnabled, remoteRadialSliderEnabled, remotePreviewEnabled,
-                precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback, fallback);
+                precisionInstalled, pairingInstalled, functionMode, coordinateSmartFallback, fallback, surfacePortalSize);
         }
     }
 

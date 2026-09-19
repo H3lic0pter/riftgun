@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.fuel.PortalGunVisualState;
 import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.portal.SurfacePortalSize;
 import dev.riftgun.pairing.PortalPairingSettings;
 import dev.riftgun.relocation.EntityRelocationSettings;
 import dev.riftgun.remote.RemoteSettings;
@@ -210,8 +211,20 @@ public record PortalGunModuleSettings(
             remote, portalPairing, dimensionalTraversal, fallGuardEnabled, enabled);
     }
 
-    public record Placement(int smartDistance, int desiredRemoteDistance) {
+    public SurfacePortalSize surfacePortalSize() { return placement.surfacePortalSize(); }
+
+    public PortalGunModuleSettings withSurfacePortalSize(SurfacePortalSize mode) {
+        return new PortalGunModuleSettings(new Placement(smartDistance(), desiredRemoteDistance(), mode),
+            transit, duration, expandedApertureEnabled, playerTarget, entityRelocation, remote,
+            portalPairing, dimensionalTraversal, fallGuardEnabled, fallGuardEntitiesEnabled);
+    }
+
+    public record Placement(int smartDistance, int desiredRemoteDistance, SurfacePortalSize surfacePortalSize) {
+        public Placement(int smartDistance, int desiredRemoteDistance) {
+            this(smartDistance, desiredRemoteDistance, SurfacePortalSize.ADAPTIVE);
+        }
         public Placement {
+            if (surfacePortalSize == null) surfacePortalSize = SurfacePortalSize.ADAPTIVE;
             smartDistance = Math.max(1, smartDistance);
             desiredRemoteDistance = Math.max(1, desiredRemoteDistance);
         }
@@ -222,11 +235,11 @@ public record PortalGunModuleSettings(
         }
 
         Placement withSmartDistance(int value) {
-            return new Placement(value, desiredRemoteDistance);
+            return new Placement(value, desiredRemoteDistance, surfacePortalSize);
         }
 
         Placement withDesiredRemoteDistance(int value) {
-            return new Placement(smartDistance, value);
+            return new Placement(smartDistance, value, surfacePortalSize);
         }
     }
 

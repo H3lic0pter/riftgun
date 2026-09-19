@@ -63,7 +63,7 @@ public final class PortalGunSnapshot {
             capabilities.remote(), settings.remote().scrollAdjustmentEnabled(),
             settings.remote().radialSliderEnabled(), settings.remote().placementPreviewEnabled(),
             capabilities.precisionPlacement(), capabilities.portalPairing(), capabilities.functionMode(),
-            settings.remote().coordinateSmartFallback(), settings.portalPairing().smartFallback());
+            settings.remote().coordinateSmartFallback(), settings.portalPairing().smartFallback(), settings.surfacePortalSize());
         var transit = new PortalGunViewState.Transit(
             capabilities.entityAccess().mask(), settings.passiveTransitEnabled(),
             settings.hostileTransitEnabled(), settings.bossTransitEnabled(),

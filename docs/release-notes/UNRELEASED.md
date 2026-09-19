@@ -3,6 +3,13 @@
 Changes after the published Minecraft 1.21.1 and 26.1.2 `0.2.1-r1` releases.
 
 - Network protocol: `3`
+- Aperture Expansion adds per-gun Surface Portal Size: Full Support, Adaptive
+  (default), or Prefer Large. Adaptive keeps a vertical two-block support at 1x2
+  and otherwise prefers 2x2 with overhang. Covered ground faces do not extend
+  a pillar's exposed support. Obstruction fallback stays unchanged;
+  partially supported portals retain their clicked anchor after saving/loading.
+  Adaptive and Prefer Large rank attached candidates by backing support, then
+  distance to the player's body center, using the existing 1x2 selection policy.
 - Restore the original portal splash particles within the effect registry,
   including vanilla size, opacity, lifetime, physics and sprite selection.
   Closing a portal lets its remaining splashes finish naturally.

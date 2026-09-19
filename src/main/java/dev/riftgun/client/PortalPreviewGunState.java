@@ -69,7 +69,7 @@ public record PortalPreviewGunState(
         return new PortalPreviewGunState(gunId, function, effective, fallback, maximum,
             snapshot.smartDistance(), snapshot.remoteDistance(),
             snapshot.expandedApertureEnabled()
-                ? PortalAperture.EXPANDED : PortalAperture.STANDARD,
+                ? snapshot.surfacePortalSize().aperture() : PortalAperture.STANDARD,
             remote, snapshot.remotePreviewEnabled(), pending);
     }
 }

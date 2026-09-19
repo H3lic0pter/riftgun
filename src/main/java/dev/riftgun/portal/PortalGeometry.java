@@ -7,7 +7,10 @@ public enum PortalGeometry {
     HORIZONTAL(1.0F, 1.0F),
     FLOATING_EXPANDED(2.2F, 2.2F),
     SURFACE_EXPANDED(2.0F, 2.0F),
-    HORIZONTAL_EXPANDED(2.0F, 2.0F);
+    HORIZONTAL_EXPANDED(2.0F, 2.0F),
+    // Append only: geometry ordinals are persisted. These retain the clicked support anchor.
+    SURFACE_OVERHANG(2.0F, 2.0F),
+    HORIZONTAL_OVERHANG(2.0F, 2.0F);
 
     private final float width;
     private final float height;
@@ -26,7 +29,12 @@ public enum PortalGeometry {
     }
 
     public boolean expanded() {
-        return this == FLOATING_EXPANDED || this == SURFACE_EXPANDED || this == HORIZONTAL_EXPANDED;
+        return this == FLOATING_EXPANDED || requiresFullSupport()
+            || this == SURFACE_OVERHANG || this == HORIZONTAL_OVERHANG;
+    }
+
+    public boolean requiresFullSupport() {
+        return this == SURFACE_EXPANDED || this == HORIZONTAL_EXPANDED;
     }
 
     public static PortalGeometry byOrdinal(int ordinal) {

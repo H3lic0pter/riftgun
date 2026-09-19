@@ -37,6 +37,9 @@ final class PortalGuiSprites {
     static final Identifier ENTITY_ACCESS = icon("entity_access");
     static final Identifier APERTURE_ON = icon("aperture_on");
     static final Identifier APERTURE_OFF = icon("aperture_off");
+    static final Identifier SURFACE_SIZE_FULL_SUPPORT = icon("surface_size_full_support");
+    static final Identifier SURFACE_SIZE_ADAPTIVE = icon("surface_size_adaptive");
+    static final Identifier SURFACE_SIZE_PREFER_LARGE = icon("surface_size_prefer_large");
     static final Identifier COLOR = icon("color");
     static final Identifier FALL_GUARD_ON = icon("fall_guard_on");
     static final Identifier FALL_GUARD_OFF = icon("fall_guard_off");

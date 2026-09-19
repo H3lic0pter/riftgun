@@ -212,6 +212,11 @@ final class PortalGunActions {
             case "PortalDuration" -> settings = settings.withPortalDurationSeconds(
                 PortalGunCapabilities.configuredDurationSeconds(gun, Nbt.getInt(request, "Value")));
             case "TransitCooldown" -> settings = settings.withTransitCooldownTenths(Nbt.getInt(request, "Value"));
+            case "SurfacePortalSize" -> {
+                requireModule(gun, PortalModuleKind.APERTURE_EXPANSION, rules,
+                    "message.riftgun.aperture_module_required");
+                settings = settings.withSurfacePortalSize(settings.surfacePortalSize().next());
+            }
             case "ExpandedAperture" -> {
                 requireModule(gun, PortalModuleKind.APERTURE_EXPANSION, rules,
                     "message.riftgun.aperture_module_required");

@@ -1,4 +1,11 @@
 {
+  "screen.riftgun.surface_portal_size": "Surface Portal Size",
+  "screen.riftgun.surface_portal_size.full_support": "Full Support",
+  "screen.riftgun.surface_portal_size.adaptive": "Adaptive",
+  "screen.riftgun.surface_portal_size.prefer_large": "Prefer Large",
+  "screen.riftgun.surface_portal_size.full_support.description": "Use 2x2 only with a full supporting surface. Obstructions still trigger the usual smaller-size fallback.",
+  "screen.riftgun.surface_portal_size.adaptive.description": "Use 1x2 on a vertical pair of supporting blocks; otherwise prefer 2x2, allowing overhang. Obstruction fallback is unchanged.",
+  "screen.riftgun.surface_portal_size.prefer_large.description": "Prefer 2x2 even on a single supporting block. Obstructions still trigger the usual smaller-size fallback.",
   "screen.riftgun.color_picker": "Color Picker",
   "screen.riftgun.color_accept": "Confirm",
   "screen.riftgun.color_new": "New",

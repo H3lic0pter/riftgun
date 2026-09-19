@@ -41,6 +41,7 @@ public final class PortalGunViewStateCodec {
         tag.putString("DimensionalTraversalMode", navigation.mode().name());
 
         var placement = state.placement();
+        tag.putString("SurfacePortalSize", placement.surfacePortalSize().id());
         tag.putInt("MaximumSurfaceRange", placement.maximumSurfaceRange());
         tag.putInt("RemoteDistance", placement.remoteDistance());
         tag.putInt("SmartDistance", placement.smartDistance());
@@ -114,7 +115,8 @@ public final class PortalGunViewStateCodec {
             enumValue(PortalFloatingFallback.class, Nbt.getString(tag, "CoordinateSmartFallback"),
                 PortalFloatingFallback.FRONT),
             enumValue(PortalFloatingFallback.class, Nbt.getString(tag, "PairingSmartFallback"),
-                PortalFloatingFallback.FRONT));
+                PortalFloatingFallback.FRONT),
+            dev.riftgun.portal.SurfacePortalSize.parse(Nbt.getString(tag, "SurfacePortalSize")));
         var transit = new PortalGunViewState.Transit(
             Nbt.getInt(tag, "EntityAccess"), Nbt.getBoolean(tag, "PassiveTransitEnabled"),
             Nbt.getBoolean(tag, "HostileTransitEnabled"), Nbt.getBoolean(tag, "BossTransitEnabled"),

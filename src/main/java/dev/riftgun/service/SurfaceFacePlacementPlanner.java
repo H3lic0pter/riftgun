@@ -23,14 +23,23 @@ public final class SurfaceFacePlacementPlanner {
         if (validation.distance() > validation.maximumRange()) {
             return Result.failure("message.riftgun.surface_out_of_range");
         }
+        Vec3 faceCenter = Vec3.atCenterOf(selection.anchor()).add(normal(selection.face()).scale(0.5));
+        return resolveAttached(selection, aperture, playerYaw, playerBounds, probe, faceCenter);
+    }
+
+    /** Shared attached placement; callers supply the original ranking point after validating their input. */
+    static Result resolveAttached(SurfaceFaceSelection selection, PortalAperture aperture,
+                                  float playerYaw, AABB playerBounds, Probe probe, Vec3 rankingPoint) {
         BlockPos anchor = selection.anchor();
         Direction face = selection.face();
         if (!probe.anchorSolid(anchor)) return Result.failure("message.riftgun.surface_invalid");
 
-        if (PortalAperturePolicy.expanded(aperture)) {
+        if (PortalAperturePolicy.expanded(aperture)
+                && !(aperture == PortalAperture.EXPANDED_ADAPTIVE
+                    && PortalSupportArea.isVerticalPair(anchor, face, probe::anchorSolid))) {
             PortalPlacement expanded = face.getAxis().isVertical()
-                ? expandedHorizontal(selection, playerYaw, playerBounds, probe)
-                : expandedVertical(selection, playerBounds, probe);
+                ? expandedHorizontal(selection, playerYaw, playerBounds, probe, aperture, rankingPoint)
+                : expandedVertical(selection, playerBounds, probe, aperture, rankingPoint);
             if (expanded != null) return Result.success(expanded);
         }
         return standard(selection, playerYaw, playerBounds, probe);
@@ -73,7 +82,7 @@ public final class SurfaceFacePlacementPlanner {
     }
 
     private static @Nullable PortalPlacement expandedVertical(
-        SurfaceFaceSelection selection, AABB playerBounds, Probe probe
+        SurfaceFaceSelection selection, AABB playerBounds, Probe probe, PortalAperture aperture, Vec3 rankingPoint
     ) {
         BlockPos anchor = selection.anchor();
         Direction face = selection.face();
@@ -81,7 +90,7 @@ public final class SurfaceFacePlacementPlanner {
         Vec3 normal = normal(face);
         Vec3 lateralVector = normal(lateral);
         float yaw = yawFromNormal(normal);
-        List<PortalPlacement> candidates = new ArrayList<>(4);
+        List<SidePortalCandidateSelector.Candidate> candidates = new ArrayList<>(4);
         for (int lateralOffset = -1; lateralOffset <= 0; lateralOffset++) {
             for (int verticalOffset = -1; verticalOffset <= 0; verticalOffset++) {
                 BlockPos origin = anchor.relative(lateral, lateralOffset).offset(0, verticalOffset, 0);
@@ -89,39 +98,44 @@ public final class SurfaceFacePlacementPlanner {
                     .add(lateralVector.scale(0.5)).add(0.0, 0.5, 0.0)
                     .add(normal.scale(0.5 + SURFACE_OFFSET)), PortalOrientation.VERTICAL,
                     PortalAperturePolicy.attachedVertical(), yaw, origin, face);
-                if (probe.expandedSupport(placement) && !probe.blocked(placement)) {
-                    candidates.add(placement);
+                if ((!aperture.requiresFullSupport() || probe.expandedSupport(placement)) && !probe.blocked(placement)) {
+                    candidates.add(new SidePortalCandidateSelector.Candidate(
+                        aperture.requiresFullSupport() ? placement : PortalSupportArea.allowOverhang(placement, anchor),
+                        aperture.requiresFullSupport() ? 0
+                            : PortalSupportArea.expandedBackingBlocks(origin, face, probe::backingBlocks)));
                 }
             }
         }
-        Vec3 faceCenter = Vec3.atCenterOf(anchor).add(normal.scale(0.5));
-        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.choose(
-            candidates, faceCenter, playerBounds.getCenter());
+        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.chooseAttached(
+            candidates, rankingPoint, playerBounds, aperture);
     }
 
     private static @Nullable PortalPlacement expandedHorizontal(
-        SurfaceFaceSelection selection, float playerYaw, AABB playerBounds, Probe probe
+        SurfaceFaceSelection selection, float playerYaw, AABB playerBounds, Probe probe,
+        PortalAperture aperture, Vec3 rankingPoint
     ) {
         BlockPos anchor = selection.anchor();
         Direction face = selection.face();
         Vec3 normal = normal(face);
         PortalOrientation orientation = face == Direction.UP
             ? PortalOrientation.TOP : PortalOrientation.BOTTOM;
-        List<PortalPlacement> candidates = new ArrayList<>(4);
+        List<SidePortalCandidateSelector.Candidate> candidates = new ArrayList<>(4);
         for (int xOffset = -1; xOffset <= 0; xOffset++) {
             for (int zOffset = -1; zOffset <= 0; zOffset++) {
                 BlockPos origin = anchor.offset(xOffset, 0, zOffset);
                 PortalPlacement placement = new PortalPlacement(Vec3.atCenterOf(origin)
                     .add(0.5, 0.0, 0.5).add(normal.scale(0.5 + SURFACE_OFFSET)),
                     orientation, PortalAperturePolicy.horizontal(), playerYaw, origin, face);
-                if (probe.expandedSupport(placement) && !probe.blocked(placement)) {
-                    candidates.add(placement);
+                if ((!aperture.requiresFullSupport() || probe.expandedSupport(placement)) && !probe.blocked(placement)) {
+                    candidates.add(new SidePortalCandidateSelector.Candidate(
+                        aperture.requiresFullSupport() ? placement : PortalSupportArea.allowOverhang(placement, anchor),
+                        aperture.requiresFullSupport() ? 0
+                            : PortalSupportArea.expandedBackingBlocks(origin, face, probe::backingBlocks)));
                 }
             }
         }
-        Vec3 faceCenter = Vec3.atCenterOf(anchor).add(normal.scale(0.5));
-        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.choose(
-            candidates, faceCenter, playerBounds.getCenter());
+        return candidates.isEmpty() ? null : ExpandedPortalCandidateSelector.chooseAttached(
+            candidates, rankingPoint, playerBounds, aperture);
     }
 
     private static Vec3 normal(Direction direction) {

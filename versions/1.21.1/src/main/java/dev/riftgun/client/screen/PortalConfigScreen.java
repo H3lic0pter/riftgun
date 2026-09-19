@@ -1,5 +1,7 @@
 package dev.riftgun.client.screen;
 
+import dev.riftgun.portal.SurfacePortalSize;
+
 import static dev.riftgun.client.screen.PortalGuiIcons.*;
 import static dev.riftgun.ui.PortalConfigLayout.*;
 import static dev.riftgun.ui.PortalConfigPresentation.*;
@@ -158,6 +160,8 @@ public final class PortalConfigScreen extends Screen {
     private @Nullable ThemedButton bossTransitButton;
     private @Nullable ThemedButton projectileTransitButton;
     private @Nullable ThemedButton apertureToggleButton;
+    private @Nullable ThemedButton surfacePortalSizeButton;
+    private @Nullable SurfacePortalSize surfacePortalSizeTooltipMode;
     private @Nullable ThemedButton fallGuardToggleButton;
     private @Nullable ThemedButton entityFallGuardToggleButton;
     private @Nullable ThemedButton playerTargetButton;
@@ -275,6 +279,8 @@ public final class PortalConfigScreen extends Screen {
         bossTransitButton = null;
         projectileTransitButton = null;
         apertureToggleButton = null;
+        surfacePortalSizeButton = null;
+        surfacePortalSizeTooltipMode = null;
         fallGuardToggleButton = null;
         entityFallGuardToggleButton = null;
         playerTargetButton = null;
@@ -634,6 +640,10 @@ public final class PortalConfigScreen extends Screen {
         } else if (session.page() == PortalConfigPage.APERTURE_SETTINGS) {
             apertureToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.EXPANDED_APERTURE));
+            surfacePortalSizeButton = button(x + 49, gunSettingControlY, 26, 26, Component.empty(), false,
+                ignored -> cycleSurfacePortalSize());
+            surfacePortalSizeButton.hideLabel();
+            updateSurfacePortalSizeTooltip();
         } else if (session.page() == PortalConfigPage.FALL_GUARD_SETTINGS) {
             fallGuardToggleButton = button(x + 18, gunSettingControlY, 26, 26, Component.empty(), false,
                 ignored -> toggleGunBoolean(BooleanSetting.FALL_GUARD));
@@ -929,6 +939,7 @@ public final class PortalConfigScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        updateSurfacePortalSizeTooltip();
         renderBackground(graphics, mouseX, mouseY, partialTick);
         graphics.fill(0, 0, width, height, PortalTheme.SCRIM);
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PortalTheme.PANEL);
@@ -1455,6 +1466,10 @@ public final class PortalConfigScreen extends Screen {
                 boolean enabled = PortalClientState.gun().expandedApertureEnabled();
                 drawApertureIcon(graphics, apertureToggleButton.getX() + 7,
                     apertureToggleButton.getY() + 7, enabled);
+                if (surfacePortalSizeButton != null) {
+                    var mode = PortalClientState.gun().surfacePortalSize();
+                    SurfacePortalSizeIcon.draw(graphics, surfacePortalSizeButton.getX(), surfacePortalSizeButton.getY(), mode);
+                }
             } else if (session.page() == PortalConfigPage.FALL_GUARD_SETTINGS) {
                 if (fallGuardToggleButton != null) {
                     boolean enabled = PortalClientState.gun().fallGuardEnabled();
@@ -2779,6 +2794,26 @@ public final class PortalConfigScreen extends Screen {
             tag.putString("Value", next.name());
         });
         rebuildWidgets();
+    }
+
+    private void cycleSurfacePortalSize() {
+        PortalClientState.updateGun(state -> state.withPlacement(
+            state.placement().withSurfacePortalSize(state.surfacePortalSize().next())));
+        updateSurfacePortalSizeTooltip();
+        PortalNetworking.sendRequest(PortalAction.SET_GUN_MODULE_SETTINGS,
+            tag -> tag.putString("Setting", "SurfacePortalSize"));
+    }
+
+    private void updateSurfacePortalSizeTooltip() {
+        if (surfacePortalSizeButton == null) return;
+        var mode = PortalClientState.gun().surfacePortalSize();
+        if (surfacePortalSizeTooltipMode == mode) return;
+        surfacePortalSizeTooltipMode = mode;
+        var title = Component.translatable("screen.riftgun.surface_portal_size")
+            .append(": ").append(Component.translatable(mode.translationKey()));
+        surfacePortalSizeButton.setMessage(title);
+        surfacePortalSizeButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+            title.copy().append("\n").append(Component.translatable(mode.translationKey() + ".description"))));
     }
 
     private void cyclePlayerExclude() {

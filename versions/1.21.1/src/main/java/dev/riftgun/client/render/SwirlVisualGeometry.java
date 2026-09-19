@@ -37,7 +37,7 @@ final class SwirlVisualGeometry {
         }
         // 2x2 side portals share the horizontal top/bottom coverage (1.995), while
         // the narrower 2x1 side portals keep the 1.05 surface scale.
-        if (geometry == PortalGeometry.SURFACE_EXPANDED) {
+        if (geometry == PortalGeometry.SURFACE_EXPANDED || geometry == PortalGeometry.SURFACE_OVERHANG) {
             return HORIZONTAL_VISIBLE_SIZE;
         }
         if (geometry == PortalGeometry.SURFACE_VERTICAL) {

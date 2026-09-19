@@ -77,7 +77,7 @@ public record PortalGunCapabilities(
             ),
             PortalOpenDuration.ticks(durationSeconds),
             apertureInstalled && settings.expandedApertureEnabled()
-                ? PortalAperture.EXPANDED : PortalAperture.STANDARD,
+                ? settings.surfacePortalSize().aperture() : PortalAperture.STANDARD,
             playerTargetInstalled && settings.playerTargetEnabled(),
             settings.playerExcludeMode(),
             settings.transitCooldownTenths() * 2,

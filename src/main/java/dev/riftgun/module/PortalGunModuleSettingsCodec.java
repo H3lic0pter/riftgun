@@ -7,6 +7,7 @@ import dev.riftgun.pairing.PortalFloatingFallback;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingSettings;
 import dev.riftgun.portal.PortalOpenDuration;
+import dev.riftgun.portal.SurfacePortalSize;
 import dev.riftgun.relocation.EntityRelocationSettings;
 import dev.riftgun.remote.RemoteSettings;
 import dev.riftgun.navigation.DimensionalTraversalSettings;
@@ -26,7 +27,7 @@ final class PortalGunModuleSettingsCodec {
         boolean bossTransitEnabled,
         boolean projectileTransitEnabled,
         int portalDurationSeconds,
-        boolean expandedApertureEnabled,
+        AperturePreference aperture,
         boolean playerTargetEnabled,
         PlayerExcludeMode playerExcludeMode,
         int transitCooldownTenths,
@@ -48,8 +49,7 @@ final class PortalGunModuleSettingsCodec {
                 .forGetter(Stored::projectileTransitEnabled),
             Codec.INT.optionalFieldOf("portal_duration_seconds", PortalOpenDuration.DEFAULT_SECONDS)
                 .forGetter(Stored::portalDurationSeconds),
-            Codec.BOOL.optionalFieldOf("expanded_aperture_enabled", true)
-                .forGetter(Stored::expandedApertureEnabled),
+            AperturePreference.MAP_CODEC.forGetter(Stored::aperture),
             Codec.BOOL.optionalFieldOf("player_target_enabled", true).forGetter(Stored::playerTargetEnabled),
             Codec.INT.optionalFieldOf("player_exclude_mode",
                     PortalGunModuleSettings.DEFAULT_PLAYER_EXCLUDE_MODE.id())
@@ -69,10 +69,10 @@ final class PortalGunModuleSettingsCodec {
 
         PortalGunModuleSettings toSettings() {
             return new PortalGunModuleSettings(
-                new PortalGunModuleSettings.Placement(smartDistance, desiredSurfaceRange),
+                new PortalGunModuleSettings.Placement(smartDistance, desiredSurfaceRange, aperture.mode()),
                 new PortalGunModuleSettings.Transit(passiveTransitEnabled, hostileTransitEnabled,
                     bossTransitEnabled, projectileTransitEnabled, transitCooldownTenths),
-                new PortalGunModuleSettings.Duration(portalDurationSeconds), expandedApertureEnabled,
+                new PortalGunModuleSettings.Duration(portalDurationSeconds), aperture.enabled(),
                 new PortalGunModuleSettings.PlayerTarget(playerTargetEnabled, playerExcludeMode),
                 new EntityRelocationSettings(entityRelocationEnabled, entityRelocationSmartRouting),
                 pairingAndRemote.remoteSettings(), pairingAndRemote.pairing().settings(),
@@ -85,12 +85,21 @@ final class PortalGunModuleSettingsCodec {
                 settings.passiveTransitEnabled(), settings.hostileTransitEnabled(),
                 settings.bossTransitEnabled(), settings.projectileTransitEnabled(),
                 settings.portalDurationSeconds(),
-                settings.expandedApertureEnabled(), settings.playerTargetEnabled(),
+                new AperturePreference(settings.expandedApertureEnabled(), settings.surfacePortalSize()),
+                settings.playerTargetEnabled(),
                 settings.playerExcludeMode(), settings.transitCooldownTenths(),
                 settings.entityRelocation().enabled(), settings.entityRelocation().smartRouting(),
                 PairingAndRemote.fromSettings(settings),
                 settings.fallGuardEnabled(), settings.fallGuardEntitiesEnabled());
         }
+    }
+
+    private record AperturePreference(boolean enabled, SurfacePortalSize mode) {
+        private static final MapCodec<AperturePreference> MAP_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.BOOL.optionalFieldOf("expanded_aperture_enabled", true).forGetter(AperturePreference::enabled),
+            SurfacePortalSize.CODEC.optionalFieldOf("surface_portal_size", SurfacePortalSize.ADAPTIVE)
+                .forGetter(AperturePreference::mode)
+        ).apply(instance, AperturePreference::new));
     }
 
     /** Reads Remote's old nested location while writing it at module-settings scope. */

@@ -8,7 +8,7 @@ final class PortalAperturePolicy {
     static final double EXPANDED_MINIMUM_EXPOSURE = 0.85;
 
     static boolean expanded(PortalAperture aperture) {
-        return aperture == PortalAperture.EXPANDED;
+        return aperture.expanded();
     }
 
     static PortalGeometry floatingVertical() {
