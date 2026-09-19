@@ -2,11 +2,10 @@ package dev.riftgun.client.render;
 
 import dev.riftgun.client.particle.ParticleEffect;
 import dev.riftgun.client.particle.ParticleEffectContext;
-import dev.riftgun.core.particle.ParticleDynamics;
 import dev.riftgun.portal.PortalEntity;
 import net.minecraft.world.phys.Vec3;
 
-/** The original portal perimeter emission pattern, with fading, shrinking dynamic droplets. */
+/** The original portal perimeter pattern and tinted vanilla splash behavior. */
 public final class PortalSplashEffect implements ParticleEffect {
     @Override public void emit(ParticleEffectContext context) {
         var portal = context.portal();
@@ -31,14 +30,9 @@ public final class PortalSplashEffect implements ParticleEffect {
             double sine = Math.sin(jitter);
             double speed = 0.025 + random.nextDouble() * 0.04;
             Vec3 velocity = new Vec3((horizontal.x * cosine - horizontal.z * sine) * speed,
-                0.1, (horizontal.x * sine + horizontal.z * cosine) * speed);
-            int life = 12 + random.nextInt(15);
-            float size = 0.06F + random.nextFloat() * 0.04F;
-            int rgb = context.color() & 0xFFFFFF;
-            var dynamics = new ParticleDynamics(life, size, size * 0.4F,
-                0xFF000000 | rgb, rgb, 1, 0.98F,
-                (random.nextFloat() - 0.5F) * 0.16F, true, false);
-            if (!context.particles().spawn(position, velocity, dynamics)) break;
+                0.0, (horizontal.x * sine + horizontal.z * cosine) * speed);
+            // Vanilla SplashParticle turns zero vertical input into its original upward launch.
+            if (!context.particles().spawnSplash(position, velocity, context.color())) break;
         }
     }
 }
