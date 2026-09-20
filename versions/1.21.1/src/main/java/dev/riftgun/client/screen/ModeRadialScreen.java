@@ -76,10 +76,19 @@ public final class ModeRadialScreen extends Screen {
     }
 
     public ModeRadialScreen(PrecisionPlacementRequest precisionRequest) {
-        super(Component.translatable("screen.riftgun.mode_radial.title"));
+        this(precisionRequest, false);
+    }
+
+    public static ModeRadialScreen forClosing() {
+        return new ModeRadialScreen(null, true);
+    }
+
+    private ModeRadialScreen(PrecisionPlacementRequest precisionRequest, boolean closePortals) {
+        super(Component.translatable(closePortals
+            ? "screen.riftgun.close_radial.title" : "screen.riftgun.mode_radial.title"));
         Direction playerHeading = Minecraft.getInstance().player == null
             ? Direction.NORTH : Minecraft.getInstance().player.getDirection();
-        controller = new ModeRadialController(
+        controller = closePortals ? ModeRadialController.forClosing() : new ModeRadialController(
             precisionRequest == null ? null : precisionRequest.toIntent(), playerHeading,
             RiftConfigs.client().surfaceFaceRadialOrder());
         refreshFromServer();
@@ -151,6 +160,7 @@ public final class ModeRadialScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!ModeRadialInput.ready()) return true;
+        if (controller.closingPortals()) return true;
         switch (ModeRadialPointerAction.resolve(button, controller.precisionPreviewOnly(),
             overRangeSlider(mouseX, mouseY), controller.page() == ModeRadialController.Page.SURFACE_FACE,
             PortalClientState.gun().pairingInstalled())) {
@@ -268,6 +278,12 @@ public final class ModeRadialScreen extends Screen {
                 PortalGuiIcons.drawPlacementModeIcon(graphics,
                     x - PLACEMENT_SPRITE_HALF_SIZE, y - PLACEMENT_SPRITE_HALF_SIZE, mode);
                 centeredWrappedText(graphics, label, x, y + 8, layout.maximumWidth(), color);
+            } else if (option instanceof PortalFunctionMode mode) {
+                PortalGuiIcons.drawFunctionModeIcon(graphics,
+                    x - PLACEMENT_SPRITE_HALF_SIZE, y - PLACEMENT_SPRITE_HALF_SIZE,
+                    PLACEMENT_SPRITE_HALF_SIZE * 2, PLACEMENT_SPRITE_HALF_SIZE * 2,
+                    mode == PortalFunctionMode.PORTAL_PAIRING);
+                centeredWrappedText(graphics, label, x, y + 8, layout.maximumWidth(), color);
             } else {
                 centeredWrappedText(graphics, label, x, y - 4, layout.maximumWidth(), color);
             }
@@ -277,6 +293,16 @@ public final class ModeRadialScreen extends Screen {
     private void drawCenter(GuiGraphics graphics, List<?> options) {
         int centerX = centerX();
         int centerY = centerY();
+        if (controller.closingPortals()) {
+            centeredWrappedText(graphics, Component.translatable("screen.riftgun.close_radial.title"),
+                centerX, centerY - 14, INNER_RADIUS * 2, PortalTheme.TEXT);
+            centeredText(graphics, controller.selection() < 0
+                ? Component.translatable("screen.riftgun.close_radial.cancel")
+                : label(options.get(controller.selection())), centerX, centerY + 9, PortalTheme.AMBER);
+            centeredText(graphics, Component.translatable("screen.riftgun.close_radial.hint"),
+                centerX, Math.min(centerY + outerRadius() + 12, height - 12), PortalTheme.TEXT_MUTED);
+            return;
+        }
         if (controller.page() == ModeRadialController.Page.SURFACE_FACE) {
             drawFacePreview(graphics, centerX, centerY);
             return;
@@ -393,7 +419,7 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private boolean rangeSliderEnabled() {
-        return !controller.precisionPreviewOnly() && remoteInstalled()
+        return !controller.closingPortals() && !controller.precisionPreviewOnly() && remoteInstalled()
             && PortalClientState.gun().remoteRadialSliderEnabled();
     }
 
@@ -549,6 +575,10 @@ public final class ModeRadialScreen extends Screen {
     }
 
     private Component label(Object mode) {
+        if (mode instanceof PortalFunctionMode function) {
+            return Component.translatable(function == PortalFunctionMode.PORTAL_PAIRING
+                ? "screen.riftgun.mode_radial.pairing" : "screen.riftgun.mode_radial.coordinate");
+        }
         if (mode instanceof PortalPlacementMode placement) {
             return Component.translatable("screen.riftgun.placement_mode."
                 + placement.name().toLowerCase(Locale.ROOT));

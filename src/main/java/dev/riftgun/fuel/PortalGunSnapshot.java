@@ -10,7 +10,6 @@ import dev.riftgun.module.PortalGunModules;
 import dev.riftgun.module.PortalModuleKind;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.crisis.PortalFluidInstability;
-import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.state.PortalGunViewState;
 import dev.riftgun.state.PortalGunViewStateCodec;
@@ -23,7 +22,6 @@ public final class PortalGunSnapshot {
 
     public static PortalGunViewState createState(ItemStack gun, int legacySmartDistance) {
         var instanceId = PortalGunIdentity.ensure(gun);
-        var pending = PortalPairingPendingEndpoints.get(gun);
         PortalGunModuleSettings settings = PortalGunModuleSettings.ensure(gun, legacySmartDistance);
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, legacySmartDistance);
         PortalModuleRules rules = PortalModuleRules.current();
@@ -75,7 +73,7 @@ public final class PortalGunSnapshot {
             fallGuardInstalled, capabilities.fallGuard(), capabilities.entityFallGuard(),
             entityRelocationInstalled, capabilities.entityRelocation(),
             settings.entityRelocation().smartRouting());
-        return new PortalGunViewState(instanceId, pending, fuel, navigation, placement, transit,
+        return new PortalGunViewState(instanceId, fuel, navigation, placement, transit,
             new PortalGunViewState.Modules(modules, rules, dev.riftgun.appearance.PortalDisplayColor.configured(gun)));
     }
 

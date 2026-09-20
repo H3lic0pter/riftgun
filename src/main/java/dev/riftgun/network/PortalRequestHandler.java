@@ -6,7 +6,6 @@ import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
 import dev.riftgun.data.PortalPlacementMode;
 import dev.riftgun.module.PortalModuleMenu;
-import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.service.PortalGunLocator;
 import dev.riftgun.service.PortalOpenCoordinator;
 import dev.riftgun.service.PortalOpenOrigin;
@@ -21,7 +20,7 @@ import dev.riftgun.relocation.EntityRelocationManager;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingEndpoint;
 import dev.riftgun.pairing.PortalPairingManager;
-import dev.riftgun.pairing.PortalPairingPendingEndpoints;
+import dev.riftgun.portal.PortalInstances;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -104,6 +103,12 @@ public final class PortalRequestHandler {
             PortalPlayerData radialData = PortalDataStore.load(player);
             PortalGunCapabilities radialCapabilities = PortalGunCapabilities.resolve(
                 gun.stack(), radialData.settings().smartDistance());
+            if (Nbt.getBoolean(request, "ClosePortalsRadial") && !radialCapabilities.portalPairing()) {
+                PortalNetworking.sendRadialUnavailable(player, Nbt.getInt(request, "RadialRequestId"));
+                Msg.displayClientMessage(player,
+                    Component.translatable("message.riftgun.portal_pairing_module_required"), true);
+                return;
+            }
             if (Nbt.getBoolean(request, "PrecisionPreview")
                 && (!radialCapabilities.precisionPlacement()
                     || radialCapabilities.effectivePlacementMode(
@@ -302,6 +307,22 @@ public final class PortalRequestHandler {
                 yield false;
             }
             case TOGGLE_PLAYER_PIN -> PortalPlayerTargetActions.togglePin(data, request);
+            case CLOSE_MODE_PORTALS -> {
+                if (!PortalGunCapabilities.resolve(gun.stack(), data.settings().smartDistance()).portalPairing()) {
+                    throw PortalRequestFields.error("message.riftgun.portal_pairing_module_required");
+                }
+                PortalFunctionMode mode;
+                try {
+                    mode = PortalFunctionMode.valueOf(Nbt.getString(request, "FunctionMode"));
+                } catch (IllegalArgumentException invalid) {
+                    throw PortalRequestFields.error("message.riftgun.invalid_request");
+                }
+                PortalInstances.clearMode(player, mode);
+                Msg.displayClientMessage(player, Component.translatable("message.riftgun.mode_portals_closed",
+                    Component.translatable(mode == PortalFunctionMode.PORTAL_PAIRING
+                        ? "screen.riftgun.mode_radial.pairing" : "screen.riftgun.mode_radial.coordinate")), true);
+                yield false;
+            }
             case CLOSE_PORTALS -> {
                 closePortals(player);
                 yield false;
@@ -430,18 +451,7 @@ public final class PortalRequestHandler {
     }
 
     private static void closePortals(ServerPlayer player) {
-        PortalPairingPendingEndpoints.clearAll(player);
-//? if >=1.21.11 {
-        /*if (player.level().getServer() != null) {
-*///?} else {
-        if (player.getServer() != null) {
-//?}
-//? if >=1.21.11 {
-            /*PortalEntity.closeOwnedPortals(player.level().getServer(), player.getUUID());
-*///?} else {
-            PortalEntity.closeOwnedPortals(player.getServer(), player.getUUID());
-//?}
-        }
+        PortalInstances.clearAll(player);
         Msg.displayClientMessage(player, Component.translatable("message.riftgun.portals_closed"), true);
     }
 

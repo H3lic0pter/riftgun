@@ -7,7 +7,6 @@ import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.navigation.DimensionalTraversalMode;
 import dev.riftgun.pairing.PortalFloatingFallback;
 import dev.riftgun.pairing.PortalFunctionMode;
-import dev.riftgun.pairing.PortalPairingPendingEndpoint;
 import java.util.EnumMap;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
@@ -17,9 +16,6 @@ public final class PortalGunViewStateCodec {
     public static CompoundTag encode(PortalGunViewState state) {
         CompoundTag tag = new CompoundTag();
         if (state.instanceId() != null) Nbt.putUUID(tag, "InstanceId", state.instanceId());
-        if (state.pendingPairingEndpoint() != null) {
-            tag.put("PendingPairingEndpoint", state.pendingPairingEndpoint().save());
-        }
         var fuel = state.fuel();
         tag.putBoolean("BucketMode", fuel.bucketMode());
         tag.putInt("Amount", fuel.amount());
@@ -87,8 +83,6 @@ public final class PortalGunViewStateCodec {
 
     public static PortalGunViewState decode(CompoundTag tag) {
         UUID id = Nbt.hasUUID(tag, "InstanceId") ? Nbt.getUUID(tag, "InstanceId") : null;
-        PortalPairingPendingEndpoint pending = Nbt.contains(tag, "PendingPairingEndpoint")
-            ? PortalPairingPendingEndpoint.load(Nbt.getCompound(tag, "PendingPairingEndpoint")) : null;
         var fuel = new PortalGunViewState.Fuel(
             Nbt.getBoolean(tag, "BucketMode"), Nbt.getInt(tag, "Amount"),
             Math.max(1, Nbt.getInt(tag, "Capacity")), Nbt.getBoolean(tag, "Overfilled"),
@@ -144,7 +138,7 @@ public final class PortalGunViewStateCodec {
         PortalModuleRules rules = Nbt.contains(tag, "ModuleRules")
             ? PortalModuleRules.load(Nbt.getCompound(tag, "ModuleRules"))
             : PortalModuleRules.defaults();
-        return new PortalGunViewState(id, pending, fuel, navigation, placement, transit,
+        return new PortalGunViewState(id, fuel, navigation, placement, transit,
             new PortalGunViewState.Modules(counts, rules, tag.contains("CustomRgb") ? Nbt.getInt(tag, "CustomRgb") : -1));
     }
 

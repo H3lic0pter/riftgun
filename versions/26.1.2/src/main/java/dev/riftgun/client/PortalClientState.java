@@ -2,6 +2,7 @@ package dev.riftgun.client;
 
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.data.PortalPlayerData;
+import dev.riftgun.portal.PortalInstanceState;
 import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
@@ -11,6 +12,12 @@ import dev.riftgun.state.PortalGunViewStateCodec;
 import java.util.function.UnaryOperator;
 
 public final class PortalClientState {
+    private static PortalInstanceState instances = PortalInstanceState.EMPTY;
+
+    public static PortalInstanceState instances() { return instances; }
+
+    public static void clearInstances() { instances = PortalInstanceState.EMPTY; }
+
     private static PortalPlayerData data = new PortalPlayerData();
     private static CompoundTag gunReference = new CompoundTag();
     private static PortalGunViewState gun = PortalGunViewState.empty();
@@ -23,6 +30,9 @@ public final class PortalClientState {
     }
 
     public static void handle(CompoundTag envelope) {
+        if (envelope.contains("PortalInstances")) {
+            instances = PortalInstanceState.load(dev.riftgun.core.nbt.Nbt.getCompound(envelope, "PortalInstances"));
+        }
         String kind = Nbt.getString(envelope, "Kind");
         if (kind.equals("Appearance")) {
             dev.riftgun.client.appearance.SkinRecommendations.receive(envelope);

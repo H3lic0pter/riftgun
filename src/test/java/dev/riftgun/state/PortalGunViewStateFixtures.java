@@ -12,7 +12,7 @@ import java.util.UUID;
 public final class PortalGunViewStateFixtures {
     public static PortalGunViewState representative() {
         return new PortalGunViewState(
-            UUID.fromString("c3edbeaf-a959-46ba-b669-feb04f32999e"), null,
+            UUID.fromString("c3edbeaf-a959-46ba-b669-feb04f32999e"),
             new PortalGunViewState.Fuel(false, 4200, 8000, false, false, true,
                 "riftgun:test_fluid", 0x123456, true),
             new PortalGunViewState.Navigation(true, true, true, "minecraft:the_nether",

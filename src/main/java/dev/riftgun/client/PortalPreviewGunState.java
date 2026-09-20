@@ -8,7 +8,6 @@ import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.pairing.PortalFloatingFallback;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingPendingEndpoint;
-import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import dev.riftgun.portal.PortalAperture;
 import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.state.PortalGunViewState;
@@ -31,15 +30,15 @@ public record PortalPreviewGunState(
     @Nullable PortalPairingPendingEndpoint pending
 ) {
     public static @Nullable PortalPreviewGunState fromStack(
-        ItemStack gun, PortalPlayerData data, PortalModuleRules rules, UUID ownerId, long now
+        ItemStack gun, PortalPlayerData data, PortalModuleRules rules, UUID ownerId,
+        @Nullable PortalPairingPendingEndpoint pending
     ) {
         if (gun.isEmpty()) return null;
         int smartDistance = data.settings().smartDistance();
         PortalGunModuleSettings settings = PortalGunModuleSettings.get(gun, smartDistance);
         PortalGunCapabilities capabilities = PortalGunCapabilities.resolve(gun, settings, rules);
         UUID gunId = PortalGunIdentity.existing(gun);
-        PortalPairingPendingEndpoint pending = gunId == null ? null
-            : PortalPairingPendingEndpoints.getValid(gun, ownerId, gunId, now);
+        if (pending != null && !pending.belongsTo(ownerId)) pending = null;
         return new PortalPreviewGunState(gunId, capabilities.functionMode(),
             capabilities.effectivePlacementMode(data.settings().placementMode()),
             capabilities.activeSmartFallback(), capabilities.maximumSurfaceRange(),
@@ -49,7 +48,8 @@ public record PortalPreviewGunState(
     }
 
     public static @Nullable PortalPreviewGunState fromSnapshot(
-        PortalGunViewState snapshot, PortalPlayerData data, UUID ownerId, long now
+        PortalGunViewState snapshot, PortalPlayerData data, UUID ownerId,
+        @Nullable PortalPairingPendingEndpoint pending
     ) {
         if (snapshot.instanceId() == null) return null;
         UUID gunId = snapshot.instanceId();
@@ -63,8 +63,7 @@ public record PortalPreviewGunState(
         PortalPlacementMode preferred = data.settings().placementMode();
         PortalPlacementMode effective = preferred == PortalPlacementMode.REMOTE && !remote
             ? PortalPlacementMode.FRONT : preferred;
-        PortalPairingPendingEndpoint pending = snapshot.pendingPairingEndpoint();
-        if (pending != null && !pending.validFor(ownerId, gunId, now)) pending = null;
+        if (pending != null && !pending.belongsTo(ownerId)) pending = null;
         int maximum = snapshot.maximumSurfaceRange();
         return new PortalPreviewGunState(gunId, function, effective, fallback, maximum,
             snapshot.smartDistance(), snapshot.remoteDistance(),

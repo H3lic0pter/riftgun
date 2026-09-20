@@ -13,7 +13,7 @@ final class PortalPairingLightweightSourceTest {
         String manager = Files.readString(Path.of("src", "main", "java", "dev", "riftgun",
             "pairing", "PortalPairingManager.java"));
         assertFalse(manager.contains("PortalEntity.openDormant("));
-        assertTrue(manager.contains("PortalPairingPendingEndpoints.save("));
+        assertTrue(manager.contains("PortalInstances.placePending("));
         assertTrue(manager.contains("PortalPairingEndpoint.ENTITY_TARGET"));
     }
 

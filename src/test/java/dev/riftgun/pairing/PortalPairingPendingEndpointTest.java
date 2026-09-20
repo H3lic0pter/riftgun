@@ -39,16 +39,13 @@ final class PortalPairingPendingEndpointTest {
         assertEquals(PortalPairingEndpoint.B, pending.endpoint());
         assertEquals(PortalGeometry.SURFACE_EXPANDED, pending.placement().geometry());
         assertEquals(owner, pending.ownerId());
-        assertEquals(gun, pending.gunId());
-        assertTrue(pending.validFor(owner, gun, 179L));
-        assertTrue(pending.validFor(owner, gun, 180L));
-        assertTrue(pending.validFor(owner, gun, Long.MAX_VALUE));
-        assertFalse(pending.validFor(UUID.randomUUID(), gun, 121L));
+        assertTrue(pending.belongsTo(owner));
+        assertFalse(pending.belongsTo(UUID.randomUUID()));
         assertEquals(pending, PortalPairingPendingEndpoint.load(pending.save()));
     }
 
     @Test
-    void legacyFixedEntityTargetRemainsValidBeyondItsSavedPortalDuration() {
+    void legacyFixedEntityTargetMigratesWithoutGunOrDurationDependency() {
         UUID owner = UUID.randomUUID();
         UUID gun = UUID.randomUUID();
         CompoundTag tag = new CompoundTag();
@@ -67,14 +64,12 @@ final class PortalPairingPendingEndpointTest {
         PortalPairingPendingEndpoint target = PortalPairingPendingEndpoint.load(tag);
         assertNotNull(target);
 
-        assertTrue(target.validFor(owner, gun, 179L));
-        assertTrue(target.validFor(owner, gun, 180L));
-        assertTrue(target.validFor(owner, gun, Long.MAX_VALUE));
-        assertFalse(target.validFor(UUID.randomUUID(), gun, Long.MAX_VALUE));
-        assertFalse(target.validFor(owner, UUID.randomUUID(), Long.MAX_VALUE));
+        assertTrue(target.belongsTo(owner));
+        assertFalse(target.belongsTo(UUID.randomUUID()));
+        assertFalse(target.save().contains("Gun"));
         var reloaded = PortalPairingPendingEndpoint.load(target.save());
         assertEquals(target, reloaded);
-        assertTrue(reloaded.validFor(owner, gun, Long.MAX_VALUE));
+        assertTrue(reloaded.belongsTo(owner));
     }
 
     @Test

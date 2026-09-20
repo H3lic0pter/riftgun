@@ -19,22 +19,16 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-/** Immutable, owner- and gun-bound replacement for a dormant pairing entity. */
+/** Persistent player-owned marker; independent of the gun that placed it. */
 public record PortalPairingPendingEndpoint(
     UUID ownerId,
-    UUID gunId,
     ResourceKey<Level> dimension,
     PortalPlacement placement,
-    PortalPairingEndpoint endpoint,
-    long startedAt,
-    int durationTicks
+    PortalPairingEndpoint endpoint
 ) {
     private static final String OWNER = "Owner";
-    private static final String GUN = "Gun";
     private static final String DIMENSION = "Dimension";
     private static final String ENDPOINT = "Endpoint";
-    private static final String STARTED_AT = "StartedAt";
-    private static final String DURATION_TICKS = "DurationTicks";
     private static final String X = "X";
     private static final String Y = "Y";
     private static final String Z = "Z";
@@ -45,9 +39,8 @@ public record PortalPairingPendingEndpoint(
     private static final String ANCHOR_FACE = "AnchorFace";
 
     public PortalPairingPendingEndpoint {
-        if (ownerId == null || gunId == null || dimension == null || placement == null
-            || endpoint == null || endpoint == PortalPairingEndpoint.NONE
-            || startedAt < 0L || durationTicks < 1) {
+        if (ownerId == null || dimension == null || placement == null
+            || endpoint == null || endpoint == PortalPairingEndpoint.NONE) {
             throw new IllegalArgumentException("valid pending pairing marker required");
         }
     }
@@ -60,28 +53,19 @@ public record PortalPairingPendingEndpoint(
         return endpoint == PortalPairingEndpoint.ENTITY_TARGET;
     }
 
-    public boolean validFor(UUID expectedOwner, UUID expectedGun, long now) {
-        return ownerId.equals(expectedOwner) && gunId.equals(expectedGun) && !expired(now);
-    }
-
-    public boolean expired(long now) {
-        // All markers, including entity targets, persist until replaced or cleared.
-        // Keep the serialized timing fields so existing guns load without migration.
-        return false;
+    public boolean belongsTo(UUID owner) {
+        return ownerId.equals(owner);
     }
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         Nbt.putUUID(tag, OWNER, ownerId);
-        Nbt.putUUID(tag, GUN, gunId);
 //? if >=1.21.11 {
         /*tag.putString(DIMENSION, dimension.identifier().toString());
 *///?} else {
         tag.putString(DIMENSION, dimension.location().toString());
 //?}
         tag.putString(ENDPOINT, endpoint.name());
-        tag.putLong(STARTED_AT, startedAt);
-        tag.putInt(DURATION_TICKS, durationTicks);
         tag.putDouble(X, placement.center().x);
         tag.putDouble(Y, placement.center().y);
         tag.putDouble(Z, placement.center().z);
@@ -96,8 +80,7 @@ public record PortalPairingPendingEndpoint(
     }
 
     public static @Nullable PortalPairingPendingEndpoint load(CompoundTag tag) {
-        if (!Nbt.hasUUID(tag, OWNER) || !Nbt.hasUUID(tag, GUN)
-            || !Nbt.contains(tag, STARTED_AT) || !Nbt.contains(tag, DURATION_TICKS)) return null;
+        if (!Nbt.hasUUID(tag, OWNER)) return null;
 //? if >=1.21.11 {
         /*Identifier dimensionId = Identifier.tryParse(Nbt.getString(tag, DIMENSION));
 *///?} else {
@@ -112,10 +95,8 @@ public record PortalPairingPendingEndpoint(
             double y = Nbt.getDouble(tag, Y);
             double z = Nbt.getDouble(tag, Z);
             float yaw = Nbt.getFloat(tag, YAW);
-            long startedAt = Nbt.getLong(tag, STARTED_AT);
-            int durationTicks = Nbt.getInt(tag, DURATION_TICKS);
             if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
-                || !Float.isFinite(yaw) || startedAt < 0L || durationTicks < 1) return null;
+                || !Float.isFinite(yaw)) return null;
 
             BlockPos anchor = null;
             Direction face = null;
@@ -127,9 +108,8 @@ public record PortalPairingPendingEndpoint(
             PortalPlacement placement = new PortalPlacement(
                 new Vec3(x, y, z), orientation, geometry, yaw, anchor, face);
             return new PortalPairingPendingEndpoint(
-                Nbt.getUUID(tag, OWNER), Nbt.getUUID(tag, GUN),
-                ResourceKey.create(Registries.DIMENSION, dimensionId), placement, endpoint,
-                startedAt, durationTicks);
+                Nbt.getUUID(tag, OWNER),
+                ResourceKey.create(Registries.DIMENSION, dimensionId), placement, endpoint);
         } catch (IllegalArgumentException ignored) {
             return null;
         }

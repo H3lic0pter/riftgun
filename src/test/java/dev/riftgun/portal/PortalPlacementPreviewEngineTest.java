@@ -174,8 +174,8 @@ final class PortalPlacementPreviewEngineTest {
         ResourceKey<Level> dimension = ResourceKey.create(
             Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath("riftgun", "preview_test"));
         //?}
-        return new PortalPairingPendingEndpoint(UUID.randomUUID(), UUID.randomUUID(),
-            dimension, placement(), endpoint, 0L, 20);
+        return new PortalPairingPendingEndpoint(UUID.randomUUID(),
+            dimension, placement(), endpoint);
     }
 
     private static PortalPlacement placement() {

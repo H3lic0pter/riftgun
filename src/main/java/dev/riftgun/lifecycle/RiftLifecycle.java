@@ -12,6 +12,7 @@ import dev.riftgun.service.PortalClientSync;
 import dev.riftgun.network.ExternalDestinationActions;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalOwnerIndex;
+import dev.riftgun.portal.PortalInstances;
 import dev.riftgun.portal.SweptPortalIndex;
 import dev.riftgun.relocation.EntityRelocationExitImmunity;
 import dev.riftgun.relocation.EntityRelocationManager;
@@ -75,6 +76,7 @@ public final class RiftLifecycle {
     public static void playerCloned(ServerPlayer original, ServerPlayer replacement) {
         dev.riftgun.appearance.GunPresentationDefaults.copyConnection(original, replacement);
         PortalDataStore.copy(original, replacement);
+        PortalInstances.copy(original, replacement);
         RiftRuntime.current().motionHistory().remove(original.getUUID());
         updatePrediction(replacement);
     }
@@ -141,7 +143,7 @@ public final class RiftLifecycle {
 *///?} else {
         MinecraftServer server = player.getServer();
 //?}
-        if (server != null) PortalEntity.closeOwnedPortals(server, player.getUUID());
+        if (server != null) PortalInstances.closeOpened(server, player.getUUID());
     }
 
     private RiftLifecycle() {}

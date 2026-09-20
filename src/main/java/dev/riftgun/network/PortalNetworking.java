@@ -14,6 +14,8 @@ import dev.riftgun.state.PortalGunViewStateCodec;
 import dev.riftgun.state.PortalGunViewState;
 import dev.riftgun.data.PortalDataStore;
 import dev.riftgun.data.PortalPlayerData;
+import dev.riftgun.portal.PortalInstances;
+import dev.riftgun.portal.PortalInstanceState;
 import dev.riftgun.data.DestinationSort;
 import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.navigation.DimensionalTraversalTargets;
@@ -41,6 +43,14 @@ public final class PortalNetworking {
                                  PortalGunLocator.LocatedGun gun) {
                 if (gun == null) sendSnapshot(player, openScreen);
                 else sendSnapshot(player, openScreen, gun);
+            }
+
+            @Override
+            public void instances(ServerPlayer player, PortalInstanceState state) {
+                CompoundTag envelope = new CompoundTag();
+                envelope.putString("Kind", "PortalInstances");
+                envelope.put("PortalInstances", state.save());
+                RiftNetwork.sendToPlayer(player, new PortalResponsePayload(envelope));
             }
 
             @Override
@@ -107,6 +117,7 @@ public final class PortalNetworking {
                                      PortalGunLocator.LocatedGun locatedGun, int radialRequestId) {
         CompoundTag envelope = new CompoundTag();
         envelope.putString("Kind", "Snapshot");
+        envelope.put("PortalInstances", PortalInstances.state(player).save());
         envelope.putBoolean("OpenScreen", openScreen);
         envelope.putBoolean("OpenRadial", openRadial);
         if (openRadial) envelope.putInt("RadialRequestId", radialRequestId);

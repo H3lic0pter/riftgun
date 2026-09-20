@@ -24,6 +24,11 @@ public final class ModeRadialWorkflow {
         ModeRadialController controller, PortalGunViewState gun
     ) {
         if (controller.cancelled()) return null;
+        if (controller.closingPortals()) {
+            var selection = controller.selectedRadialMode(gun);
+            return !gun.pairingInstalled() || selection == null ? null
+                : new CloseCommand((PortalFunctionMode) selection.mode());
+        }
         return new RadialCommand(controller.functionMode(), controller.selectedRadialMode(gun));
     }
 
@@ -36,7 +41,7 @@ public final class ModeRadialWorkflow {
         tag.putInt("Value", value);
     }
 
-    public sealed interface Command permits PrecisionCommand, RadialCommand {
+    public sealed interface Command permits PrecisionCommand, RadialCommand, CloseCommand {
         PortalAction action();
         void writeTo(CompoundTag tag);
     }
@@ -54,6 +59,14 @@ public final class ModeRadialWorkflow {
             tag.putBoolean("EndpointA", endpointA);
             tag.putBoolean("PairingShortcut", pairingShortcut);
         }
+    }
+
+    public record CloseCommand(PortalFunctionMode mode) implements Command {
+        @Override
+        public PortalAction action() { return PortalAction.CLOSE_MODE_PORTALS; }
+
+        @Override
+        public void writeTo(CompoundTag tag) { tag.putString("FunctionMode", mode.name()); }
     }
 
     public record RadialCommand(PortalFunctionMode functionMode,

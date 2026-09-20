@@ -1,6 +1,7 @@
 package dev.riftgun.service;
 
 import java.util.Objects;
+import dev.riftgun.portal.PortalInstanceState;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,6 +22,10 @@ public final class PortalClientSync {
         adapter.snapshot(player, openScreen, gun);
     }
 
+    public static void instances(ServerPlayer player, PortalInstanceState state) {
+        adapter.instances(player, state);
+    }
+
     public static void portalOpened(ServerPlayer player) {
         adapter.portalOpened(player);
     }
@@ -39,6 +44,8 @@ public final class PortalClientSync {
                       @Nullable PortalGunLocator.LocatedGun gun);
 
         void portalOpened(ServerPlayer player);
+
+        default void instances(ServerPlayer player, PortalInstanceState state) {}
     }
 
     private PortalClientSync() {}

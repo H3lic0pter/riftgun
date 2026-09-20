@@ -23,6 +23,8 @@ final class ModeRadialClientAccess {
             ClientKeyState.down(ClientModEvents.OPEN_MODE_RADIAL),
             ClientKeyState.down(ClientModEvents.OPEN_PRECISION_PLACEMENT),
             ClientKeyState.down(ClientModEvents.PORTAL_PAIRING_OPERATION),
+            ClientKeyState.down(ClientModEvents.CLOSE_PORTALS),
+            ClientModEvents.CLOSE_PORTALS.consumeClick(),
             Minecraft.getInstance().hasAltDown());
     }
 
@@ -66,11 +68,16 @@ final class ModeRadialClientAccess {
             ? PrecisionPlacementRequest.floating(defaultOrientation(minecraft)) : null;
     }
 
-    static void sendOpenRequest(int requestId, boolean precisionPreview) {
+    static void sendOpenRequest(int requestId, boolean precisionPreview, boolean closePortals) {
         PortalNetworking.sendShortcutRequest(PortalAction.OPEN_MODE_RADIAL, tag -> {
             tag.putInt("RadialRequestId", requestId);
             tag.putBoolean("PrecisionPreview", precisionPreview);
+            tag.putBoolean("ClosePortalsRadial", closePortals);
         });
+    }
+
+    static void sendCloseAllRequest() {
+        PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS);
     }
 
     static void sendCycleRequest() {
@@ -89,10 +96,10 @@ final class ModeRadialClientAccess {
         }
     }
 
-    static void openOrRefresh(PrecisionPlacementRequest precisionRequest) {
+    static void openOrRefresh(PrecisionPlacementRequest precisionRequest, boolean closePortals) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen == null) {
-            minecraft.setScreen(precisionRequest == null
+            minecraft.setScreen(closePortals ? ModeRadialScreen.forClosing() : precisionRequest == null
                 ? new ModeRadialScreen() : new ModeRadialScreen(precisionRequest));
         }
         if (minecraft.screen instanceof ModeRadialScreen screen) screen.refreshFromServer();
@@ -122,7 +129,7 @@ final class ModeRadialClientAccess {
     }
 
     record Keys(boolean cycleDown, boolean radialDown, boolean precisionDown,
-                boolean pairingOperationDown, boolean altDown) {}
+                boolean pairingOperationDown, boolean closeDown, boolean closeClicked, boolean altDown) {}
 
     private ModeRadialClientAccess() {}
 }

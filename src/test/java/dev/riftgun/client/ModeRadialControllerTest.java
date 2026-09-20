@@ -21,6 +21,27 @@ import org.junit.jupiter.api.Test;
 
 final class ModeRadialControllerTest {
     @Test
+    void closeWheelOnlyEmitsAnExplicitModeAndNeverChangesGunSettings() {
+        var controller = ModeRadialController.forClosing();
+        var gun = PortalGunViewStateFixtures.representative();
+        controller.refresh(gun);
+        org.junit.jupiter.api.Assertions.assertNull(ModeRadialWorkflow.radial(controller, gun));
+        for (int index = 0; index < PortalFunctionMode.values().length; index++) {
+            controller.select(index, gun);
+            var command = ModeRadialWorkflow.radial(controller, gun);
+            assertEquals(PortalAction.CLOSE_MODE_PORTALS, command.action());
+            var tag = new net.minecraft.nbt.CompoundTag();
+            command.writeTo(tag);
+            assertEquals(PortalFunctionMode.values()[index].name(), Nbt.getString(tag, "FunctionMode"));
+        }
+        controller.switchPage();
+        assertEquals(ModeRadialController.Page.CLOSE_PORTALS, controller.page());
+        org.junit.jupiter.api.Assertions.assertNull(ModeRadialWorkflow.radial(controller, PortalGunViewState.empty()));
+        controller.cancel(false);
+        org.junit.jupiter.api.Assertions.assertNull(ModeRadialWorkflow.radial(controller, gun));
+    }
+
+    @Test
     void ordinaryRadialOwnsPageFunctionAndRangeState() {
         PortalGunViewState gun = PortalGunViewStateFixtures.representative();
         var controller = new ModeRadialController(null, Direction.NORTH, List.of());

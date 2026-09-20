@@ -59,7 +59,7 @@ public final class PortalPlacementPreview {
     private static PortalPlacementPreviewEngine.TickInput input(Minecraft minecraft) {
         boolean worldReady = minecraft.level != null && minecraft.player != null;
         long tick = minecraft.level == null ? 0L : minecraft.level.getGameTime();
-        PortalPreviewGunState source = previewGun(minecraft, tick);
+        PortalPreviewGunState source = previewGun(minecraft);
         PortalPlacementPreviewEngine.PlayerView player = !worldReady ? null
             : new PortalPlacementPreviewEngine.PlayerView(
                 minecraft.player.getEyePosition(), minecraft.player.getLookAngle(),
@@ -94,15 +94,15 @@ public final class PortalPlacementPreview {
         return offhand.is(RiftContent.PORTAL_GUN.get()) ? offhand : ItemStack.EMPTY;
     }
 
-    private static @Nullable PortalPreviewGunState previewGun(Minecraft minecraft, long now) {
+    private static @Nullable PortalPreviewGunState previewGun(Minecraft minecraft) {
         if (minecraft.level == null || minecraft.player == null) return null;
         if (minecraft.screen instanceof ModeRadialScreen screen
             && (screen.surfaceFacePreviewOpen() || screen.floatingOrientationPreviewOpen())) {
             return PortalPreviewGunState.fromSnapshot(PortalClientState.gun(), PortalClientState.data(),
-                minecraft.player.getUUID(), now);
+                minecraft.player.getUUID(), PortalClientState.instances().pending());
         }
         return PortalPreviewGunState.fromStack(heldGun(minecraft), PortalClientState.data(),
-            PortalClientState.moduleRules(), minecraft.player.getUUID(), now);
+            PortalClientState.moduleRules(), minecraft.player.getUUID(), PortalClientState.instances().pending());
     }
 
     @SubscribeEvent

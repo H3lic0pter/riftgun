@@ -7,7 +7,6 @@ import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.navigation.DimensionalTraversalMode;
 import dev.riftgun.pairing.PortalFloatingFallback;
 import dev.riftgun.pairing.PortalFunctionMode;
-import dev.riftgun.pairing.PortalPairingPendingEndpoint;
 import java.util.Map;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
@@ -15,7 +14,6 @@ import org.jetbrains.annotations.Nullable;
 /** Immutable, typed client view of one server-authoritative Portal Gun snapshot. */
 public record PortalGunViewState(
     @Nullable UUID instanceId,
-    @Nullable PortalPairingPendingEndpoint pendingPairingEndpoint,
     Fuel fuel,
     Navigation navigation,
     Placement placement,
@@ -31,22 +29,22 @@ public record PortalGunViewState(
     }
 
     public static PortalGunViewState empty() {
-        return new PortalGunViewState(null, null, Fuel.EMPTY, Navigation.EMPTY,
+        return new PortalGunViewState(null, Fuel.EMPTY, Navigation.EMPTY,
             Placement.EMPTY, Transit.EMPTY, Modules.empty());
     }
 
     public PortalGunViewState withNavigation(Navigation next) {
-        return new PortalGunViewState(instanceId, pendingPairingEndpoint, fuel, next,
+        return new PortalGunViewState(instanceId, fuel, next,
             placement, transit, modules);
     }
 
     public PortalGunViewState withPlacement(Placement next) {
-        return new PortalGunViewState(instanceId, pendingPairingEndpoint, fuel, navigation,
+        return new PortalGunViewState(instanceId, fuel, navigation,
             next, transit, modules);
     }
 
     public PortalGunViewState withTransit(Transit next) {
-        return new PortalGunViewState(instanceId, pendingPairingEndpoint, fuel, navigation,
+        return new PortalGunViewState(instanceId, fuel, navigation,
             placement, next, modules);
     }
 

@@ -25,7 +25,7 @@ import dev.riftgun.fuel.PortalFuelManager;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingPendingEndpoint;
-import dev.riftgun.pairing.PortalPairingPendingEndpoints;
+import dev.riftgun.portal.PortalInstances;
 import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalPlacement;
 import dev.riftgun.portal.PortalOpenDuration;
@@ -138,7 +138,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         ItemStack gun = locatedGun.stack();
         UUID gunId = PortalGunIdentity.ensure(gun);
         ResolvedDestination destination = resolveDestination(
-            server, data, functionMode, owner, locatedGun);
+            server, data, functionMode, owner);
         if (destination == null) {
             message(owner, functionMode == PortalFunctionMode.PORTAL_PAIRING
                 ? "message.riftgun.pairing_target_required"
@@ -604,7 +604,7 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
     private static @Nullable ResolvedDestination refreshPreparedDestination(
             MinecraftServer server, @Nullable ServerPlayer owner,
             ResolvedDestination original) {
-        if (original.playerId() != null || original.fixedGunReference() != null) {
+        if (original.playerId() != null || original.fixedOwnerId() != null) {
             return original.refresh(server);
         }
         if (owner == null || original.savedDestinationId() == null) return null;
@@ -1064,19 +1064,16 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
     private static @Nullable ResolvedDestination resolveDestination(MinecraftServer server,
                                                                     PortalPlayerData data,
                                                                     PortalFunctionMode functionMode,
-                                                                    ServerPlayer owner,
-                                                                    PortalGunLocator.LocatedGun locatedGun) {
+                                                                    ServerPlayer owner) {
         if (functionMode == PortalFunctionMode.PORTAL_PAIRING) {
-            UUID gunId = PortalGunIdentity.ensure(locatedGun.stack());
-            PortalPairingPendingEndpoint target = PortalPairingPendingEndpoints.getValid(
-                locatedGun.stack(), owner.getUUID(), gunId, server.overworld().getGameTime());
+            PortalPairingPendingEndpoint target = PortalInstances.pending(owner);
             if (target == null || !target.entityTarget()) return null;
             ServerLevel level = server.getLevel(target.dimension());
             if (level == null || !PortalStoredPlacementValidator.valid(owner, level, target.placement())) {
-                PortalPairingPendingEndpoints.clear(locatedGun.stack());
+                PortalInstances.clearPending(owner);
                 return null;
             }
-            return ResolvedDestination.fixed(target, owner.getUUID(), locatedGun.saveReference());
+            return ResolvedDestination.fixed(target, owner.getUUID());
         }
         UUID playerId = data.selectedPlayerId();
         if (playerId != null) {
@@ -1144,28 +1141,23 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
                                        @Nullable UUID savedDestinationId,
                                        @Nullable Vec3 visualExitCenter,
                                        @Nullable PortalPlacement fixedPlacement,
-                                       @Nullable UUID fixedOwnerId,
-                                       @Nullable net.minecraft.nbt.CompoundTag fixedGunReference) {
-        ResolvedDestination {
-            fixedGunReference = fixedGunReference == null ? null : fixedGunReference.copy();
-        }
+                                       @Nullable UUID fixedOwnerId) {
 
         static ResolvedDestination saved(Destination destination) {
             return new ResolvedDestination(destination.dimension(), destination.position(), destination.yaw(),
-                null, destination.id(), null, null, null, null);
+                null, destination.id(), null, null, null);
         }
 
         static ResolvedDestination player(UUID playerId, ServerPlayer player) {
             return new ResolvedDestination(player.level().dimension(), player.position(), player.getYRot(),
                 playerId, null, EntityRelocationGeometry.playerDestinationExitCenter(
-                    player.position(), player.getBoundingBox().maxY), null, null, null);
+                    player.position(), player.getBoundingBox().maxY), null, null);
         }
 
-        static ResolvedDestination fixed(PortalPairingPendingEndpoint target, UUID ownerId,
-                                         net.minecraft.nbt.CompoundTag gunReference) {
+        static ResolvedDestination fixed(PortalPairingPendingEndpoint target, UUID ownerId) {
             return new ResolvedDestination(target.dimension(), target.placement().center(),
                 target.placement().yaw(), null, null, null, target.placement(),
-                ownerId, gunReference);
+                ownerId);
         }
 
         @Nullable ServerPlayer resolvePlayer(MinecraftServer server) {
@@ -1173,21 +1165,17 @@ private static final TicketType<UUID> PREPARATION_TICKET = TicketType.create("ri
         }
 
         @Nullable ResolvedDestination refresh(MinecraftServer server) {
-            if (fixedGunReference != null && fixedOwnerId != null) {
+            if (fixedOwnerId != null) {
                 ServerPlayer owner = server.getPlayerList().getPlayer(fixedOwnerId);
-                PortalGunLocator.LocatedGun gun = owner == null ? null
-                    : PortalGunLocator.resolveReference(owner, fixedGunReference).orElse(null);
-                if (gun == null) return null;
-                UUID gunId = PortalGunIdentity.ensure(gun.stack());
-                PortalPairingPendingEndpoint target = PortalPairingPendingEndpoints.getValid(
-                    gun.stack(), owner.getUUID(), gunId, server.overworld().getGameTime());
+                if (owner == null) return null;
+                PortalPairingPendingEndpoint target = PortalInstances.pending(owner);
                 if (target == null || !target.entityTarget()) return null;
                 ServerLevel level = server.getLevel(target.dimension());
                 if (level == null || !PortalStoredPlacementValidator.valid(owner, level, target.placement())) {
-                    PortalPairingPendingEndpoints.clear(gun.stack());
+                    PortalInstances.clearPending(owner);
                     return null;
                 }
-                return fixed(target, fixedOwnerId, fixedGunReference);
+                return fixed(target, fixedOwnerId);
             }
             if (playerId == null) return this;
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);

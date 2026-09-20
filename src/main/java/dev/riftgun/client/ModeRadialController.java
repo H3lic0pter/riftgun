@@ -17,13 +17,14 @@ import org.jetbrains.annotations.Nullable;
 
 /** Shared, render-agnostic state machine for both mode-radial screen adapters. */
 public final class ModeRadialController {
-    public enum Page { PLACEMENT, PREDICTION, SURFACE_FACE, FLOATING_ORIENTATION }
+    public enum Page { PLACEMENT, PREDICTION, SURFACE_FACE, FLOATING_ORIENTATION, CLOSE_PORTALS }
 
     private static final long RANGE_SEND_INTERVAL_NANOS = 100_000_000L;
     private static final List<PortalOrientation> ORIENTATION_OPTIONS =
         List.of(PortalOrientation.values());
     private static final List<PortalPredictionMode> PREDICTION_OPTIONS =
         List.of(PortalPredictionMode.values());
+    private static final List<PortalFunctionMode> CLOSE_OPTIONS = List.of(PortalFunctionMode.values());
     private static final List<PortalPlacementMode> BASE_PLACEMENT_OPTIONS = List.of(
         PortalPlacementMode.SMART, PortalPlacementMode.FRONT, PortalPlacementMode.SURFACE);
     private static final List<PortalPlacementMode> REMOTE_PLACEMENT_OPTIONS = List.of(
@@ -67,6 +68,14 @@ public final class ModeRadialController {
         }
     }
 
+    public static ModeRadialController forClosing() {
+        var controller = new ModeRadialController(null, Direction.NORTH, List.of());
+        controller.page = Page.CLOSE_PORTALS;
+        return controller;
+    }
+
+    public boolean closingPortals() { return page == Page.CLOSE_PORTALS; }
+
     public void refresh(PortalGunViewState gun) {
         functionMode = gun.functionMode();
         maximumSurfaceRange = Math.max(1, gun.maximumSurfaceRange());
@@ -75,6 +84,7 @@ public final class ModeRadialController {
     }
 
     public List<?> options(PortalGunViewState gun) {
+        if (closingPortals()) return CLOSE_OPTIONS;
         if (page == Page.SURFACE_FACE) return facePreview.choices();
         if (page == Page.FLOATING_ORIENTATION) return ORIENTATION_OPTIONS;
         if (page == Page.PREDICTION) return PREDICTION_OPTIONS;
@@ -98,6 +108,7 @@ public final class ModeRadialController {
     }
 
     public PortalFunctionMode toggleFunctionMode() {
+        if (closingPortals()) return functionMode;
         functionMode = functionMode.toggle();
         return functionMode;
     }
@@ -109,6 +120,7 @@ public final class ModeRadialController {
     }
 
     public void switchPage() {
+        if (closingPortals()) return;
         page = page == Page.PLACEMENT ? Page.PREDICTION : Page.PLACEMENT;
         clearSelection();
     }

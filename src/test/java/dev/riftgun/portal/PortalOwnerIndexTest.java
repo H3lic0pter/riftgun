@@ -121,16 +121,11 @@ class PortalOwnerIndexTest {
         assertTrue(lifecycle.contains("PortalOwnerIndex.untrack(portal)"));
         assertTrue(lifecycle.contains("PortalOwnerIndex.clear(server)"));
 
-        for (String node : new String[] {"1.21.1", "26.1.2"}) {
-            String source = Files.readString(Path.of(
-                "versions", node, "src/main/java/dev/riftgun/portal/PortalEntity.java"));
-            int close = source.indexOf("private static void closeOwnedPortals");
-            int data = source.indexOf("@Override", close);
-            String closePath = source.substring(close, data);
-            assertTrue(closePath.contains("PortalOwnerIndex.closeOwned(server, owner, excluded)"));
-            assertFalse(closePath.contains("getAllEntities"));
-            assertFalse(closePath.contains("getAllLevels"));
-        }
+        String instances = Files.readString(Path.of(
+            "src/main/java/dev/riftgun/portal/PortalInstances.java"));
+        assertTrue(instances.contains("PortalOwnerIndex.closeOwnedMatching("));
+        assertFalse(instances.contains("getAllEntities"));
+        assertFalse(instances.contains("getAllLevels"));
     }
 
     private static <S> int visit(PortalOwnerIndex.Store<S, FakePortal> store, S server,

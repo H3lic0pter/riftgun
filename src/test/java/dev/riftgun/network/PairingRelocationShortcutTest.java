@@ -11,7 +11,7 @@ import dev.riftgun.data.PortalPlayerSettings;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.pairing.PortalFunctionMode;
 import dev.riftgun.pairing.PortalPairingManager;
-import dev.riftgun.pairing.PortalPairingPendingEndpoints;
+import dev.riftgun.portal.PortalInstances;
 import dev.riftgun.relocation.EntityRelocationManager;
 import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.service.PortalGunLocator;
@@ -45,7 +45,7 @@ final class PairingRelocationShortcutTest {
     private PortalGunLocator.LocatedGun gun;
     private PortalPlayerData data;
     private PortalGunCapabilities capabilities;
-    private MockedStatic<PortalPairingPendingEndpoints> targets;
+    private MockedStatic<PortalInstances> targets;
     private MockedStatic<Msg> messages;
 
     private <T> MockedStatic<T> boundary(Class<T> type) {
@@ -99,7 +99,7 @@ final class PairingRelocationShortcutTest {
             .thenReturn(true);
         boundary(PortalDataStore.class).when(() -> PortalDataStore.load(player)).thenReturn(data);
         boundary(PortalGunIdentity.class).when(() -> PortalGunIdentity.ensure(stack)).thenReturn(UUID.randomUUID());
-        targets = boundary(PortalPairingPendingEndpoints.class);
+        targets = boundary(PortalInstances.class);
         messages = boundary(Msg.class);
         var config = mock(RiftConfig.class, RETURNS_DEEP_STUBS);
         when(config.relocation().maximumPassengerTreeSize()).thenReturn(16);
@@ -129,7 +129,7 @@ final class PairingRelocationShortcutTest {
         send(PortalAction.PLACE_PAIRING_ENDPOINT, false);
         messages.verify(() -> Msg.displayClientMessage(player,
             Component.translatable("message.riftgun.pairing_target_required"), true));
-        targets.verify(() -> PortalPairingPendingEndpoints.getValid(eq(stack), any(), any(), anyLong()));
+        targets.verify(() -> PortalInstances.pending(player));
         verify(data, never()).selectedDestinationId();
         verify(data, never()).selectedPlayerId();
         verifyNoInteractions(stack);
@@ -142,6 +142,39 @@ final class PairingRelocationShortcutTest {
             Component.translatable("message.riftgun.no_destination_selected"), true));
         targets.verifyNoInteractions();
         verify(data).selectedDestinationId();
+        verifyNoInteractions(stack);
+    }
+
+    @Test
+    void modeClearUsesTheWheelSelectionInsteadOfTheGunsCurrentMode() {
+        for (var mode : PortalFunctionMode.values()) {
+            var request = new CompoundTag();
+            request.putString("Action", PortalAction.CLOSE_MODE_PORTALS.name());
+            request.putString("FunctionMode", mode.name());
+            PortalRequestHandler.handle(player, request);
+            targets.verify(() -> PortalInstances.clearMode(player, mode));
+        }
+        targets.verify(() -> PortalInstances.clearAll(player), never());
+    }
+
+    @Test
+    void modeClearRejectsMissingPairingModuleAndInvalidSelection() {
+        var request = new CompoundTag();
+        request.putString("Action", PortalAction.CLOSE_MODE_PORTALS.name());
+        request.putString("FunctionMode", PortalFunctionMode.PORTAL_PAIRING.name());
+        when(capabilities.portalPairing()).thenReturn(false);
+        PortalRequestHandler.handle(player, request);
+        targets.verifyNoInteractions();
+        when(capabilities.portalPairing()).thenReturn(true);
+        request.putString("FunctionMode", "invalid");
+        PortalRequestHandler.handle(player, request);
+        targets.verifyNoInteractions();
+    }
+
+    @Test
+    void existingCloseActionStillClearsEveryModeWithoutSelectingAGun() {
+        send(PortalAction.CLOSE_PORTALS, false);
+        targets.verify(() -> PortalInstances.clearAll(player));
         verifyNoInteractions(stack);
     }
 

@@ -59,7 +59,7 @@ public final class PortalGunComponents {
             .persistent(UUIDUtil.CODEC)
             .networkSynchronized(UUIDUtil.STREAM_CODEC));
 
-    /** Persisted and synchronized lightweight A/B endpoint; decoded by PortalPairingPendingEndpoint. */
+    /** Legacy gun marker component, retained only to decode and migrate existing saves. */
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CompoundTag>> PENDING_PAIRING_ENDPOINT =
         COMPONENTS.registerComponentType("pending_pairing_endpoint", builder -> builder
             .persistent(CompoundTag.CODEC)

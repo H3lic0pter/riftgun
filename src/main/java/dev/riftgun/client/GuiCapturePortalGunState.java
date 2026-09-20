@@ -13,7 +13,7 @@ import java.util.UUID;
 /** Typed fixture used by the opt-in in-game GUI capture harness. */
 public final class GuiCapturePortalGunState {
     public static PortalGunViewState create() {
-        return new PortalGunViewState(UUID.fromString("8b07d37a-5073-49ec-9611-57646619ed32"), null,
+        return new PortalGunViewState(UUID.fromString("8b07d37a-5073-49ec-9611-57646619ed32"),
             new PortalGunViewState.Fuel(false, 15_000, 24_000, false, false, false,
                 "", 0, false),
             new PortalGunViewState.Navigation(true, false, false, "minecraft:overworld",

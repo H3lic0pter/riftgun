@@ -31,7 +31,7 @@ final class PortalGunViewStateCodecTest {
     @Test
     void absentFuelProfileKeepsLegacyWireKeysAbsent() {
         PortalGunViewState state = new PortalGunViewState(
-            null, null, PortalGunViewState.Fuel.EMPTY,
+            null, PortalGunViewState.Fuel.EMPTY,
             PortalGunViewState.Navigation.EMPTY, PortalGunViewState.Placement.EMPTY,
             PortalGunViewState.Transit.EMPTY, PortalGunViewState.Modules.empty());
 

@@ -1,35 +1,38 @@
 package dev.riftgun.pairing;
 
-import dev.riftgun.portal.PortalEntity;
+import dev.riftgun.core.nbt.Nbt;
+import dev.riftgun.fuel.PortalGunComponents;
 import dev.riftgun.service.PortalGunIdentity;
 import dev.riftgun.service.PortalGunLocator;
-import java.util.UUID;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import org.jetbrains.annotations.Nullable;
 
-/** Converts legacy dormant pairing entities when their owning gun is available. */
+/** Reads retired gun components once when a player first receives instance state. */
 public final class PortalPairingLegacyMigration {
-    public static boolean tryMigrate(PortalEntity portal, UUID ownerId) {
-        PortalPairingEndpoint endpoint = portal.pairingEndpoint();
-        UUID gunId = portal.pairingGunId();
-        if (!portal.pairingDormant() || gunId == null || ownerId == null
-            || endpoint == PortalPairingEndpoint.NONE
-            || !(portal.level() instanceof ServerLevel level)) return false;
-
-        ServerPlayer owner = level.getServer().getPlayerList().getPlayer(ownerId);
-        if (owner == null) return false;
-        for (PortalGunLocator.LocatedGun located : PortalGunLocator.all(owner)) {
+    public static @Nullable PortalPairingPendingEndpoint fromGuns(ServerPlayer owner) {
+        PortalPairingPendingEndpoint newest = null;
+        long newestTime = Long.MIN_VALUE;
+        boolean changed = false;
+        for (var located : PortalGunLocator.all(owner)) {
             var gun = located.stack();
-            if (!gunId.equals(PortalGunIdentity.existing(gun))) continue;
-            if (PortalPairingPendingEndpoints.get(gun) == null) {
-                PortalPairingPendingEndpoints.save(
-                    gun, ownerId, gunId, level.dimension(), portal.placement(), endpoint,
-                    level.getServer().overworld().getGameTime(), portal.openDurationTicks());
+            var tag = gun.get(PortalGunComponents.PENDING_PAIRING_ENDPOINT);
+            if (tag == null) continue;
+            var marker = PortalPairingPendingEndpoint.load(tag);
+            long startedAt = Nbt.getLong(tag, "StartedAt");
+            if (marker != null && marker.belongsTo(owner.getUUID())
+                && Nbt.hasUUID(tag, "Gun")
+                && Nbt.getUUID(tag, "Gun").equals(PortalGunIdentity.existing(gun))
+                && startedAt >= 0 && Nbt.getInt(tag, "DurationTicks") > 0
+                && startedAt > newestTime) {
+                newest = marker;
+                newestTime = startedAt;
             }
-            portal.discard();
-            return true;
+            // Foreign markers must not become this holder's state or survive a later transfer.
+            gun.remove(PortalGunComponents.PENDING_PAIRING_ENDPOINT);
+            changed = true;
         }
-        return false;
+        if (changed) owner.getInventory().setChanged();
+        return newest;
     }
 
     private PortalPairingLegacyMigration() {}

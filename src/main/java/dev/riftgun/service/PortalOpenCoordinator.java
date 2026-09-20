@@ -20,7 +20,6 @@ import dev.riftgun.portal.PortalEntity;
 import dev.riftgun.portal.PortalExitTarget;
 import dev.riftgun.portal.PortalExclusions;
 import dev.riftgun.portal.PortalRuntimeOptions;
-import dev.riftgun.pairing.PortalPairingPendingEndpoints;
 import dev.riftgun.sound.PortalSoundSnapshot;
 import dev.riftgun.module.PortalGunCapabilities;
 import dev.riftgun.module.PortalGunModuleSettings;
@@ -405,7 +404,6 @@ public final class PortalOpenCoordinator {
             return reject(PortalOpenStatus.PORTAL_OPEN_FAILED, "message.riftgun.portal_open_failed");
         }
 
-        PortalPairingPendingEndpoints.clearAll(player);
 
         if (recordAsDestination) {
             if (crossDimension) data.clearSafetyResult(destination.id());

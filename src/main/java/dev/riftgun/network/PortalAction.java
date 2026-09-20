@@ -48,6 +48,7 @@ public enum PortalAction {
     OPEN_PLAYER_PORTAL,
     TOGGLE_PLAYER_PIN,
     CLOSE_PORTALS,
+    CLOSE_MODE_PORTALS,
     SET_PRIVACY,
     SET_PRIVACY_OVERRIDE,
     REQUEST_PRIVACY_PLAYERS;
@@ -69,7 +70,7 @@ public enum PortalAction {
 
     public boolean isExclusiveKeyboardShortcut() {
         return isShotShortcut()
-            || this == TOGGLE_FUNCTION_MODE || this == CYCLE_PLACEMENT_MODE
+            || this == CLOSE_MODE_PORTALS || this == TOGGLE_FUNCTION_MODE || this == CYCLE_PLACEMENT_MODE
             || this == OPEN_MODE_RADIAL || this == SET_RADIAL_MODE
             || this == ADJUST_SURFACE_RANGE;
     }

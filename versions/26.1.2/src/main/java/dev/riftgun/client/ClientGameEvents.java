@@ -51,7 +51,10 @@ public final class ClientGameEvents {
         Minecraft minecraft = Minecraft.getInstance();
         dev.riftgun.client.appearance.SkinRecommendations.tick();
         boolean nowConnected = minecraft.getConnection() != null;
-        if (connected && !nowConnected) ClientMapWaypointIntegration.clear();
+        if (connected && !nowConnected) {
+            ClientMapWaypointIntegration.clear();
+            PortalClientState.clearInstances();
+        }
         connected = nowConnected;
         if (nowConnected) refreshJourneyMapSelection(minecraft);
         GuiCaptureHarness.tick(minecraft);
@@ -71,11 +74,6 @@ public final class ClientGameEvents {
         }
         while (ClientModEvents.FORCE_REMOTE.consumeClick()) {
             sendForcedOpen(minecraft, PortalPlacementMode.REMOTE);
-        }
-        while (ClientModEvents.CLOSE_PORTALS.consumeClick()) {
-            if (minecraft.player != null && minecraft.getConnection() != null) {
-                PortalNetworking.sendRequest(PortalAction.CLOSE_PORTALS);
-            }
         }
         while (ClientModEvents.ENTITY_RELOCATION.consumeClick()) {
             if (minecraft.player != null && minecraft.getConnection() != null) {
