@@ -485,8 +485,8 @@ public final class ModeRadialScreen extends Screen {
         centeredText(graphics, heading, centerX, headingY, PortalTheme.ICE);
         centeredText(graphics, kind, centerX, headingY + 9, PortalTheme.TEXT);
 
-        PrecisionRadialSprites.draw(graphics, centerX, centerY, floatingMode,
-            controller.selectedOrientation());
+        GuiSprite.drawAtCenter(graphics,
+            PortalGuiSprites.precision(floatingMode, controller.selectedOrientation()), centerX, centerY);
         centeredText(graphics, label(controller.selectedOrientation()), centerX, centerY + 22,
             PortalTheme.TEXT);
         drawActionHints(graphics, centerX);

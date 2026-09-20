@@ -2,8 +2,11 @@ package dev.riftgun.client.screen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.riftgun.data.PortalPlacementMode;
+import dev.riftgun.portal.PortalOrientation;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,18 +38,19 @@ final class PrecisionRadialSpriteResourceTest {
     }
 
     @Test
-    void bothClientsRenderThePackagedSpritesInsteadOfProceduralOutlines() throws Exception {
-        for (String version : new String[] {"1.21.1", "26.1.2"}) {
-            Path screenRoot = Path.of("versions", version, "src", "main", "java", "dev",
-                "riftgun", "client", "screen");
-            String radial = Files.readString(screenRoot.resolve("ModeRadialScreen.java"));
-            String sprites = Files.readString(screenRoot.resolve("PrecisionRadialSprites.java"));
+    void bothClientsPreserveTheSixPrecisionOrientationMappings() {
+        assertSelection(PortalPlacementMode.FRONT, PortalOrientation.VERTICAL, "front_in_front");
+        assertSelection(PortalPlacementMode.FRONT, PortalOrientation.TOP, "front_below_feet");
+        assertSelection(PortalPlacementMode.FRONT, PortalOrientation.BOTTOM, "front_above_head");
+        assertSelection(PortalPlacementMode.REMOTE, PortalOrientation.VERTICAL, "remote_sideways");
+        assertSelection(PortalPlacementMode.REMOTE, PortalOrientation.TOP, "remote_top_down");
+        assertSelection(PortalPlacementMode.REMOTE, PortalOrientation.BOTTOM, "remote_bottom_up");
+    }
 
-            assertTrue(radial.contains("PrecisionRadialSprites.draw"));
-            assertTrue(!radial.contains("int[][] outline = selectedOrientation"));
-            for (String name : NAMES) {
-                assertTrue(sprites.contains(name), "missing sprite mapping: " + name);
-            }
-        }
+    private static void assertSelection(PortalPlacementMode mode, PortalOrientation orientation, String name) {
+        GuiSprite sprite = PortalGuiSprites.precision(mode, orientation);
+        assertEquals("riftgun:precision_radial/" + name, sprite.id().toString());
+        assertEquals(64, sprite.size());
+        assertSame(sprite, PortalGuiSprites.precision(mode, orientation));
     }
 }

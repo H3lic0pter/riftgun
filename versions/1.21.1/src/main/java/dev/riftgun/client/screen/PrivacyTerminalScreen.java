@@ -82,7 +82,7 @@ public final class PrivacyTerminalScreen extends Screen {
         renderPlayerRows(graphics, mouseX, mouseY);
         renderGlobalRows(graphics, mouseX, mouseY);
         for (Renderable renderable : renderables) renderable.render(graphics, mouseX, mouseY, partialTick);
-        if (refreshButton != null) PortalGuiSprites.draw(graphics, PortalGuiSprites.PLAYER_REFRESH,
+        if (refreshButton != null) GuiSprite.draw(graphics, PortalGuiSprites.PLAYER_REFRESH,
             refreshButton.getX(), refreshButton.getY());
         renderExpandedGlobal(graphics, mouseX, mouseY);
     }

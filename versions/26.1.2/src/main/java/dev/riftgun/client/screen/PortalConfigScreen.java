@@ -1526,7 +1526,7 @@ public final class PortalConfigScreen extends Screen {
             }
         }
         for (ThemedButton dropdown : selectorDropdownButtons) {
-            PortalGuiSprites.drawCentered(graphics, PortalGuiSprites.DROPDOWN,
+            GuiSprite.drawCentered(graphics, PortalGuiSprites.DROPDOWN,
                 dropdown.getX(), dropdown.getY(), dropdown.getWidth(), dropdown.getHeight());
         }
     }

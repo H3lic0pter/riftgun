@@ -109,7 +109,7 @@ public final class PortalModuleScreen extends AbstractContainerScreen<PortalModu
 
     private void renderBackIcon(GuiGraphics graphics, int mouseX, int mouseY) {
         if (backButton == null) return;
-        PortalGuiSprites.draw(graphics, PortalGuiSprites.MODULE_BACK,
+        GuiSprite.draw(graphics, PortalGuiSprites.MODULE_BACK,
             backButton.getX() + 1, backButton.getY());
         if (backButton.isHovered()) graphics.renderTooltip(font,
             Component.translatable("screen.riftgun.modules.back"), mouseX, mouseY);

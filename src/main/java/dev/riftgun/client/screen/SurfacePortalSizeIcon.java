@@ -21,7 +21,7 @@ final class SurfacePortalSizeIcon {
             case ADAPTIVE -> PortalGuiSprites.SURFACE_SIZE_ADAPTIVE;
             case PREFER_LARGE -> PortalGuiSprites.SURFACE_SIZE_PREFER_LARGE;
         };
-        PortalGuiSprites.drawCentered(graphics, sprite, buttonX, buttonY, BUTTON_SIZE, BUTTON_SIZE);
+        GuiSprite.drawCentered(graphics, sprite, buttonX, buttonY, BUTTON_SIZE, BUTTON_SIZE);
     }
 
     private SurfacePortalSizeIcon() {}
