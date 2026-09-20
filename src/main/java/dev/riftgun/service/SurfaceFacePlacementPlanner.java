@@ -36,7 +36,7 @@ public final class SurfaceFacePlacementPlanner {
 
         if (PortalAperturePolicy.expanded(aperture)
                 && !(aperture == PortalAperture.EXPANDED_ADAPTIVE
-                    && PortalSupportArea.isVerticalPair(anchor, face, probe::anchorSolid))) {
+                    && PortalSupportArea.prefersStandardAperture(anchor, face, probe::anchorSolid))) {
             PortalPlacement expanded = face.getAxis().isVertical()
                 ? expandedHorizontal(selection, playerYaw, playerBounds, probe, aperture, rankingPoint)
                 : expandedVertical(selection, playerBounds, probe, aperture, rankingPoint);

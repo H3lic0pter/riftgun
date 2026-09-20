@@ -9,6 +9,20 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 
 public final class PortalSupportArea {
+    /** Adaptive size for an already validated anchor: a horizontal 1x1 face or a vertical 1x2 pair. */
+    static boolean prefersStandardAperture(BlockPos anchor, Direction face,
+                                           java.util.function.Predicate<BlockPos> supported) {
+        if (!face.getAxis().isVertical()) return isVerticalPair(anchor, face, supported);
+        // These eight cells cover every 2x2 footprint containing the clicked top/bottom face.
+        // Blocks above or below the support do not enlarge its horizontal footprint.
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                if ((x != 0 || z != 0) && supported.test(anchor.offset(x, 0, z))) return false;
+            }
+        }
+        return true;
+    }
+
     public static boolean hasFullExpandedSupport(BlockGetter level, PortalPlacement placement) {
         BlockPos origin = placement.anchor();
         Direction face = placement.anchorFace();
