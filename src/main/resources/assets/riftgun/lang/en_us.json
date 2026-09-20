@@ -1,4 +1,8 @@
 {
+  "item.riftgun.skin_module": "Skin Module",
+  "tooltip.riftgun.module.skin_module.description": "Unlocks gun skin changes. Removing this module keeps the selected skin.",
+  "message.riftgun.skin_module_required": "Install a Skin Module to change the gun skin.",
+  "screen.riftgun.appearance.locked": "Appearance (Locked)",
   "screen.riftgun.surface_portal_size": "Surface Portal Size",
   "screen.riftgun.surface_portal_size.full_support": "Full Support",
   "screen.riftgun.surface_portal_size.adaptive": "Adaptive",

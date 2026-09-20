@@ -1,4 +1,8 @@
 {
+  "item.riftgun.skin_module": "皮肤模块",
+  "tooltip.riftgun.module.skin_module.description": "解锁枪皮肤更换。拆下模块后保留已选皮肤。",
+  "message.riftgun.skin_module_required": "安装皮肤模块后可更换枪皮肤。",
+  "screen.riftgun.appearance.locked": "外观（未解锁）",
   "screen.riftgun.surface_portal_size": "贴面门径",
   "screen.riftgun.surface_portal_size.full_support": "完整贴合",
   "screen.riftgun.surface_portal_size.adaptive": "支撑适配",

@@ -4,6 +4,9 @@ import dev.riftgun.appearance.PortalGunSkin;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.core.network.RiftNetwork;
 import dev.riftgun.fuel.PortalGunVisualState;
+import dev.riftgun.module.PortalGunModules;
+import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.service.PortalGunLocator;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,6 +27,9 @@ public final class PortalAppearanceRequests {
             error = "message.riftgun.spectator_denied";
         } else if (gun == null) {
             error = "screen.riftgun.appearance.invalid_gun";
+        } else if (PortalGunModules.activeCount(gun.stack(), PortalModuleKind.SKIN,
+            PortalModuleRules.current()) == 0) {
+            error = "message.riftgun.skin_module_required";
         } else if (apply && !PortalGunSkin.validId(Nbt.getString(request, "Skin"))) {
             error = "screen.riftgun.appearance.invalid_skin";
         } else if (!dev.riftgun.appearance.GunPresentationDefaults.initialize(player, gun.stack())) {

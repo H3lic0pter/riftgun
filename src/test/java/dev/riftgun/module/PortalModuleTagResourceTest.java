@@ -47,7 +47,9 @@ final class PortalModuleTagResourceTest {
                 "riftgun:matter_anchor_module",
                 "riftgun:projectile_transit_module",
                 "riftgun:zero_point_fuel_module",
-                "riftgun:creative_module"
+                "riftgun:creative_module",
+                "riftgun:color_module",
+                "riftgun:skin_module"
             ), actual);
         }
     }

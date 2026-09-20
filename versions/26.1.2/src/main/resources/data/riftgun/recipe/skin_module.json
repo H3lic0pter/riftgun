@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "riftgun:basic_module",
+    "minecraft:painting",
+    "minecraft:amethyst_shard"
+  ],
+  "result": {
+    "id": "riftgun:skin_module",
+    "count": 1
+  }
+}

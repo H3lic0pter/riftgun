@@ -79,6 +79,8 @@ public final class PortalModules {
         "creative_module", PortalModuleKind.CREATIVE, ignored -> 1, 0xE6C85C);
     public static final ModuleEntry COLOR = register(
         "color_module", PortalModuleKind.COLOR, ignored -> 1, 0xDD83DF);
+    public static final ModuleEntry SKIN = register(
+        "skin_module", PortalModuleKind.SKIN, ignored -> 1, 0xB69AE8);
 
     private static ModuleEntry register(String name, PortalModuleKind kind,
                                         ToIntFunction<PortalModuleRules> maximumCount, int accentRgb) {

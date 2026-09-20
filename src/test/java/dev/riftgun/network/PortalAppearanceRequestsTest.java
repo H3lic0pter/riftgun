@@ -4,6 +4,9 @@ import dev.riftgun.appearance.PortalGunSkin;
 import dev.riftgun.core.nbt.Nbt;
 import dev.riftgun.core.network.RiftNetwork;
 import dev.riftgun.fuel.PortalGunVisualState;
+import dev.riftgun.module.PortalGunModules;
+import dev.riftgun.module.PortalModuleKind;
+import dev.riftgun.module.PortalModuleRules;
 import dev.riftgun.service.PortalGunLocator;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,7 @@ final class PortalAppearanceRequestsTest {
     private CompoundTag response;
     private MockedStatic<PortalGunLocator> locator;
     private MockedStatic<PortalGunSkin> skins;
+    private MockedStatic<PortalGunModules> modules;
     private String storedSkin;
 
     private <T> MockedStatic<T> boundary(Class<T> type) {
@@ -57,6 +61,12 @@ final class PortalAppearanceRequestsTest {
         when(player.getInventory()).thenReturn(inventory);
         player.containerMenu = menu;
         target = mock(ItemStack.class);
+        modules = boundary(PortalGunModules.class);
+        var rules = PortalModuleRules.defaults();
+        boundary(PortalModuleRules.class).when(PortalModuleRules::current)
+            .thenReturn(rules);
+        modules.when(() -> PortalGunModules.activeCount(eq(target), eq(PortalModuleKind.SKIN), any()))
+            .thenReturn(1);
         when(target.get(dev.riftgun.fuel.PortalGunComponents.PRESENTATION))
             .thenReturn(dev.riftgun.appearance.GunPresentation.DEFAULT);
         when(target.getOrDefault(eq(dev.riftgun.fuel.PortalGunComponents.PRESENTATION), any()))
@@ -165,6 +175,32 @@ final class PortalAppearanceRequestsTest {
     @Test
     void openingReturnsCurrentSkinAndVisualsWithoutApplyingSelection() {
         assertOpeningVisuals(false);
+    }
+
+    @Test
+    void missingSkinModuleRejectsOpeningAndApplyingWithoutChangingSavedAppearance() {
+        modules.when(() -> PortalGunModules.activeCount(eq(target), eq(PortalModuleKind.SKIN), any()))
+            .thenReturn(0);
+        for (boolean apply : new boolean[] {false, true}) {
+            CompoundTag request = request("example:new");
+            request.put("Presentation", dev.riftgun.appearance.GunPresentation.DEFAULT
+                .withVisual("riftgun:endframe").save());
+            PortalAppearanceRequests.handle(player, request, apply);
+            assertRejected("message.riftgun.skin_module_required");
+        }
+    }
+
+    @Test
+    void removingModuleAfterOpeningRevokesApplyPermission() {
+        PortalAppearanceRequests.handle(player, request("example:existing"), false);
+        assertEquals("", Nbt.getString(response, "Error"));
+        modules.when(() -> PortalGunModules.activeCount(eq(target), eq(PortalModuleKind.SKIN), any()))
+            .thenReturn(0);
+        clearInvocations(target);
+
+        PortalAppearanceRequests.handle(player, request("example:new"), true);
+
+        assertRejected("message.riftgun.skin_module_required");
     }
 
     @Test

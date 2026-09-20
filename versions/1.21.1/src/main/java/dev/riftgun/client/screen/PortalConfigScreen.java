@@ -726,8 +726,17 @@ public final class PortalConfigScreen extends Screen {
         } else if (session.page() == PortalConfigPage.GUN_SETTINGS) {
             gunSettingsBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> closeModalNow());
-            button(x + 48, actionY, fieldWidth - 30, 19, "screen.riftgun.appearance", false,
-                ignored -> minecraft.setScreen(new PortalGunAppearanceScreen(this)));
+            boolean skinUnlocked = moduleCount("SKIN") > 0;
+            ThemedButton appearanceButton = button(x + 48, actionY, fieldWidth - 30, 19,
+                skinUnlocked ? "screen.riftgun.appearance" : "screen.riftgun.appearance.locked", false,
+                ignored -> {
+                    if (moduleCount("SKIN") > 0) minecraft.setScreen(new PortalGunAppearanceScreen(this));
+                });
+            appearanceButton.active = skinUnlocked;
+            if (!skinUnlocked) {
+                appearanceButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.translatable("message.riftgun.skin_module_required")));
+            }
         } else if (session.page().isGunSettingPage()) {
             moduleSettingBackButton = button(x + 18, actionY, 24, 19, Component.empty(), false,
                 ignored -> backToGunSettings());

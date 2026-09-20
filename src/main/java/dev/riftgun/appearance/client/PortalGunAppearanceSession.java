@@ -52,6 +52,7 @@ public final class PortalGunAppearanceSession {
         if (!error.isEmpty()) {
             selection.reject();
             invalid = error.equals("screen.riftgun.appearance.invalid_gun")
+                || error.equals("message.riftgun.skin_module_required")
                 || error.equals("message.riftgun.spectator_denied");
             return true;
         }
