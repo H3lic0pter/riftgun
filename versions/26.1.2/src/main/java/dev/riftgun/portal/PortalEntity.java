@@ -403,6 +403,11 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
     }
 
     @Override
+    protected void onBelowWorld() {
+        // Portals remain usable in the void; their own lifecycle controls removal.
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (level().isClientSide()) return;

@@ -16,7 +16,7 @@ public final class PortalStoredPlacementValidator {
 
         if (placement.anchored()) {
             BlockPos anchor = placement.anchor();
-            if (!PortalChunkGuard.inWorldBounds(level, anchor)
+            if (!level.isInWorldBounds(anchor)
                 || level.getBlockState(anchor).getCollisionShape(level, anchor).isEmpty()) return false;
             if (placement.geometry().requiresFullSupport()
                 && !PortalSupportArea.hasFullExpandedSupport(level, placement)) return false;
@@ -27,7 +27,8 @@ public final class PortalStoredPlacementValidator {
         double minimumExposure = placement.geometry().expanded()
             ? PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE
             : RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player);
-        return PortalFaceExposure.hasMinimumExposure(level, placement, minimumExposure);
+        return FloatingPortalBounds.allows(placement.bounds())
+            && PortalFaceExposure.hasMinimumExposure(level, placement, minimumExposure);
     }
 
     private PortalStoredPlacementValidator() {}

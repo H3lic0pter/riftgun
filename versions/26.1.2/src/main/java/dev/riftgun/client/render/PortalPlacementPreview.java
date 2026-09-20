@@ -233,7 +233,6 @@ public final class PortalPlacementPreview {
             return FrontPortalPlacementPlanner.resolve(minecraft.player.position(),
                 minecraft.player.getBoundingBox(), Vec3.ZERO, minecraft.player.getYRot(),
                 orientation, gun.aperture(), PortalPlacementCapabilities.DEFAULT_FRONT_DISTANCE,
-                minecraft.level.dimensionType().minY(),
                 PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE,
                 (placement, exposure) -> PortalFaceExposure.hasMinimumExposure(
                     minecraft.level, placement, exposure)).placement();

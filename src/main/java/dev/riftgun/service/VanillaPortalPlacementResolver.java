@@ -93,17 +93,12 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         }
         EntryResult last = null;
         ServerLevel level = serverLevel(player);
-//? if >=1.21.11 {
-        /*int minimumBuildHeight = level.dimensionType().minY();
-*///?} else {
-        int minimumBuildHeight = level.getMinBuildHeight();
-//?}
         double minimumExposure = RiftRuntime.current().placementCapabilities()
             .minimumFloatingPortalExposure(player);
         for (Vec3 displacement : positions) {
             FrontPortalPlacementPlanner.Result planned = FrontPortalPlacementPlanner.resolve(
                 player.position(), player.getBoundingBox(), displacement, player.getYRot(),
-                horizontal, aperture, frontDistance, minimumBuildHeight, minimumExposure,
+                horizontal, aperture, frontDistance, minimumExposure,
                 (placement, exposure) -> !floatingObstructed(level, placement, exposure));
             if (planned.successful()) return EntryResult.success(planned.placement());
             last = EntryResult.failure(planned.errorKey());
@@ -240,7 +235,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         double exposure = placement.geometry().expanded()
             ? PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE
             : RiftRuntime.current().placementCapabilities().minimumFloatingPortalExposure(player);
-        return outsideWorld(level, placement.bounds()) || floatingObstructed(level, placement, exposure)
+        return !FloatingPortalBounds.allows(placement.bounds()) || floatingObstructed(level, placement, exposure)
             ? EntryResult.failure("message.riftgun.remote_obstructed") : EntryResult.success(placement);
     }
 
@@ -325,7 +320,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
         return new PortalExitPlacementPolicy.SpaceProbe() {
             @Override
             public boolean available(PortalPlacement placement) {
-                return !outsideWorld(level, placement.bounds()) && !blocked(level, placement.bounds());
+                return FloatingPortalBounds.allows(placement.bounds()) && !blocked(level, placement.bounds());
             }
 
             @Override
@@ -351,7 +346,7 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
             PortalGeometry expandedGeometry = floating
                 ? PortalGeometry.FLOATING_EXPANDED : PortalGeometry.SURFACE_EXPANDED;
             PortalPlacement expanded = verticalExit(destination, expandedGeometry);
-            if (!outsideWorld(level, expanded.bounds())
+            if (FloatingPortalBounds.allows(expanded.bounds())
                 && !floatingObstructed(level, expanded, PortalAperturePolicy.EXPANDED_MINIMUM_EXPOSURE)) {
                 return expanded;
             }
@@ -367,14 +362,6 @@ public final class VanillaPortalPlacementResolver implements PortalPlacementReso
     private static boolean floatingObstructed(ServerLevel level, PortalPlacement placement,
                                               double minimumExposure) {
         return !PortalFaceExposure.hasMinimumExposure(level, placement, minimumExposure);
-    }
-
-    private static boolean outsideWorld(ServerLevel level, AABB bounds) {
-        //? if >=1.21.11 {
-        /*return bounds.minY < level.dimensionType().minY() || bounds.maxY > level.dimensionType().minY() + level.dimensionType().height();
-        *///?} else {
-        return bounds.minY < level.getMinBuildHeight() || bounds.maxY > level.getMaxBuildHeight();
-        //?}
     }
 
     private static int backingBlock(ServerLevel level, BlockPos position) {

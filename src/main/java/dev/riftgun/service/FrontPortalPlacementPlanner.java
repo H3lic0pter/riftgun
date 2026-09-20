@@ -14,7 +14,7 @@ public final class FrontPortalPlacementPlanner {
     public static Result resolve(Vec3 playerPosition, AABB playerBounds, Vec3 displacement,
                                  float yaw, PortalOrientation orientation,
                                  PortalAperture aperture, double frontDistance,
-                                 int minimumBuildHeight, double minimumExposure,
+                                 double minimumExposure,
                                  Probe probe) {
         if (orientation == null || aperture == null || probe == null) {
             throw new IllegalArgumentException("front placement inputs are required");
@@ -26,8 +26,8 @@ public final class FrontPortalPlacementPlanner {
         for (PortalGeometry geometry : geometries) {
             PortalPlacement placement = placement(playerPosition, playerBounds, displacement,
                 yaw, orientation, geometry, frontDistance);
-            if (!FloatingPortalBounds.allows(placement.bounds(), minimumBuildHeight)) {
-                last = Result.failure("message.riftgun.void_portal_too_late");
+            if (!FloatingPortalBounds.allows(placement.bounds())) {
+                last = Result.failure("message.riftgun.coordinate_out_of_bounds");
                 continue;
             }
             double exposure = geometry.expanded()

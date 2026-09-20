@@ -92,6 +92,20 @@ final class PortalInstancesTest {
     }
 
     @Test
+    void vanillaVoidCheckDoesNotDiscardPortalBeforeItsLifecycleEnds() {
+        PortalEntity portal = mock(PortalEntity.class);
+        when(portal.level()).thenReturn(level);
+        when(portal.getY()).thenReturn(-1_000.0);
+        doCallRealMethod().when(portal).checkBelowWorld();
+        doCallRealMethod().when(portal).onBelowWorld();
+
+        portal.checkBelowWorld();
+
+        verify(portal).onBelowWorld();
+        verify(portal, never()).discard();
+    }
+
+    @Test
     void coordinateReplacementRetainsPairAndMarkerAndOtherPlayers() {
         var pending = marker(PortalPairingEndpoint.A);
         PortalInstances.placePending(player, pending);

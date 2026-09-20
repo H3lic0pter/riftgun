@@ -55,7 +55,6 @@ public final class RemotePortalPlacementResolver {
             ? PortalAperturePolicy.floatingVertical() : PortalAperturePolicy.horizontal();
         PortalGeometry largest = PortalAperturePolicy.expanded(aperture) ? expanded : standard;
         double boundedRange = Math.max(MINIMUM_DISTANCE, maximumRange);
-        boundedRange = worldHeightRange(level, eye, look, largest, viewer.getYRot(), boundedRange);
         boundedRange = loadedClientRange(level, eye, look, boundedRange,
             orientation, largest, viewer.getYRot());
         if (boundedRange < MINIMUM_DISTANCE) return Optional.empty();
@@ -235,30 +234,6 @@ public final class RemotePortalPlacementResolver {
         return true;
     }
 
-    private static double worldHeightRange(Level level, Vec3 eye, Vec3 look,
-                                           PortalGeometry geometry, float yaw,
-                                           double maximumRange) {
-        PortalPlacement origin = placement(eye, geometry == PortalGeometry.HORIZONTAL
-                || geometry == PortalGeometry.HORIZONTAL_EXPANDED
-                ? PortalOrientation.TOP : PortalOrientation.VERTICAL,
-            geometry, yaw);
-        double lowerExtent = eye.y - origin.bounds().minY;
-        double upperExtent = origin.bounds().maxY - eye.y;
-//? if >=1.21.11 {
-        /*double minimumY = level.dimensionType().minY();
-        double maximumY = minimumY + level.dimensionType().height();
-*///?} else {
-        double minimumY = level.getMinBuildHeight();
-        double maximumY = level.getMaxBuildHeight();
-//?}
-        if (look.y > 1.0E-7) {
-            maximumRange = Math.min(maximumRange, (maximumY - upperExtent - eye.y) / look.y);
-        } else if (look.y < -1.0E-7) {
-            maximumRange = Math.min(maximumRange, (minimumY + lowerExtent - eye.y) / look.y);
-        }
-        return Math.max(MINIMUM_DISTANCE, maximumRange);
-    }
-
     static PortalPlacement placement(Vec3 center, PortalOrientation orientation,
                                      PortalGeometry geometry, float yaw) {
         // Like FRONT, the vertical entrance must face the shooter, not the shot direction.
@@ -267,19 +242,8 @@ public final class RemotePortalPlacementResolver {
     }
 
     private static boolean available(Level level, PortalPlacement placement, double minimumExposure) {
-        return !outsideWorld(level, placement)
+        return FloatingPortalBounds.allows(placement.bounds())
             && PortalFaceExposure.hasMinimumExposure(level, placement, minimumExposure);
-    }
-
-    private static boolean outsideWorld(Level level, PortalPlacement placement) {
-//? if >=1.21.11 {
-        /*int minimumY = level.dimensionType().minY();
-        int maximumY = minimumY + level.dimensionType().height();
-*///?} else {
-        int minimumY = level.getMinBuildHeight();
-        int maximumY = level.getMaxBuildHeight();
-//?}
-        return placement.bounds().minY < minimumY || placement.bounds().maxY > maximumY;
     }
 
     private RemotePortalPlacementResolver() {}

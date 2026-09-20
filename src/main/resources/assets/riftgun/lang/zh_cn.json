@@ -215,7 +215,6 @@
   "message.riftgun.dimension_unavailable": "目的地维度不可用",
   "message.riftgun.placement_mode": "传送门放置模式：%s",
   "message.riftgun.front_obstructed": "面前空间不足，无法开启传送门",
-  "message.riftgun.void_portal_too_late": "已无法及时在虚空中稳定传送门",
   "message.riftgun.crisis": "此次传送因不稳定的传送液发生了故障，你陷入了 %s 危机。",
   "crisis.riftgun.high_altitude_fall": "高空坠落",
   "crisis.riftgun.lava_hazard": "熔岩险境",

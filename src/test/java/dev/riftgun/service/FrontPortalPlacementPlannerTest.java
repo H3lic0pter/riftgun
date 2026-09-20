@@ -45,12 +45,30 @@ final class FrontPortalPlacementPlannerTest {
         assertEquals("message.riftgun.front_obstructed", result.errorKey());
     }
 
+    @Test
+    void allOrientationsCanOpenDeepInTheVoidWithoutBypassingObstruction() {
+        Vec3 position = new Vec3(0.0, -200.0, 0.0);
+        AABB bounds = PLAYER_BOUNDS.move(0.0, -264.0, 0.0);
+        for (PortalOrientation orientation : PortalOrientation.values()) {
+            for (PortalAperture aperture : PortalAperture.values()) {
+                var result = FrontPortalPlacementPlanner.resolve(position, bounds, Vec3.ZERO,
+                    0.0F, orientation, aperture, 2.0, 0.5, (placement, exposure) -> true);
+                assertTrue(result.successful(), orientation + " " + aperture);
+                assertTrue(result.placement().bounds().maxY < -128.0);
+
+                var blocked = FrontPortalPlacementPlanner.resolve(position, bounds, Vec3.ZERO,
+                    0.0F, orientation, aperture, 2.0, 0.5, (placement, exposure) -> false);
+                assertEquals("message.riftgun.front_obstructed", blocked.errorKey());
+            }
+        }
+    }
+
     private static FrontPortalPlacementPlanner.Result resolve(
         PortalOrientation orientation, PortalAperture aperture,
         FrontPortalPlacementPlanner.Probe probe
     ) {
         return FrontPortalPlacementPlanner.resolve(new Vec3(0.0, 64.0, 0.0), PLAYER_BOUNDS,
-            Vec3.ZERO, 0.0F, orientation, aperture, 2.0, -64,
+            Vec3.ZERO, 0.0F, orientation, aperture, 2.0,
             PortalPlacementCapabilities.DEFAULT_MINIMUM_FLOATING_PORTAL_EXPOSURE, probe);
     }
 }
