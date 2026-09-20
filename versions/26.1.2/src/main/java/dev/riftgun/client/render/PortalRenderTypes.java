@@ -154,9 +154,19 @@ public final class PortalRenderTypes {
 
         public static final RenderPipeline MAGIC_CIRCLE = magicCircle(false);
         public static final RenderPipeline MAGIC_CIRCLE_GLOW = magicCircle(true);
+        // Vanilla emissive state with depth writes; Iris keeps its original shader via the bridge.
+        public static final RenderPipeline MAGIC_CIRCLE_SHADER = RenderPipeline.builder(RenderPipelines.ENTITY_EMISSIVE_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID, "pipeline/magic_circle_shader"))
+            .withShaderDefine("ALPHA_CUTOUT", 0.1F)
+            .withShaderDefine("PER_FACE_LIGHTING")
+            .withSampler("Sampler1")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withCull(false)
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
+            .build();
 
         private static RenderPipeline magicCircle(boolean glow) {
-            return RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+            var builder = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
                 .withLocation(Identifier.fromNamespaceAndPath(RiftGun.MOD_ID,
                     glow ? "pipeline/magic_circle_glow" : "pipeline/magic_circle"))
                 .withVertexShader("core/entity")
@@ -168,8 +178,11 @@ public final class PortalRenderTypes {
                 .withColorTargetState(new ColorTargetState(glow ? BlendFunction.LIGHTNING : BlendFunction.TRANSLUCENT))
                 .withCull(true)
                 .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
-                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
-                .build();
+                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, !glow));
+            // Match the 1.21.1 body shader: holes must not occlude later water/cloud passes.
+            // The additive halo keeps its soft alpha and never writes depth.
+            if (!glow) builder.withShaderDefine("ALPHA_CUTOUT", 0.1F);
+            return builder.build();
         }
 
         private Pipelines() {}
@@ -316,10 +329,10 @@ public final class PortalRenderTypes {
         return SWIRL_FALLBACK;
     }
 
-    /** Use the exact vanilla pipeline identity: Iris maps it to its translucent eyes shader. */
+    /** Preserve Iris's translucent eyes shader while allowing strokes to write depth. */
     public static RenderType magicCircleShaderLayer(Identifier texture) {
         return RenderType.create("riftgun_magic_shader_" + texture.getPath(),
-            RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE)
+            RenderSetup.builder(IrisEmissivePipelineBridge.magicCircle())
                 .withTexture("Sampler0", texture,
                     () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
                 .useOverlay().sortOnUpload().bufferSize(256).createRenderSetup());

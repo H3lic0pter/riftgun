@@ -216,12 +216,21 @@ public final class PortalRenderTypes extends RenderType {
         return RenderType.entityCutoutNoCull(SWIRL_TEXTURE);
     }
 
-    /** Iris recognizes the vanilla translucent emissive shader. */
+    /** Keep Iris's emissive shader mapping while letting visible strokes occlude later translucency. */
     public static RenderType magicCircleShaderLayer(ResourceLocation texture) {
-        return RenderType.entityTranslucentEmissive(texture, false);
+        return create("riftgun_magic_shader_" + texture.getPath(),
+            DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 256, true, true,
+            CompositeState.builder()
+                .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_EMISSIVE_SHADER)
+                .setTextureState(new TextureStateShard(texture, false, false))
+                .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                .setCullState(NO_CULL)
+                .setOverlayState(OVERLAY)
+                .setWriteMaskState(COLOR_DEPTH_WRITE)
+                .createCompositeState(false));
     }
 
-    /** Cached by the magic renderer; alpha holes never write depth over the other rings. */
+    /** Body strokes occlude later translucency; the shader discards alpha holes and the halo only writes color. */
     public static RenderType magicCircleLayer(ResourceLocation texture, boolean glow) {
         return create("riftgun_magic_" + texture.getPath() + (glow ? "_glow" : ""),
             DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 2048, false, true,
@@ -230,7 +239,7 @@ public final class PortalRenderTypes extends RenderType {
                 .setTextureState(new TextureStateShard(texture, true, false))
                 .setTransparencyState(glow ? LIGHTNING_TRANSPARENCY : TRANSLUCENT_TRANSPARENCY)
                 .setCullState(CULL)
-                .setWriteMaskState(COLOR_WRITE)
+                .setWriteMaskState(glow ? COLOR_WRITE : COLOR_DEPTH_WRITE)
                 .createCompositeState(false));
     }
 
