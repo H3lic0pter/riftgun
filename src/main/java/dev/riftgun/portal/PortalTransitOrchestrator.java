@@ -227,15 +227,6 @@ final class PortalTransitOrchestrator {
 //?}
             targetLevel.isPositionEntityTicking(target.blockPosition()));
         Vec3 rootDestination = treeDestination(root, target);
-        if (rootDestination == null) {
-            TransitDiagnostics.warning("normal portal preflight failed sourcePortal={} targetPortal={} root={}",
-                portal.getUUID(), target.getUUID(), root.getUUID());
-            leave(root.getUUID());
-            logTreeFailure(root, root, (ServerLevel) target.level(),
-                PortalTransitService.FailureStage.PREFLIGHT_CLEARANCE, 0);
-            notifyRefusal(root, Component.translatable("message.riftgun.exit_blocked"));
-            return null;
-        }
         PortalTransitService.TransitPlan[] rootPlan = new PortalTransitService.TransitPlan[1];
         int[] movedCount = new int[1];
         long teleportStarted = TransitDiagnostics.enabled() ? System.nanoTime() : 0L;
@@ -289,21 +280,16 @@ final class PortalTransitOrchestrator {
         return movedRoot;
     }
 
-    private @Nullable Vec3 treeDestination(Entity root, PortalEntity target) {
+    private Vec3 treeDestination(Entity root, PortalEntity target) {
         Vec3 destination = target.outputPosition(root);
         Vec3 translation = destination.subtract(root.position());
         List<AABB> predicted = root.getSelfAndPassengers()
             .map(entity -> entity.getBoundingBox().move(translation))
             .toList();
-        double correction = PortalTreeClearance.outwardCorrection(
-            target.placement(), predicted, target.horizontalTriggerExtend());
-        Vec3 correctionVector = target.normal().scale(correction);
         ServerLevel targetLevel = (ServerLevel) target.level();
-        for (AABB bounds : predicted) {
-            AABB corrected = bounds.move(correctionVector).deflate(0.001);
-            if (targetLevel.getBlockCollisions(null, corrected).iterator().hasNext()) return null;
-        }
-        return destination.add(correctionVector);
+        return PortalTreeClearance.destination(target.placement(), destination, predicted,
+            target.horizontalTriggerExtend(),
+            bounds -> targetLevel.getBlockCollisions(null, bounds).iterator().hasNext());
     }
 
     private boolean projectileBudgetAllows(Entity entity) {

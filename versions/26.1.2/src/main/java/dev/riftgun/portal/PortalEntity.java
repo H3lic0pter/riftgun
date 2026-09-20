@@ -668,7 +668,8 @@ public final class PortalEntity extends Entity implements PortalVisualSource {
                 placement(), entity.getBbWidth(), entity.getBbHeight());
         }
         return switch (orientation()) {
-            case VERTICAL -> position().add(normal().scale(0.85)).subtract(up().scale(portalHeight() * 0.5));
+            case VERTICAL -> PortalTreeClearance.verticalPosition(
+                placement(), entity.position(), entity.getBoundingBox());
             case TOP -> position().add(normal().scale(0.15));
             case BOTTOM -> position().add(normal().scale(entity.getBbHeight() + 0.15));
         };
