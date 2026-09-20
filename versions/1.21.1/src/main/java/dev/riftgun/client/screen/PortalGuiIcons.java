@@ -25,9 +25,8 @@ final class PortalGuiIcons {
     private static final int PLACEMENT_BUTTON_X = 2;
     private static final int PLACEMENT_FRONT_BUTTON_X = 1;
     private static final int PLACEMENT_BUTTON_Y = 2;
-    // The arrow artwork is right-heavy inside its canvas. This correction centers its
-    // visible pixels in every compact 19 x 18 back button.
-    private static final int COMPACT_BACK_CANVAS_X = 2;
+    // Shift the back arrow 1 px right of canvas centering: +5 in 24 px buttons, +2 in 19 px buttons.
+    private static final int BACK_OPTICAL_SHIFT_X = 1;
     private static final int COMPACT_BACK_CANVAS_Y = 1;
 
     /** Accepts button bounds and centers the standard 16 x 16 random-rift sprite within them. */
@@ -192,10 +191,11 @@ final class PortalGuiIcons {
         GuiSprite.draw(graphics, PortalGuiSprites.DROPDOWN, x - 4, y - 6);
     }
 
-    /** Accepts the compact back button origin and applies the shared optical correction. */
-    static void drawCompactBackButtonIcon(GuiGraphics graphics, int buttonX, int buttonY) {
+    /** Accepts the back button origin and width; Y retains the shared compact-button inset. */
+    static void drawCompactBackButtonIcon(GuiGraphics graphics, int buttonX, int buttonY, int buttonWidth) {
         GuiSprite.draw(graphics, PortalGuiSprites.BACK,
-            buttonX + COMPACT_BACK_CANVAS_X, buttonY + COMPACT_BACK_CANVAS_Y);
+            buttonX + (buttonWidth - PortalGuiSprites.BACK.size()) / 2 + BACK_OPTICAL_SHIFT_X,
+            buttonY + COMPACT_BACK_CANVAS_Y);
     }
 
     static void drawResetIcon(GuiGraphics graphics, int x, int y, int color) {

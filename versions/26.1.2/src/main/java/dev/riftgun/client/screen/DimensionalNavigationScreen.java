@@ -239,7 +239,7 @@ public final class DimensionalNavigationScreen extends Screen {
             renderable.extractRenderState(graphics, mouseX, mouseY, partialTick);
         }
         if (backButton != null) PortalGuiIcons.drawCompactBackButtonIcon(
-            graphics, backButton.getX(), backButton.getY());
+            graphics, backButton.getX(), backButton.getY(), backButton.getWidth());
         if (dimensionDropdownButton != null) PortalGuiIcons.drawDownIcon(graphics,
             dimensionDropdownButton.getX() + 6, dimensionDropdownButton.getY() + 7);
         if (controller.dropdownOpen()) renderDimensionDropdown(graphics, mouseX, mouseY);

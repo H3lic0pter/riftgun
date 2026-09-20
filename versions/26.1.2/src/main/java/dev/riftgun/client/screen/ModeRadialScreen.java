@@ -297,11 +297,12 @@ public final class ModeRadialScreen extends Screen {
         if (controller.closingPortals()) {
             centeredWrappedText(graphics, Component.translatable("screen.riftgun.close_radial.title"),
                 centerX, centerY - 14, INNER_RADIUS * 2, PortalTheme.TEXT);
-            centeredText(graphics, controller.selection() < 0
+            Object selected = controller.selection() < 0 ? null : options.get(controller.selection());
+            int color = selected == null ? 0xFFFFFFFF
+                : selected == PortalFunctionMode.PORTAL_PAIRING ? PortalTheme.AMBER : PortalTheme.ICE;
+            centeredText(graphics, selected == null
                 ? Component.translatable("screen.riftgun.close_radial.cancel")
-                : label(options.get(controller.selection())), centerX, centerY + 9, PortalTheme.AMBER);
-            centeredText(graphics, Component.translatable("screen.riftgun.close_radial.hint"),
-                centerX, Math.min(centerY + outerRadius() + 12, height - 12), PortalTheme.TEXT_MUTED);
+                : label(selected), centerX, centerY + 9, color);
             return;
         }
         if (controller.page() == ModeRadialController.Page.SURFACE_FACE) {

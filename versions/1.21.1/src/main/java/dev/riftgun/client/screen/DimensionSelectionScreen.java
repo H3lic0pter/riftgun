@@ -88,7 +88,7 @@ public final class DimensionSelectionScreen extends Screen {
             graphics.flush();
         }
         if (backButton != null) PortalGuiIcons.drawCompactBackButtonIcon(
-            graphics, backButton.getX(), backButton.getY());
+            graphics, backButton.getX(), backButton.getY(), backButton.getWidth());
     }
 
     @Override

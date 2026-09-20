@@ -7,6 +7,10 @@ public final class PortalConfigLayout {
     public static final int ROW_HEIGHT = 18;
     public static final int ROW_ACTION_SIZE = 14;
     public static final int DETAIL_LINE_HEIGHT = 31;
+    public static final int MODULE_SETTING_BUTTON_SIZE = 26;
+    public static final int MODULE_SETTING_BUTTON_GAP = 5;
+    // Preserve the release's 340 px dialog: 18 px left + 17 px right leaves 305 px for ten buttons.
+    public static final int MODULE_SETTING_HORIZONTAL_PADDING = 35;
 
     public static Box modalBox(PortalConfigPage page, int screenWidth, int screenHeight,
                                int panelWidth, int descriptionExtraHeight) {
@@ -17,9 +21,8 @@ public final class PortalConfigLayout {
             case SETTINGS -> 201;
             case CONFIRM_SETTINGS -> 140;
             case MAP_INTEGRATION_SETTINGS -> 170;
-            case GUN_SETTINGS -> 163;
             case COLOR_SETTINGS -> 156;
-            case PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
+            case GUN_SETTINGS, PORTAL_DURATION_SETTINGS, SMART_DISTANCE_SETTINGS,
                  APERTURE_SETTINGS, PLAYER_TARGET_SETTINGS, FALL_GUARD_SETTINGS,
                  ENTITY_RELOCATION_SETTINGS, PORTAL_PAIRING_SETTINGS -> 132;
             case REMOTE_SETTINGS -> 180;

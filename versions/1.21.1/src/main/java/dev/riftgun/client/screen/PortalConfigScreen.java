@@ -448,7 +448,8 @@ public final class PortalConfigScreen extends Screen {
         Box box = modalBox();
         int x = box.x();
         int y = box.y();
-        int fieldWidth = box.width() - 36;
+        int fieldWidth = box.width() - (session.page() == PortalConfigPage.GUN_SETTINGS
+            ? PortalConfigLayout.MODULE_SETTING_HORIZONTAL_PADDING : 36);
         int gunSettingControlY = gunSettingControlTop(box);
         groupDropdownOpen = false;
         closeSelectorDropdown();
@@ -536,60 +537,63 @@ public final class PortalConfigScreen extends Screen {
             }
             addRenderableWidget(new MapWaypointLimitSlider(x + 18, optionY, fieldWidth, 18));
         } else if (session.page() == PortalConfigPage.GUN_SETTINGS) {
+            int buttonSize = PortalConfigLayout.MODULE_SETTING_BUTTON_SIZE;
+            int buttonGap = PortalConfigLayout.MODULE_SETTING_BUTTON_GAP;
+            int buttonStep = buttonSize + buttonGap;
             int buttonX = x + 18;
-            portalDurationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+            portalDurationSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                 ignored -> openGunSetting(PortalConfigPage.PORTAL_DURATION_SETTINGS));
-            buttonX += 31;
-            smartRangeSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+            buttonX += buttonStep;
+            smartRangeSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                 ignored -> openGunSetting(PortalConfigPage.SMART_DISTANCE_SETTINGS));
-            buttonX += 31;
+            buttonX += buttonStep;
             if (remoteInstalled()) {
-                remoteSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                remoteSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.REMOTE_SETTINGS));
-                buttonX += 31;
+                buttonX += buttonStep;
             }
             if (hasEntityTransitModule()) {
-                entityTransitSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                entityTransitSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.ENTITY_TRANSIT_SETTINGS));
-                buttonX += 31;
+                buttonX += buttonStep;
             }
             if (moduleCount("PLAYER_TARGET") > 0) {
-                playerTargetSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                playerTargetSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.PLAYER_TARGET_SETTINGS));
-                buttonX += 31;
+                buttonX += buttonStep;
             }
             if (moduleCount("APERTURE_EXPANSION") > 0) {
-                apertureSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                apertureSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.APERTURE_SETTINGS));
-                buttonX += 31;
+                buttonX += buttonStep;
             }
             if (moduleCount("FALL_GUARD") > 0) {
-                fallGuardSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                fallGuardSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.FALL_GUARD_SETTINGS));
-                buttonX += 31;
+                buttonX += buttonStep;
             }
             if (moduleCount("ENTITY_RELOCATION") > 0) {
-                entityRelocationSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                entityRelocationSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.ENTITY_RELOCATION_SETTINGS));
-                buttonX += 31;
+                buttonX += buttonStep;
             }
             if (moduleCount("PORTAL_PAIRING") > 0 || remoteInstalled()) {
-                portalPairingSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                portalPairingSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.PORTAL_PAIRING_SETTINGS));
             }
             if (moduleCount("COLOR") > 0) {
-                colorSettingsButton = button(buttonX, y + 45, 26, 26, Component.empty(), false,
+                colorSettingsButton = button(buttonX, y + 45, buttonSize, buttonSize, Component.empty(), false,
                     ignored -> openGunSetting(PortalConfigPage.COLOR_SETTINGS));
             }
             // Wrap the module entries instead of overflowing the panel when every module is active.
-            int columns = Math.max(1, (fieldWidth + 5) / 31);
+            int columns = Math.max(1, (fieldWidth + buttonGap) / buttonStep);
             int index = 0;
             for (ThemedButton entry : java.util.Arrays.asList(portalDurationSettingsButton,
                     smartRangeSettingsButton, remoteSettingsButton, entityTransitSettingsButton,
                     playerTargetSettingsButton, apertureSettingsButton, fallGuardSettingsButton,
                     entityRelocationSettingsButton, portalPairingSettingsButton, colorSettingsButton)) {
                 if (entry == null) continue;
-                entry.setPosition(x + 18 + index % columns * 31, y + 45 + index / columns * 31);
+                entry.setPosition(x + 18 + index % columns * buttonStep, y + 45 + index / columns * buttonStep);
                 index++;
             }
         } else if (session.page() == PortalConfigPage.COLOR_SETTINGS) {
@@ -728,7 +732,7 @@ public final class PortalConfigScreen extends Screen {
                 ignored -> closeModalNow());
             boolean skinUnlocked = moduleCount("SKIN") > 0;
             ThemedButton appearanceButton = button(x + 48, actionY, fieldWidth - 30, 19,
-                skinUnlocked ? "screen.riftgun.appearance" : "screen.riftgun.appearance.locked", false,
+                "screen.riftgun.appearance", false,
                 ignored -> {
                     if (moduleCount("SKIN") > 0) minecraft.setScreen(new PortalGunAppearanceScreen(this));
                 });
@@ -1506,7 +1510,7 @@ public final class PortalConfigScreen extends Screen {
         if (session.page() == PortalConfigPage.VISUAL_SETTINGS
             || session.page() == PortalConfigPage.SHOT_ANIMATION_SETTINGS) {
             if (visualBackButton != null) {
-                drawCompactBackButtonIcon(graphics, visualBackButton.getX(), visualBackButton.getY());
+                drawCompactBackButtonIcon(graphics, visualBackButton.getX(), visualBackButton.getY(), visualBackButton.getWidth());
             }
             if (!selectorDropdownOpen() && visualAnimationSettingsButton != null) {
                 drawSwirlIcon(graphics, visualAnimationSettingsButton.getX() + 5,
@@ -1516,7 +1520,7 @@ public final class PortalConfigScreen extends Screen {
         if (session.page() == PortalConfigPage.SWIRL_ANIMATION_SETTINGS) {
             if (swirlAnimationBackButton != null) {
                 drawCompactBackButtonIcon(graphics, swirlAnimationBackButton.getX(),
-                    swirlAnimationBackButton.getY());
+                    swirlAnimationBackButton.getY(), swirlAnimationBackButton.getWidth());
             }
             if (visualResetButton != null && visualResetButton.visible) {
                 drawResetIcon(graphics, visualResetButton.getX() + 5, visualResetButton.getY() + 4,
@@ -1525,7 +1529,7 @@ public final class PortalConfigScreen extends Screen {
         }
         if (session.page() == PortalConfigPage.SOUND_SETTINGS) {
             if (soundBackButton != null) {
-                drawCompactBackButtonIcon(graphics, soundBackButton.getX(), soundBackButton.getY());
+                drawCompactBackButtonIcon(graphics, soundBackButton.getX(), soundBackButton.getY(), soundBackButton.getWidth());
             }
         }
         for (ThemedButton dropdown : selectorDropdownButtons) {
@@ -1905,7 +1909,7 @@ public final class PortalConfigScreen extends Screen {
 
     private void renderBackButton(GuiGraphics graphics, @Nullable ThemedButton button) {
         if (button == null) return;
-        drawCompactBackButtonIcon(graphics, button.getX(), button.getY());
+        drawCompactBackButtonIcon(graphics, button.getX(), button.getY(), button.getWidth());
     }
 
     private void renderBackButtonTooltip(GuiGraphics graphics, @Nullable ThemedButton button,
