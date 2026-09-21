@@ -49,6 +49,8 @@ final class PortalGunModeIndicatorTest {
         net.minecraft.server.Bootstrap.bootStrap();
 
         gun = mock(ItemStack.class);
+        when(gun.getOrDefault(eq(PortalGunComponents.DISPLAY_COLOR), anyInt()))
+            .thenAnswer(call -> call.getArgument(1));
         settings = PortalGunModuleSettings.defaults(8);
         visual = new PortalGunVisualState(0, false, PortalFuelProfiles.DIMENSIONAL_RGB);
         pairingInstalled = true;

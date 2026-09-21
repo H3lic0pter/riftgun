@@ -8,12 +8,14 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 /**
  * Keeps the shared source tree free of APIs that churn between Minecraft
- * versions. Anything that imports these packages belongs in the per-version
- * node sources (versions/&lt;version&gt;/src) instead of the shared tree.
+ * versions. Version-facing code belongs in per-version node sources, except
+ * explicitly reviewed client adapters shared through Stonecutter guards.
+ * Shared client policies may depend on other classes in the shared tree.
  *
  * <p>Deliberately not banned yet: {@code net.minecraft.nbt} is used by many
  * shared files; the 1.21.6 NBT rework is handled during the port, not by
@@ -21,6 +23,14 @@ import org.junit.jupiter.api.Test;
  */
 final class SharedSourceBoundaryTest {
     private static final Path MAIN = Path.of("src/main/java/dev/riftgun");
+    private static final Pattern IMPORT = Pattern.compile(
+        "(?m)^\\s*import\\s+(?:static\\s+)?([\\w.*]+)\\s*;");
+    private static final Set<String> SHARED_CLIENT_ADAPTERS = Set.of(
+        // Engine particle ownership; only client lifecycle hooks call this manager.
+        "client/particle/ParticleEffectManager.java",
+        // Native GUI and texture APIs have explicit Stonecutter version guards.
+        "client/screen/PortalColorPickerScreen.java",
+        "client/screen/SurfacePortalSizeIcon.java");
     private static final List<String> BANNED_PREFIXES = List.of(
         "net.minecraft.client.",   // renderer/GUI churn in every major release
         "dev.riftgun.client.",     // version-private package
@@ -28,13 +38,23 @@ final class SharedSourceBoundaryTest {
 
     @Test
     void sharedSourcesDoNotImportVersionSensitivePackages() throws IOException {
+        Set<String> shared = fqcns(MAIN);
         try (var paths = Files.walk(MAIN)) {
             for (Path source : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
-                String text = Files.readString(source);
-                for (String banned : BANNED_PREFIXES) {
-                    assertFalse(text.contains(banned),
-                        () -> source + " imports version-sensitive " + banned
-                            + " (move it to versions/<version>/src)");
+                String relative = MAIN.relativize(source).toString().replace('\\', '/');
+                if (SHARED_CLIENT_ADAPTERS.contains(relative)) continue;
+                var imports = IMPORT.matcher(Files.readString(source));
+                while (imports.find()) {
+                    String imported = imports.group(1);
+                    boolean sharedType = shared.stream().anyMatch(type ->
+                        imported.equals("dev.riftgun." + type)
+                            || imported.startsWith("dev.riftgun." + type + "."));
+                    if (sharedType) continue;
+                    for (String banned : BANNED_PREFIXES) {
+                        assertFalse(imported.startsWith(banned),
+                            () -> source + " imports version-sensitive " + imported
+                                + " (move it to versions/<version>/src)");
+                    }
                 }
             }
         }

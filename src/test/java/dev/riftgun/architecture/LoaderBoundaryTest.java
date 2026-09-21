@@ -20,7 +20,7 @@ final class LoaderBoundaryTest {
         "fuel/PortalGunFluidInteractions.java", "fuel/PortalGunSnapshot.java",
         "fuel/PortalGunTank.java", "fuel/PortalGunWorldScoop.java",
         "module/PortalModuleMenus.java", "module/PortalModules.java",
-        "portal/PortalGunItem.java",
+        "portal/PortalGunItem.java", "particle/RiftParticles.java",
         "recipe/FluidTransmutationEvents.java", "recipe/FluidTransmutationMatcher.java",
         "recipe/FluidTransmutationRecipe.java", "recipe/FluidTransmutationService.java",
         "recipe/RiftGunRecipes.java", "sound/PortalSounds.java");

@@ -3,17 +3,12 @@
 Rift Gun is a NeoForge portal-gun mod for Minecraft 1.21.1 and 26.1.2. It
 creates linked, walk-through portals for local and cross-dimensional travel,
 with saved destinations, modular gun upgrades, configurable placement, player
-privacy, three portal-fluid tiers, and client-local visual and sound themes.
+privacy, three portal-fluid tiers, and per-gun appearances and sound themes.
 
 The project is preparing version 0.2.2-r1 for both supported versions. The 26.1.2 port
 is newer and has seen less testing than the 1.21.1 build. Back up worlds
 before updating and expect configuration or save-data migration requirements
 before `1.0.0`.
-
-Release notes: [1.21.1](docs/release-notes/1.21.1-v0.2.1-r1.md) and
-[26.1.2](docs/release-notes/26.1.2-v0.2.1-r1.md).
-
-Changes after those releases: [Unreleased](docs/release-notes/UNRELEASED.md).
 
 ## Requirements
 
@@ -37,7 +32,7 @@ optional; it adds portal light to nearby blocks on both supported builds.
 3. Install the same Rift Gun build on both the server and every connecting client. The current development network protocol is `3`; protocol-`2` and older builds are rejected. Published `0.2.1-r1` artifacts use protocol `2`; see the release notes for those builds.
 4. Optionally install JEI and/or LambDynamicLights on the client.
 
-Back up the world before changing mod versions. Rift Gun stores destinations and privacy preferences as server-side player data, while visual preferences remain client-local.
+Back up the world before changing mod versions. Rift Gun stores destinations and privacy preferences as server-side player data, while skin, display color, portal visual, shot animation, and sound choices are stored on each gun. Detailed visual and recoil tuning remain client-local.
 
 ## Getting started
 
@@ -46,7 +41,7 @@ Back up the world before changing mod versions. Rift Gun stores destinations and
 - Save the current position or select an existing destination. The GUI's **Open Portal** action always creates the entrance in front of the player.
 - Right-click the gun to open a portal using its current `SMART`, `FRONT`, or `SURFACE` placement mode.
 - Press `V` to cycle placement modes. Direct front placement, direct surface placement, and close-portals key mappings are unbound by default.
-- Walk into the portal to travel. Opening another portal pair closes the previous pair owned by that player.
+- Walk into the portal to travel. Coordinate Travel and Portal Pairing each keep one independent portal group per player. Opening another group replaces only that mode’s previous group.
 
 Destinations support shared groups, pinning, remembered sorting, coordinate entry when the required module is installed, and same- or cross-dimensional targets. Safety inspection warns through the action bar but does not move the destination, break blocks, or prevent a portal from opening.
 
@@ -54,11 +49,16 @@ Destinations support shared groups, pinning, remembered sorting, coordinate entr
 
 ### Skin recommendations
 
+The Skin Module unlocks changing the gun skin. Removing it keeps the selected skin.
+Built-in alternatives include Aperture-ish and Arcane Rift Staff; resource packs can
+supply additional skins. The appearance screen also offers a button to apply the
+current skin's recommendations in one step, regardless of the three automatic-application switches.
+
 The appearance screen has three independent switches, all enabled by default: **Use recommended sounds**,
 **Use recommended portal visual**, and **Use recommended shot animation**. Applying a skin successfully
 updates the enabled categories. Browsing previews or a rejected skin change does not change preferences.
-Turning a switch off immediately restores that category's custom setting; turning it on applies the
-currently applied skin's recommendation. Editing a setting manually applies and saves the new custom
+Turning a switch off keeps the current value; turning it on applies the currently
+applied skin's recommendation. Editing a setting manually applies and saves the new custom
 choice without changing its recommendation switch. The next successful skin application updates that
 category again if its recommendation switch is still enabled.
 
@@ -85,36 +85,24 @@ portalVisual = "riftgun:endframe"
 shotAnimation = "RECOIL"
 
 [appearance.presets.arcane_rift_staff]
-shotSound = "CUSTOM"
-portalSound = "CUSTOM"
-transitSound = "CUSTOM"
-portalVisual = "CUSTOM"
+shotSound = "riftgun:arcane"
+portalSound = "riftgun:arcane"
+transitSound = "riftgun:arcane"
+portalVisual = "riftgun:magic_circle"
 shotAnimation = "SWING"
-
-[appearance.presets.pink_water_gun]
-shotSound = "CUSTOM"
-portalSound = "CUSTOM"
-transitSound = "CUSTOM"
-portalVisual = "CUSTOM"
-shotAnimation = "CUSTOM"
 
 ```
 
-`CUSTOM` restores the saved custom choice for that field. Animation values also accept `OFF`, `RECOIL`,
-`SWING`, and `LOWER`. Sounds use the existing choices for each channel; unavailable choices retain the
-custom sound. Particle sound and recoil tuning remain custom. Presets apply to the existing player/client
-preferences, so portal visuals change globally for this client; existing portals retain their saved
-lifecycle sound snapshots. Sound selection uses a dedicated acknowledged request that changes only
-sound preferences, independently of placement mode and installed gun modules. The original custom value
-is captured before the first replacement; subsequent edits are committed after server confirmation.
-Snapshots never silently redefine an existing custom backup, and delayed snapshots retain the latest pending choice. Multiplayer servers
-must run a build that supports this sound request together with the client.
+`CUSTOM` preserves the gun's current choice for that field. Animation values also accept
+`OFF`, `RECOIL`, `SWING`, and `LOWER`. Particle sound and detailed recoil tuning remain
+client settings. Recommendations update the held gun after server validation; open
+portals keep the visual and sound choices captured when they opened.
 
-The existing `portalVisualType` and `visuals.gun.animation` remain the custom settings.
-The appearance section also stores the last applied skins and a sound backup per server/save and player;
-these survive restarts and should normally be left to the GUI. File edits refresh visual/animation
-overlays on config reload; updated sound presets are applied at the next skin application or when
-the recommended-sounds switch is re-enabled.
+New guns initialize their presentation from the owner's preferences. Existing guns
+without presentation data migrate their previously effective visual/animation settings
+and saved sounds on first use. Once saved, a gun does not follow later preset edits or
+a different owner's preferences until recommendations are applied again. Legacy client
+visual and animation fields remain readable for migration.
 
 ### Portal placement and behavior
 
@@ -129,8 +117,8 @@ to other players, regardless of the first-person selection. Bucket interactions 
 Tune recoil in the client instance's `config/riftgun-client.toml`. Existing files receive
 the missing defaults automatically. Saving the file uses NeoForge's config reload support;
 the next shot takes the new settings while a shot already playing keeps its captured values.
-The GUI button controls `animation` (`OFF`, `RECOIL`, `SWING`, or `LOWER`), replacing the old
-`recoilEnabled` boolean. Older files without `animation` default to `RECOIL`.
+The GUI button saves the gun's animation mode (`OFF`, `RECOIL`, `SWING`, or `LOWER`).
+The legacy client `animation` field remains an initialization/migration default.
 Changing animation mode stops any incompatible recoil immediately.
 
 ```toml
@@ -156,8 +144,21 @@ vanilla hand renderer; recoil tuning does not affect it.
 - `SURFACE` attaches a portal to the targeted block face and is limited by the gun's surface range.
 - Motion prediction can be disabled or configured from the gun GUI. Projection mode is the default.
 - Standard portals accept players, dropped items, and vehicles. Mob categories require their corresponding transit modules.
-- Portals are bidirectional, preserve vehicle/passenger trees and momentum, and close after the configured duration. A new portal pair closes the owner's old pair.
+- Portals are bidirectional, preserve vehicle/passenger trees and momentum, and close after the configured duration. Each player can keep one Coordinate Travel group and one Portal Pairing group at the same time; replacement is scoped to the selected mode.
 - A standard portal remains fully open for three seconds by default, and its gun can select up to 15 seconds. Duration modules extend that limit, while the Eternal Duration Module removes automatic closure.
+
+Floating placement can create portals below the world's minimum build height. This does
+not protect players from void damage, and surface placement still needs a block face.
+
+Aperture Expansion has three surface-size policies: **Full Support**, **Adaptive**
+(default), and **Prefer Large**. Adaptive keeps exposed vertical two-block support at
+`1×2`, uses `1×1` on the top/bottom of an isolated single block, and otherwise prefers
+`2×2` with overhang. Player-relative placement priority and obstruction fallback remain.
+
+Ordinary vertical portal exits allow collision at a closer exit position (about
+0.41 blocks for a player). If the initial position overlaps blocks, the traveler and
+passengers move upward one block once; no alternate-position search is performed.
+Horizontal exits and projectile placement keep their existing behavior.
 
 Placement is intentionally non-destructive. If no valid entrance geometry can be placed, the action fails instead of modifying the world.
 
@@ -210,7 +211,7 @@ The gun starts with nine module slots. Each Module Bay Expansion adds three slot
 | Hostile Transit | Allows hostile mobs when enabled | 1 |
 | Boss Transit | Allows entities in NeoForge's boss entity tag when enabled | 1 |
 | Surface Range Amplifier | Adds 16 blocks of surface-placement range | 3 |
-| Portal Aperture | Prefers `2×2` portals when clearance and support rules allow | 1 |
+| Portal Aperture | Expands portals; selects Full Support, Adaptive, or Prefer Large surface sizing | 1 |
 | Module Bay Expansion | Adds three module slots | 6 |
 | Player Target | Adds online players as portal destinations | 1 |
 | Duration | Adds 45 seconds to the selectable duration limit | 1 |
@@ -223,6 +224,8 @@ The gun starts with nine module slots. Each Module Bay Expansion adds three slot
 | Precision Placement | Adds a face/orientation radial for exact portal placement | 1 |
 | Portal Pairing | Adds manual A/B endpoint placement and the Coordinate Travel / Portal Pairing function switch | 1 |
 | Zero-Point Fuel | Makes the loaded portal-fluid profile unlimited; supplies Dimensional Portal Fluid behavior when empty | 1 |
+| Skin | Unlocks changing the gun skin; removal preserves the selected skin | 1 |
+| Color | Unlocks a per-gun display RGB override; removal disables it but retains the setting | 1 |
 | Creative | Grants every module function at its configured maximum and unlocks all module slots | 1 |
 
 Module limits and numerical bonuses marked as defaults may be changed by the server configuration. Removing a Reservoir Expansion discards fluid above the reduced capacity. A Module Bay Expansion cannot be removed while slots that depend on it are occupied.
@@ -248,6 +251,10 @@ connects the pair and consumes one ordinary pair charge. Connected endpoints
 use identical normal portal visuals. Replacing either endpoint rebuilds the
 pair, consumes one charge, and resets the shared duration. The dedicated
 endpoint and function-switch keys are unbound by default.
+
+The GUI close action and a short press of the close-portals key close all of the
+player's portals. With a Pairing Module installed, holding that key opens a radial
+selector to close only Coordinate Travel or only Portal Pairing portals.
 
 Pairing does not grant `REMOTE`. Pairing SMART routing falls back to `REMOTE`
 only when the same gun has both the Portal Pairing Module and Remote Module;
@@ -275,13 +282,14 @@ The system first checks whether the traveler can reasonably survive an event, th
 
 ### Visuals, sounds, and shaders
 
-- `Swirl` is the default portal visual; `Classic` is also available.
-- Visual selection and swirl animation settings are client-local, so different players may see the same portal differently.
-- Shot, open/close, and transit sounds can be selected independently. The Rift theme is the default; Ender is also available for transit. Particle sound is off by default.
-- Portal colors and particle effects follow the active fuel.
+- `Swirl` is the default portal visual; Classic, End Frame, and Magic Circle are also available. Magic Circle has configurable rings, runes, and rotation.
+- Portal visual selection, shot animation, and sound choices are saved per gun. Detailed visual and recoil settings remain client-local. Open portals keep their captured presentation.
+- Shot, open/close, and transit sounds can be selected independently, including Arcane sounds and the Stars shot sound. Particle sound is off by default.
+- Portal colors and particles use the active fuel color unless an installed Color Module enables a custom RGB. Its settings support HEX input, a hue wheel, a saturation/value square, and restoring the fuel color. The override never changes fuel identity, consumption, dimensional access, or instability.
+- Portal splash particles retain their original vanilla appearance and lifetime within the registered effect system. See [dynamic particles](docs/dynamic-particles.md).
 - Pending Pairing endpoints use client-rendered, world-oriented white wireframes with colored `I`/`II` strokes. They keep the original portal orientation, use world depth so blocks occlude them, and render as opaque geometry rather than allowing the background to show through.
 - Pairing markers are batched without marker entities or per-marker buffer flushes. Their frame/number geometry stays in world space while the shader expands strokes to a fixed screen-space width, so camera movement cannot rescale the stored marker shape.
-- When a supported shader environment is detected, Rift Gun uses a visible fallback surface and skips the portal surface during shadow passes. Complementary Reimagined and Complementary Unbound r5.x also receive the registered Endframe central-surface path; unregistered packs keep the conservative fallback.
+- When a supported shader environment is detected, Rift Gun uses a visible fallback surface and skips the portal surface during shadow passes. Complementary Reimagined, Complementary Unbound r5.x, and BSL 10.1.x also receive the registered Endframe central-surface path; unregistered packs keep the conservative fallback.
 - LambDynamicLights integration is optional. Without it, portals render normally but do not illuminate nearby blocks.
 
 ### Optional integrations

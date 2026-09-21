@@ -20,7 +20,6 @@ final class ReleaseCandidateIdentitySourceTest {
         assertContains("versions/26.1.2/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java",
             "event.registrar(\"3\")");
         assertContains("README.md", "current development network protocol is `3`");
-        assertContains("docs/release-notes/UNRELEASED.md", "Network protocol: `3`");
     }
 
     @Test
@@ -39,6 +38,12 @@ final class ReleaseCandidateIdentitySourceTest {
             "docs/release-notes/1.21.1-v0.2.0-r1.md")));
         assertFalse(Files.exists(Path.of(
             "docs/release-notes/26.1.2-v0.2.0-r1.md")));
+        for (String version : java.util.List.of("1.21.1", "26.1.2")) {
+            String notes = "docs/release-notes/" + version + "-v0.2.2-r1.md";
+            assertContains(notes, "riftgun-" + version + "-v0.2.2-r1.jar");
+            assertContains(notes, "Network protocol: `3`");
+            assertContains(notes, "Public Addon API: `1.2.0`");
+        }
         assertContains("versions/26.1.2/src/main/resources/META-INF/neoforge.mods.toml",
             "versionRange = \"[29.29.0.76,)\"");
     }
