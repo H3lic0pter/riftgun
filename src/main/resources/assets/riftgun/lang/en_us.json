@@ -22,7 +22,7 @@
   "screen.riftgun.color_reset": "Use Fuel Color",
 
   "screen.riftgun.appearance.recommend.sounds": "Use recommended sounds when Apply: %s",
-  "screen.riftgun.appearance.recommend.portal_visual": "Use recommended sounds when Apply: %s",
+  "screen.riftgun.appearance.recommend.portal_visual": "Use recommended portal visual when applying: %s",
   "screen.riftgun.appearance.recommend.shot_animation": "Use recommended shot animation when Apply: %s",
   "screen.riftgun.appearance.recommend.apply": "Apply current skin's recommended preset",
   "screen.riftgun.shot_animation_settings": "Shot animation",
