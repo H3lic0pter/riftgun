@@ -5,7 +5,7 @@ creates linked, walk-through portals for local and cross-dimensional travel,
 with saved destinations, modular gun upgrades, configurable placement, player
 privacy, three portal-fluid tiers, and per-gun appearances and sound themes.
 
-The project is preparing version 0.2.2-r1 for both supported versions. The 26.1.2 port
+The project is preparing version 0.2.2-r2 for both supported versions. The 26.1.2 port
 is newer and has seen less testing than the 1.21.1 build. Back up worlds
 before updating and expect configuration or save-data migration requirements
 before `1.0.0`.
@@ -20,7 +20,7 @@ before `1.0.0`.
 | JEI (optional) | `19.21.1.248+` | `29.29.0.76+` |
 | LambDynamicLights | `4.8.10+` | `4.11.1+` |
 | JourneyMap (optional) | `1.21.1-6.0.0-beta.1+` | `26.1-6.0.0-beta.1+` |
-| Xaero's Minimap (optional) | `26.4.2` through `26.4.x` | `26.4.2` through `26.4.x` |
+| Xaero's Minimap (optional) | `26.4.2`~`26.5.x` | `26.4.2`~`26.5.x` |
 
 Rift Gun has no required runtime dependency besides NeoForge. LambDynamicLights is
 optional; it adds portal light to nearby blocks on both supported builds.

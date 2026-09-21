@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 final class ReleaseCandidateIdentitySourceTest {
     @Test
     void bothNodesShareTheDevelopmentVersionAndProtocol() throws IOException {
-        assertContains("gradle.properties", "mod_version=0.2.2-r1");
-        assertContains("versions/1.21.1/gradle.properties", "mod_version=0.2.2-r1");
-        assertContains("versions/26.1.2/gradle.properties", "mod_version=0.2.2-r1");
+        assertContains("gradle.properties", "mod_version=0.2.2-r2");
+        assertContains("versions/1.21.1/gradle.properties", "mod_version=0.2.2-r2");
+        assertContains("versions/26.1.2/gradle.properties", "mod_version=0.2.2-r2");
         assertContains("build.gradle.kts", "inputs.properties(metadata)");
         assertContains("versions/1.21.1/src/main/java/dev/riftgun/network/NeoForgeNetworkAdapter.java",
             "event.registrar(\"3\")");
@@ -39,8 +39,8 @@ final class ReleaseCandidateIdentitySourceTest {
         assertFalse(Files.exists(Path.of(
             "docs/release-notes/26.1.2-v0.2.0-r1.md")));
         for (String version : java.util.List.of("1.21.1", "26.1.2")) {
-            String notes = "docs/release-notes/" + version + "-v0.2.2-r1.md";
-            assertContains(notes, "riftgun-" + version + "-v0.2.2-r1.jar");
+            String notes = "docs/release-notes/" + version + "-v0.2.2-r2.md";
+            assertContains(notes, "riftgun-" + version + "-v0.2.2-r2.jar");
             assertContains(notes, "Network protocol: `3`");
             assertContains(notes, "Public Addon API: `1.2.0`");
         }
